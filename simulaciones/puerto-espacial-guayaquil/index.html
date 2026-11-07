@@ -1,0 +1,2004 @@
+<meta charset="utf-8">
+<title>Puerto Espacial Guayaquil</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: lienzo 3D a pantalla completa; instrumentos de sala de control flotando encima
+   (reloj de misión arriba, telemetría a la izquierda, eventos a la derecha, control del tiempo abajo).
+   Mismo sistema visual que «Órbita · Sistema Solar 3D». */
+:root{
+  color-scheme:dark;
+  --void:#04060c;
+  --panel:rgba(10,14,24,.84);
+  --panel-solid:#0b101b;
+  --line:#1e2940;
+  --line-strong:#2d3c5a;
+  --ink:#e8ecf4;
+  --dim:#8d99b0;
+  --faint:#5c6884;
+  --sol:#ffb547;
+  --sol-ink:#1a1206;
+  --craft:#6fd3ff;
+  --comet:#b9a6ff;
+  --ok:#7ee2a8;
+  --warn:#ffcf6b;
+  --hot:#ff7a45;
+  --f-display:"Jost","Futura","Century Gothic","Avenir Next",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --gutL:max(16px,env(safe-area-inset-left,0px));
+  --gutR:max(16px,env(safe-area-inset-right,0px));
+  --top:calc(env(safe-area-inset-top,0px) + 14px);
+  --bot:calc(env(safe-area-inset-bottom,0px) + 12px);
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--void);color:var(--ink);overflow:hidden}
+body{font-family:var(--f-body);font-size:14px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#app{position:fixed;inset:0;overflow:hidden;background:var(--void)}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl.dragging{cursor:grabbing}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+.panel{background:var(--panel);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.kind{font:600 10.5px/1 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;white-space:nowrap;font:500 12px/1 var(--f-display);letter-spacing:.02em;color:var(--ink);padding:3px 6px;border-radius:4px;background:rgba(4,6,12,.55);will-change:transform}
+.lbl.k-place{font-size:11px;color:#cfd8ea;background:rgba(4,6,12,.45)}
+.lbl.k-veh{color:var(--sol);font-weight:600}
+.lbl.k-moon{color:#dfe3ea}
+.lbl.k-site{color:var(--craft)}
+.lbl.k-booster{color:var(--craft);font-size:11px}
+
+/* cabecera */
+#hud{position:absolute;top:var(--top);left:var(--gutL);display:flex;align-items:flex-start;gap:12px;pointer-events:none;max-width:calc(100% - 32px)}
+#clock{pointer-events:auto;padding:10px 14px 11px;min-width:0}
+#mclock{font:600 28px/1 var(--f-display);letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
+#mclock .neg{color:var(--warn)}
+#clock-sub{display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;font:500 10.5px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;padding:4px 8px;border-radius:99px;border:1px solid var(--line-strong);color:var(--dim);white-space:nowrap}
+.chip i{width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block}
+.chip.burn i{background:var(--hot);box-shadow:0 0 8px var(--hot)}
+.brand{display:flex;flex-direction:column;gap:3px;padding-top:4px}
+.brand b{font:700 12px/1 var(--f-display);letter-spacing:.3em;text-transform:uppercase;color:var(--sol)}
+.brand span{font:500 11px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.hudbtn{pointer-events:auto;display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:99px;border:1px solid var(--line-strong);background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font:600 12px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.hudbtn svg{width:18px;height:18px;color:var(--sol);flex:none}
+.hudbtn:hover{border-color:var(--sol)}
+
+/* cámaras */
+#cams{position:absolute;top:var(--top);right:var(--gutR);display:flex;gap:4px;padding:4px;border-radius:12px}
+#cams button{border:0;background:none;padding:8px 11px;border-radius:9px;font:600 11px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+#cams button:hover{color:var(--ink)}
+#cams button[aria-pressed="true"]{background:rgba(255,181,71,.16);color:var(--sol)}
+#cams .sep{width:1px;background:var(--line);margin:4px 2px}
+#cam-select{display:none}
+
+/* telemetría */
+#tele{position:absolute;left:var(--gutL);top:calc(var(--top) + 92px);bottom:calc(var(--bot) + 134px);width:300px;display:flex;flex-direction:column;overflow:hidden}
+.tele-scroll{overflow-y:auto;padding:14px 14px 14px;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent;display:flex;flex-direction:column;gap:14px}
+.tele-scroll>*{flex:none}
+.tele-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.tele-head b{font:600 15px/1.2 var(--f-display);text-align:right}
+.bigs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{display:flex;flex-direction:column;gap:3px;padding:10px 10px 9px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid var(--line);min-width:0}
+.big span{font:600 10px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.big b{font:600 25px/1.05 var(--f-data);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.big em{font:500 11px/1 var(--f-display);font-style:normal;color:var(--dim);letter-spacing:.06em}
+.big small{font-size:10.5px;color:var(--faint);line-height:1.3}
+.grid{display:grid;grid-template-columns:1fr auto;margin:0;border-top:1px solid var(--line)}
+.grid dt,.grid dd{margin:0;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.grid dt{color:var(--dim)}
+.grid dd{font:500 12.5px/1.45 var(--f-data);text-align:right;font-variant-numeric:tabular-nums;padding-left:10px;white-space:nowrap}
+.props{display:flex;flex-direction:column;gap:7px}
+.prop{display:grid;grid-template-columns:72px 1fr 64px;align-items:center;gap:8px;font-size:11.5px}
+.prop span{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;position:relative}
+.prop .bar i{position:absolute;inset:0 auto 0 0;width:100%;background:var(--sol);border-radius:4px;transition:width .1s linear}
+.prop.on .bar i{background:linear-gradient(90deg,var(--sol),var(--hot))}
+.prop.gone .bar i{background:var(--faint)}
+.prop.ok .bar i{background:var(--ok)}
+.prop b{font:500 11px/1 var(--f-data);text-align:right;color:var(--dim);white-space:nowrap}
+.sect{display:flex;flex-direction:column;gap:8px}
+.chartwrap{position:relative}
+#chart{width:100%;height:130px;display:block}
+.legend{display:flex;gap:12px;font:500 11px/1 var(--f-display);letter-spacing:.06em;color:var(--dim);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+#booster-line{font:400 11.5px/1.4 var(--f-data);color:var(--craft);min-height:16px}
+
+/* eventos */
+#side{position:absolute;right:var(--gutR);top:calc(var(--top) + 58px);bottom:calc(var(--bot) + 134px);width:330px;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
+.tabs button{flex:1;background:none;border:0;padding:12px 4px 11px;font:600 10.5px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--sol)}
+.tabpane{overflow-y:auto;padding:6px 10px 14px;flex:1;min-height:0;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.ev{display:grid;grid-template-columns:62px 1fr;gap:2px 10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:9px 6px;color:var(--ink)}
+.ev:hover{background:rgba(255,255,255,.04)}
+.ev .tm{grid-row:span 3;font:500 12px/1.3 var(--f-data);color:var(--faint);font-variant-numeric:tabular-nums;padding-top:1px}
+.ev .tt{font-weight:600;line-height:1.25;font-size:13px}
+.ev .ds{font-size:12px;color:var(--dim);line-height:1.4}
+.ev .ref{font:500 10.5px/1.3 var(--f-data);color:var(--comet)}
+.ev.past .tm{color:var(--sol)}
+.ev.past .tt{color:var(--ink)}
+.ev.future .tt{color:#b9c2d3}
+.ev.now{background:rgba(255,181,71,.09)}
+.ev.now .tm{color:var(--sol)}
+.note{margin:12px 6px 0;font-size:12.5px;color:var(--dim);line-height:1.55}
+.note b{color:var(--ink);font-weight:600}
+.note h4{margin:16px 0 4px;font:600 13px/1.3 var(--f-display);letter-spacing:.02em;color:var(--ink)}
+.note h4:first-child{margin-top:4px}
+.note a{color:var(--craft)}
+.spec{display:grid;grid-template-columns:1fr auto;margin:6px 6px 0;border-top:1px solid var(--line)}
+.spec dt,.spec dd{margin:0;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.spec dt{color:var(--dim)}
+.spec dd{font:500 12px/1.45 var(--f-data);text-align:right;padding-left:10px}
+
+/* dock */
+#dock{position:absolute;left:50%;transform:translateX(-50%);bottom:var(--bot);width:min(900px,calc(100% - 32px));padding:10px 12px 10px;display:flex;flex-direction:column;gap:8px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tbtn{height:38px;min-width:38px;padding:0 12px;border-radius:10px;border:1px solid var(--line-strong);background:rgba(255,255,255,.03);display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 12px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.tbtn:hover{border-color:var(--dim)}
+.tbtn svg{width:16px;height:16px}
+#play{background:var(--sol);border-color:var(--sol);color:var(--sol-ink);min-width:110px}
+#speed{height:38px;border-radius:10px;border:1px solid var(--line-strong);background:var(--panel-solid);padding:0 28px 0 10px;font:500 13px/1 var(--f-data)}
+.tog{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);cursor:pointer;white-space:nowrap}
+.tog input{accent-color:var(--sol);width:16px;height:16px;margin:0}
+.spacer{flex:1}
+#rate-note{font:400 12px/1.2 var(--f-data);color:var(--dim);white-space:nowrap}
+.scrub{position:relative;height:30px}
+#scrub{position:absolute;inset:6px 0 auto 0;width:100%;margin:0;accent-color:var(--sol);height:18px;background:transparent}
+#ticks{position:absolute;left:0;right:0;top:0;height:6px;pointer-events:none}
+#ticks i{position:absolute;top:0;width:2px;height:6px;border-radius:1px;background:var(--faint);transform:translateX(-1px)}
+#ticks i.past{background:var(--sol)}
+.seglabels{position:relative;height:12px;font:500 10px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.seglabels span{position:absolute;top:0;white-space:nowrap}
+.mob{display:none}
+
+/* simulaciones */
+#sims{position:absolute;inset:0;z-index:30;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) var(--gutR) max(16px,env(safe-area-inset-bottom,0px)) var(--gutL);background:rgba(2,4,9,.66);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.simcard{width:min(640px,100%);max-height:100%;overflow-y:auto;background:var(--panel-solid);padding:20px 20px 20px;position:relative}
+.simcard h2{margin:6px 0 4px;font:600 28px/1.1 var(--f-display);text-wrap:balance}
+.simcard>p{margin:0 0 16px;color:var(--dim);max-width:60ch}
+.btn-back{display:inline-flex;padding:9px 14px;border-radius:99px;border:1px solid var(--line-strong);color:var(--ink);text-decoration:none;font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase}
+.btn-back:hover{border-color:var(--sol)}
+.simcard .close{position:absolute;right:12px;top:12px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--dim);font-size:18px;line-height:1}
+.simlist{display:flex;flex-direction:column;gap:10px}
+.simitem{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:start;width:100%;text-align:left;padding:14px;border-radius:12px;border:1px solid var(--line-strong);background:linear-gradient(135deg,rgba(255,181,71,.12),rgba(255,181,71,.02));color:var(--ink)}
+.simitem:hover{border-color:var(--sol)}
+.simitem .num{grid-row:span 3;font:600 22px/1 var(--f-display);color:var(--sol);font-variant-numeric:tabular-nums;padding-top:2px}
+.simitem b{font:600 16px/1.25 var(--f-display)}
+.simitem span{font-size:12.5px;color:var(--dim);line-height:1.45}
+.simitem .st{font:600 10px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ok)}
+.simitem.empty{background:none;border-style:dashed;cursor:default}
+.simitem.empty .num{color:var(--faint)}
+.simitem.empty .st{color:var(--faint)}
+
+#toast{position:absolute;left:50%;top:calc(var(--top) + 6px);transform:translate(-50%,-8px);max-width:min(460px,calc(100% - 32px));padding:11px 16px;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;text-align:center;z-index:5}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast b{display:block;font:600 15px/1.25 var(--f-display);margin-bottom:2px}
+#toast span{font-size:12.5px;color:var(--dim)}
+#bigplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+#bigplay button{pointer-events:auto;display:inline-flex;align-items:center;gap:10px;padding:16px 26px;border-radius:99px;border:0;background:var(--sol);color:var(--sol-ink);font:600 15px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;box-shadow:0 0 0 8px rgba(255,181,71,.16),0 20px 50px rgba(0,0,0,.5)}
+#bigplay button svg{width:18px;height:18px}
+#bigplay span{font-size:12.5px;color:#d7deea;background:rgba(4,6,12,.6);padding:5px 10px;border-radius:6px;text-align:center;max-width:300px}
+
+#loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--void);z-index:40;transition:opacity .6s}
+#loading.done{opacity:0;pointer-events:none}
+#loading div{text-align:center}
+#loading b{display:block;font:700 13px/1 var(--f-display);letter-spacing:.4em;text-transform:uppercase;color:var(--sol)}
+#loading span{display:block;margin-top:10px;color:var(--dim);font-size:13px}
+
+@media (max-width:1400px){.brand{display:none}}
+@media (max-width:1100px){
+  #cams button{padding:8px 8px}
+  #side{width:290px}
+  #tele{width:270px}
+}
+@media (max-width:900px){
+  .brand{display:none}
+  #cams{display:none}
+  #cam-select{display:inline-block;height:38px;border-radius:10px;border:1px solid var(--line-strong);background:var(--panel-solid);padding:0 26px 0 10px;font:500 12.5px/1 var(--f-display)}
+  #tele,#side{top:auto;bottom:calc(var(--bot) + 168px);max-height:min(56vh,520px);left:var(--gutL);right:var(--gutR);width:auto;z-index:4}
+  #tele:not(.open),#side:not(.open){display:none}
+  .mob{display:inline-flex}
+  #rate-note{display:none}
+  #mclock{font-size:22px}
+}
+@media (max-width:560px){
+  #sims-btn span{display:none}
+  #sims-btn{padding:10px}
+  .bigs .big b{font-size:21px}
+  #play{min-width:0}
+  #play span{display:none}
+  .seglabels{display:none}
+}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+
+<div id="app">
+  <canvas id="gl" aria-label="Simulación 3D del lanzamiento de un Falcon Heavy desde Guayaquil hasta la Luna"></canvas>
+  <div id="labels"></div>
+
+  <header id="hud">
+    <div id="clock" class="panel">
+      <div id="mclock">T−00:00:10</div>
+      <div id="clock-sub"><span id="phase" class="chip"><i></i><em style="font-style:normal">En plataforma</em></span><span class="chip" id="mini">0 km · 0 km/h</span></div>
+    </div>
+    <div class="brand"><b>Simulaciones</b><span>Puerto Espacial Guayaquil</span></div>
+    <button id="sims-btn" class="hudbtn" type="button" title="Ver todas las simulaciones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2.5 4.5 6 4.5 10.5L12 17l-4.5-4.5C7.5 8 9 4.5 12 2z"/><circle cx="12" cy="9" r="1.6"/><path d="M7.5 12.5 5 15l2 2M16.5 12.5 19 15l-2 2M10 19.5l2 2.5 2-2.5"/></svg>
+      <span>Simulaciones</span></button>
+  </header>
+
+  <nav id="cams" class="panel" aria-label="Cámara">
+    <button type="button" data-cam="auto" aria-pressed="true" title="La cámara cambia sola según la fase (tecla 0)">Auto</button>
+    <span class="sep"></span>
+    <button type="button" data-cam="cohete" aria-pressed="false" title="Sigue al cohete (1)">Cohete</button>
+    <button type="button" data-cam="malecon" aria-pressed="false" title="Vista desde el Malecón 2000 (2)">Malecón</button>
+    <button type="button" data-cam="tierra" aria-pressed="false" title="La Tierra y la órbita (3)">Tierra</button>
+    <button type="button" data-cam="tierraluna" aria-pressed="false" title="Todo el viaje (4)">Tierra–Luna</button>
+    <button type="button" data-cam="luna" aria-pressed="false" title="Llegada a la Luna (5)">Luna</button>
+  </nav>
+
+  <aside id="tele" class="panel" aria-label="Telemetría">
+    <div class="tele-scroll">
+      <div class="tele-head"><span class="kind">Telemetría</span><b id="veh-name">Falcon Heavy</b></div>
+      <div class="bigs">
+        <div class="big"><span>Velocidad</span><b id="v-speed">0</b><em>km/h</em><small id="v-speed-ref">respecto al suelo</small></div>
+        <div class="big"><span id="v-alt-lbl">Altitud</span><b id="v-alt">0,0</b><em>km</em><small id="v-alt-ref">sobre el nivel del mar</small></div>
+      </div>
+      <dl class="grid" id="tgrid"></dl>
+      <div class="sect">
+        <span class="kind">Propelente</span>
+        <div class="props" id="props"></div>
+      </div>
+      <div id="booster-line"></div>
+      <div class="sect chartwrap">
+        <span class="kind" id="chart-title">Ascenso</span>
+        <canvas id="chart" aria-label="Gráfico de telemetría"></canvas>
+        <div class="legend" id="chart-legend"></div>
+      </div>
+    </div>
+  </aside>
+
+  <aside id="side" class="panel" aria-label="Eventos e información">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" data-pane="pane-ev">Eventos</button>
+      <button type="button" role="tab" aria-selected="false" data-pane="pane-real">¿Es realista?</button>
+      <button type="button" role="tab" aria-selected="false" data-pane="pane-veh">El cohete</button>
+    </div>
+    <div class="tabpane" id="pane-ev" role="tabpanel"></div>
+    <div class="tabpane" id="pane-real" role="tabpanel" hidden></div>
+    <div class="tabpane" id="pane-veh" role="tabpanel" hidden></div>
+  </aside>
+
+  <footer id="dock" class="panel">
+    <div class="row">
+      <button class="tbtn" id="restart" type="button" title="Volver a T−10 s" aria-label="Reiniciar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button>
+      <button class="tbtn" id="play" type="button" title="Reproducir o pausar (Espacio)"><svg id="play-ico" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg><span id="play-txt">Lanzar</span></button>
+      <select id="speed" aria-label="Velocidad del tiempo"></select>
+      <label class="tog" title="Acelera el tiempo en los tramos largos del viaje"><input type="checkbox" id="autorate" checked><span>Auto</span></label>
+      <span id="rate-note"></span>
+      <span class="spacer"></span>
+      <select id="cam-select" aria-label="Cámara">
+        <option value="auto">Cámara: auto</option><option value="cohete">Cohete</option><option value="malecon">Malecón</option><option value="tierra">Tierra</option><option value="tierraluna">Tierra–Luna</option><option value="luna">Luna</option>
+      </select>
+      <button class="tbtn mob" id="tele-btn" type="button" aria-expanded="false" aria-controls="tele">Datos</button>
+      <button class="tbtn mob" id="side-btn" type="button" aria-expanded="false" aria-controls="side">Eventos</button>
+    </div>
+    <div class="scrub"><div id="ticks"></div><input type="range" id="scrub" min="0" max="100000" step="1" aria-label="Línea de tiempo de la misión"></div>
+    <div class="seglabels" id="seglabels"></div>
+  </footer>
+
+  <div id="bigplay"><button type="button" id="bigplay-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>Iniciar cuenta regresiva</button><span>Arrastra para girar la cámara · rueda o pellizco para acercar</span></div>
+
+  <div id="sims" hidden>
+    <div class="simcard panel" role="dialog" aria-modal="true" aria-labelledby="sims-title">
+      <button class="close" id="sims-close" type="button" aria-label="Cerrar">×</button>
+      <span class="kind">Casos hipotéticos con física real</span>
+      <h2 id="sims-title">Simulaciones</h2>
+      <p>Cada simulación cambia una sola cosa del mundo real y deja que las leyes de la física hagan el resto. Elige una para abrirla.</p>
+      <p><a class="btn-back" href="../../">← Volver al sistema solar</a></p>
+      <div class="simlist">
+        <button type="button" class="simitem" id="sim-1">
+          <span class="num">01</span>
+          <span class="st">Abierta ahora</span>
+          <b>Puerto espacial en Guayaquil: Falcon Heavy a la Luna</b>
+          <span>Despegue desde Puerto Santa Ana, regreso de los laterales al río Guayas, órbita de estacionamiento, inyección translunar y llegada a la órbita lunar.</span>
+        </button>
+        <div class="simitem empty">
+          <span class="num">02</span>
+          <span class="st">Próxima</span>
+          <b>Aquí irá el siguiente caso hipotético</b>
+          <span>Las nuevas simulaciones se irán sumando a esta lista.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="panel" role="status"><b id="t-title"></b><span id="t-sub"></span></div>
+  <div id="loading"><div><b>Simulaciones</b><span id="load-msg">Calculando la trayectoria…</span></div></div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+<script id="tex-earth" type="text/plain">tierra.jpg</script>
+<script id="tex-ecu" type="text/plain">ecuador.jpg</script>
+<script>
+// ===== Física de la misión (SI). Plano inercial 2D: x hacia el sitio en T=0, y hacia el este =====
+const G0 = 9.80665;
+const MU_E = 3.986004418e14, R_E = 6378137, W_E = 7.2921159e-5;
+const MU_M = 4.9048695e12, R_M = 1737400, A_M = 384400e3;
+const N_M = Math.sqrt((MU_E + MU_M) / (A_M ** 3));
+const SITE = { lat: -2.1833, lon: -79.8766 }; // Puerto Santa Ana, Guayaquil
+const W_EFF = W_E * Math.cos(SITE.lat * Math.PI / 180);
+
+const RHO_T = [[0,1.225],[5,0.7364],[10,0.4135],[15,0.1948],[20,0.08891],[25,0.04008],[30,0.01841],[40,0.003996],[50,0.001027],[60,3.097e-4],[70,8.283e-5],[80,1.846e-5],[90,3.416e-6],[100,5.604e-7],[120,2.2e-8],[150,2.07e-9],[200,2.5e-10],[300,1.9e-11]];
+const PRES_T = [[0,101325],[5,54048],[10,26500],[15,12111],[20,5529],[25,2549],[30,1197],[40,287],[50,79.8],[60,21.9],[70,5.2],[80,1.05],[90,0.18],[100,0.032],[120,0.0025],[150,4.5e-4],[300,1e-6]];
+const SOUND_T = [[0,340],[11,295],[20,295],[32,303],[47,329],[51,329],[71,293],[86,275],[300,275]];
+function logInterp(tab, hkm) {
+  if (hkm <= tab[0][0]) return tab[0][1];
+  for (let i = 1; i < tab.length; i++) if (hkm <= tab[i][0]) {
+    const a = tab[i - 1], b = tab[i], f = (hkm - a[0]) / (b[0] - a[0]);
+    return Math.exp(Math.log(a[1]) + f * (Math.log(b[1]) - Math.log(a[1])));
+  }
+  return 0;
+}
+function linInterp(tab, hkm) {
+  if (hkm <= tab[0][0]) return tab[0][1];
+  for (let i = 1; i < tab.length; i++) if (hkm <= tab[i][0]) {
+    const a = tab[i - 1], b = tab[i];
+    return a[1] + (b[1] - a[1]) * (hkm - a[0]) / (b[0] - a[0]);
+  }
+  return tab[tab.length - 1][1];
+}
+const rhoAt = h => h > 300e3 ? 0 : logInterp(RHO_T, h / 1000);
+const presAt = h => h > 300e3 ? 0 : logInterp(PRES_T, h / 1000);
+const soundAt = h => linInterp(SOUND_T, h / 1000);
+function cdMach(M) {
+  if (M < 0.8) return 0.30;
+  if (M < 1.1) return 0.30 + (M - 0.8) / 0.3 * 0.22;
+  if (M < 1.5) return 0.52 - (M - 1.1) / 0.4 * 0.12;
+  if (M < 4) return 0.40 - (M - 1.5) / 2.5 * 0.15;
+  return 0.25;
+}
+
+// Vehículo: valores públicos aproximados de Falcon Heavy (Bloque 5)
+const VEH = {
+  merlin: { fvac: 914e3, fsl: 845e3, isp: 311 },
+  mvac: { f: 981e3, isp: 348 },
+  side: { dry: 25600, prop: 405000, reserve: 75000 },
+  core: { dry: 28000, prop: 405000, residual: 2500 },
+  s2: { dry: 4000, prop: 107500 },
+  fairing: 1900,
+  payload: 13000,
+  probe: { prop: 3900, isp: 320 },
+};
+const MDOT_M = VEH.merlin.fvac / (VEH.merlin.isp * G0);
+const AEP0 = VEH.merlin.fvac - VEH.merlin.fsl;
+const MDOT_S2 = VEH.mvac.f / (VEH.mvac.isp * G0);
+const merlinF = (n, thr, h) => n * (thr * VEH.merlin.fvac - AEP0 * presAt(h) / 101325);
+
+const H_PARK = 200e3, PITCH_END = 15, PITCH_EXP = 0.5, PITCH_T = 200, CORE_THR = 0.55;
+const COAST = 1500, R_TLI = 395000e3;
+const LZ = { x1: 350, x2: 750, z: -1100, mid: 550 };
+
+function simAscent() {
+  const dt = 0.05;
+  let t = 0, x = R_E + 8, y = 0, vx = 0, vy = W_EFF * (R_E + 8);
+  let sideProp = VEH.side.prop, coreProp = VEH.core.prop, s2Prop = VEH.s2.prop;
+  let stage = 'FH', coreThr = 1, sideThr = 1, fairing = true;
+  const ev = {};
+  const S = [{ t: 0, x, y, vx, vy, h: 8, vrel: 0, q: 0, M: 0, a: 1, F: merlinF(27, 1, 0), m: 0, stage, sideProp, coreProp, s2Prop, coreThr: 1, sideThr: 1, s2Thr: 0, fairing, pitch: 90 }];
+  let maxQ = 0, tMaxQ = 0, aCur = 0, sep1 = null, sep2 = null, pitchDeg = 90, karman = null;
+  function mass() {
+    let m = VEH.s2.dry + s2Prop + VEH.payload + (fairing ? VEH.fairing : 0);
+    if (stage === 'FH' || stage === 'CORE' || stage === 'COAST1' && ev.stageSep == null) m += VEH.core.dry + coreProp;
+    if (stage === 'FH') m += 2 * (VEH.side.dry + sideProp);
+    return m;
+  }
+  let done = false;
+  while (!done && t < 900) {
+    const r = Math.hypot(x, y), h = r - R_E;
+    const ur = [x / r, y / r], ut = [-y / r, x / r];
+    const vax = vx + W_EFF * y, vay = vy - W_EFF * x;
+    const vrel = Math.hypot(vax, vay);
+    const vr = vx * ur[0] + vy * ur[1], vt = vx * ut[0] + vy * ut[1];
+    const M = vrel / soundAt(h); const q = 0.5 * rhoAt(h) * vrel * vrel;
+    if (q > maxQ) { maxQ = q; tMaxQ = t; }
+    if (karman == null && h >= 100e3) karman = t;
+    let F = 0;
+    if (stage === 'FH') {
+      coreThr = t < 30 ? 1 : t < 40 ? 1 - (1 - CORE_THR) * (t - 30) / 10 : CORE_THR;
+      if (ev.beco == null) sideThr = (t > 34 && t < 74) ? 0.72 : 1;
+      F = merlinF(18, sideThr, h) * (ev.beco == null ? 1 : 0) + merlinF(9, coreThr, h);
+      if (ev.beco == null) sideProp -= 9 * MDOT_M * sideThr * dt;
+      coreProp -= 9 * MDOT_M * coreThr * dt;
+      if (sideProp <= VEH.side.reserve && ev.beco == null) { ev.beco = t; sideThr = 0; }
+      if (ev.beco != null && t >= ev.beco + 4) { stage = 'CORE'; ev.sideSep = t; sep1 = { t, x, y, vx, vy }; }
+    } else if (stage === 'CORE') {
+      coreThr = Math.min(1, coreThr + dt / 4);
+      F = merlinF(9, coreThr, h);
+      coreProp -= 9 * MDOT_M * coreThr * dt;
+      if (coreProp <= VEH.core.residual) { ev.meco = t; stage = 'COAST1'; F = 0; coreThr = 0; }
+    } else if (stage === 'COAST1') {
+      if (ev.stageSep == null && t >= ev.meco + 3) { ev.stageSep = t; sep2 = { t, x, y, vx, vy }; }
+      if (t >= ev.meco + 11) { stage = 'S2'; ev.ses1 = t; }
+    } else if (stage === 'S2') {
+      F = VEH.mvac.f; s2Prop -= MDOT_S2 * dt;
+      if (fairing && h > 112e3) { fairing = false; ev.fairing = t; }
+    }
+    const m = mass();
+    let dir;
+    if (stage === 'S2') {
+      const g = MU_E / (r * r), w = 0.016, Kp = w * w, Kd = 2 * w;
+      const ar = g - vt * vt / r + Kp * (H_PARK - h) - Kd * vr;
+      const s = Math.max(-0.35, Math.min(0.85, ar / (F / m)));
+      const c = Math.sqrt(1 - s * s);
+      dir = [s * ur[0] + c * ut[0], s * ur[1] + c * ut[1]];
+      pitchDeg = Math.asin(s) * 180 / Math.PI;
+    } else if (t < 8) {
+      dir = ur; pitchDeg = 90;
+    } else {
+      const f = Math.min(1, (t - 8) / (PITCH_T - 8));
+      const th = (90 - (90 - PITCH_END) * Math.pow(f, PITCH_EXP)) * Math.PI / 180;
+      dir = [Math.sin(th) * ur[0] + Math.cos(th) * ut[0], Math.sin(th) * ur[1] + Math.cos(th) * ut[1]];
+      pitchDeg = th * 180 / Math.PI;
+    }
+    const A = stage === 'FH' ? 31.6 : 21.2;
+    const D = q * cdMach(M) * A;
+    const dx = vrel > 0 ? D / m * vax / vrel : 0, dy = vrel > 0 ? D / m * vay / vrel : 0;
+    const ax = F / m * dir[0] - MU_E * x / r ** 3 - dx;
+    const ay = F / m * dir[1] - MU_E * y / r ** 3 - dy;
+    aCur = Math.hypot(F / m * dir[0] - dx, F / m * dir[1] - dy);
+    vx += ax * dt; vy += ay * dt; x += vx * dt; y += vy * dt;
+    t += dt;
+    if (Math.round(t / dt) % 10 === 0) {
+      S.push({ t: Math.round(t * 100) / 100, x, y, vx, vy, h, vrel, q, M, a: aCur / G0, F, m, stage, sideProp, coreProp, s2Prop, coreThr: stage === 'FH' || stage === 'CORE' ? coreThr : 0, sideThr: stage === 'FH' && ev.beco == null ? sideThr : 0, s2Thr: stage === 'S2' ? 1 : 0, fairing, pitch: pitchDeg });
+    }
+    if (stage === 'S2') {
+      const E = (vx * vx + vy * vy) / 2 - MU_E / r;
+      if (E >= -MU_E / (2 * (R_E + H_PARK))) { ev.seco1 = t; done = true; }
+      if (s2Prop <= 0) { ev.seco1 = t; done = true; }
+    }
+  }
+  const last = S[S.length - 1];
+  return { ev, tMaxQ, maxQ, karman, S, sep1, sep2, final: { t, x, y, vx, vy }, s2Prop: last.s2Prop };
+}
+
+// Laterales: regreso al sitio de lanzamiento (marco fijo al suelo, Tierra plana con curvatura en la gravedad)
+function simBooster(sep, xT) {
+  const r0 = Math.hypot(sep.x, sep.y), ur = [sep.x / r0, sep.y / r0], ut = [-ur[1], ur[0]];
+  let x = R_E * Math.atan2(sep.y, sep.x) - R_E * W_EFF * sep.t, h = r0 - R_E;
+  let vx = (sep.vx * ut[0] + sep.vy * ut[1]) - W_EFF * r0, vh = sep.vx * ur[0] + sep.vy * ur[1];
+  let prop = VEH.side.reserve, t = sep.t, phase = 'coast', thr = 0, entryV = 0;
+  const ev = {}, out = [], dt = 0.05;
+  for (let i = 0; i < 40000; i++) {
+    const m = VEH.side.dry + Math.max(prop, 300), g = MU_E / (R_E + h) ** 2 - vx * vx / (R_E + h);
+    const v = Math.hypot(vx, vh), q = 0.5 * rhoAt(h) * v * v;
+    let ax = 0, ah = -g;
+    const D = q * 1.1 * 10.5; if (v > 0) { ax -= D / m * vx / v; ah -= D / m * vh / v; }
+    const Fv = n => n * (VEH.merlin.fvac - AEP0 * presAt(h) / 101325);
+    thr = 0;
+    if (phase === 'coast' && t >= sep.t + 17) { phase = 'boostback'; ev.boostback = t; }
+    if (phase === 'boostback') {
+      const F = Fv(3); ax += -F / m * Math.cos(0.05); ah += F / m * Math.sin(0.05); prop -= 3 * MDOT_M * dt; thr = 3;
+      const tf = (vh + Math.sqrt(Math.max(0, vh * vh + 2 * 9.5 * h))) / 9.5;
+      if (x + vx * tf <= xT) { phase = 'ballistic'; ev.boostbackEnd = t; }
+    }
+    if (phase === 'ballistic' && vh < 0 && h < 54e3) { phase = 'entry'; ev.entry = t; entryV = v; }
+    if (phase === 'entry') {
+      const F = Fv(3); ax -= F / m * vx / v; ah -= F / m * vh / v; prop -= 3 * MDOT_M * dt; thr = 3;
+      if (v < entryV * 0.72 || t > ev.entry + 20) { phase = 'descent'; ev.entryEnd = t; }
+    }
+    if ((phase === 'descent' || phase === 'ballistic') && h < 60e3) ax += Math.max(-14, Math.min(14, -0.004 * (x - xT) - 0.12 * vx));
+    if (phase === 'descent') { const aL = Fv(1) / m; if (h < 4.5e3 && h <= v * v / (2 * (0.92 * aL - 9.8))) { phase = 'landing'; ev.landingBurn = t; } }
+    if (phase === 'landing') {
+      const aL = Fv(1) / m, hh = Math.max(h, 0.5);
+      let areq, axreq;
+      if (vh < -2) { areq = vh * vh / (2 * hh) + 9.8; const tgo = 2 * hh / Math.abs(vh); axreq = -vx / Math.max(tgo, 1) - (x - xT) * 0.01; }
+      else { areq = 9.8 + (-2 - vh) * 1.5; axreq = -vx * 0.8; }
+      const mag = Math.hypot(areq, axreq), th = Math.min(1, Math.max(0, mag / aL)), k = aL * th / mag;
+      ah += areq * k; ax += axreq * k; prop -= MDOT_M * th * dt; thr = th;
+      if (h <= 0.3) { ev.landing = t; out.push([Math.round(t * 100) / 100, x, 0, 0, 0, 0, 5]); break; }
+    }
+    vx += ax * dt; vh += ah * dt; x += vx * dt; h += vh * dt; t += dt;
+    if (h < 0 && phase !== 'landing') { ev.landing = t; break; }
+    const pc = { coast: 0, boostback: 1, ballistic: 2, entry: 3, descent: 2, landing: 4 }[phase];
+    if (i % 5 === 0) out.push([Math.round(t * 100) / 100, x, h, vx, vh, thr, pc]);
+  }
+  return { ev, out };
+}
+
+// Núcleo central: descartado, vuelo balístico con arrastre en marco inercial
+function simCore(sep) {
+  let x = sep.x, y = sep.y, vx = sep.vx, vy = sep.vy, t = sep.t;
+  const out = [], m = VEH.core.dry + VEH.core.residual, dt = 0.2;
+  let maxH = 0, impact = null;
+  for (let i = 0; i < 60000; i++) {
+    const r = Math.hypot(x, y), h = r - R_E;
+    if (h > maxH) maxH = h;
+    const vax = vx + W_EFF * y, vay = vy - W_EFF * x, vrel = Math.hypot(vax, vay);
+    const q = 0.5 * rhoAt(h) * vrel * vrel, D = q * 0.9 * 10.5;
+    const ax = -MU_E * x / r ** 3 - D / m * vax / vrel, ay = -MU_E * y / r ** 3 - D / m * vay / vrel;
+    vx += ax * dt; vy += ay * dt; x += vx * dt; y += vy * dt; t += dt;
+    if (i % 10 === 0) out.push([Math.round(t * 100) / 100, x, y]);
+    if (h <= 0) { impact = t; out.push([t, x, y]); break; }
+  }
+  const ang = Math.atan2(y, x) - W_EFF * impact;
+  return { out, impact, maxH, downrange: R_E * ang };
+}
+
+// Tierra + Luna (órbita circular de la Luna en el mismo plano)
+function moonPos(t, th0) { const a = th0 + N_M * t; return [A_M * Math.cos(a), A_M * Math.sin(a)]; }
+function moonVel(t, th0) { const a = th0 + N_M * t; return [-A_M * N_M * Math.sin(a), A_M * N_M * Math.cos(a)]; }
+function accel3(t, x, y, th0, ax0, ay0) {
+  const r3 = Math.pow(x * x + y * y, 1.5);
+  const mp = moonPos(t, th0);
+  const dx = x - mp[0], dy = y - mp[1], d3 = Math.pow(dx * dx + dy * dy, 1.5);
+  const m3 = Math.pow(mp[0] * mp[0] + mp[1] * mp[1], 1.5);
+  return [-MU_E * x / r3 - MU_M * dx / d3 - MU_M * mp[0] / m3 + ax0, -MU_E * y / r3 - MU_M * dy / d3 - MU_M * mp[1] / m3 + ay0];
+}
+function rk4(s, t, dt, th0, aT) {
+  const f = (tt, st) => {
+    let tx = 0, ty = 0;
+    if (aT) { const vv = Math.hypot(st[2], st[3]); tx = aT * st[2] / vv; ty = aT * st[3] / vv; }
+    const a = accel3(tt, st[0], st[1], th0, tx, ty);
+    return [st[2], st[3], a[0], a[1]];
+  };
+  const k1 = f(t, s);
+  const s2 = [s[0] + k1[0] * dt / 2, s[1] + k1[1] * dt / 2, s[2] + k1[2] * dt / 2, s[3] + k1[3] * dt / 2], k2 = f(t + dt / 2, s2);
+  const s3 = [s[0] + k2[0] * dt / 2, s[1] + k2[1] * dt / 2, s[2] + k2[2] * dt / 2, s[3] + k2[3] * dt / 2], k3 = f(t + dt / 2, s3);
+  const s4 = [s[0] + k3[0] * dt, s[1] + k3[1] * dt, s[2] + k3[2] * dt, s[3] + k3[3] * dt], k4 = f(t + dt, s4);
+  return [0, 1, 2, 3].map(i => s[i] + dt / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
+}
+function earthOrbit(s) {
+  const r = Math.hypot(s[0], s[1]), v2 = s[2] ** 2 + s[3] ** 2;
+  const E = v2 / 2 - MU_E / r, hh = s[0] * s[3] - s[1] * s[2];
+  if (E >= 0) return { apo: Infinity, peri: hh * hh / MU_E / 2 };
+  const a = -MU_E / (2 * E), e = Math.sqrt(Math.max(0, 1 - hh * hh / (MU_E * a)));
+  return { apo: a * (1 + e), peri: a * (1 - e) };
+}
+
+// Vuelo desde SECO-1: costa, inyección translunar (TLI) y crucero hasta el perilunio
+function flight(asc, th0, record) {
+  const f = asc.final;
+  let s = [f.x, f.y, f.vx, f.vy], t = f.t;
+  const out = record ? [[t, s[0], s[1], s[2], s[3]]] : null;
+  while (t < f.t + COAST - 1e-9) { s = rk4(s, t, 5, th0, 0); t += 5; if (record) out.push([t, s[0], s[1], s[2], s[3]]); }
+  let prop = asc.s2Prop, m = VEH.s2.dry + VEH.payload + prop;
+  const tliStart = t;
+  while (earthOrbit(s).apo < R_TLI && prop > 0) {
+    s = rk4(s, t, 0.5, th0, VEH.mvac.f / m);
+    t += 0.5; m -= MDOT_S2 * 0.5; prop -= MDOT_S2 * 0.5;
+    if (record) out.push([t, s[0], s[1], s[2], s[3]]);
+  }
+  const tliEnd = t, vTLI = Math.hypot(s[2], s[3]), sTLI = s.slice();
+  let best = { d: 1e20 }; const tMax = t + 8 * 86400;
+  while (t < tMax) {
+    const mp = moonPos(t, th0), d = Math.hypot(s[0] - mp[0], s[1] - mp[1]);
+    const dt = d < 3e7 ? Math.max(1, Math.min(30, d / 4e5)) : 60;
+    if (d < best.d) {
+      const mv = moonVel(t, th0), rx = s[0] - mp[0], ry = s[1] - mp[1], rvx = s[2] - mv[0], rvy = s[3] - mv[1];
+      best = { d, t, side: Math.sign(rx * rvy - ry * rvx), vrel: Math.hypot(rvx, rvy), rx, ry, s: s.slice(), idx: record ? out.length - 1 : 0 };
+    }
+    if (d > best.d + 5e7 && best.d < 1e8) break;
+    if (d < R_M * 0.99) { best.impact = true; break; }
+    s = rk4(s, t, dt, th0, 0); t += dt;
+    if (record) out.push([t, s[0], s[1], s[2], s[3]]);
+  }
+  return { best, tliStart, tliEnd, vTLI, sTLI, propLeft: prop, out };
+}
+function signedPeri(asc, th) { const r = flight(asc, th, false); return r.best.side > 0 ? r.best.d : -r.best.d; }
+function solveTheta(asc, lo, hi, target, iters) {
+  for (let i = 0; i < iters; i++) { const mid = (lo + hi) / 2; if (signedPeri(asc, mid) < target) lo = mid; else hi = mid; }
+  return (lo + hi) / 2;
+}
+
+// Segunda etapa tras separar la sonda: sigue sin frenar (sobrevuelo lunar)
+function s2Continue(stateAt, t0, th0, dur) {
+  let s = stateAt.slice(), t = t0; const out = [[t, s[0], s[1], s[2], s[3]]];
+  while (t < t0 + dur) {
+    const mp = moonPos(t, th0), d = Math.hypot(s[0] - mp[0], s[1] - mp[1]);
+    const dt = d < 3e7 ? Math.max(1, Math.min(30, d / 4e5)) : 60;
+    s = rk4(s, t, dt, th0, 0); t += dt; out.push([t, s[0], s[1], s[2], s[3]]);
+    if (d < R_M) break;
+  }
+  return out;
+}
+
+function buildMission(theta0Guess, opts) {
+  const asc = simAscent();
+  let th0 = theta0Guess;
+  if (opts && opts.refine) th0 = solveTheta(asc, theta0Guess - 0.0008, theta0Guess + 0.0008, R_M + 100e3, 18);
+  const fl = flight(asc, th0, true);
+  const sideB = simBooster(asc.sep1, LZ.mid);
+  const core = simCore(asc.sep2);
+  const peri = fl.best;
+  const rL = peri.d, wL = peri.side * Math.sqrt(MU_M / rL ** 3);
+  const loiDv = peri.vrel - Math.sqrt(MU_M / rL);
+  const probeMass0 = VEH.payload;
+  const loiProp = probeMass0 * (1 - Math.exp(-loiDv / (VEH.probe.isp * G0)));
+  const periodL = 2 * Math.PI / Math.abs(wL);
+  // S2: estado al perilunio sin LOI y continuación
+  const s2Path = s2Continue(peri.s, peri.t, th0, 2.5 * 86400);
+  return { asc, th0, fl, sideB, core, peri, rL, wL, loiDv, loiProp, periodL, s2Path };
+}
+
+if (typeof module !== 'undefined') module.exports = { buildMission, simAscent, flight, solveTheta, signedPeri, consts: { MU_E, R_E, R_M, MU_M } };
+
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, f) => a + (b - a) * f;
+const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+const DEG = Math.PI / 180;
+const nf0 = new Intl.NumberFormat('es-EC', { maximumFractionDigits: 0 });
+const nf1 = new Intl.NumberFormat('es-EC', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const nf2 = new Intl.NumberFormat('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// =====================================================================
+// 1. Misión: se integra al cargar (física en el bloque anterior)
+// =====================================================================
+const THETA0 = 4.479319333772109; // fase lunar que da un perilunio de 100 km
+const MS = buildMission(THETA0, { refine: true });
+const A = MS.asc, EV = A.ev, FL = MS.fl, PERI = MS.peri, B = MS.sideB, BEV = B.ev, CORE = MS.core;
+const T_START = -10, T_SECO = EV.seco1, T_TLI0 = FL.tliStart, T_TLI1 = FL.tliEnd, T_PSEP = T_TLI1 + 300;
+const T_PERI = PERI.t, PERIOD_L = MS.periodL, T_END = T_PERI + 2 * PERIOD_L + 600;
+const ALPHA0 = Math.atan2(PERI.ry, PERI.rx);
+const PROBE_PROP0 = VEH.probe.prop;
+const LIFTOFF_MASS = 2 * (VEH.side.dry + VEH.side.prop) + VEH.core.dry + VEH.core.prop + VEH.s2.dry + VEH.s2.prop + VEH.fairing + VEH.payload;
+
+function idxObj(arr, t) {
+  let lo = 0, hi = arr.length - 1;
+  if (t <= arr[0].t) return 0; if (t >= arr[hi].t) return Math.max(0, hi - 1);
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (arr[m].t <= t) lo = m; else hi = m; }
+  return lo;
+}
+function idxArr(arr, t) {
+  let lo = 0, hi = arr.length - 1;
+  if (t <= arr[0][0]) return 0; if (t >= arr[hi][0]) return Math.max(0, hi - 1);
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (arr[m][0] <= t) lo = m; else hi = m; }
+  return lo;
+}
+const ASC_KEYS = ['x', 'y', 'vx', 'vy', 'h', 'vrel', 'q', 'M', 'a', 'F', 'm', 'sideProp', 'coreProp', 's2Prop', 'coreThr', 'sideThr', 's2Thr', 'pitch'];
+function ascAt(t) {
+  t = clamp(t, 0, A.S[A.S.length - 1].t);
+  const i = idxObj(A.S, t), a = A.S[i], b = A.S[i + 1] || a;
+  const f = b.t > a.t ? clamp((t - a.t) / (b.t - a.t), 0, 1) : 0;
+  const o = { t, stage: a.stage, fairing: a.fairing };
+  for (const k of ASC_KEYS) o[k] = a[k] + (b[k] - a[k]) * f;
+  return o;
+}
+function hermite(arr, t) {
+  const i = idxArr(arr, t), p = arr[i], q = arr[i + 1] || p, dt = q[0] - p[0];
+  if (dt <= 0) return [p[1], p[2], p[3], p[4]];
+  const s = clamp((t - p[0]) / dt, 0, 1), s2 = s * s, s3 = s2 * s;
+  const h00 = 2 * s3 - 3 * s2 + 1, h10 = s3 - 2 * s2 + s, h01 = -2 * s3 + 3 * s2, h11 = s3 - s2;
+  const d00 = (6 * s2 - 6 * s) / dt, d10 = 3 * s2 - 4 * s + 1, d01 = (-6 * s2 + 6 * s) / dt, d11 = 3 * s2 - 2 * s;
+  return [h00 * p[1] + h10 * dt * p[3] + h01 * q[1] + h11 * dt * q[3], h00 * p[2] + h10 * dt * p[4] + h01 * q[2] + h11 * dt * q[4],
+    d00 * p[1] + d10 * p[3] + d01 * q[1] + d11 * q[3], d00 * p[2] + d10 * p[4] + d01 * q[2] + d11 * q[4]];
+}
+function linRow(arr, t) {
+  const i = idxArr(arr, t), p = arr[i], q = arr[i + 1] || p;
+  const f = q[0] > p[0] ? clamp((t - p[0]) / (q[0] - p[0]), 0, 1) : 0;
+  return p.map((v, k) => typeof v === 'number' && typeof q[k] === 'number' ? v + (q[k] - v) * f : v);
+}
+function probeLunar(t) {
+  const mp = moonPos(t, MS.th0), mv = moonVel(t, MS.th0), a = ALPHA0 + MS.wL * (t - T_PERI);
+  return [mp[0] + MS.rL * Math.cos(a), mp[1] + MS.rL * Math.sin(a), mv[0] - MS.rL * MS.wL * Math.sin(a), mv[1] + MS.rL * MS.wL * Math.cos(a)];
+}
+// estado inercial [x,y,vx,vy] (m) del vehículo principal
+function mainState(t) {
+  if (t <= 0) { const r = R_E + 8, a = W_EFF * t; return [r * Math.cos(a), r * Math.sin(a), -W_EFF * r * Math.sin(a), W_EFF * r * Math.cos(a)]; }
+  if (t <= T_SECO) { const s = ascAt(t); return [s.x, s.y, s.vx, s.vy]; }
+  if (t <= T_PERI) return hermite(FL.out, t);
+  return probeLunar(t);
+}
+function s2State(t) {
+  if (t <= T_PERI) return mainState(t);
+  const last = MS.s2Path[MS.s2Path.length - 1];
+  return hermite(MS.s2Path, Math.min(t, last[0]));
+}
+const inertialToGround = (t, x, y) => [R_E * (Math.atan2(y, x) - W_EFF * t), Math.hypot(x, y) - R_E];
+function groundToLocal(s, h) { const d = s / R_E, r = R_E + h; return [r * Math.sin(d), r * Math.cos(d) - R_E, d]; }
+function groundToInertial(t, s, h) { const p = W_EFF * t + s / R_E, r = R_E + h; return [r * Math.cos(p), r * Math.sin(p)]; }
+function earthOrbitOf(st) { return earthOrbit(st); }
+
+// ---------- eventos ----------
+function findTime(pred, t0, t1, step) { for (let t = t0; t <= t1; t += step) if (pred(t)) return t; return null; }
+const T_ANDES = findTime(t => { const s = ascAt(t); return inertialToGround(t, s.x, s.y)[0] >= 119.8e3; }, 0, T_SECO, 0.5);
+const T_SOI = findTime(t => { const s = mainState(t), m = moonPos(t, MS.th0); return Math.hypot(s[0] - m[0], s[1] - m[1]) < 66100e3; }, T_TLI1, T_PERI, 60);
+const coreLonDeg = SITE.lon + CORE.downrange / (111320 * Math.cos(SITE.lat * DEG));
+const fmtLon = d => `${nf1.format(Math.abs(d))}° ${d < 0 ? 'O' : 'E'}`;
+const ROT_GYE = 465.1 * Math.cos(SITE.lat * DEG), ROT_CAPE = 465.1 * Math.cos(28.5 * DEG);
+
+const EVENTS = [
+  { t: -10, title: 'Cuenta regresiva final', desc: 'El brazo de acceso ya está retirado y los tanques están llenos de queroseno (RP‑1) y oxígeno líquido.' },
+  { t: -3, title: 'Encendido de los 27 motores Merlin', desc: 'Las abrazaderas sujetan el cohete mientras el empuje se estabiliza. El agua del sistema de diluvio se convierte en vapor.' },
+  { t: 0, title: 'Despegue desde Puerto Santa Ana', desc: `${nf0.format(27 * VEH.merlin.fsl / 1000)} kN de empuje levantan ${nf0.format(LIFTOFF_MASS / 1000)} t. La rotación de la Tierra ya le da ${nf0.format(ROT_GYE * 3.6)} km/h hacia el este.` },
+  { t: 8, title: 'Inicio del giro hacia el este', desc: 'Libre de la torre, el cohete se inclina sobre el río Guayas, Durán y la isla Santay.' },
+  { t: 30, title: 'El núcleo central baja su empuje', desc: `Reduce al ${Math.round(CORE_THR * 100)} % para guardar propelente: seguirá encendido cuando los laterales se separen.` },
+  { t: A.tMaxQ, title: 'Max‑Q', desc: `Máxima presión aerodinámica: ${nf1.format(A.maxQ / 1000)} kPa. Los laterales bajan al 72 % para no sobrecargar la estructura.`, ref: '1:06' },
+  { t: EV.beco, title: 'BECO: apagado de los laterales', desc: `Los laterales se apagan con ${nf0.format(VEH.side.reserve / 1000)} t de propelente guardadas para volver.`, ref: '2:29' },
+  { t: EV.sideSep, title: 'Separación de los laterales', desc: 'Los dos propulsores laterales se sueltan y giran para volver a Guayaquil.', ref: '2:33' },
+  { t: BEV.boostback, title: 'Laterales: encendido de regreso', desc: 'Tres motores encendidos invierten su velocidad: de ir hacia los Andes a volver al río Guayas.', ref: '2:50' },
+  { t: T_ANDES, title: 'Sobre la cordillera de los Andes', desc: 'A 120 km al este de Guayaquil la trayectoria cruza la cordillera, 79 km al sur del Chimborazo.' },
+  { t: A.karman, title: 'Línea de Kármán: 100 km', desc: 'Por convención, aquí empieza el espacio.' },
+  { t: EV.meco, title: 'MECO: apagado del núcleo central', desc: 'El núcleo central agota su propelente. En misiones lunares se descarta: no le queda para volver.', ref: '3:04' },
+  { t: EV.stageSep, title: 'Separación de etapas', desc: 'La segunda etapa se libera del núcleo central.', ref: '3:07' },
+  { t: EV.ses1, title: 'SES‑1: enciende la segunda etapa', desc: `Un solo motor Merlin de vacío: ${nf0.format(VEH.mvac.f / 1000)} kN.`, ref: '3:15' },
+  { t: EV.fairing + 0.6, title: 'Separación de la cofia', desc: 'Sobre 112 km ya no hay aire que pueda dañar la sonda; las dos mitades de la cofia caen.', ref: '3:49' },
+  { t: BEV.entry, title: 'Laterales: encendido de reentrada', desc: 'Frenan antes de entrar en la parte densa de la atmósfera para no sobrecalentarse.', ref: '6:41' },
+  { t: BEV.landing, title: 'Aterrizaje doble en el río Guayas', desc: 'Los dos laterales se posan en las plataformas flotantes LZ‑1 y LZ‑2, frente a Puerto Santa Ana.', ref: '7:58' },
+  { t: EV.seco1, title: 'SECO‑1: en órbita', desc: `Órbita de estacionamiento de ${nf0.format(H_PARK / 1000)} km. Velocidad: ${nf0.format(Math.hypot(A.final.vx, A.final.vy) * 3.6)} km/h.`, ref: '8:31' },
+  { t: CORE.impact, title: 'El núcleo central cae', desc: `Impacta a ${nf0.format(CORE.downrange / 1000)} km de Guayaquil, cerca de ${fmtLon(coreLonDeg)}, en la Amazonía.` },
+  { t: T_TLI0, title: 'SES‑2: inyección translunar', desc: 'Tras media vuelta a la Tierra, la segunda etapa vuelve a encenderse para apuntar a la Luna.' },
+  { t: T_TLI1, title: 'Fin de la inyección translunar', desc: `Velocidad: ${nf2.format(FL.vTLI / 1000)} km/s (${nf0.format(FL.vTLI * 3.6)} km/h), casi la velocidad de escape.` },
+  { t: T_PSEP, title: 'Separación de la sonda', desc: `La sonda Chimborazo‑1 (${nf0.format(VEH.payload / 1000)} t) sigue sola. La segunda etapa pasará de largo junto a la Luna.` },
+  { t: T_SOI, title: 'Entra en la esfera de influencia lunar', desc: 'A 66 100 km de la Luna, su gravedad empieza a mandar más que la de la Tierra.' },
+  { t: T_PERI, title: 'Inserción en órbita lunar', desc: `Frenado de ${nf0.format(MS.loiDv)} m/s a ${nf0.format((MS.rL - R_M) / 1000)} km de la superficie. Gasta ${nf1.format(MS.loiProp / 1000)} t de propelente.` },
+  { t: T_PERI + PERIOD_L, title: 'Primera vuelta a la Luna', desc: `Cada órbita lunar dura ${Math.floor(PERIOD_L / 3600)} h ${Math.round(PERIOD_L % 3600 / 60)} min.` },
+  { t: T_PERI + 2 * PERIOD_L, title: 'Misión cumplida', desc: 'La sonda queda en órbita lunar baja, lista para estudiar la superficie.' },
+].filter(e => e.t != null).sort((a, b) => a.t - b.t);
+
+// =====================================================================
+// 2. Escenas
+// =====================================================================
+const canvas = $('#gl');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
+} catch (e) {
+  $('#load-msg').textContent = 'Este navegador no pudo iniciar WebGL, que la simulación necesita para dibujar en 3D.';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+
+const LOGV = '#include <common>\n#include <logdepthbuf_pars_vertex>\n';
+const LOGF = '#include <logdepthbuf_pars_fragment>\n';
+
+// ---------- texturas generadas ----------
+function canvasTex(w, h, draw, srgb = true) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = maxAniso;
+  return t;
+}
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+
+// ---- mapa de Guayaquil (vista local) ----
+const MAP = { x0: -10000, x1: 14000, z0: -12000, z1: 12000 };
+const wb = z => -40 - 140 * smooth(600, 3600, z) - 260 * smooth(3600, 9000, z) + 60 * Math.sin(z / 1700);
+const eb = z => 1350 + 140 * Math.sin(z / 2600 + 0.4) + 900 * smooth(3000, 9500, z);
+const hillDefs = [{ x: -430, z: -330, h: 62, r: 210 }, { x: -930, z: -160, h: 76, r: 290 }];
+const hillH = (x, z) => hillDefs.reduce((s, d) => s + d.h * Math.exp(-((x - d.x) ** 2 + (z - d.z) ** 2) / (d.r * d.r)), 0);
+const LZ1 = new THREE.Vector3(LZ.x1, 0, LZ.z), LZ2 = new THREE.Vector3(LZ.x2, 0, LZ.z);
+
+function makeGroundTex() {
+  const N = 2048, W = MAP.x1 - MAP.x0, H = MAP.z1 - MAP.z0;
+  const px = x => (x - MAP.x0) / W * N, pz = z => (z - MAP.z0) / H * N, pl = m => m / W * N;
+  return canvasTex(N, N, (g) => {
+    const R = rng(11);
+    g.fillStyle = '#1d2219'; g.fillRect(0, 0, N, N);
+    // ríos
+    const water = '#1b2a44';
+    g.fillStyle = water;
+    g.beginPath();
+    for (let z = -3700; z <= MAP.z1; z += 100) g.lineTo(px(wb(z)), pz(z));
+    for (let z = MAP.z1; z >= -3700; z -= 100) g.lineTo(px(eb(z)), pz(z));
+    g.closePath(); g.fill();
+    const branch = (pts, w) => { g.strokeStyle = water; g.lineWidth = pl(w); g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); pts.forEach(([x, z], i) => i ? g.lineTo(px(x), pz(z)) : g.moveTo(px(x), pz(z))); g.stroke(); };
+    branch([[250, -3300], [120, -5200], [-300, -7600], [-900, -9800], [-1300, -12500]], 560); // río Daule
+    branch([[1150, -3300], [1400, -5600], [1900, -8000], [2500, -10200], [3000, -12500]], 640); // río Babahoyo
+    branch([[-3000, -12500], [-3400, -8200], [-4300, -4000], [-3700, 600], [-5100, 4600], [-4500, 8400], [-5300, 12500]], 170); // estero Salado
+    branch([[-4300, -4000], [-6200, -3200], [-8600, -3900]], 120);
+    branch([[-3700, 600], [-2600, 2200], [-2400, 3800]], 90);
+    // isla Santay (manglar)
+    g.fillStyle = '#1e3020'; g.beginPath(); g.ellipse(px(900), pz(6300), pl(520), pl(2600), 0.05, 0, Math.PI * 2); g.fill();
+    // zonas urbanas: Guayaquil (oeste), Durán (este), Samborondón (norte, entre ríos)
+    const urban = (x, z) => {
+      if (x < wb(z) - 30 && x > -9500 && z > -11500 && z < 11500) return z < -3500 && x > -150 ? 0 : (Math.abs(x + 4000) < 300 ? 0 : 1);
+      if (x > eb(z) + 40 && x < 5200 && z > -3600 && z < 7000) return 0.7;
+      if (z < -3900 && x > 450 && x < 1250 + (-z - 3900) * 0.1) return 0.8;
+      return 0;
+    };
+    const cell = 9;
+    for (let iz = 0; iz < N; iz += cell) for (let ix = 0; ix < N; ix += cell) {
+      const x = MAP.x0 + (ix + cell / 2) / N * W, z = MAP.z0 + (iz + cell / 2) / N * H;
+      const u = urban(x, z); if (!u) continue;
+      const near = Math.exp(-((x + 900) ** 2 + (z - 1500) ** 2) / 6e6);
+      g.fillStyle = '#3a3324'; g.fillRect(ix, iz, cell, cell);
+      g.fillStyle = R() < 0.5 ? '#23252c' : '#272a31'; g.fillRect(ix + 1, iz + 1, cell - 2, cell - 2);
+      const n = Math.floor((3 + near * 9) * u * (0.4 + R()));
+      for (let k = 0; k < n; k++) {
+        const c = R(); g.fillStyle = c < 0.55 ? 'rgba(255,205,130,.85)' : c < 0.85 ? 'rgba(255,170,95,.75)' : 'rgba(225,235,255,.8)';
+        g.fillRect(ix + R() * cell, iz + R() * cell, 1, 1);
+      }
+    }
+    // avenidas iluminadas
+    g.strokeStyle = 'rgba(255,190,110,.55)'; g.lineWidth = 2;
+    [[[-60, 1900], [-6000, 2100]], [[-60, 3200], [-5500, 3800]], [[-200, -400], [-3500, -2600]], [[-2600, -9000], [-2300, 10000]], [[-1200, -11000], [-700, 9000]]].forEach(([a, b]) => { g.beginPath(); g.moveTo(px(a[0]), pz(a[1])); g.lineTo(px(b[0]), pz(b[1])); g.stroke(); });
+    // puente de la Unidad Nacional
+    g.strokeStyle = 'rgba(255,215,150,.9)'; g.lineWidth = 3; g.beginPath(); g.moveTo(px(-250), pz(-3900)); g.lineTo(px(1500), pz(-3650)); g.stroke();
+    // puente peatonal a Santay
+    g.lineWidth = 1.5; g.beginPath(); g.moveTo(px(wb(5200)), pz(5200)); g.lineTo(px(500), pz(5200)); g.stroke();
+    // Malecón 2000
+    g.strokeStyle = '#c9b88e'; g.lineWidth = 3; g.beginPath(); for (let z = 250; z <= 3300; z += 50) g.lineTo(px(wb(z) - 25), pz(z)); g.stroke();
+    // complejo de lanzamiento
+    g.fillStyle = '#5a5e64'; g.fillRect(px(-90), pz(-90), pl(180), pl(180));
+    g.fillStyle = '#3c3f44'; g.fillRect(px(-260), pz(-160), pl(150), pl(300));
+  });
+}
+function makeLZTex() {
+  return canvasTex(256, 256, g => {
+    g.fillStyle = '#2b2e33'; g.beginPath(); g.arc(128, 128, 126, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#e9ecef'; g.lineWidth = 8; g.beginPath(); g.arc(128, 128, 96, 0, Math.PI * 2); g.stroke();
+    g.lineWidth = 18; g.beginPath(); g.moveTo(80, 80); g.lineTo(176, 176); g.moveTo(176, 80); g.lineTo(80, 176); g.stroke();
+    for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; g.fillStyle = '#ffe9b8'; g.beginPath(); g.arc(128 + Math.cos(a) * 118, 128 + Math.sin(a) * 118, 3, 0, Math.PI * 2); g.fill(); }
+  });
+}
+function makeFacadeTex(emissive) {
+  return canvasTex(128, 256, (g, w, h) => {
+    const R = rng(emissive ? 5 : 6);
+    g.fillStyle = emissive ? '#000' : '#5c606a'; g.fillRect(0, 0, w, h);
+    for (let y = 6; y < h - 4; y += 12) for (let x = 6; x < w - 4; x += 10) {
+      if (emissive) { if (R() < 0.42) { g.fillStyle = R() < 0.75 ? '#ffcf8a' : '#cfe0ff'; g.fillRect(x, y, 6, 7); } }
+      else { g.fillStyle = '#3c3f47'; g.fillRect(x, y, 6, 7); }
+    }
+  });
+}
+function makeMoonTex() {
+  return canvasTex(2048, 1024, (g, w, h) => {
+    const R = rng(42);
+    g.fillStyle = '#9a9a98'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 2600; i++) { const x = R() * w, y = R() * h, r = 4 + R() * 40; g.fillStyle = `rgba(${R() < .5 ? '255,255,250' : '40,40,45'},${0.03 + R() * 0.05})`; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+    // mares del lado visible (centrado en u = 0,25)
+    const mare = [[330, 470, 150, 230], [470, 300, 110, 90], [610, 330, 80, 75], [650, 470, 95, 85], [760, 380, 55, 50], [700, 580, 70, 85], [470, 640, 95, 75], [380, 600, 70, 60], [560, 230, 60, 30]];
+    for (const [x, y, rx, ry] of mare) for (let k = 0; k < 14; k++) {
+      g.fillStyle = 'rgba(58,60,66,.13)'; g.beginPath(); g.ellipse(x + (R() - .5) * rx * .6, y + (R() - .5) * ry * .6, rx * (0.6 + R() * .5), ry * (0.6 + R() * .5), R() * 3, 0, Math.PI * 2); g.fill();
+    }
+    for (let i = 0; i < 1400; i++) {
+      const x = R() * w, y = h * (0.06 + R() * 0.88), r = Math.min(60, 1.5 + -Math.log(1 - R() * 0.995) * 5);
+      g.fillStyle = 'rgba(70,70,74,.35)'; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(235,235,230,.28)'; g.lineWidth = Math.max(1, r * 0.18); g.beginPath(); g.arc(x - r * 0.12, y - r * 0.12, r, Math.PI * 0.9, Math.PI * 1.9); g.stroke();
+    }
+    // Tycho y sus rayos
+    g.strokeStyle = 'rgba(245,245,240,.12)'; g.lineWidth = 3;
+    for (let i = 0; i < 30; i++) { const a = R() * Math.PI * 2, L = 80 + R() * 260; g.beginPath(); g.moveTo(500, 790); g.lineTo(500 + Math.cos(a) * L, 790 + Math.sin(a) * L * 0.7); g.stroke(); }
+    g.fillStyle = 'rgba(250,250,245,.8)'; g.beginPath(); g.arc(500, 790, 9, 0, Math.PI * 2); g.fill();
+  });
+}
+function makeDotTex() {
+  return canvasTex(64, 64, g => {
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  });
+}
+const dotTex = makeDotTex();
+
+// ---------- materiales compartidos ----------
+function plumeMaterial(colA, colB, colC) {
+  return new THREE.ShaderMaterial({
+    uniforms: { uI: { value: 0 }, uTime: { value: 0 }, uA: { value: new THREE.Color(colA) }, uB: { value: new THREE.Color(colB) }, uC: { value: new THREE.Color(colC) } },
+    vertexShader: LOGV + `varying vec3 vP; varying vec3 vN; varying vec3 vV;
+      void main(){ vP = position; vec4 mv = modelViewMatrix*vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz);
+      gl_Position = projectionMatrix*mv;
+      #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: LOGF + `uniform float uI; uniform float uTime; uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; varying vec3 vP; varying vec3 vN; varying vec3 vV;
+      void main(){
+        #include <logdepthbuf_fragment>
+        float a = clamp(-vP.y, 0.0, 1.0);
+        float edge = pow(abs(dot(normalize(vN), normalize(vV))), 1.4);
+        float flick = 0.88 + 0.12*sin(uTime*60.0 + a*30.0) * sin(uTime*37.0);
+        vec3 col = mix(uA, uB, smoothstep(0.0, 0.35, a)); col = mix(col, uC, smoothstep(0.3, 0.95, a));
+        float alpha = (1.0 - smoothstep(0.15, 1.0, a)) * edge * uI * flick;
+        alpha *= smoothstep(0.0, 0.03, a + 0.02);
+        gl_FragColor = vec4(col * alpha, alpha);
+      }`,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  });
+}
+function makePlume(len, rad, cols) {
+  const geo = new THREE.ConeGeometry(1, 1, 32, 1, true); geo.translate(0, -0.5, 0); // ápice en la tobera (y=0), se abre hacia y=-1
+  const m = new THREE.Mesh(geo, plumeMaterial(...cols));
+  m.userData = { len, rad }; m.frustumCulled = false; m.renderOrder = 5;
+  return m;
+}
+
+// ---------- modelo del Falcon Heavy (escala: 1 = metro; s = factor) ----------
+const M_WHITE = new THREE.MeshStandardMaterial({ color: 0xf1f2f0, roughness: 0.55, metalness: 0.05 });
+const M_BLACK = new THREE.MeshStandardMaterial({ color: 0x1b1c1f, roughness: 0.7 });
+const M_SOOT = new THREE.MeshStandardMaterial({ color: 0x8e8a84, roughness: 0.8 });
+const M_METAL = new THREE.MeshStandardMaterial({ color: 0x6c6f75, roughness: 0.35, metalness: 0.8 });
+const M_GOLD = new THREE.MeshStandardMaterial({ color: 0xc9a24a, roughness: 0.35, metalness: 0.9 });
+const M_PANEL = new THREE.MeshStandardMaterial({ color: 0x1b2f63, roughness: 0.3, metalness: 0.6, emissive: 0x050c22 });
+const R_CORE = 1.83;
+
+function makeFirstStage(s, isSide) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(R_CORE * s, R_CORE * s, 40 * s, 32), M_WHITE); body.position.y = 21 * s; g.add(body);
+  const soot = new THREE.Mesh(new THREE.CylinderGeometry(R_CORE * s * 1.004, R_CORE * s * 1.004, 4 * s, 32), M_SOOT); soot.position.y = 3 * s; g.add(soot);
+  const oct = new THREE.Mesh(new THREE.CylinderGeometry(R_CORE * s, R_CORE * s * 0.96, 1 * s, 32), M_BLACK); oct.position.y = 0.5 * s; g.add(oct);
+  const bell = new THREE.CylinderGeometry(0.22 * s, 0.48 * s, 1.1 * s, 12, 1, true);
+  const pts = [[0, 0]]; for (let i = 0; i < 8; i++) pts.push([Math.cos(i / 8 * Math.PI * 2) * 1.2, Math.sin(i / 8 * Math.PI * 2) * 1.2]);
+  for (const [x, z] of pts) { const b = new THREE.Mesh(bell, M_METAL); b.position.set(x * s, -0.45 * s, z * s); g.add(b); }
+  if (isSide) {
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(R_CORE * s, 5.5 * s, 32), M_BLACK); nose.position.y = (41 + 2.75) * s; g.add(nose);
+  } else {
+    const inter = new THREE.Mesh(new THREE.CylinderGeometry(R_CORE * s, R_CORE * s, 5 * s, 32), M_BLACK); inter.position.y = 43.5 * s; g.add(inter);
+  }
+  // aletas de rejilla
+  const fins = [];
+  for (let i = 0; i < 4; i++) {
+    const f = new THREE.Mesh(new THREE.BoxGeometry(1.2 * s, 1.5 * s, 0.15 * s), M_METAL);
+    const pv = new THREE.Group(); pv.rotation.y = i * Math.PI / 2 + Math.PI / 4; const arm = new THREE.Group(); arm.position.set(0, (isSide ? 39.5 : 40.5) * s, R_CORE * s); pv.add(arm); arm.add(f); f.position.z = 0.1 * s;
+    g.add(pv); fins.push(arm);
+  }
+  // patas de aterrizaje (giran hacia fuera)
+  const legs = [];
+  for (let i = 0; i < 4; i++) {
+    const pv = new THREE.Group(); pv.rotation.y = i * Math.PI / 2; const hinge = new THREE.Group(); hinge.position.set(0, 1.2 * s, (R_CORE + 0.05) * s); pv.add(hinge);
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.7 * s, 9.5 * s, 0.25 * s), M_BLACK); leg.position.y = 4.75 * s; hinge.add(leg); g.add(pv); legs.push(hinge);
+  }
+  const plume = makePlume(1, 1, ['#fff7e0', '#ffb347', '#ff5a1a']);
+  g.add(plume);
+  g.userData = { fins, legs, plume };
+  return g;
+}
+function makeUpper(s) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(R_CORE * s, R_CORE * s, 12.6 * s, 32), M_WHITE); body.position.y = 6.3 * s; g.add(body);
+  const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.4 * s, 1.5 * s, 3 * s, 24, 1, true), M_SOOT); bell.position.y = -1.5 * s; g.add(bell);
+  const adapter = new THREE.Mesh(new THREE.CylinderGeometry(0.9 * s, R_CORE * s, 1.2 * s, 24), M_BLACK); adapter.position.y = 13.2 * s; g.add(adapter);
+  // fairing (dos mitades)
+  const prof = []; for (let i = 0; i <= 24; i++) { const y = i / 24 * 13.1; const r = y < 6.5 ? 2.6 : 2.6 * Math.sqrt(Math.max(0, 1 - ((y - 6.5) / 6.6) ** 2)) ; prof.push(new THREE.Vector2(Math.max(r, 0.02), y)); }
+  const halves = [0, 1].map(k => { const m = new THREE.Mesh(new THREE.LatheGeometry(prof.map(v => new THREE.Vector2(v.x * s, v.y * s)), 32, k * Math.PI, Math.PI), M_WHITE); const p = new THREE.Group(); p.position.y = 12.6 * s; p.add(m); g.add(p); return p; });
+  const plume = makePlume(1, 1, ['#ffe9c4', '#ff9a4d', '#7a3cff']); plume.position.y = -3 * s; g.add(plume);
+  g.userData = { halves, plume };
+  return g;
+}
+function makeProbe(s) {
+  const g = new THREE.Group();
+  const bus = new THREE.Mesh(new THREE.CylinderGeometry(1.7 * s, 1.9 * s, 3.2 * s, 8), M_GOLD); bus.position.y = 1.6 * s; g.add(bus);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(1.0 * s, 1.7 * s, 1.0 * s, 8), M_METAL); top.position.y = 3.7 * s; g.add(top);
+  const dish = new THREE.Mesh(new THREE.SphereGeometry(1.1 * s, 20, 10, 0, Math.PI * 2, 0, 0.9), M_WHITE); dish.position.y = 4.7 * s; dish.rotation.x = Math.PI; g.add(dish);
+  const panels = [-1, 1].map(k => { const p = new THREE.Group(); p.position.set(k * 1.8 * s, 1.8 * s, 0); const m = new THREE.Mesh(new THREE.BoxGeometry(6 * s, 0.08 * s, 2.2 * s), M_PANEL); m.position.x = k * 3 * s; p.add(m); g.add(p); return p; });
+  const plume = makePlume(1, 1, ['#f2f6ff', '#9fc4ff', '#5f6dff']); plume.position.y = -0.1 * s; g.add(plume);
+  g.userData = { panels, plume };
+  return g;
+}
+function makeFH(s) {
+  return { sideA: makeFirstStage(s, true), sideB: makeFirstStage(s, true), core: makeFirstStage(s, false), upper: makeUpper(s), probe: makeProbe(s) };
+}
+
+// =====================================================================
+// 2a. Escena local (metros): Puerto Santa Ana al atardecer
+// =====================================================================
+const L = { scene: new THREE.Scene(), cam: new THREE.PerspectiveCamera(50, 1, 0.5, 4e6), boostPos: new THREE.Vector3() };
+const SUN_LOCAL = new THREE.Vector3(-1, 0.035, -0.18).normalize(); // sol recién puesto, al oeste
+{
+  const sc = L.scene;
+  sc.fog = new THREE.FogExp2(0x2a2f48, 0.000045);
+  sc.add(new THREE.HemisphereLight(0x8f9ccc, 0x1a1a22, 0.9));
+  const sun = new THREE.DirectionalLight(0xffb27a, 1.6); sun.position.copy(SUN_LOCAL).multiplyScalar(1000); sc.add(sun);
+  L.plumeLight = new THREE.PointLight(0xff9a4a, 0, 0, 2); sc.add(L.plumeLight);
+
+  // cielo
+  const skyMat = new THREE.ShaderMaterial({
+    uniforms: { uSun: { value: SUN_LOCAL }, uAlt: { value: 0 } },
+    vertexShader: LOGV + `varying vec3 vD; void main(){ vD = normalize(position); vec4 mv = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mv;
+      #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: LOGF + `uniform vec3 uSun; uniform float uAlt; varying vec3 vD;
+      void main(){
+        #include <logdepthbuf_fragment>
+        vec3 d = normalize(vD); float el = d.y;
+        float k = smoothstep(12000.0, 75000.0, uAlt);
+        float hor = -0.02 - 0.06*k;
+        float up = max(el - hor, 0.0);
+        vec3 zen = mix(vec3(0.06,0.09,0.2), vec3(0.0), k);
+        vec3 horC = mix(vec3(0.28,0.30,0.48), vec3(0.06,0.12,0.32), k);
+        float sunAz = max(dot(normalize(vec3(d.x,0.0,d.z)), normalize(vec3(uSun.x,0.0,uSun.z))), 0.0);
+        vec3 glow = vec3(1.0,0.52,0.25) * pow(sunAz, 5.0) * (1.0-k*0.6);
+        vec3 col = mix(horC + glow*0.9, zen, pow(min(up*2.6,1.0), 0.6));
+        col += vec3(1.0,0.7,0.4)*pow(max(dot(d,uSun),0.0),180.0)*0.6;
+        float band = exp(-pow((el-hor)/0.012,2.0))*k; col += vec3(0.25,0.45,1.0)*band*0.8 + glow*band*0.6;
+        if (el < hor) col = mix(vec3(0.05,0.06,0.09), vec3(0.02,0.025,0.04), k);
+        gl_FragColor = vec4(col,1.0);
+      }`,
+    side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+  });
+  L.sky = new THREE.Mesh(new THREE.SphereGeometry(3e6, 48, 24), skyMat); L.sky.renderOrder = -10; sc.add(L.sky);
+
+  // suelo
+  const gtex = makeGroundTex();
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(MAP.x1 - MAP.x0, MAP.z1 - MAP.z0), new THREE.MeshLambertMaterial({ map: gtex, emissive: 0xffffff, emissiveMap: gtex, emissiveIntensity: 0.55 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.set((MAP.x0 + MAP.x1) / 2, 0, (MAP.z0 + MAP.z1) / 2); sc.add(ground);
+  const far = new THREE.Mesh(new THREE.CircleGeometry(900e3, 64), new THREE.MeshLambertMaterial({ color: 0x151a14, emissive: 0x0a0d0a }));
+  far.rotation.x = -Math.PI / 2; far.position.y = -2; sc.add(far);
+  // agua con brillo propio
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshStandardMaterial({ color: 0x1b2a44, roughness: 0.15, metalness: 0.4, transparent: true, opacity: 0.55 }));
+  water.rotation.x = -Math.PI / 2; water.scale.set(1500, 15000, 1); water.position.set(650, 0.3, 4500); sc.add(water);
+
+  // cerros Santa Ana y del Carmen
+  const hg = new THREE.PlaneGeometry(1500, 1100, 90, 66); hg.rotateX(-Math.PI / 2);
+  const hp = hg.attributes.position, hcol = [];
+  for (let i = 0; i < hp.count; i++) { const x = hp.getX(i) - 650, z = hp.getZ(i) - 250; const y = hillH(x, z); hp.setXYZ(i, x, Math.max(0, y - 0.6), z); const k = clamp(y / 70, 0, 1); hcol.push(0.12 + k * 0.05, 0.16 + k * 0.05, 0.11); }
+  hg.setAttribute('color', new THREE.Float32BufferAttribute(hcol, 3)); hg.computeVertexNormals();
+  sc.add(new THREE.Mesh(hg, new THREE.MeshLambertMaterial({ vertexColors: true })));
+  // casas de Las Peñas
+  {
+    const R = rng(77), cols = [0xf2c14e, 0x5fb3d9, 0xe7685d, 0x8bcf7a, 0xf4f1e6, 0xd98bd1, 0xffa45b];
+    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x3a2a12 }), 520);
+    const m = new THREE.Matrix4(), c = new THREE.Color(); let n = 0;
+    while (n < 520) {
+      const a = R() * Math.PI * 2, rr = 40 + R() * 260, d = hillDefs[R() < 0.6 ? 0 : 1];
+      const x = d.x + Math.cos(a) * rr, z = d.z + Math.sin(a) * rr; if (x > -50) continue;
+      const y = hillH(x, z); const w = 6 + R() * 5, hh = 5 + R() * 6;
+      m.compose(new THREE.Vector3(x, y + hh / 2 - 1, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), R() * 3), new THREE.Vector3(w, hh, 6 + R() * 4));
+      im.setMatrixAt(n, m); im.setColorAt(n, c.setHex(cols[Math.floor(R() * cols.length)])); n++;
+    }
+    sc.add(im);
+  }
+  // faro de Las Peñas
+  {
+    const top = hillH(-430, -330);
+    const stripes = canvasTex(64, 128, (g) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#f4f6f8' : '#3d8fd1'; g.fillRect(0, i * 16, 64, 16); } });
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.8, 14, 16), new THREE.MeshLambertMaterial({ map: stripes })); t.position.set(-430, top + 7, -330); sc.add(t);
+    L.beacon = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0xfff1c8, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); L.beacon.position.set(-430, top + 15.5, -330); L.beacon.scale.set(14, 14, 1); sc.add(L.beacon);
+  }
+  // Torre Morisca en el Malecón
+  {
+    const x = -105, z = 1900;
+    const b = new THREE.Mesh(new THREE.BoxGeometry(5, 20, 5), new THREE.MeshLambertMaterial({ color: 0xe9e3d3, emissive: 0x2a2418 })); b.position.set(x, 10, z); sc.add(b);
+    const r = new THREE.Mesh(new THREE.ConeGeometry(4, 4, 4), new THREE.MeshLambertMaterial({ color: 0x7c5a3c })); r.position.set(x, 22, z); r.rotation.y = Math.PI / 4; sc.add(r);
+    const clk = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0xfff3d6, depthWrite: false, blending: THREE.AdditiveBlending })); clk.position.set(x, 16, z - 2.7); clk.scale.set(4, 4, 1); sc.add(clk);
+  }
+  // edificios: centro de Guayaquil y Durán
+  {
+    const facade = makeFacadeTex(false), lit = makeFacadeTex(true);
+    const mat = new THREE.MeshLambertMaterial({ map: facade, emissive: 0xffffff, emissiveMap: lit, emissiveIntensity: 0.9 });
+    const R = rng(9), m = new THREE.Matrix4(), c = new THREE.Color();
+    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, 1900); let n = 0;
+    while (n < 1400) {
+      const x = -2600 + R() * 2400, z = -700 + R() * 5000;
+      if (x > wb(z) - 70) continue;
+      if (hillH(x, z) > 4) continue;
+      if (Math.hypot(x, z) < 420) continue;
+      const near = Math.exp(-((x + 700) ** 2 + (z - 1800) ** 2) / 2.2e6);
+      const h = 9 + R() * 18 + near * R() * 75, w = 14 + R() * 22;
+      m.compose(new THREE.Vector3(x, h / 2, z), new THREE.Quaternion(), new THREE.Vector3(w, h, 14 + R() * 22)); im.setMatrixAt(n, m); im.setColorAt(n, c.setHSL(0.08 + R() * 0.05, 0.08, 0.55 + R() * 0.3)); n++;
+    }
+    while (n < 1900) {
+      const z = -3200 + R() * 9000, x = eb(z) + 60 + R() * 2400; if (z > 6800) continue;
+      const h = 6 + R() * 16, w = 14 + R() * 20;
+      m.compose(new THREE.Vector3(x, h / 2, z), new THREE.Quaternion(), new THREE.Vector3(w, h, 14 + R() * 18)); im.setMatrixAt(n, m); im.setColorAt(n, c.setHSL(0.07, 0.06, 0.45 + R() * 0.3)); n++;
+    }
+    sc.add(im);
+  }
+  // complejo de lanzamiento
+  {
+    const conc = new THREE.MeshStandardMaterial({ color: 0x6d7076, roughness: 0.9 });
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(160, 8, 160), conc); deck.position.set(0, 4, 0); sc.add(deck);
+    const trench = new THREE.Mesh(new THREE.BoxGeometry(14, 8.2, 190), new THREE.MeshStandardMaterial({ color: 0x1a1b1e })); trench.position.set(0, 4, 0); sc.add(trench);
+    const steel = new THREE.MeshStandardMaterial({ color: 0x3f4247, roughness: 0.6, metalness: 0.5 });
+    const tx = 0, tz = -14;
+    for (const [dx, dz] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.9, 100, 0.9), steel); leg.position.set(tx + dx, 58, tz + dz - 3); sc.add(leg); }
+    for (let y = 18; y <= 106; y += 8) { const ring = new THREE.Mesh(new THREE.BoxGeometry(9, 0.6, 9), steel); ring.position.set(tx, y, tz - 3); sc.add(ring); }
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 9), steel); arm.position.set(-6, 66, tz - 1); arm.rotation.y = 0.9; sc.add(arm);
+    L.towerLights = [];
+    for (const [x, y, z] of [[tx, 109, tz - 3], [-70, 160, -70], [70, 160, -70], [0, 160, 75]]) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0xff3b2f, depthWrite: false, blending: THREE.AdditiveBlending })); sp.position.set(x, y, z); sp.scale.set(7, 7, 1); sc.add(sp); L.towerLights.push(sp);
+      if (y > 150) { const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 150, 8), steel); mast.position.set(x, 83, z); sc.add(mast); }
+    }
+    const wt = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 22, 24), new THREE.MeshStandardMaterial({ color: 0xd9dadb, roughness: 0.6 })); wt.position.set(-170, 78, -110); sc.add(wt);
+    const wtl = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.4, 67, 8), steel); wtl.position.set(-170, 33.5, -110); sc.add(wtl);
+    // plataformas de aterrizaje flotantes
+    const lzt = makeLZTex();
+    for (const p of [LZ1, LZ2]) {
+      const barge = new THREE.Mesh(new THREE.CylinderGeometry(42, 44, 4, 48), [new THREE.MeshStandardMaterial({ color: 0x3a3d42 }), new THREE.MeshLambertMaterial({ map: lzt, emissive: 0xffffff, emissiveMap: lzt, emissiveIntensity: 0.35 }), new THREE.MeshStandardMaterial({ color: 0x3a3d42 })]);
+      barge.position.set(p.x, 1.2, p.z); sc.add(barge);
+    }
+  }
+  // estrellas
+  L.stars = makeStars(2.5e6, 2600, 1.6); sc.add(L.stars);
+}
+
+function makeStars(R, n, size) {
+  const r = rng(1234), pos = new Float32Array(n * 3), col = new Float32Array(n * 3), sz = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const u = r() * 2 - 1, a = r() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+    pos.set([Math.cos(a) * s * R, u * R, Math.sin(a) * s * R], i * 3);
+    const t = r(); const c = t < 0.15 ? [0.75, 0.82, 1] : t < 0.8 ? [1, 1, 1] : [1, 0.85, 0.7];
+    col.set(c, i * 3); sz[i] = size * (0.5 + Math.pow(r(), 6) * 3.5);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('size', new THREE.BufferAttribute(sz, 1));
+  const m = new THREE.ShaderMaterial({
+    uniforms: { uOp: { value: 1 }, uMap: { value: dotTex } },
+    vertexShader: LOGV + `attribute float size; varying vec3 vC; void main(){ vC = color; vec4 mv = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mv; gl_PointSize = size*2.0;
+      #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: LOGF + `uniform float uOp; uniform sampler2D uMap; varying vec3 vC; void main(){
+      #include <logdepthbuf_fragment>
+      float a = texture2D(uMap, gl_PointCoord).a; gl_FragColor = vec4(vC*a*uOp, a*uOp); }`,
+    vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+  });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; p.renderOrder = -5;
+  return p;
+}
+
+// vehículo en la escena local
+const LV = makeFH(1);
+for (const k in LV) L.scene.add(LV[k]);
+LV.probe.visible = false;
+
+// humo del despegue (paramétrico: se puede retroceder en el tiempo)
+function makeSmoke() {
+  const n = 1800, r = rng(5);
+  const birth = new Float32Array(n), dir = new Float32Array(n * 3), seed = new Float32Array(n), pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    birth[i] = -2.5 + Math.pow(r(), 1.3) * 16;
+    const side = r() < 0.5 ? -1 : 1; const ang = (r() - 0.5) * 0.9;
+    const radial = r() < 0.25;
+    const a = radial ? r() * Math.PI * 2 : Math.PI / 2 + ang + (side < 0 ? Math.PI : 0);
+    dir.set([Math.cos(a), 0.05 + r() * 0.25, Math.sin(a)], i * 3); seed[i] = r();
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('birth', new THREE.BufferAttribute(birth, 1)); g.setAttribute('dir', new THREE.BufferAttribute(dir, 3)); g.setAttribute('seed', new THREE.BufferAttribute(seed, 1));
+  const m = new THREE.ShaderMaterial({
+    uniforms: { uT: { value: 0 }, uMap: { value: dotTex }, uScale: { value: 400 }, uGlow: { value: 0 } },
+    vertexShader: LOGV + `attribute float birth; attribute vec3 dir; attribute float seed; uniform float uT; uniform float uScale; varying float vA; varying float vAge;
+      void main(){
+        float age = uT - birth; vAge = age;
+        if (age < 0.0) { gl_Position = vec4(2.0,2.0,2.0,1.0); gl_PointSize = 0.0; vA = 0.0; return; }
+        float tau = 4.0 + seed*6.0;
+        float dist = (35.0 + seed*55.0) * tau * (1.0 - exp(-age/tau));
+        vec3 p = vec3(0.0, 6.0, 0.0) + dir * vec3(dist, 0.0, dist) + vec3(0.0, dir.y*dist*0.6 + age*(1.0+seed*2.5), 0.0);
+        p.xz += vec2(sin(seed*40.0), cos(seed*31.0)) * age * 0.8;
+        vec4 mv = modelViewMatrix*vec4(p,1.0); gl_Position = projectionMatrix*mv;
+        float size = 14.0 + age*4.0 + seed*12.0;
+        gl_PointSize = size * uScale / -mv.z;
+        vA = smoothstep(0.0, 0.8, age) * (1.0 - smoothstep(30.0, 70.0, age)) * 0.33;
+        #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: LOGF + `uniform sampler2D uMap; uniform float uGlow; varying float vA; varying float vAge;
+      void main(){
+        #include <logdepthbuf_fragment>
+        float a = texture2D(uMap, gl_PointCoord).a * vA; if (a < 0.003) discard;
+        vec3 c = mix(vec3(0.62,0.62,0.66), vec3(1.0,0.62,0.32), uGlow * exp(-vAge*0.15));
+        gl_FragColor = vec4(c, a);
+      }`,
+    transparent: true, depthWrite: false,
+  });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; p.renderOrder = 4;
+  return p;
+}
+L.smoke = makeSmoke(); L.scene.add(L.smoke);
+
+// estela de humo del ascenso (columna)
+function makeTrail() {
+  const pts = [];
+  for (let t = 1; t <= 150; t += 0.25) { const s = ascAt(t); const gl = inertialToGround(t, s.x, s.y); const p = groundToLocal(gl[0], gl[1]); pts.push(p[0], p[1], 0, t); }
+  const n = pts.length / 4, pos = new Float32Array(n * 3), tb = new Float32Array(n), r = rng(3), jit = new Float32Array(n);
+  for (let i = 0; i < n; i++) { pos.set([pts[i * 4], pts[i * 4 + 1], pts[i * 4 + 2]], i * 3); tb[i] = pts[i * 4 + 3]; jit[i] = r(); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('tb', new THREE.BufferAttribute(tb, 1)); g.setAttribute('jit', new THREE.BufferAttribute(jit, 1));
+  const m = new THREE.ShaderMaterial({
+    uniforms: { uT: { value: 0 }, uMap: { value: dotTex }, uScale: { value: 400 } },
+    vertexShader: LOGV + `attribute float tb; attribute float jit; uniform float uT; uniform float uScale; varying float vA; varying float vH;
+      void main(){
+        float age = uT - tb;
+        if (age < 0.6) { gl_Position = vec4(2.0,2.0,2.0,1.0); gl_PointSize = 0.0; vA = 0.0; return; }
+        vec3 p = position + vec3(age*1.2, 0.0, age*0.6*(jit-0.5));
+        vec4 mv = modelViewMatrix*vec4(p,1.0); gl_Position = projectionMatrix*mv;
+        float spread = 6.0 + age*2.2 + position.y*0.0012;
+        gl_PointSize = spread * uScale / -mv.z;
+        vH = position.y;
+        vA = (1.0 - smoothstep(25000.0, 48000.0, position.y)) * (1.0 - smoothstep(50.0, 220.0, age)) * 0.42;
+        #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: LOGF + `uniform sampler2D uMap; varying float vA; varying float vH;
+      void main(){
+        #include <logdepthbuf_fragment>
+        float a = texture2D(uMap, gl_PointCoord).a * vA; if (a < 0.003) discard;
+        vec3 lit = mix(vec3(0.55,0.56,0.62), vec3(1.0,0.72,0.5), smoothstep(6000.0, 20000.0, vH));
+        gl_FragColor = vec4(lit, a);
+      }`,
+    transparent: true, depthWrite: false,
+  });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; p.renderOrder = 3;
+  return p;
+}
+L.trail = makeTrail(); L.scene.add(L.trail);
+
+// =====================================================================
+// 2b. Escena global (kilómetros): Tierra, Luna, trayectoria
+// =====================================================================
+const G = { scene: new THREE.Scene(), cam: new THREE.PerspectiveCamera(45, 1, 1e-5, 2e8) };
+const latR = SITE.lat * DEG, lonR = SITE.lon * DEG;
+const S3 = [Math.cos(latR) * Math.cos(lonR), Math.sin(latR), -Math.cos(latR) * Math.sin(lonR)];
+const E3 = [-Math.sin(lonR), 0, -Math.cos(lonR)];
+const N3 = [S3[1] * E3[2] - S3[2] * E3[1], S3[2] * E3[0] - S3[0] * E3[2], S3[0] * E3[1] - S3[1] * E3[0]];
+const p3 = (x, y) => [(x * S3[0] + y * E3[0]) / 1000, (x * S3[1] + y * E3[1]) / 1000, (x * S3[2] + y * E3[2]) / 1000];
+const d3 = (x, y) => { const v = [x * S3[0] + y * E3[0], x * S3[1] + y * E3[1], x * S3[2] + y * E3[2]]; const l = Math.hypot(...v) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+const SUN_LON = SITE.lon - 90, SUN_LAT = -16; // ~18:20 en Guayaquil, principios de noviembre
+const SUN3 = new THREE.Vector3(Math.cos(SUN_LAT * DEG) * Math.cos(SUN_LON * DEG), Math.sin(SUN_LAT * DEG), -Math.cos(SUN_LAT * DEG) * Math.sin(SUN_LON * DEG)).normalize();
+const RE_KM = R_E / 1000, RM_KM = R_M / 1000;
+{
+  const sc = G.scene;
+  const sun = new THREE.DirectionalLight(0xfff4e6, 3.0); sun.position.copy(SUN3).multiplyScalar(1e6); sc.add(sun); sc.add(sun.target);
+  sc.add(new THREE.AmbientLight(0x3a4260, 0.7));
+  G.earth = new THREE.Group(); sc.add(G.earth);
+  const loadTex = (id) => { const t = new THREE.TextureLoader().load(document.getElementById(id).textContent.trim()); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; return t; };
+  const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(RE_KM, 160, 120), new THREE.MeshPhongMaterial({ map: loadTex('tex-earth'), specular: 0x223344, shininess: 14 }));
+  G.earth.add(earthMesh);
+  const PS = (-86 + 180) * DEG, PL = 16 * DEG, TS = (90 - 4) * DEG, TL = 12 * DEG;
+  const ecu = new THREE.Mesh(new THREE.SphereGeometry(RE_KM + 0.03, 256, 192, PS, PL, TS, TL), new THREE.MeshPhongMaterial({ map: loadTex('tex-ecu'), specular: 0x223344, shininess: 14, polygonOffset: true, polygonOffsetFactor: -2 }));
+  G.earth.add(ecu);
+  // marcador de Guayaquil
+  const site = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0x6fd3ff, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: false }));
+  site.scale.set(0.018, 0.018, 1); site.position.set(...S3.map(v => v * (RE_KM + 0.2))); G.earth.add(site); G.siteSprite = site;
+  // atmósfera
+  const atm = new THREE.Mesh(new THREE.SphereGeometry(RE_KM + 90, 96, 64), new THREE.ShaderMaterial({
+    uniforms: { uSun: { value: SUN3 } },
+    vertexShader: LOGV + `varying vec3 vN; varying vec3 vV; varying vec3 vW; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); vW = normalize((modelMatrix*vec4(position,0.0)).xyz); gl_Position = projectionMatrix*mv;
+      #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: LOGF + `uniform vec3 uSun; varying vec3 vN; varying vec3 vV; varying vec3 vW; void main(){
+      #include <logdepthbuf_fragment>
+      float f = pow(1.0 - max(dot(vN, vV), 0.0), 3.0); float day = smoothstep(-0.25, 0.4, dot(vW, uSun));
+      vec3 c = mix(vec3(1.0,0.45,0.2), vec3(0.35,0.6,1.0), smoothstep(-0.05,0.35,dot(vW,uSun)));
+      float a = f * day * 0.9; gl_FragColor = vec4(c*a, a); }`,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  }));
+  G.earth.add(atm);
+  // Luna
+  G.moon = new THREE.Mesh(new THREE.SphereGeometry(RM_KM, 128, 96), new THREE.MeshPhongMaterial({ map: makeMoonTex(), shininess: 2, specular: 0x111111 }));
+  sc.add(G.moon);
+  G.stars = makeStars(5e7, 5000, 1.5); sc.add(G.stars);
+}
+// líneas de trayectoria (coordenadas absolutas en km, grupo desplazado al foco)
+G.inertial = new THREE.Group(); G.scene.add(G.inertial);
+function makeTrack(samples, color, opBright, opDim) {
+  const n = samples.length, pos = new Float32Array(n * 3), times = new Float64Array(n);
+  samples.forEach((s, i) => { pos.set(s.p, i * 3); times[i] = s.t; });
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const dim = new THREE.Line(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity: opDim, depthWrite: false }));
+  const bright = new THREE.Line(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity: opBright, depthWrite: false }));
+  dim.frustumCulled = bright.frustumCulled = false;
+  G.inertial.add(dim, bright);
+  return { dim, bright, times, set(t) { let lo = 0, hi = n - 1; if (t < times[0]) { bright.geometry.setDrawRange(0, 0); return; } while (hi - lo > 1) { const m = (lo + hi) >> 1; if (times[m] <= t) lo = m; else hi = m; } bright.geometry.setDrawRange(0, lo + 2); } };
+}
+const trackMain = (() => {
+  const out = [];
+  for (let t = 0; t <= T_SECO; t += 2) { const s = ascAt(t); out.push({ t, p: p3(s.x, s.y) }); }
+  for (const r of FL.out) if (r[0] <= T_PERI) out.push({ t: r[0], p: p3(r[1], r[2]) });
+  return makeTrack(out, 0xffb547, 0.95, 0.28);
+})();
+const trackS2 = (() => { const out = []; MS.s2Path.forEach((r, i) => { if (i % 2 === 0) out.push({ t: r[0], p: p3(r[1], r[2]) }); }); return makeTrack(out, 0x8d99b0, 0.6, 0.16); })();
+const trackBooster = (() => { const out = []; B.out.forEach((r, i) => { if (i % 8 === 0) { const q = groundToInertial(r[0], r[1], r[2]); out.push({ t: r[0], p: p3(q[0], q[1]) }); } }); return makeTrack(out, 0x6fd3ff, 0.9, 0.25); })();
+const trackCore = (() => { const out = []; CORE.out.forEach((r, i) => { if (i % 3 === 0) out.push({ t: r[0], p: p3(r[1], r[2]) }); }); return makeTrack(out, 0xb9a6ff, 0.8, 0.22); })();
+{ // órbita de la Luna
+  const pts = []; for (let i = 0; i <= 512; i++) { const a = i / 512 * Math.PI * 2; pts.push(new THREE.Vector3(...p3(A_M * Math.cos(a), A_M * Math.sin(a)))); }
+  const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x5c6884, transparent: true, opacity: 0.35 })); l.frustumCulled = false; G.inertial.add(l);
+}
+// órbita lunar (centrada en la Luna, no rota con ella)
+G.moonFrame = new THREE.Group(); G.scene.add(G.moonFrame);
+{
+  const pts = []; for (let i = 0; i <= 256; i++) { const a = i / 256 * Math.PI * 2; pts.push(new THREE.Vector3(...p3(MS.rL * Math.cos(a), MS.rL * Math.sin(a)))); }
+  G.lunarOrbit = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xffb547, transparent: true, opacity: 0.85 }));
+  G.lunarOrbit.frustumCulled = false; G.moonFrame.add(G.lunarOrbit);
+}
+// vehículo en la escena global (1 unidad = 1 km)
+const GV = makeFH(0.001);
+for (const k in GV) G.scene.add(GV[k]);
+const mkMarker = (color, size) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, sizeAttenuation: false })); s.scale.set(size, size, 1); s.renderOrder = 20; G.scene.add(s); return s; };
+G.mkMain = mkMarker(0xffc76a, 0.022);
+G.mkS2 = mkMarker(0x8d99b0, 0.012);
+G.mkBoost = mkMarker(0x6fd3ff, 0.012);
+G.mkCore = mkMarker(0xb9a6ff, 0.012);
+
+// =====================================================================
+// 3. Etiquetas HTML
+// =====================================================================
+const labelsEl = $('#labels');
+function mkLabel(text, cls) { const d = document.createElement('div'); d.className = 'lbl ' + cls; d.textContent = text; labelsEl.appendChild(d); return d; }
+const LOCAL_LABELS = [
+  ['Puerto Santa Ana', [40, 30, 60]], ['Cerro Santa Ana', [-430, 95, -330]], ['Malecón 2000', [-160, 30, 1300]], ['Río Guayas', [700, 20, 2400]],
+  ['Isla Santay', [900, 20, 5200]], ['Durán', [2300, 40, 600]], ['LZ‑1', [LZ.x1, 18, LZ.z]], ['LZ‑2', [LZ.x2, 18, LZ.z]],
+].map(([t, p]) => ({ el: mkLabel(t, 'k-place'), p: new THREE.Vector3(...p) }));
+const LBL = { veh: mkLabel('Falcon Heavy', 'k-veh'), site: mkLabel('Guayaquil', 'k-site'), moon: mkLabel('Luna', 'k-moon'), earth: mkLabel('Tierra', 'k-moon'), boost: mkLabel('Laterales', 'k-booster'), s2: mkLabel('2.ª etapa', 'k-booster') };
+const _v = new THREE.Vector3();
+function placeLabel(el, pos, cam, show, dx = 10, dy = -8) {
+  if (!show) { el.style.display = 'none'; return; }
+  _v.copy(pos).project(cam);
+  if (_v.z > 1 || _v.z < -1 || Math.abs(_v.x) > 1.05 || Math.abs(_v.y) > 1.05) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.style.transform = `translate(${((_v.x + 1) / 2 * W + dx).toFixed(1)}px,${((1 - _v.y) / 2 * H + dy).toFixed(1)}px)`;
+}
+function occludedByEarth(pointRel, earthRel, camPos) { // rayo cámara→punto atraviesa la Tierra
+  const dx = pointRel.x - camPos.x, dy = pointRel.y - camPos.y, dz = pointRel.z - camPos.z, L2 = Math.hypot(dx, dy, dz);
+  const ux = dx / L2, uy = dy / L2, uz = dz / L2;
+  const ox = camPos.x - earthRel.x, oy = camPos.y - earthRel.y, oz = camPos.z - earthRel.z;
+  const b = ox * ux + oy * uy + oz * uz, c = ox * ox + oy * oy + oz * oz - RE_KM * RE_KM, disc = b * b - c;
+  if (disc < 0) return false; const tHit = -b - Math.sqrt(disc); return tHit > 0 && tHit < L2 - 1;
+}
+
+// =====================================================================
+// 4. Cámaras
+// =====================================================================
+const CAMS = {
+  cohete: { az: 0.5, el: 0.1, dist: 190 },
+  coheteG: { az: Math.PI + 0.5, el: 0.25, dist: 0.11 },
+  malecon: { zoom: 1 },
+  tierra: { az: 0.9, el: 0.55, dist: 26000 },
+  tierraluna: { az: -0.5, el: 1.05, dist: 860000 },
+  luna: { az: 0.6, el: 0.5, dist: 9500 },
+};
+let camChoice = 'auto';
+function autoCam(t) {
+  if (t < 5) return 'malecon';
+  if (BEV.landingBurn && t > BEV.landingBurn - 14 && t < BEV.landing + 7) return 'malecon';
+  if (t < T_SECO + 25) return 'cohete';
+  if (t < T_TLI0 - 50) return 'tierra';
+  if (t < T_PSEP + 150) return 'cohete';
+  if (t < T_PERI - 5 * 3600) return 'tierraluna';
+  return 'luna';
+}
+const LOCAL_UNTIL = 100;
+function camKey(mode, t) { return mode === 'cohete' && t >= LOCAL_UNTIL ? 'coheteG' : mode; }
+
+// interacción
+let drag = null; const pointers = new Map();
+canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); drag = { x: e.clientX, y: e.clientY }; canvas.classList.add('dragging'); hideBig(); });
+canvas.addEventListener('pointermove', e => {
+  if (!pointers.has(e.pointerId)) return;
+  const prev = pointers.get(e.pointerId);
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()]; const d0 = Math.hypot(a.x - b.x, a.y - b.y);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const [c, d] = [...pointers.values()]; const d1 = Math.hypot(c.x - d.x, c.y - d.y);
+    if (d0 > 0 && d1 > 0) zoomBy(d0 / d1);
+    return;
+  }
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+  const k = CAMS[camKey(curMode, tNow)];
+  if (k && k.az != null) { k.az -= dx * 0.006; k.el = clamp(k.el + dy * 0.005, -1.2, 1.45); }
+});
+const endPtr = e => { pointers.delete(e.pointerId); if (!pointers.size) { drag = null; canvas.classList.remove('dragging'); } };
+canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
+canvas.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(e.deltaY * 0.0012)); }, { passive: false });
+function zoomBy(f) {
+  const k = CAMS[camKey(curMode, tNow)];
+  if (k.dist != null) { const lim = { cohete: [25, 5000], coheteG: [0.03, 2e6], tierra: [7000, 2e6], tierraluna: [20000, 3e6], luna: [1800, 4e5] }[camKey(curMode, tNow)]; k.dist = clamp(k.dist * f, lim[0], lim[1]); }
+  else k.zoom = clamp(k.zoom / f, 0.15, 12);
+}
+
+// =====================================================================
+// 5. Estado por instante y dibujo
+// =====================================================================
+let tNow = T_START, playing = false, rate = 1, curMode = 'malecon';
+let W = 1, H = 1;
+const tmpQ = new THREE.Quaternion(), Y_AX = new THREE.Vector3(0, 1, 0), Z_AX = new THREE.Vector3(0, 0, 1);
+
+const B_LANDX = B.out[B.out.length - 1][1];
+function boosterAt(t) { const r = linRow(B.out, t); const corr = (LZ.mid - B_LANDX) * smooth(BEV.boostbackEnd, BEV.landing, t); return { x: r[1] + corr, h: r[2], vx: r[3], vh: r[4], thr: r[5], ph: r[6] }; }
+function coreAt(t) { const r = linRow(CORE.out, t); return [r[1], r[2]]; }
+function ascTiltLocal(t) { // inclinación respecto a la vertical del pad (rad, positiva hacia el este)
+  const s = ascAt(t), g = inertialToGround(t, s.x, s.y);
+  return (90 - s.pitch) * DEG + g[0] / R_E;
+}
+function boosterTilt(t, b) {
+  const tSep = EV.sideSep, base = t < tSep ? 0 : ascTiltLocal(tSep);
+  if (t < BEV.boostback) return lerp(base, -Math.PI / 2, smooth(tSep, BEV.boostback, t));
+  if (t < BEV.boostbackEnd) return -Math.PI / 2;
+  return lerp(-Math.PI / 2, clamp(-b.vx / Math.max(Math.abs(b.vh), 60) * 0.25, -0.25, 0.25), smooth(BEV.boostbackEnd, BEV.boostbackEnd + 25, t));
+}
+function setFirstStage(obj, thr, legsOut, finsOut, h, scaleLen) {
+  const u = obj.userData;
+  u.legs.forEach(l => { l.rotation.x = legsOut * 2.55; });
+  u.fins.forEach(f => { f.rotation.x = -finsOut * 1.45; });
+  setPlume(u.plume, thr, h, 1, scaleLen);
+}
+function setPlume(pl, thr, h, kind, s = 1) {
+  pl.visible = thr > 0.01;
+  if (!pl.visible) return;
+  const vac = smooth(5e3, 60e3, h);
+  const len = (kind === 2 ? 18 + vac * 40 : 28 + vac * 75) * (0.6 + 0.4 * thr) * s;
+  const rad = (kind === 2 ? 1.4 + vac * 9 : 2.2 + vac * 11) * s;
+  pl.scale.set(rad, len, rad);
+  pl.material.uniforms.uI.value = clamp(thr, 0, 1) * (kind === 3 ? 0.9 : 1.25);
+  pl.material.uniforms.uTime.value = performance.now() / 1000;
+}
+
+const _p = new THREE.Vector3();
+function poseLocal(obj, x, y, z, tilt, off = 0, offZ = 0) {
+  // off: desplazamiento lateral en el eje del cohete (x local), antes de inclinar
+  const c = Math.cos(tilt), s = Math.sin(tilt);
+  obj.position.set(x + off * c, y - off * s, z + offZ);
+  obj.rotation.set(0, 0, -tilt);
+}
+
+function updateLocal(t) {
+  const st = ascAt(Math.max(t, 0));
+  const g = t <= 0 ? [0, 8] : inertialToGround(t, st.x, st.y);
+  const loc = groundToLocal(g[0], g[1]);
+  const tilt = t <= 8 ? 0 : ascTiltLocal(t);
+  const vh = t <= 0 ? 8 : g[1];
+  // laterales
+  const sepD = Math.max(0, t - EV.sideSep);
+  [LV.sideA, LV.sideB].forEach((o, k) => {
+    const sign = k ? 1 : -1;
+    if (t < EV.sideSep) {
+      poseLocal(o, loc[0], loc[1], 0, tilt, sign * 3.95);
+      setFirstStage(o, t < -3 ? 0 : t < 0 ? smooth(-3, -1, t) * 0.8 : st.sideThr, 0, 0, vh);
+    } else if (t < BEV.landing + 0.5) {
+      const b = boosterAt(t), q = groundToLocal(b.x, b.h);
+      const span = BEV.landing - EV.sideSep, f = smooth(EV.sideSep, EV.sideSep + span * 0.85, t);
+      const target = k ? LZ.x2 : LZ.x1;
+      const ox = lerp(sign * 3.95 + sign * Math.min(sepD, 6) * 2, target - LZ.mid, f), oz = lerp(0, LZ.z, f);
+      if (t > BEV.landing - 1) { q[0] = LZ.mid; }
+      poseLocal(o, q[0] + ox, q[1], oz, boosterTilt(t, b), 0);
+      setFirstStage(o, b.thr > 0 ? clamp(b.thr / (b.ph === 4 ? 1 : 3), 0.35, 1) : 0, smooth(BEV.landing - 7, BEV.landing - 1, t), smooth(EV.sideSep + 4, EV.sideSep + 12, t), b.h, b.ph === 4 ? 0.7 : 1);
+    } else {
+      poseLocal(o, k ? LZ.x2 : LZ.x1, 3.2, LZ.z, 0, 0);
+      setFirstStage(o, 0, 1, 1, 0);
+    }
+  });
+  // núcleo central
+  if (t < EV.stageSep) {
+    poseLocal(LV.core, loc[0], loc[1], 0, tilt, 0);
+    setFirstStage(LV.core, t < -3 ? 0 : t < 0 ? smooth(-3, -1, t) * 0.8 : st.coreThr, 0, 0, vh);
+    LV.core.visible = true;
+  } else {
+    const c = coreAt(t), cg = inertialToGround(t, c[0], c[1]), q = groundToLocal(cg[0], cg[1]);
+    poseLocal(LV.core, q[0], q[1], 0, ascTiltLocal(EV.stageSep) + (t - EV.stageSep) * 0.03, 0);
+    setFirstStage(LV.core, 0, 0, smooth(EV.stageSep, EV.stageSep + 8, t), cg[1]);
+    LV.core.visible = t < CORE.impact;
+  }
+  // segunda etapa
+  LV.upper.visible = t < 400;
+  if (LV.upper.visible) {
+    let ux = loc[0], uy = loc[1];
+    if (t < EV.stageSep) { const c = Math.cos(tilt), s = Math.sin(tilt); ux += 45.2 * s; uy += 45.2 * c; }
+    else { const s2 = ascAt(t), gg = inertialToGround(t, s2.x, s2.y), q = groundToLocal(gg[0], gg[1]); ux = q[0]; uy = q[1]; }
+    poseLocal(LV.upper, ux, uy, 0, tilt, 0);
+    LV.upper.userData.halves.forEach(hv => hv.visible = t < EV.fairing);
+    setPlume(LV.upper.userData.plume, st.s2Thr, g[1], 2);
+  }
+  // humo, estela, luz
+  L.smoke.material.uniforms.uT.value = t;
+  L.smoke.material.uniforms.uGlow.value = t > -3 && t < 25 ? 1 : 0;
+  L.trail.material.uniforms.uT.value = t;
+  const fire = t < -3 ? 0 : t < 0 ? smooth(-3, -1, t) : (st.sideThr * 2 + st.coreThr) / 3;
+  L.plumeLight.intensity = fire * 5e4 * (1 - smooth(500, 6000, vh));
+  L.plumeLight.position.set(loc[0], Math.max(loc[1] - 25, 5), 0);
+  // aterrizaje: luz de los laterales
+  if (BEV.landingBurn && t > BEV.landingBurn && t < BEV.landing) { const b = boosterAt(t); L.plumeLight.intensity += 3e4; L.plumeLight.position.set(LZ.mid, Math.max(b.h - 20, 5), LZ.z); }
+  L.boostPos.set((LV.sideA.position.x + LV.sideB.position.x) / 2, (LV.sideA.position.y + LV.sideB.position.y) / 2 + 50, (LV.sideA.position.z + LV.sideB.position.z) / 2);
+  L.towerLights.forEach((s, i) => { s.material.opacity = 0.35 + 0.65 * (Math.sin(performance.now() / 380 + i) > 0 ? 1 : 0.15); });
+  L.beacon.material.opacity = 0.55 + 0.45 * Math.max(0, Math.sin(performance.now() / 300));
+  return { loc, tilt };
+}
+
+function updateLocalCamera(t, mode, info) {
+  const cam = L.cam;
+  const veh = new THREE.Vector3(info.loc[0] + Math.sin(info.tilt) * 30, info.loc[1] + Math.cos(info.tilt) * 30, 0);
+  if (mode === 'malecon') {
+    const eye = new THREE.Vector3(-70, 32, 1960);
+    let target = veh.clone();
+    if (BEV.landingBurn && t > BEV.boostbackEnd + 60 && t < BEV.landing + 60) { const b = boosterAt(Math.min(t, BEV.landing)); target.set(LZ.mid, Math.max(b.h, 0) + 25, LZ.z); }
+    if (t > BEV.landing + 60) target.set(LZ.mid, 25, LZ.z);
+    if (!L.camTarget) L.camTarget = target.clone();
+    L.camTarget.lerp(target, 0.18);
+    cam.position.copy(eye); cam.up.set(0, 1, 0); cam.lookAt(L.camTarget);
+    const d = eye.distanceTo(L.camTarget);
+    const half = t > BEV.boostbackEnd + 60 ? 330 : 120;
+    cam.fov = clamp(2 * Math.atan(half / d) / DEG / CAMS.malecon.zoom, 0.25, 70);
+    if (W < H) cam.fov = clamp(2 * Math.atan(Math.tan(cam.fov * DEG / 2) * H / W) / DEG, 0.25, 80);
+  } else {
+    const k = CAMS.cohete, grow = 1 + smooth(0, 70, t) * 1.6;
+    const dist = k.dist * grow;
+    const e1 = [0, 0, 1], e2 = [-1, 0, 0];
+    const ce = Math.cos(k.el), x = dist * (ce * Math.cos(k.az) * e1[0] + ce * Math.sin(k.az) * e2[0]);
+    const y = dist * Math.sin(k.el), z = dist * (ce * Math.cos(k.az) * e1[2] + ce * Math.sin(k.az) * e2[2]);
+    cam.position.set(veh.x + x, Math.max(veh.y + y, 3), veh.z + z);
+    cam.up.set(0, 1, 0); cam.lookAt(veh);
+    cam.fov = 50;
+  }
+  cam.updateProjectionMatrix();
+  L.sky.position.copy(cam.position); L.stars.position.copy(cam.position);
+  L.sky.material.uniforms.uAlt.value = cam.position.y;
+  L.stars.material.uniforms.uOp.value = 0.25 + 0.75 * smooth(5000, 40000, cam.position.y);
+  const sc = 0.5 * H / Math.tan(cam.fov * DEG / 2);
+  L.smoke.material.uniforms.uScale.value = sc; L.trail.material.uniforms.uScale.value = sc;
+  // etiquetas de lugares
+  const showPlaces = mode === 'malecon' && t < 12 || (mode === 'cohete' && t < 0);
+  LOCAL_LABELS.forEach(l => placeLabel(l.el, l.p, cam, showPlaces));
+  placeLabel(LBL.veh, veh, cam, t > 12 && mode === 'malecon' && t < 300, 12, -10);
+  LBL.veh.textContent = t < EV.stageSep ? 'Falcon Heavy' : '2.ª etapa';
+  const showB = t > EV.sideSep + 5 && t < BEV.landing + 40 && mode === 'malecon';
+  placeLabel(LBL.boost, L.boostPos, cam, showB, 14, -12);
+  ['site', 'moon', 'earth', 's2'].forEach(k => placeLabel(LBL[k], _v, cam, false));
+}
+
+// ---------- global ----------
+const focus = [0, 0, 0];
+const camLocalPos = new THREE.Vector3();
+function setG(obj, abs) { obj.position.set(abs[0] - focus[0], abs[1] - focus[1], abs[2] - focus[2]); }
+function orientG(obj, dir, upHint) { tmpQ.setFromUnitVectors(Y_AX, _p.set(dir[0], dir[1], dir[2]).normalize()); obj.quaternion.copy(tmpQ); }
+
+function updateGlobal(t, mode) {
+  const ms = mainState(Math.max(t, 0));
+  const mainAbs = p3(ms[0], ms[1]);
+  const moonAbs = p3(...moonPos(t, MS.th0));
+  // foco
+  if (mode === 'cohete') { focus[0] = mainAbs[0]; focus[1] = mainAbs[1]; focus[2] = mainAbs[2]; }
+  else if (mode === 'tierra') { focus[0] = focus[1] = focus[2] = 0; }
+  else if (mode === 'tierraluna') { focus[0] = moonAbs[0] * 0.5; focus[1] = moonAbs[1] * 0.5; focus[2] = moonAbs[2] * 0.5; }
+  else { focus[0] = moonAbs[0]; focus[1] = moonAbs[1]; focus[2] = moonAbs[2]; }
+  G.earth.position.set(-focus[0], -focus[1], -focus[2]);
+  G.earth.rotation.y = W_E * t;
+  G.inertial.position.copy(G.earth.position);
+  setG(G.moon, moonAbs); setG(G.moonFrame, moonAbs);
+  G.moon.lookAt(G.earth.position);
+  G.lunarOrbit.visible = t > T_PERI - 3600;
+  trackMain.set(t); trackS2.set(t); trackBooster.set(t); trackCore.set(t);
+  trackS2.dim.visible = trackS2.bright.visible = t > T_PSEP;
+  trackBooster.dim.visible = trackBooster.bright.visible = t > EV.sideSep && t < T_TLI0;
+  trackCore.dim.visible = trackCore.bright.visible = t > EV.stageSep && t < T_TLI0;
+
+  // direcciones
+  const st = t <= T_SECO ? ascAt(Math.max(t, 0)) : null;
+  const ur = d3(ms[0], ms[1]), ut = d3(-ms[1], ms[0]);
+  let axis;
+  if (st) { const th = st.pitch * DEG; axis = [Math.sin(th) * ur[0] + Math.cos(th) * ut[0], Math.sin(th) * ur[1] + Math.cos(th) * ut[1], Math.sin(th) * ur[2] + Math.cos(th) * ut[2]]; }
+  else if (t > T_PERI) { const mv = moonVel(t, MS.th0); axis = d3(ms[2] - mv[0], ms[3] - mv[1]); }
+  else axis = d3(ms[2], ms[3]);
+  const N = N3;
+  const S = 0.001;
+  const addAxis = (abs, along, side) => [abs[0] + axis[0] * along * S + N[0] * side * S, abs[1] + axis[1] * along * S + N[1] * side * S, abs[2] + axis[2] * along * S + N[2] * side * S];
+  // laterales
+  [GV.sideA, GV.sideB].forEach((o, k) => {
+    const sign = k ? 1 : -1;
+    if (t < EV.sideSep) { setG(o, addAxis(mainAbs, 0, sign * 3.95)); orientG(o, axis); setFirstStage(o, st && t > 0 ? st.sideThr : 0, 0, 0, st ? st.h : 0, 0.001); o.visible = true; }
+    else if (t < BEV.landing + 1) {
+      const b = boosterAt(t), q = groundToInertial(t, b.x, b.h), abs = p3(q[0], q[1]);
+      const off = sign * (3.95 + Math.min(t - EV.sideSep, 30) * 2);
+      setG(o, [abs[0] + N[0] * off * S, abs[1] + N[1] * off * S, abs[2] + N[2] * off * S]);
+      const tl = boosterTilt(t, b), bur = d3(q[0], q[1]), but = d3(-q[1], q[0]);
+      orientG(o, [Math.cos(tl) * bur[0] + Math.sin(tl) * but[0], Math.cos(tl) * bur[1] + Math.sin(tl) * but[1], Math.cos(tl) * bur[2] + Math.sin(tl) * but[2]]);
+      setFirstStage(o, b.thr > 0 ? clamp(b.thr / (b.ph === 4 ? 1 : 3), 0.35, 1) : 0, smooth(BEV.landing - 7, BEV.landing - 1, t), smooth(EV.sideSep + 4, EV.sideSep + 12, t), b.h, 0.001);
+      o.visible = true;
+    } else o.visible = false;
+  });
+  if (t < EV.stageSep) { setG(GV.core, mainAbs); orientG(GV.core, axis); setFirstStage(GV.core, st && t > 0 ? st.coreThr : 0, 0, 0, st ? st.h : 0, 0.001); GV.core.visible = true; }
+  else if (t < CORE.impact) {
+    const c = coreAt(t); setG(GV.core, p3(c[0], c[1]));
+    const cd = d3(...(() => { const c2 = coreAt(t + 1); return [c2[0] - c[0], c2[1] - c[1]]; })());
+    const spin = (t - EV.stageSep) * 0.04; orientG(GV.core, [cd[0] * Math.cos(spin) + N[0] * Math.sin(spin), cd[1] * Math.cos(spin) + N[1] * Math.sin(spin), cd[2] * Math.cos(spin) + N[2] * Math.sin(spin)]);
+    setFirstStage(GV.core, 0, 0, 1, 0, 0.001); GV.core.visible = true;
+  } else GV.core.visible = false;
+  // segunda etapa
+  const upperAbs = t < EV.stageSep ? addAxis(mainAbs, 45.2, 0) : mainAbs.slice();
+  let s2Abs = upperAbs;
+  if (t > T_PSEP) {
+    const s = s2State(t); s2Abs = p3(s[0], s[1]);
+    if (t <= T_PERI) { const dd = Math.min(t - T_PSEP, 3000) * 0.4; s2Abs = [s2Abs[0] - axis[0] * dd * S + N[0] * dd * 0.3 * S, s2Abs[1] - axis[1] * dd * S + N[1] * dd * 0.3 * S, s2Abs[2] - axis[2] * dd * S + N[2] * dd * 0.3 * S]; }
+  }
+  setG(GV.upper, s2Abs);
+  orientG(GV.upper, t > T_PERI ? d3(s2State(t)[2], s2State(t)[3]) : axis);
+  GV.upper.visible = true;
+  const tlis = t > T_TLI0 && t < T_TLI1;
+  setPlume(GV.upper.userData.plume, st ? st.s2Thr : tlis ? 1 : 0, st ? st.h : 300e3, 2, 0.001);
+  // cofia
+  GV.upper.userData.halves.forEach((hv, k) => {
+    if (t < EV.fairing) { hv.visible = true; hv.position.set(0, 12.6 * S, 0); hv.rotation.set(0, 0, 0); return; }
+    const dt = t - EV.fairing; hv.visible = dt < 45;
+    hv.position.set((k ? 1 : -1) * dt * 1.8 * S, 12.6 * S - 0.5 * 7 * dt * dt * S, 0); hv.rotation.z = (k ? -1 : 1) * Math.min(dt * 0.25, 1.2);
+  });
+  // sonda
+  const probeVisible = t > EV.fairing;
+  GV.probe.visible = probeVisible;
+  if (probeVisible) {
+    const pAbs = t < T_PSEP ? [s2Abs[0] + axis[0] * 13.8 * S, s2Abs[1] + axis[1] * 13.8 * S, s2Abs[2] + axis[2] * 13.8 * S] : mainAbs;
+    setG(GV.probe, pAbs); orientG(GV.probe, axis);
+    const dep = smooth(T_PSEP + 30, T_PSEP + 120, t);
+    GV.probe.userData.panels.forEach((p, k) => { p.scale.x = 0.15 + 0.85 * dep; });
+    const loi = Math.abs(t - T_PERI) < 150 ? 1 - Math.abs(t - T_PERI) / 150 : 0;
+    // durante la LOI la sonda frena: la tobera apunta hacia delante
+    if (loi > 0) orientG(GV.probe, [-axis[0], -axis[1], -axis[2]]);
+    setPlume(GV.probe.userData.plume, loi, 400e3, 3, 0.001 * 0.6);
+  }
+  // marcadores
+  setG(G.mkMain, mainAbs); setG(G.mkS2, s2Abs);
+  G.mkS2.visible = t > T_PSEP && t < MS.s2Path[MS.s2Path.length - 1][0];
+  G.mkBoost.visible = t > EV.sideSep && t < BEV.landing; if (G.mkBoost.visible) { const b = boosterAt(t), q = groundToInertial(t, b.x, b.h); setG(G.mkBoost, p3(q[0], q[1])); }
+  G.mkCore.visible = t > EV.stageSep && t < CORE.impact; if (G.mkCore.visible) { const c = coreAt(t); setG(G.mkCore, p3(c[0], c[1])); }
+
+  // cámara
+  const cam = G.cam, key = camKey(mode, t), k = CAMS[key];
+  let e1, e2, e3;
+  if (key === 'coheteG') {
+    let up = ur; if (t > T_SOI) { const rel = [ms[0] - moonPos(t, MS.th0)[0], ms[1] - moonPos(t, MS.th0)[1]]; up = d3(rel[0], rel[1]); }
+    e1 = axis; const dot = up[0] * e1[0] + up[1] * e1[1] + up[2] * e1[2];
+    e3 = [up[0] - dot * e1[0], up[1] - dot * e1[1], up[2] - dot * e1[2]]; const l = Math.hypot(...e3) || 1; e3 = e3.map(v => v / l);
+    if (Math.abs(dot) > 0.98) e3 = N;
+    e2 = [e3[1] * e1[2] - e3[2] * e1[1], e3[2] * e1[0] - e3[0] * e1[2], e3[0] * e1[1] - e3[1] * e1[0]];
+  } else { e1 = S3; e2 = E3; e3 = N3; }
+  const ce = Math.cos(k.el), sa = Math.sin(k.az), ca = Math.cos(k.az), se = Math.sin(k.el);
+  let dist = k.dist;
+  if (key === 'coheteG' && t > T_SECO + 20 && t < T_TLI0) dist = Math.max(dist, 0.11);
+  cam.position.set(dist * (ce * ca * e1[0] + ce * sa * e2[0] + se * e3[0]), dist * (ce * ca * e1[1] + ce * sa * e2[1] + se * e3[1]), dist * (ce * ca * e1[2] + ce * sa * e2[2] + se * e3[2]));
+  if (key === 'coheteG') { const off = t < EV.stageSep ? 30 * S : 8 * S; cam.position.addScaledVector(_p.set(...axis), off); }
+  cam.up.set(e3[0], e3[1], e3[2]);
+  cam.lookAt(key === 'coheteG' ? _p.set(...axis).multiplyScalar(t < EV.stageSep ? 30 * S : 8 * S) : _p.set(0, 0, 0));
+  cam.fov = 45; cam.near = Math.max(1e-6, dist * 1e-3); cam.far = 2e8; cam.updateProjectionMatrix();
+  G.stars.position.copy(cam.position);
+  // color del cielo (dentro de la atmósfera)
+  const camAbs = [cam.position.x + focus[0], cam.position.y + focus[1], cam.position.z + focus[2]];
+  const camAlt = Math.hypot(...camAbs) - RE_KM;
+  const k1 = 1 - smooth(20, 95, camAlt);
+  G.scene.background = G.bg || (G.bg = new THREE.Color());
+  G.bg.setRGB(0.10 * k1 + 0.0, 0.12 * k1, 0.26 * k1);
+  G.stars.material.uniforms.uOp.value = 1 - 0.7 * k1;
+  // marcadores visibles sólo cuando el modelo es diminuto
+  const mainDist = Math.hypot(mainAbs[0] - camAbs[0], mainAbs[1] - camAbs[1], mainAbs[2] - camAbs[2]);
+  G.mkMain.visible = mainDist > 2.5;
+  // etiquetas
+  const camV = cam.position;
+  const earthRel = G.earth.position;
+  const show = (abs, extra = true) => { _p.set(abs[0] - focus[0], abs[1] - focus[1], abs[2] - focus[2]); return extra && !occludedByEarth(_p, earthRel, camV); };
+  const vehName = t < EV.stageSep ? 'Falcon Heavy' : t < T_PSEP ? '2.ª etapa + sonda' : 'Sonda Chimborazo‑1';
+  LBL.veh.textContent = vehName;
+  placeLabel(LBL.veh, _p.set(mainAbs[0] - focus[0], mainAbs[1] - focus[1], mainAbs[2] - focus[2]), cam, show(mainAbs) && mainDist > 0.5, 12, -10);
+  const siteAbs = new THREE.Vector3(...S3.map(v => v * RE_KM)).applyAxisAngle(Y_AX, W_E * t);
+  placeLabel(LBL.site, _p.set(siteAbs.x - focus[0], siteAbs.y - focus[1], siteAbs.z - focus[2]), cam, show(siteAbs.toArray()) && Math.hypot(...camAbs) > RE_KM + 800);
+  placeLabel(LBL.moon, _p.set(moonAbs[0] - focus[0], moonAbs[1] - focus[1], moonAbs[2] - focus[2] ), cam, show(moonAbs), 14, -14);
+  placeLabel(LBL.earth, _p.set(-focus[0], -focus[1], -focus[2] + 0), cam, mode === 'tierraluna' || mode === 'luna', 14, -14);
+  placeLabel(LBL.s2, _p.set(s2Abs[0] - focus[0], s2Abs[1] - focus[1], s2Abs[2] - focus[2]), cam, G.mkS2.visible && (mode === 'luna' || mode === 'tierraluna') && show(s2Abs));
+  placeLabel(LBL.boost, _v, cam, false);
+  LOCAL_LABELS.forEach(l => placeLabel(l.el, _v, cam, false));
+}
+
+// =====================================================================
+// 6. Interfaz
+// =====================================================================
+function fmtClock(t) {
+  const neg = t < 0; let a = Math.abs(t);
+  if (neg) a = Math.ceil(a);
+  const d = Math.floor(a / 86400); a -= d * 86400;
+  const h = Math.floor(a / 3600), m = Math.floor(a % 3600 / 60), s = Math.floor(a % 60);
+  const hms = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return (neg ? 'T−' : 'T+') + (d ? `${d} d ` : '') + hms;
+}
+function fmtShort(t) {
+  if (t < 0) return `−0:${String(Math.round(-t)).padStart(2, '0')}`;
+  if (t < 3600) return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+  if (t < 86400) return `${Math.floor(t / 3600)} h ${String(Math.floor(t % 3600 / 60)).padStart(2, '0')}`;
+  return `${Math.floor(t / 86400)} d ${Math.floor(t % 86400 / 3600)} h`;
+}
+const refFmt = r => `Falcon Heavy real (2018): ${r}`;
+
+// lista de eventos
+const evPane = $('#pane-ev');
+EVENTS.forEach((e, i) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'ev future';
+  b.innerHTML = `<span class="tm">${fmtShort(e.t)}</span><span class="tt"></span><span class="ds"></span>${e.ref ? '<span class="ref"></span>' : ''}`;
+  b.querySelector('.tt').textContent = e.title; b.querySelector('.ds').textContent = e.desc;
+  if (e.ref) b.querySelector('.ref').textContent = refFmt(e.ref);
+  b.addEventListener('click', () => { setTime(e.t - (e.t < 600 ? 3 : e.t < 3e4 ? 30 : 600)); hideBig(); });
+  e.el = b; evPane.appendChild(b);
+});
+{
+  const n = document.createElement('p'); n.className = 'note';
+  n.textContent = 'Los tiempos en violeta son los del primer vuelo real del Falcon Heavy (6 de febrero de 2018, según el cronograma publicado por SpaceX), para comparar con esta simulación.';
+  evPane.appendChild(n);
+}
+// pestaña ¿es realista?
+$('#pane-real').innerHTML = `<div class="note">
+<h4>La gran ventaja: estar en la línea ecuatorial</h4>
+<p>La Tierra gira, y en Guayaquil el suelo ya se mueve a <b>${nf0.format(ROT_GYE * 3.6)} km/h</b> hacia el este. En Cabo Cañaveral (28,5° N), desde donde despega el Falcon Heavy real, son ${nf0.format(ROT_CAPE * 3.6)} km/h. Son ${nf0.format((ROT_GYE - ROT_CAPE))} m/s gratis, y una órbita casi ecuatorial (inclinación ${nf1.format(Math.abs(SITE.lat))}°) que no necesita corregir su plano.</p>
+<h4>El gran problema: hacia el este hay tierra</h4>
+<p>Los puertos espaciales reales lanzan sobre el mar, para que las piezas que caen no golpeen a nadie. Kourou (Guayana Francesa) y Cabo Cañaveral tienen el océano al este. Desde Guayaquil, hacia el este están Durán, los Andes y la Amazonía. Lanzar hacia el oeste, sobre el Pacífico, iría contra el giro de la Tierra y costaría unos ${nf0.format(2 * 465)} m/s extra.</p>
+<h4>El núcleo central cae en la selva</h4>
+<p>En esta simulación el núcleo central se descarta, como en las misiones reales más exigentes del Falcon Heavy. Aquí cae a ${nf0.format(CORE.downrange / 1000)} km, cerca de ${fmtLon(coreLonDeg)}. En la vida real habría que cambiar la trayectoria o la zona de caída.</p>
+<h4>El Chimborazo, junto a la ruta</h4>
+<p>La trayectoria pasa 79 km al sur del Chimborazo. Su cumbre está a 6 384,4 km del centro de la Tierra: es el punto de la superficie más alejado del centro, unos 2 km más que el Everest, porque la Tierra es más ancha en el ecuador.</p>
+<h4>Cómo se calcula</h4>
+<p>Nada está dibujado a mano: el ascenso se integra paso a paso (cada 0,05 s) con empuje de los motores Merlin según la presión del aire, arrastre con la atmósfera estándar, gravedad y rotación terrestre. El viaje a la Luna se integra con la gravedad de la Tierra y de la Luna a la vez (método Runge‑Kutta de 4.º orden), buscando la fase lunar que deja la sonda a 100 km de la superficie.</p>
+<h4>Simplificaciones</h4>
+<p>Todo ocurre en un plano; la órbita de la Luna se toma circular; el frenado lunar se aplica de golpe; los laterales vuelven con un guiado sencillo. La fecha es hipotética: se eligió la posición de la Luna que hace posible el viaje.</p>
+</div>`;
+$('#pane-veh').innerHTML = `<dl class="spec">
+<dt>Altura</dt><dd>70 m</dd>
+<dt>Masa al despegue</dt><dd>${nf0.format(LIFTOFF_MASS / 1000)} t</dd>
+<dt>Empuje al despegue</dt><dd>${nf0.format(27 * VEH.merlin.fsl / 1000)} kN</dd>
+<dt>Motores</dt><dd>27 Merlin 1D + 1 Merlin de vacío</dd>
+<dt>Propelente</dt><dd>Queroseno RP‑1 y oxígeno líquido</dd>
+<dt>Propelente por núcleo</dt><dd>${nf0.format(VEH.side.prop / 1000)} t</dd>
+<dt>Segunda etapa</dt><dd>${nf0.format(VEH.mvac.f / 1000)} kN · ${nf0.format(VEH.s2.prop / 1000)} t</dd>
+<dt>Carga útil</dt><dd>Sonda Chimborazo‑1, ${nf0.format(VEH.payload / 1000)} t</dd>
+<dt>Órbita de estacionamiento</dt><dd>${nf0.format(H_PARK / 1000)} km</dd>
+<dt>Velocidad tras la TLI</dt><dd>${nf2.format(FL.vTLI / 1000)} km/s</dd>
+<dt>Viaje a la Luna</dt><dd>${nf0.format((T_PERI - T_TLI1) / 3600)} h</dd>
+<dt>Frenado lunar (LOI)</dt><dd>${nf0.format(MS.loiDv)} m/s</dd>
+<dt>Órbita lunar</dt><dd>${nf0.format((MS.rL - R_M) / 1000)} km · ${Math.floor(PERIOD_L / 3600)} h ${Math.round(PERIOD_L % 3600 / 60)} min</dd>
+</dl>
+<p class="note">La sonda Chimborazo‑1 es inventada. Como referencia, la sonda Psyche que lanzó un Falcon Heavy en 2023 pesaba unas 2,6 t.</p>
+<p class="note"><a href="https://www.youtube.com/results?search_query=Falcon+Heavy+Test+Flight+SpaceX" target="_blank" rel="noopener">Ver el primer vuelo real del Falcon Heavy en YouTube ↗</a></p>`;
+
+// pestañas
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  document.querySelectorAll('.tabpane').forEach(p => p.hidden = p.id !== b.dataset.pane);
+}));
+
+// telemetría
+const tgrid = $('#tgrid');
+const gridRows = Array.from({ length: 7 }, () => { const dt = document.createElement('dt'), dd = document.createElement('dd'); tgrid.append(dt, dd); return { dt, dd }; });
+function setRows(rows) { gridRows.forEach((r, i) => { const row = rows[i]; r.dt.hidden = r.dd.hidden = !row; if (row) { if (r.dt.textContent !== row[0]) r.dt.textContent = row[0]; if (r.dd.textContent !== row[1]) r.dd.textContent = row[1]; } }); }
+const PROPS = ['Lateral A', 'Núcleo central', 'Lateral B', '2.ª etapa', 'Sonda'].map(n => {
+  const d = document.createElement('div'); d.className = 'prop'; d.innerHTML = `<span></span><span class="bar"><i></i></span><b></b>`;
+  d.firstChild.textContent = n; $('#props').appendChild(d); return { d, bar: d.querySelector('i'), lab: d.querySelector('b') };
+});
+function setProp(i, frac, txt, state) { const p = PROPS[i]; p.bar.style.width = (clamp(frac, 0, 1) * 100).toFixed(1) + '%'; if (p.lab.textContent !== txt) p.lab.textContent = txt; const cls = 'prop' + (state ? ' ' + state : ''); if (p.d.className !== cls) p.d.className = cls; }
+const pct = f => `${Math.round(clamp(f, 0, 1) * 100)} %`;
+
+function telemetry(t) {
+  const ms = mainState(Math.max(t, 0));
+  const r = Math.hypot(ms[0], ms[1]), vin = Math.hypot(ms[2], ms[3]);
+  const mp = moonPos(t, MS.th0), mv = moonVel(t, MS.th0);
+  const dMoon = Math.hypot(ms[0] - mp[0], ms[1] - mp[1]), vMoon = Math.hypot(ms[2] - mv[0], ms[3] - mv[1]);
+  let speed, speedRef, alt, altLbl = 'Altitud', altRef = 'sobre el nivel del mar', rows, phase, burn = false;
+  if (t <= T_SECO) {
+    const s = ascAt(Math.max(t, 0));
+    const g = inertialToGround(Math.max(t, 0), s.x, s.y);
+    speed = t <= 0 ? 0 : s.vrel * 3.6; speedRef = 'respecto al suelo'; alt = t <= 0 ? 0 : Math.max(0, s.h) / 1000;
+    const accel = t < -3 ? 0 : t <= 0 ? 0 : s.a;
+    rows = [['Aceleración', `${nf2.format(t <= 0 ? 0 : accel)} g`], ['Presión dinámica', `${nf1.format(s.q / 1000)} kPa`], ['Mach', nf1.format(t <= 0 ? 0 : s.M)],
+      ['Distancia horizontal', `${nf1.format(Math.max(0, g[0]) / 1000)} km`], ['Masa', `${nf0.format((t <= 0 ? LIFTOFF_MASS : s.m) / 1000)} t`], ['Empuje', `${nf0.format((t < -3 ? 0 : t <= 0 ? smooth(-3, -1, t) * 27 * VEH.merlin.fsl : s.F) / 1000)} kN`], ['Ángulo sobre el horizonte', `${nf0.format(s.pitch)}°`]];
+    burn = t > -3 && (t <= 0 || s.F > 0);
+    phase = t < 0 ? 'Cuenta regresiva' : t < EV.sideSep ? 'Ascenso · tres núcleos' : t < EV.stageSep ? 'Ascenso · núcleo central' : 'Ascenso · 2.ª etapa';
+    // propelente
+    const sp = t < EV.sideSep ? s.sideProp / VEH.side.prop : t < BEV.landing ? lerp(VEH.side.reserve, 1500, smooth(EV.sideSep, BEV.landing, t)) / VEH.side.prop : 0.004;
+    const landed = t >= BEV.landing;
+    const sideState = landed ? 'ok' : t >= EV.sideSep ? '' : (s.sideThr > 0 && t > 0 ? 'on' : '');
+    setProp(0, sp, landed ? 'Aterrizó' : pct(sp), sideState); setProp(2, sp, landed ? 'Aterrizó' : pct(sp), sideState);
+    setProp(1, s.coreProp / VEH.core.prop, t >= EV.meco ? 'Descartado' : pct(s.coreProp / VEH.core.prop), t >= EV.meco ? 'gone' : (s.coreThr > 0 && t > 0 ? 'on' : ''));
+    setProp(3, s.s2Prop / VEH.s2.prop, pct(s.s2Prop / VEH.s2.prop), s.s2Thr > 0 ? 'on' : '');
+    setProp(4, 1, pct(1), '');
+  } else {
+    const orb = earthOrbit(ms);
+    const tlis = t > T_TLI0 && t < T_TLI1;
+    const s2p = t < T_TLI0 ? A.s2Prop : tlis ? lerp(A.s2Prop, FL.propLeft, (t - T_TLI0) / (T_TLI1 - T_TLI0)) : FL.propLeft;
+    const probeP = t < T_PERI ? PROBE_PROP0 : PROBE_PROP0 - MS.loiProp;
+    const mass = (t < T_PSEP ? VEH.s2.dry + s2p + VEH.payload : VEH.payload - (t > T_PERI ? MS.loiProp : 0));
+    if (t < T_PERI) {
+      speed = vin * 3.6; speedRef = 'respecto al centro de la Tierra'; alt = (r - R_E) / 1000;
+      if (t > T_SOI) { altLbl = 'Altitud lunar'; alt = (dMoon - R_M) / 1000; altRef = 'sobre la superficie de la Luna'; speed = vMoon * 3.6; speedRef = 'respecto a la Luna'; }
+      rows = t < T_PSEP ? [
+        ['Perigeo', `${nf0.format((orb.peri - R_E) / 1000)} km`], ['Apogeo', isFinite(orb.apo) ? `${nf0.format((orb.apo - R_E) / 1000)} km` : 'escape'],
+        ['Aceleración', tlis ? `${nf2.format(VEH.mvac.f / mass / G0)} g` : '0,00 g (ingravidez)'], ['Distancia a la Luna', `${nf0.format(dMoon / 1000)} km`],
+        ['Masa', `${nf1.format(mass / 1000)} t`], ['Empuje', tlis ? `${nf0.format(VEH.mvac.f / 1000)} kN` : '0 kN'], null]
+        : [['Distancia a la Tierra', `${nf0.format(r / 1000)} km`], ['Distancia a la Luna', `${nf0.format(dMoon / 1000)} km`], ['Velocidad respecto a la Luna', `${nf0.format(vMoon * 3.6)} km/h`],
+          ['Llegada en', fmtShort(T_PERI - t)], ['Masa de la sonda', `${nf1.format(mass / 1000)} t`], ['Aceleración', '0,00 g (ingravidez)'], null];
+      phase = t < T_TLI0 ? 'Órbita de estacionamiento' : tlis ? 'Inyección translunar' : t < T_SOI ? 'Crucero translunar' : 'Llegando a la Luna';
+      burn = tlis;
+    } else {
+      speed = vMoon * 3.6; speedRef = 'respecto a la Luna'; altLbl = 'Altitud lunar'; alt = (dMoon - R_M) / 1000; altRef = 'sobre la superficie de la Luna';
+      rows = [['Período orbital', `${Math.floor(PERIOD_L / 3600)} h ${Math.round(PERIOD_L % 3600 / 60)} min`], ['Vueltas completadas', nf0.format(Math.floor((t - T_PERI) / PERIOD_L))], ['Frenado (LOI)', `${nf0.format(MS.loiDv)} m/s`],
+        ['Distancia a la Tierra', `${nf0.format(r / 1000)} km`], ['Masa de la sonda', `${nf1.format(mass / 1000)} t`], ['Retraso de la señal', `${nf2.format(r / 299792458)} s`], null];
+      phase = 'Órbita lunar';
+    }
+    burn = burn || Math.abs(t - T_PERI) < 150;
+    setProp(0, 0, 'Aterrizó', 'ok'); setProp(2, 0, 'Aterrizó', 'ok');
+    setProp(1, 0, 'Descartado', 'gone');
+    setProp(3, s2p / VEH.s2.prop, t > T_PSEP ? 'Separada' : pct(s2p / VEH.s2.prop), t > T_PSEP ? 'gone' : tlis ? 'on' : '');
+    setProp(4, probeP / PROBE_PROP0, pct(probeP / PROBE_PROP0), Math.abs(t - T_PERI) < 150 ? 'on' : '');
+  }
+  $('#v-speed').textContent = nf0.format(speed);
+  $('#v-speed-ref').textContent = speedRef;
+  $('#v-alt').textContent = alt < 1000 ? nf1.format(alt) : nf0.format(alt);
+  $('#v-alt-lbl').textContent = altLbl; $('#v-alt-ref').textContent = altRef;
+  setRows(rows);
+  $('#veh-name').textContent = t < EV.stageSep ? 'Falcon Heavy' : t < T_PSEP ? '2.ª etapa + sonda' : 'Sonda Chimborazo‑1';
+  const ph = $('#phase'); ph.querySelector('em').textContent = phase; ph.className = 'chip' + (burn ? ' burn' : '');
+  $('#mini').textContent = `${alt < 1000 ? nf1.format(alt) : nf0.format(alt)} km · ${nf0.format(speed)} km/h`;
+  // laterales y núcleo
+  let bl = '';
+  if (t > EV.sideSep && t < BEV.landing + 40) {
+    const b = boosterAt(Math.min(t, BEV.landing));
+    const names = ['separándose', 'encendido de regreso', 'vuelo balístico', 'encendido de reentrada', 'encendido de aterrizaje'];
+    bl = t >= BEV.landing ? 'Laterales: en las plataformas LZ‑1 y LZ‑2 ✓' : `Laterales: ${names[b.ph] || 'descenso'} · ${nf0.format(Math.hypot(b.vx, b.vh) * 3.6)} km/h · ${nf1.format(Math.max(b.h, 0) / 1000)} km`;
+  }
+  if (t > EV.stageSep && t < CORE.impact + 30) { const c = coreAt(Math.min(t, CORE.impact)), g = inertialToGround(t, c[0], c[1]); bl += (bl ? '\n' : '') + (t >= CORE.impact ? `Núcleo central: cayó a ${nf0.format(CORE.downrange / 1000)} km` : `Núcleo central: caída libre · ${nf1.format(Math.max(g[1], 0) / 1000)} km de altitud`); }
+  const blEl = $('#booster-line'); if (blEl.textContent !== bl) { blEl.textContent = bl; blEl.style.whiteSpace = 'pre-line'; }
+}
+
+// gráfico
+const chart = $('#chart'), cg = chart.getContext('2d');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = { sol: css('--sol'), craft: css('--craft'), comet: css('--comet'), line: css('--line'), faint: css('--faint'), dim: css('--dim') };
+const CH_ASC = []; for (let t = 0; t <= T_SECO; t += 2) { const s = ascAt(t); CH_ASC.push([t, s.h / 1000, s.vrel * 3.6]); }
+const CH_CRU = []; for (let t = T_SECO; t <= T_END; t += 900) { const s = mainState(t), m = moonPos(t, MS.th0); CH_CRU.push([t, Math.hypot(s[0], s[1]) / 1000, Math.hypot(s[0] - m[0], s[1] - m[1]) / 1000]); }
+let chartMode = '';
+function drawChart(t) {
+  const dpr = Math.min(devicePixelRatio || 1, 2), w = chart.clientWidth, h = chart.clientHeight;
+  if (!w) return;
+  if (chart.width !== Math.round(w * dpr)) { chart.width = Math.round(w * dpr); chart.height = Math.round(h * dpr); }
+  cg.setTransform(dpr, 0, 0, dpr, 0, 0); cg.clearRect(0, 0, w, h);
+  const asc = t < T_SECO + 120;
+  const mode = asc ? 'a' : 'c';
+  if (mode !== chartMode) {
+    chartMode = mode;
+    $('#chart-title').textContent = asc ? 'Ascenso (primeros 9 minutos)' : 'Viaje a la Luna';
+    $('#chart-legend').innerHTML = asc ? `<span><i style="background:${COL.sol}"></i>Altitud (0–220 km)</span><span><i style="background:${COL.craft}"></i>Velocidad (0–30 000 km/h)</span>`
+      : `<span><i style="background:${COL.craft}"></i>Distancia a la Tierra</span><span><i style="background:${COL.comet}"></i>Distancia a la Luna</span>`;
+  }
+  const padL = 4, padR = 4, padT = 6, padB = 16, pw = w - padL - padR, ph = h - padT - padB;
+  cg.strokeStyle = COL.line; cg.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const y = padT + ph * i / 4; cg.beginPath(); cg.moveTo(padL, y + 0.5); cg.lineTo(w - padR, y + 0.5); cg.stroke(); }
+  cg.fillStyle = COL.faint; cg.font = '500 10px "IBM Plex Mono", monospace'; cg.textBaseline = 'top';
+  let data, x0, x1, ymax1, ymax2;
+  if (asc) { data = CH_ASC; x0 = 0; x1 = T_SECO; ymax1 = 220; ymax2 = 30000;
+    [0, 2, 4, 6, 8].forEach(mn => { const x = padL + pw * (mn * 60 - x0) / (x1 - x0); cg.fillText(`${mn} min`, Math.min(x, w - 34), h - 12); });
+  } else { data = CH_CRU; x0 = T_SECO; x1 = T_END; ymax1 = 420000; ymax2 = 420000;
+    for (let d = 0; d <= 3; d++) { const x = padL + pw * (d * 86400 - x0) / (x1 - x0); if (x >= padL) cg.fillText(`día ${d}`, Math.min(x, w - 34), h - 12); }
+  }
+  const X = tt => padL + pw * (tt - x0) / (x1 - x0);
+  const line = (k, ymax, col) => { cg.strokeStyle = col; cg.lineWidth = 1.8; cg.beginPath(); data.forEach((d, i) => { const x = X(d[0]), y = padT + ph * (1 - clamp(d[k] / ymax, 0, 1)); i ? cg.lineTo(x, y) : cg.moveTo(x, y); }); cg.stroke(); };
+  line(1, ymax1, asc ? COL.sol : COL.craft); line(2, ymax2, asc ? COL.craft : COL.comet);
+  if (t > x0) { const x = X(Math.min(t, x1)); cg.strokeStyle = COL.dim; cg.setLineDash([3, 3]); cg.beginPath(); cg.moveTo(x + 0.5, padT); cg.lineTo(x + 0.5, padT + ph); cg.stroke(); cg.setLineDash([]); }
+}
+
+// línea de tiempo por tramos (el ascenso ocupa más espacio que el crucero)
+const SEGS = [[T_START, T_SECO + 60, 0.34, 'Ascenso'], [T_SECO + 60, T_PSEP + 300, 0.14, 'Órbita y TLI'], [T_PSEP + 300, T_PERI - 3 * 3600, 0.27, 'Crucero'], [T_PERI - 3 * 3600, T_END, 0.25, 'Luna']];
+function tToF(t) { let acc = 0; for (const [a, b, w] of SEGS) { if (t <= b) return acc + w * clamp((t - a) / (b - a), 0, 1); acc += w; } return 1; }
+function fToT(f) { let acc = 0; for (const [a, b, w] of SEGS) { if (f <= acc + w) return a + (b - a) * (f - acc) / w; acc += w; } return T_END; }
+{
+  const ticks = $('#ticks'); EVENTS.forEach(e => { const i = document.createElement('i'); i.style.left = (tToF(e.t) * 100) + '%'; ticks.appendChild(i); e.tick = i; });
+  const sl = $('#seglabels'); let acc = 0; SEGS.forEach(([, , w, n]) => { const s = document.createElement('span'); s.style.left = (acc * 100) + '%'; s.textContent = n; sl.appendChild(s); acc += w; });
+}
+const scrub = $('#scrub'); let scrubbing = false;
+scrub.addEventListener('input', () => { scrubbing = true; setTime(fToT(scrub.value / 100000)); hideBig(); });
+scrub.addEventListener('change', () => { scrubbing = false; });
+
+// velocidad del tiempo
+const RATES = [1, 2, 5, 10, 30, 100, 300, 1000, 3000, 10000, 30000];
+const speedSel = $('#speed'); RATES.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = `×${nf0.format(r)}`; speedSel.appendChild(o); });
+const autoRateEl = $('#autorate');
+speedSel.addEventListener('change', () => { autoRateEl.checked = false; rate = +speedSel.value; });
+function autoRate(t) {
+  if (t < T_SECO + 15) return 1;
+  if (t < T_TLI0 - 40) return 30;
+  if (t < T_TLI1 + 15) return 2;
+  if (t < T_PSEP + 40) return 10;
+  if (t < T_PERI - 3 * 3600) return 3000;
+  if (t < T_PERI - 1200) return 150;
+  if (t < T_PERI + 300) return 10;
+  return 300;
+}
+
+// reproducción
+const playBtn = $('#play'), playIco = $('#play-ico'), playTxt = $('#play-txt');
+const ICON_PLAY = '<path d="M7 5l12 7-12 7z"/>', ICON_PAUSE = '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>';
+function setPlaying(p) {
+  playing = p;
+  playIco.innerHTML = p ? ICON_PAUSE : ICON_PLAY;
+  playTxt.textContent = p ? 'Pausa' : tNow <= T_START + 0.01 ? 'Lanzar' : 'Seguir';
+  playBtn.setAttribute('aria-label', p ? 'Pausar' : 'Reproducir');
+  if (p) hideBig();
+}
+playBtn.addEventListener('click', () => { if (tNow >= T_END - 1) setTime(T_START); setPlaying(!playing); });
+$('#bigplay-btn').addEventListener('click', () => setPlaying(true));
+$('#restart').addEventListener('click', () => { setTime(T_START); setPlaying(false); showBig(); });
+function hideBig() { $('#bigplay').hidden = true; }
+function showBig() { $('#bigplay').hidden = false; }
+
+let lastEvIdx = -1;
+function setTime(t) { tNow = clamp(t, T_START, T_END); lastEvIdx = EVENTS.findIndex(e => e.t > tNow) - 1; if (lastEvIdx < -1) lastEvIdx = EVENTS.length - 1; L.camTarget = null; }
+
+// cámara: botones
+function setCam(c) {
+  camChoice = c;
+  document.querySelectorAll('#cams button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cam === c)));
+  $('#cam-select').value = c;
+  L.camTarget = null;
+}
+document.querySelectorAll('#cams button').forEach(b => b.addEventListener('click', () => setCam(b.dataset.cam)));
+$('#cam-select').addEventListener('change', e => setCam(e.target.value));
+
+// paneles en móvil
+function togglePanel(btn, panel, other, otherBtn) {
+  const open = !panel.classList.contains('open');
+  panel.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
+  if (open) { other.classList.remove('open'); otherBtn.setAttribute('aria-expanded', 'false'); }
+}
+$('#tele-btn').addEventListener('click', () => togglePanel($('#tele-btn'), $('#tele'), $('#side'), $('#side-btn')));
+$('#side-btn').addEventListener('click', () => togglePanel($('#side-btn'), $('#side'), $('#tele'), $('#tele-btn')));
+
+// simulaciones
+const sims = $('#sims');
+$('#sims-btn').addEventListener('click', () => { sims.hidden = false; $('#sims-close').focus(); });
+$('#sims-close').addEventListener('click', () => { sims.hidden = true; });
+$('#sim-1').addEventListener('click', () => { sims.hidden = true; });
+sims.addEventListener('click', e => { if (e.target === sims) sims.hidden = true; });
+
+// teclado
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,select')) return;
+  if (e.key === 'Escape') { sims.hidden = true; return; }
+  if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+  const map = { '0': 'auto', '1': 'cohete', '2': 'malecon', '3': 'tierra', '4': 'tierraluna', '5': 'luna' };
+  if (map[e.key]) setCam(map[e.key]);
+  if (e.key === 'ArrowRight') { const n = EVENTS.find(ev => ev.t > tNow + 1); if (n) setTime(n.t - 2); }
+  if (e.key === 'ArrowLeft') { const p = [...EVENTS].reverse().find(ev => ev.t < tNow - 3); if (p) setTime(p.t - 2); }
+});
+
+// aviso de eventos
+const toast = $('#toast'); let toastTimer = 0;
+function showToast(e) { $('#t-title').textContent = e.title; $('#t-sub').textContent = e.desc.length > 110 ? e.desc.slice(0, 108) + '…' : e.desc; toast.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('on'), 4200); }
+
+// =====================================================================
+// 7. Bucle
+// =====================================================================
+function resize() {
+  W = innerWidth; H = innerHeight;
+  renderer.setSize(W, H, false);
+  L.cam.aspect = G.cam.aspect = W / H; L.cam.updateProjectionMatrix(); G.cam.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+let lastFrame = performance.now(), frame = 0, evMarked = -2;
+function loop(now) {
+  const dtReal = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now; frame++;
+  if (playing) {
+    if (autoRateEl.checked) { rate = autoRate(tNow); if (+speedSel.value !== rate) speedSel.value = String(rate); }
+    tNow += dtReal * rate;
+    if (tNow >= T_END) { tNow = T_END; setPlaying(false); showToast({ title: 'Misión cumplida', desc: 'La sonda Chimborazo‑1 orbita la Luna. Puedes revisar cualquier momento en la línea de tiempo.' }); }
+  }
+  $('#rate-note').textContent = playing ? `Tiempo ×${nf0.format(rate)}${autoRateEl.checked ? ' (auto)' : ''}` : 'En pausa';
+  // eventos alcanzados
+  let idx = -1; for (let i = 0; i < EVENTS.length; i++) if (EVENTS[i].t <= tNow) idx = i;
+  if (playing && idx > lastEvIdx) showToast(EVENTS[idx]);
+  lastEvIdx = idx;
+  if (idx !== evMarked) {
+    EVENTS.forEach((e, i) => { e.el.className = 'ev ' + (i < idx ? 'past' : i === idx ? 'past now' : 'future'); e.tick.className = i <= idx ? 'past' : ''; });
+    if (idx >= 0 && !$('#pane-ev').hidden) { const el = EVENTS[idx].el, pane = $('#pane-ev'); pane.scrollTo({ top: Math.max(0, el.offsetTop - pane.clientHeight * 0.35), behavior: 'smooth' }); }
+    evMarked = idx;
+  }
+  curMode = camChoice === 'auto' ? autoCam(tNow) : camChoice;
+  const useLocal = curMode === 'malecon' || (curMode === 'cohete' && tNow < LOCAL_UNTIL);
+  if (useLocal) {
+    const info = updateLocal(tNow); updateLocalCamera(tNow, curMode, info);
+    renderer.render(L.scene, L.cam);
+  } else {
+    updateGlobal(tNow, curMode);
+    renderer.render(G.scene, G.cam);
+  }
+  $('#mclock').innerHTML = tNow < 0 ? `<span class="neg">${fmtClock(tNow)}</span>` : fmtClock(tNow);
+  telemetry(tNow);
+  if (frame % 3 === 0) drawChart(tNow);
+  if (!scrubbing) scrub.value = Math.round(tToF(tNow) * 100000);
+  requestAnimationFrame(loop);
+}
+setTime(T_START); setPlaying(false); setCam('auto');
+requestAnimationFrame(t => { lastFrame = t; $('#loading').classList.add('done'); loop(t); });
+window.__sim = { MS, EVENTS, setTime, get t() { return tNow; } };
+
+</script>

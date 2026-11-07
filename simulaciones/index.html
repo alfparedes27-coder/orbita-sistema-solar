@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulaciones · Órbita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --void:#04060c; --panel:#0b101b; --line:#1e2940; --line-strong:#2d3c5a;
+  --ink:#e8ecf4; --dim:#8d99b0; --faint:#5c6884; --sol:#ffb547; --ok:#7ee2a8;
+  --f-display:"Jost","Futura","Century Gothic","Avenir Next",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+}
+html{background:var(--void)}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 70% -10%,#16233b,transparent 70%),var(--void);color:var(--ink);font:15px/1.5 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(env(safe-area-inset-top,0px) + 28px) calc(env(safe-area-inset-bottom,0px) + 40px)}
+main{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.back{align-self:flex-start;display:inline-flex;padding:9px 14px;border-radius:99px;border:1px solid var(--line-strong);color:var(--ink);text-decoration:none;font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase}
+.back:hover{border-color:var(--sol)}
+.kind{font:600 11px/1 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+h1{margin:6px 0 6px;font:600 40px/1.05 var(--f-display);text-wrap:balance}
+p{margin:0;color:var(--dim);max-width:62ch}
+.list{display:flex;flex-direction:column;gap:12px}
+.item{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;padding:16px;border-radius:14px;border:1px solid var(--line-strong);background:linear-gradient(135deg,rgba(255,181,71,.12),rgba(255,181,71,.02));color:var(--ink);text-decoration:none}
+a.item:hover{border-color:var(--sol)}
+.num{grid-row:span 3;font:600 26px/1 var(--f-display);color:var(--sol);font-variant-numeric:tabular-nums;padding-top:2px}
+.st{font:600 10px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ok)}
+.item b{font:600 18px/1.25 var(--f-display)}
+.item span.d{font-size:13.5px;color:var(--dim)}
+.item.empty{background:none;border-style:dashed}
+.item.empty .num,.item.empty .st{color:var(--faint)}
+@media (max-width:480px){h1{font-size:32px}}
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="../">← Volver al sistema solar</a>
+  <header>
+    <span class="kind">Casos hipotéticos con física real</span>
+    <h1>Simulaciones</h1>
+    <p>Cada simulación cambia una sola cosa del mundo real y deja que las leyes de la física hagan el resto.</p>
+  </header>
+  <div class="list">
+    <a class="item" href="puerto-espacial-guayaquil/">
+      <span class="num">01</span>
+      <span class="st">Disponible</span>
+      <b>Puerto espacial en Guayaquil: Falcon Heavy a la Luna</b>
+      <span class="d">Despegue desde Puerto Santa Ana, regreso de los laterales al río Guayas, órbita de estacionamiento, inyección translunar y llegada a la órbita lunar.</span>
+    </a>
+    <div class="item empty">
+      <span class="num">02</span>
+      <span class="st">Próxima</span>
+      <b>Aquí irá el siguiente caso hipotético</b>
+      <span class="d">Las nuevas simulaciones se irán sumando a esta lista.</span>
+    </div>
+  </div>
+</main>
+</body>
+</html>
