@@ -2730,6 +2730,6 @@ applyTimeOfDay();
 loadBuildings().catch(e => console.warn('Edificios OSM:', e));
 setTime(T_START); setPlaying(false); setCam('auto');
 requestAnimationFrame(t => { lastFrame = t; $('#loading').classList.add('done'); loop(t); });
-window.__sim = { MS, EVENTS, setTime, setCam, TER, BLD, NET, CAMS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); }, play: p => setPlaying(p), setRate: r => { rate = r; speedSel.value = String(r); }, get t() { return tNow; } };
+window.__sim = { MS, EVENTS, setTime, setCam, TER, BLD, NET, CAMS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); }, play: p => setPlaying(p), setRate: r => { rate = r; speedSel.value = String(r); }, step: n => { for (let i = 0; i < (n || 1); i++) loop(performance.now()); }, snap: (q = 0.82) => { loop(performance.now()); return canvas.toDataURL('image/jpeg', q); }, get t() { return tNow; } };
 
 </script>
