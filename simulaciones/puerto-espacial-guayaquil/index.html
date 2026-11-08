@@ -1186,8 +1186,8 @@ function applyTimeOfDay() {
   L.scene.fog.color.setRGB(0.36 + 0.26 * DAY, 0.3 + 0.4 * DAY, 0.32 + 0.5 * DAY);
   renderer.toneMappingExposure = 0.86 + 0.7 * dusk;
   buildEnv();
-  BLD.mats.forEach(m => { m.emissiveIntensity = 0.12 + 1.6 * dusk; });
-  L.flood.forEach(f => { f.light.intensity = dusk * 3e5; f.sprite.material.opacity = 0.25 + 0.75 * dusk; });
+  BLD.mats.forEach(m => { m.emissiveIntensity = 0.05 + 1.1 * dusk; });
+  L.flood.forEach(f => { f.light.intensity = dusk * 4000; f.sprite.material.opacity = 0.25 + 0.75 * dusk; });
   if (typeof G !== 'undefined' && G.sunLight) G.sunLight.position.copy(SUN3).multiplyScalar(1e6);
 }
 
@@ -1405,16 +1405,81 @@ function updateTerrain(cam) {
 // y los vértices como enteros zigzag en metros (este, sur) desde (−2,1785; −79,8742), cada uno relativo al anterior.
 const BLD = { mats: [], group: new THREE.Group(), count: 0 };
 L.scene.add(BLD.group);
-function makeFacade(lit) {
-  return canvasTex(512, 512, (g, w, h) => {
-    const R = rng(lit ? 71 : 72), cw = w / 8, chh = h / 8;
-    g.fillStyle = lit ? '#000' : '#ffffff'; g.fillRect(0, 0, w, h);
-    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-      const x = c * cw, y = r * chh;
-      if (lit) { if (R() < 0.38) { g.fillStyle = R() < 0.72 ? '#ffd08f' : '#d6e4ff'; g.globalAlpha = 0.55 + R() * 0.45; g.fillRect(x + cw * 0.14, y + chh * 0.2, cw * 0.72, chh * 0.5); g.globalAlpha = 1; } }
-      else { g.fillStyle = '#5a6470'; g.fillRect(x + cw * 0.14, y + chh * 0.2, cw * 0.72, chh * 0.5); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x + cw * 0.14, y + chh * 0.2, cw * 0.72, 3); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(x, y + chh - 3, cw, 3); }
+// fachadas: tres tipos (vivienda, torre de vidrio, casa). Cada textura cubre 4 vanos × 4 pisos; la versión
+// nocturna usa las mismas ventanas, así las luces caen dentro de los marcos.
+const FAC = { res: { bay: 3.4, floor: 3.0 }, glass: { bay: 3.0, floor: 3.7 }, house: { bay: 3.6, floor: 3.0 } };
+function makeFacades(type) {
+  const S = 512, cw = S / 4, ch = S / 4, R = rng(type === 'res' ? 11 : type === 'glass' ? 12 : 13), wins = [];
+  const day = document.createElement('canvas'), night = document.createElement('canvas'); day.width = day.height = night.width = night.height = S;
+  const g = day.getContext('2d'), n = night.getContext('2d');
+  n.fillStyle = '#000'; n.fillRect(0, 0, S, S);
+  if (type === 'glass') {
+    // muro cortina: paneles de vidrio con reflejo del cielo, montantes metálicos y franja opaca en cada losa
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) {
+      const x = c * cw / 2, y = r * ch, k = 0.85 + R() * 0.25;
+      const gr = g.createLinearGradient(x, y, x + cw / 2, y + ch);
+      gr.addColorStop(0, `rgb(${138 * k | 0},${152 * k | 0},${162 * k | 0})`); gr.addColorStop(1, `rgb(${58 * k | 0},${66 * k | 0},${74 * k | 0})`);
+      g.fillStyle = gr; g.fillRect(x, y, cw / 2, ch);
+      wins.push([x + 3, y + ch * 0.18, cw / 2 - 6, ch * 0.78]);
     }
-  }, true);
+    for (let r = 0; r < 4; r++) { g.fillStyle = '#3d4650'; g.fillRect(0, r * ch, S, ch * 0.16); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, r * ch + ch * 0.16, S, 2); }
+    g.fillStyle = '#c9ced3'; for (let c = 0; c <= 8; c++) g.fillRect(c * cw / 2 - 2, 0, 4, S);
+  } else {
+    // muro pintado (blanco: el color de cada edificio lo pone el color de vértice) con suciedad suave
+    g.fillStyle = '#f4f4f2'; g.fillRect(0, 0, S, S);
+    for (let i = 0; i < 2500; i++) { g.fillStyle = `rgba(${R() < 0.5 ? '255,255,255' : '90,85,80'},${R() * 0.05})`; g.fillRect(R() * S, R() * S, 2 + R() * 10, 1 + R() * 6); }
+    for (let r = 0; r < 4; r++) {
+      // losa de entrepiso
+      g.fillStyle = 'rgba(0,0,0,.07)'; g.fillRect(0, r * ch + ch - 7, S, 7); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(0, r * ch + ch - 8, S, 1);
+      for (let c = 0; c < 4; c++) {
+        if (type === 'house' && R() < 0.25) continue;
+        const ww = type === 'house' ? cw * 0.38 : cw * 0.5, wh = ch * (type === 'house' ? 0.5 : 0.48);
+        const x = c * cw + (cw - ww) / 2, y = r * ch + ch * 0.2;
+        // vano: marco, vidrio oscuro con reflejo, alféizar y sombra del dintel
+        g.fillStyle = 'rgba(60,58,55,.35)'; g.fillRect(x - 4, y - 4, ww + 8, wh + 10);
+        g.fillStyle = '#e9e9e6'; g.fillRect(x - 2, y - 2, ww + 4, wh + 4);
+        const gl = g.createLinearGradient(0, y, 0, y + wh); const cur = R() < 0.35;
+        gl.addColorStop(0, cur ? '#8f8a80' : '#6f8191'); gl.addColorStop(0.45, cur ? '#6c675f' : '#3a4651'); gl.addColorStop(1, cur ? '#5a554e' : '#27313a');
+        g.fillStyle = gl; g.fillRect(x, y, ww, wh);
+        g.fillStyle = '#d8d8d4'; g.fillRect(x + ww / 2 - 1.5, y, 3, wh); g.fillRect(x, y + wh * 0.38, ww, 3);
+        g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x, y, ww, 4);
+        g.fillStyle = '#fafaf8'; g.fillRect(x - 5, y + wh + 2, ww + 10, 4);
+        if (type === 'res' && R() < 0.3) { g.fillStyle = 'rgba(70,72,76,.75)'; for (let k = 0; k < 7; k++) g.fillRect(x - 6 + k * (ww + 12) / 6, y + wh * 0.62, 2, wh * 0.4); g.fillRect(x - 6, y + wh * 0.62, ww + 12, 3); }
+        wins.push([x, y, ww, wh]);
+      }
+    }
+  }
+  for (const [x, y, w, h] of wins) if (R() < (type === 'glass' ? 0.45 : 0.4)) {
+    n.fillStyle = R() < 0.7 ? '#ffcf8a' : '#dce8ff'; n.globalAlpha = 0.45 + R() * 0.55; n.fillRect(x, y, w, h);
+  }
+  n.globalAlpha = 1;
+  const mk = (c, srgb) => { const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+  return { map: mk(day, true), lit: mk(night, true) };
+}
+// techos con la foto satelital real: se arma un mosaico de teselas nivel 16 que cubre todos los edificios
+async function roofPhoto(bb) {
+  const z = 16, tx0 = Math.floor(lon2tx(bb.lon0, z)), tx1 = Math.floor(lon2tx(bb.lon1, z)), ty0 = Math.floor(lat2ty(bb.lat1, z)), ty1 = Math.floor(lat2ty(bb.lat0, z));
+  const nx = tx1 - tx0 + 1, ny = ty1 - ty0 + 1, cv = document.createElement('canvas'); cv.width = nx * 256; cv.height = ny * 256;
+  const g = cv.getContext('2d'); let ok = 0;
+  const jobs = [];
+  for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) jobs.push([x, y]);
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const [x, y] = jobs[next++];
+      for (let k = 0; k < TILE_SRC.img.length; k++) {
+        try { const im = await loadImg(TILE_SRC.img[(TER.srcIdx + k) % TILE_SRC.img.length](z, x, y)); g.drawImage(im, (x - tx0) * 256, (y - ty0) * 256); ok++; break; } catch (e) {}
+      }
+    }
+  };
+  await Promise.all([0, 1, 2, 3].map(worker));
+  BLD.roofTiles = [ok, jobs.length];
+  if (ok < jobs.length * 0.6) return null;
+  const maxT = renderer.capabilities.maxTextureSize;
+  let src = cv;
+  if (cv.width > maxT || cv.height > maxT) { const f = maxT / Math.max(cv.width, cv.height), c2 = document.createElement('canvas'); c2.width = cv.width * f | 0; c2.height = cv.height * f | 0; c2.getContext('2d').drawImage(cv, 0, 0, c2.width, c2.height); src = c2; }
+  const t = new THREE.CanvasTexture(src); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; t.flipY = false;
+  return { tex: t, z, tx0, ty0, nx, ny };
 }
 async function loadBuildings() {
   const res = await fetch('edificios-osm.bin'); if (!res.ok) throw new Error('sin edificios');
@@ -1436,9 +1501,15 @@ async function loadBuildings() {
   for (const b of list) for (const [la, lo] of b.pts) need.add(`${Math.floor(lon2tx(lo, z))}/${Math.floor(lat2ty(la, z))}`);
   const dems = new Map(await Promise.all([...need].map(async k => { const [x, y] = k.split('/').map(Number); return [k, await getDem(z, x, y)]; })));
   const elev = (la, lo) => { const fx = lon2tx(lo, z), fy = lat2ty(la, z), x = Math.floor(fx), y = Math.floor(fy), d = dems.get(`${x}/${y}`); return d ? Math.max(0, sampleDem(d, (fx - x) * 256, (fy - y) * 256)) : 0; };
-  const R = rng(99), P = [], N = [], U = [], C = [], idxW = [], idxR = [], col = new THREE.Color(), tmp = [0, 0, 0];
-  const PALETTE = [0xf1ede4, 0xe8e3d6, 0xdcd8cf, 0xf4f2ec, 0xcfd3d6, 0xe9dcc4, 0xd8cbb5];
+  const R = rng(99), P = [], N = [], U = [], U2 = [], C = [], idxT = { res: [], glass: [], house: [] }, idxR = [], col = new THREE.Color();
+  // colores de muro reales de la ciudad: blancos, cremas, grises claros; Las Peñas con sus casas pintadas
+  const PALETTE = [0xf3efe6, 0xebe6da, 0xe2ddd2, 0xf6f4ef, 0xd9dcdd, 0xeee2cc, 0xe0d4c0, 0xcfd2d0];
   const PENAS = [0xf2c14e, 0x5fb3d9, 0xe7685d, 0x8bcf7a, 0xf4f1e6, 0xd98bd1, 0xffa45b, 0x6fa8dc];
+  const GLASS = [0xdfe3e6, 0xd2d8dc, 0xe8eaeb, 0xc9d0d4];
+  const ROOFS = [0x8d8a84, 0x9e9a92, 0x7f7c77, 0xa98f78, 0x8f9496];
+  const bb = { lat0: 1e9, lat1: -1e9, lon0: 1e9, lon1: -1e9 };
+  for (const b of list) for (const [la, lo] of b.pts) { bb.lat0 = Math.min(bb.lat0, la); bb.lat1 = Math.max(bb.lat1, la); bb.lon0 = Math.min(bb.lon0, lo); bb.lon1 = Math.max(bb.lon1, lo); }
+  const RZ = 16, rtx0 = Math.floor(lon2tx(bb.lon0, RZ)), rty0 = Math.floor(lat2ty(bb.lat1, RZ)), rnx = Math.floor(lon2tx(bb.lon1, RZ)) - rtx0 + 1, rny = Math.floor(lat2ty(bb.lat0, RZ)) - rty0 + 1;
   let v = 0;
   for (const b of list) {
     const pts = b.pts; if (pts.length < 3) continue;
@@ -1448,40 +1519,64 @@ async function loadBuildings() {
     if (area > 0) { pts.reverse(); loc.reverse(); }
     const A = Math.abs(area) / 2;
     const base = Math.min(...pts.map(([la, lo]) => elev(la, lo))) - 0.6;
-    const penas = pts[0][0] > -2.1840 && pts[0][0] < -2.1790 && pts[0][1] > -79.8800 && pts[0][1] < -79.8755;
+    const penas = pts[0][0] > -2.1840 && pts[0][0] < -2.1790 && pts[0][1] > -79.8800 && pts[0][1] < -79.8755 && A < 260;
     let h = b.h > 0 ? b.h : (A < 90 ? 4.5 + R() * 3 : A < 400 ? 6 + R() * 7 : 8 + R() * 10);
     if (penas && b.h <= 0) h = 4 + R() * 4;
-    col.setHex(penas ? PENAS[Math.floor(R() * PENAS.length)] : h > 45 ? (R() < 0.5 ? 0xa9bccb : 0xc9d3db) : PALETTE[Math.floor(R() * PALETTE.length)]);
+    const type = h >= 30 && R() < 0.75 ? 'glass' : h < 9 ? 'house' : 'res';
+    // en los edificios con altura conocida, la altura cae en un número entero de pisos
+    const F = FAC[type]; if (b.h <= 0) h = Math.max(1, Math.round(h / F.floor)) * F.floor;
+    col.setHex(penas ? PENAS[Math.floor(R() * PENAS.length)] : type === 'glass' ? GLASS[Math.floor(R() * GLASS.length)] : PALETTE[Math.floor(R() * PALETTE.length)]);
+    const shade = 0.93 + R() * 0.07; col.multiplyScalar(shade);
     const top = pts.map(([la, lo]) => geoToLocalArr(la, lo, base + h, [0, 0, 0])), bot = pts.map(([la, lo]) => geoToLocalArr(la, lo, base, [0, 0, 0]));
-    // paredes
-    let run = R() * 8;
+    // paredes: u en vanos, v en pisos (4 de cada uno por textura); oscurecidas abajo (oclusión del suelo)
+    let run = Math.floor(R() * 4) * F.bay;
+    const iw = idxT[type];
     for (let k = 0; k < pts.length; k++) {
       const a = k, c2 = (k + 1) % pts.length;
       const dx = top[c2][0] - top[a][0], dz = top[c2][2] - top[a][2], len = Math.hypot(dx, dz); if (len < 0.05) continue;
       const nx = -dz / len, nz = dx / len;
-      const u0 = run / 3.4 / 8, u1 = (run + len) / 3.4 / 8, v1 = h / 3.2 / 8; run += len;
-      for (const [p, uu, vv] of [[bot[a], u0, 0], [bot[c2], u1, 0], [top[c2], u1, v1], [top[a], u0, v1]]) { P.push(p[0], p[1], p[2]); N.push(nx, 0, nz); U.push(uu, vv); C.push(col.r, col.g, col.b); }
-      idxW.push(v, v + 1, v + 2, v, v + 2, v + 3); v += 4;
+      const u0 = run / F.bay / 4, u1 = (run + len) / F.bay / 4, v1 = h / F.floor / 4; run += len;
+      for (const [p, uu, vv, ao] of [[bot[a], u0, 0, 0.8], [bot[c2], u1, 0, 0.8], [top[c2], u1, v1, 1], [top[a], u0, v1, 1]]) {
+        P.push(p[0], p[1], p[2]); N.push(nx, 0, nz); U.push(uu, vv); U2.push(0, 0); C.push(col.r * ao, col.g * ao, col.b * ao);
+      }
+      iw.push(v, v + 1, v + 2, v, v + 2, v + 3); v += 4;
     }
-    // azotea
+    // azotea: coordenadas en el mosaico satelital (Mercator) para la foto real del techo
     let tri;
     try { tri = THREE.ShapeUtils.triangulateShape(top.map(p => new THREE.Vector2(p[0], -p[2])), []); } catch (e) { tri = []; }
-    const r0 = v, rc = new THREE.Color(col).multiplyScalar(0.72);
-    for (const p of top) { P.push(p[0], p[1], p[2]); N.push(0, 1, 0); U.push(0.01, 0.01); C.push(rc.r, rc.g, rc.b); v++; }
+    const r0 = v, rc = new THREE.Color(penas ? 0xa5674a : ROOFS[Math.floor(R() * ROOFS.length)]);
+    for (let k = 0; k < top.length; k++) {
+      const p = top[k], [la, lo] = pts[k];
+      P.push(p[0], p[1], p[2]); N.push(0, 1, 0); U.push(0.01, 0.01);
+      U2.push((lon2tx(lo, RZ) - rtx0) / rnx, (lat2ty(la, RZ) - rty0) / rny); C.push(rc.r, rc.g, rc.b); v++;
+    }
     for (const t of tri) idxR.push(r0 + t[0], r0 + t[1], r0 + t[2]);
     BLD.count++;
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
-  geo.setIndex([...idxW, ...idxR]); geo.addGroup(0, idxW.length, 0); geo.addGroup(idxW.length, idxR.length, 1);
-  const facade = makeFacade(false), lit = makeFacade(true);
-  [facade, lit].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; });
-  const wall = new THREE.MeshStandardMaterial({ map: facade, vertexColors: true, roughness: 0.78, metalness: 0.05, emissive: 0xffffff, emissiveMap: lit, emissiveIntensity: 0.1 });
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); geo.setAttribute('uv1', new THREE.Float32BufferAttribute(U2, 2)); geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+  const order = ['res', 'house', 'glass'], all = [];
+  order.forEach((k, i) => { geo.addGroup(all.length, idxT[k].length, i); for (const x of idxT[k]) all.push(x); });
+  geo.addGroup(all.length, idxR.length, 3); for (const x of idxR) all.push(x);
+  geo.setIndex(all);
+  const mats = order.map(k => {
+    const f = makeFacades(k);
+    return k === 'glass'
+      ? new THREE.MeshStandardMaterial({ map: f.map, vertexColors: true, roughness: 0.18, metalness: 0.6, envMapIntensity: 1.0, emissive: 0xffffff, emissiveMap: f.lit, emissiveIntensity: 0.1 })
+      : new THREE.MeshStandardMaterial({ map: f.map, vertexColors: true, roughness: 0.86, metalness: 0.0, emissive: 0xffffff, emissiveMap: f.lit, emissiveIntensity: 0.1 });
+  });
   const roof = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 });
-  BLD.mats = [wall];
-  const mesh = new THREE.Mesh(geo, [wall, roof]); mesh.castShadow = true; mesh.receiveShadow = true;
-  BLD.group.add(mesh);
+  BLD.mats = mats;
+  const mesh = new THREE.Mesh(geo, [...mats, roof]); mesh.castShadow = true; mesh.receiveShadow = true;
+  BLD.group.add(mesh); BLD.mesh = mesh;
+  // cuando llega la foto satelital, los techos pasan a mostrar el techo real de cada edificio
+  roofPhoto(bb).then(ph => {
+    if (!ph) return;
+    const m = new THREE.MeshStandardMaterial({ map: ph.tex, roughness: 0.9, color: 0xf2f2f2 });
+    m.map.channel = 1;
+    mesh.material[3] = m; roof.dispose(); BLD.roofPhoto = true;
+  }).catch(e => { BLD.roofErr = String(e); });
   applyTimeOfDay();
 }
 
@@ -1497,7 +1592,7 @@ const LZ1 = new THREE.Vector3(LZ.x1, 0, LZ.z), LZ2 = new THREE.Vector3(LZ.x2, 0,
     const R = rng(44); g.fillStyle = '#9a9a96'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(${R() < 0.5 ? '255,255,255' : '40,40,40'},${R() * 0.06})`; g.fillRect(R() * w, R() * h, 1 + R() * 4, 1 + R() * 4); }
     g.strokeStyle = 'rgba(60,60,60,.35)'; g.lineWidth = 2; for (let x = 0; x <= w; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); g.beginPath(); g.moveTo(0, x); g.lineTo(w, x); g.stroke(); }
-    for (let i = 0; i < 18; i++) { const gr = g.createRadialGradient(R() * w, R() * h, 0, R() * w, R() * h, 40 + R() * 90); gr.addColorStop(0, 'rgba(50,45,40,.18)'); gr.addColorStop(1, 'rgba(50,45,40,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
+    for (let i = 0; i < 18; i++) { const gr = g.createRadialGradient(R() * w, R() * h, 0, R() * w, R() * h, 40 + R() * 90); gr.addColorStop(0, 'rgba(50,45,40,.07)'); gr.addColorStop(1, 'rgba(50,45,40,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
   });
   concTex.wrapS = concTex.wrapT = THREE.RepeatWrapping; concTex.repeat.set(6, 6);
   const conc = new THREE.MeshStandardMaterial({ color: 0xffffff, map: concTex, roughness: 0.92 });
@@ -1580,7 +1675,7 @@ const LZ1 = new THREE.Vector3(LZ.x1, 0, LZ.z), LZ2 = new THREE.Vector3(LZ.x2, 0,
   for (const [x, z] of [[-68, -60], [68, -60], [68, 60], [-30, 60]]) {
     add(new THREE.CylinderGeometry(0.4, 0.7, 38, 8), steel, x, dY + 19, z);
     add(new THREE.BoxGeometry(4, 2, 1.2), steel, x, dY + 38.5, z);
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0xfff3dc, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true })); sp.position.set(x * 0.98, dY + 38.5, z * 0.98); sp.scale.set(9, 9, 1); G2.add(sp);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0xfff3dc, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true })); sp.position.set(x * 0.98, dY + 38.5, z * 0.98); sp.scale.set(4, 4, 1); G2.add(sp);
     const lt = new THREE.SpotLight(0xfff0d8, 0, 400, 0.5, 0.6, 2); lt.position.set(x, dY + 38, z); lt.target.position.set(0, dY + 35, 0); G2.add(lt, lt.target);
     L.flood.push({ light: lt, sprite: sp });
   }
@@ -2418,7 +2513,7 @@ $('#pane-real').innerHTML = `<div class="note">
 <h4>La plataforma, demasiado cerca de la ciudad</h4>
 <p>La plataforma está en el río, a unos 450 m de los edificios de Puerto Santa Ana. En la vida real eso no se permitiría: durante un lanzamiento de Falcon Heavy se despeja una zona de varios kilómetros, y en el Centro Espacial Kennedy los puntos más cercanos para el público están a unos 6 km. El Malecón 2000, a 1,8 km, estaría cerrado.</p>
 <h4>El mapa: datos reales</h4>
-<p>El terreno usa imágenes satelitales reales (Esri, Maxar, Earthstar Geographics) sobre el relieve medido por el radar SRTM de la NASA, hasta más de 200 km a la redonda: el golfo de Guayaquil, la isla Puná, la cuenca del Guayas y los Andes con el Chimborazo. Los edificios del centro vienen de OpenStreetMap con sus formas reales; cuando OpenStreetMap no tiene la altura de un edificio, se estima.</p>
+<p>El terreno usa imágenes satelitales reales (Esri, Maxar, Earthstar Geographics) sobre el relieve medido por el radar SRTM de la NASA, hasta más de 200 km a la redonda: el golfo de Guayaquil, la isla Puná, la cuenca del Guayas y los Andes con el Chimborazo. Los edificios del centro vienen de OpenStreetMap con sus formas reales; cuando OpenStreetMap no tiene la altura de un edificio, se estima. Los techos muestran la foto satelital real de cada edificio; las fachadas son genéricas (vivienda, casa o torre de vidrio), no fotos de los edificios reales.</p>
 <p>Google Earth no se puede incrustar en una página propia. Google ofrece sus modelos 3D de ciudades por una API de pago que exige una clave y una cuenta de facturación; se podría conectar más adelante con una clave tuya. Los datos que usa esta simulación son abiertos y gratuitos.</p>
 <h4>El encendido escalonado</h4>
 <p>Según el cronograma publicado por Spaceflight Now para el segundo vuelo del Falcon Heavy (2019), los laterales encienden a T−5 s y el núcleo central a T−3 s, y las abrazaderas sueltan el cohete en T−0 si todo está en orden.</p>
