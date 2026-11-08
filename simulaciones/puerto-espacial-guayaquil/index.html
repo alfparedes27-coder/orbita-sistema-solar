@@ -247,11 +247,12 @@ button{cursor:pointer}
     <button type="button" data-cam="auto" aria-pressed="true" title="La cámara cambia sola según la fase (tecla 0)">Auto</button>
     <span class="sep"></span>
     <button type="button" data-cam="cohete" aria-pressed="false" title="Sigue al cohete (1)">Cohete</button>
-    <button type="button" data-cam="malecon" aria-pressed="false" title="Vista desde el Malecón 2000 (2)">Malecón</button>
-    <button type="button" data-cam="ciudad" aria-pressed="false" title="Vista aérea de Guayaquil y sus alrededores, hasta cientos de kilómetros (3)">Ciudad</button>
-    <button type="button" data-cam="tierra" aria-pressed="false" title="La Tierra y la órbita (4)">Tierra</button>
-    <button type="button" data-cam="tierraluna" aria-pressed="false" title="Todo el viaje (5)">Tierra–Luna</button>
-    <button type="button" data-cam="luna" aria-pressed="false" title="Llegada a la Luna (6)">Luna</button>
+    <button type="button" data-cam="plataforma" aria-pressed="false" title="A ras de la plataforma, junto al cohete (2)">Plataforma</button>
+    <button type="button" data-cam="malecon" aria-pressed="false" title="Vista desde el Malecón 2000 (3)">Malecón</button>
+    <button type="button" data-cam="ciudad" aria-pressed="false" title="Vista aérea de Guayaquil y sus alrededores, hasta cientos de kilómetros (4)">Ciudad</button>
+    <button type="button" data-cam="tierra" aria-pressed="false" title="La Tierra y la órbita (5)">Tierra</button>
+    <button type="button" data-cam="tierraluna" aria-pressed="false" title="Todo el viaje (6)">Tierra–Luna</button>
+    <button type="button" data-cam="luna" aria-pressed="false" title="Llegada a la Luna (7)">Luna</button>
   </nav>
 
   <aside id="tele" class="panel" aria-label="Telemetría">
@@ -298,7 +299,7 @@ button{cursor:pointer}
       <span id="rate-note"></span>
       <span class="spacer"></span>
       <select id="cam-select" aria-label="Cámara">
-        <option value="auto">Cámara: auto</option><option value="cohete">Cohete</option><option value="malecon">Malecón</option><option value="ciudad">Ciudad</option><option value="tierra">Tierra</option><option value="tierraluna">Tierra–Luna</option><option value="luna">Luna</option>
+        <option value="auto">Cámara: auto</option><option value="cohete">Cohete</option><option value="plataforma">Plataforma</option><option value="malecon">Malecón</option><option value="ciudad">Ciudad</option><option value="tierra">Tierra</option><option value="tierraluna">Tierra–Luna</option><option value="luna">Luna</option>
       </select>
       <button class="tbtn mob" id="tele-btn" type="button" aria-expanded="false" aria-controls="tele">Datos</button>
       <button class="tbtn mob" id="side-btn" type="button" aria-expanded="false" aria-controls="side">Eventos</button>
@@ -942,7 +943,7 @@ function plumeMaterial(colA, colB, colC, core) {
         float alpha = fade * edge * uI * (uCore > 0.5 ? 1.0 : 0.55 + 0.8*n);
         float dia = 0.0;
         if (uCore > 0.5) { float fk = fract(a / 0.085 + 0.35); dia = exp(-pow((fk - 0.5) / 0.11, 2.0)) * (1.0 - smoothstep(0.0, 0.7, a)) * (1.0 - uVac); }
-        vec3 c = col * (uCore > 0.5 ? 2.8 + dia*4.0 : 1.9);
+        vec3 c = col * (uCore > 0.5 ? 3.2 + dia*4.5 : 2.5);
         alpha *= smoothstep(0.0, 0.03, a + 0.01);
         gl_FragColor = vec4(c*alpha, alpha);
       }`,
@@ -1111,7 +1112,7 @@ const QS = new URLSearchParams(location.search);
   L.sun.shadow.mapSize.set(2048, 2048);
   Object.assign(L.sun.shadow.camera, { left: -130, right: 130, top: 130, bottom: -130, near: 10, far: 4000 });
   L.sun.shadow.bias = -0.0004; L.sun.shadow.normalBias = 0.6;
-  L.plumeLight = new THREE.PointLight(0xff9a4a, 0, 0, 2); sc.add(L.plumeLight);
+  L.plumeLight = new THREE.PointLight(0xff9a4a, 0, 900, 2); sc.add(L.plumeLight);
   L.flood = [];
 
   // cielo: dispersión aproximada (Rayleigh en el cenit, Mie alrededor del Sol), se oscurece con la altitud
@@ -1763,7 +1764,7 @@ function makeSmoke() {
       if (u < 0.6) { // sale por la fosa hacia el este, sobre el río
         const a = (r() - 0.5) * 1.0; org.set([72, 2, (r() - 0.5) * 10], i * 3); dir.set([Math.cos(a), 0.12 + r() * 0.3, Math.sin(a)], i * 3);
       } else if (u < 0.85) { // nube alrededor de la base
-        const a = r() * Math.PI * 2; org.set([Math.cos(a) * 8, PAD.deckY + 2, Math.sin(a) * 8], i * 3); dir.set([Math.cos(a) * 0.55, 0.15 + r() * 0.35, Math.sin(a) * 0.55], i * 3);
+        const a = r() * Math.PI * 2; org.set([Math.cos(a) * 8, PAD.deckY + 2, Math.sin(a) * 8], i * 3); dir.set([Math.cos(a) * 0.35, 0.15 + r() * 0.35, Math.sin(a) * 0.35], i * 3);
       } else { // columna bajo el cohete que sube
         org.set([(r() - 0.5) * 8, PAD.deckY + 4 + r() * 20, (r() - 0.5) * 8], i * 3); dir.set([(r() - 0.5) * 0.3, 0.6, (r() - 0.5) * 0.3], i * 3);
       }
@@ -1788,19 +1789,22 @@ function makeSmoke() {
         if (age < 0.0 || age > 170.0) { gl_Position = vec4(2.0,2.0,2.0,1.0); gl_PointSize = 0.0; vA = 0.0; return; }
         float smoke = 1.0 - kind;
         float tau = 3.0 + seed*6.0;
-        float sp = mix(3.0 + seed*6.0, 14.0 + seed*34.0, smoke);
+        float sp = mix(3.0 + seed*6.0, 10.0 + seed*24.0, smoke);
         float dist = sp * tau * (1.0 - exp(-age/tau));
         vec3 p = org + vec3(dir.x, 0.0, dir.z) * dist;
         p.y += mix(age*(1.8 + seed*2.2), dir.y*dist*0.55 + age*(1.4 + seed*3.0) + 0.015*age*age, smoke);
         p += vec3(0.9, 0.0, -0.45) * age;  // brisa del suroeste
         vec4 mv = modelViewMatrix*vec4(p,1.0); gl_Position = projectionMatrix*mv;
-        float size = mix(7.0 + age*1.6, 12.0 + age*2.6, smoke) + seed*9.0;
+        float size = mix(6.0 + age*1.4, 9.0 + age*2.0, smoke) + seed*7.0;
         gl_PointSize = size * uScale / -mv.z;
-        vA = smoothstep(0.0, 0.6, age) * (1.0 - smoothstep(40.0, 150.0, age)) * mix(0.07, 0.16, smoke);
+        vA = smoothstep(0.0, 0.6, age) * (1.0 - smoothstep(40.0, 150.0, age)) * mix(0.07, 0.2, smoke);
+        vA *= smoothstep(12.0, 70.0, -mv.z); // no tapar la cámara con humo pegado a ella
         vec3 nrm = normalize(vec3(dir.x, 0.9, dir.z) + vec3(sin(seed*50.0), 0.0, cos(seed*37.0))*0.4);
-        float lit = 0.3 + 0.7*max(dot(nrm, uSun), 0.0);
-        vC = uAmb + uSunCol*lit;
-        vC *= mix(1.0, 0.82, smoke);
+        float lit = 0.2 + 0.8*max(dot(nrm, uSun), 0.0);
+        float top = clamp((p.y - org.y) / 45.0, 0.0, 1.0);   // la base de la nube queda en su propia sombra
+        float var = 0.62 + 0.4*fract(seed*91.7);               // cada bocanada con su propio tono
+        vC = (uAmb*0.75 + uSunCol*lit*0.8) * (0.55 + 0.45*top) * var;
+        vC *= mix(1.0, 0.85, smoke);
         vC += vec3(1.4, 0.65, 0.2) * uGlow * exp(-age*0.6) * smoke;
         vRot = seed*6.283;
         #include <logdepthbuf_vertex>
@@ -1869,6 +1873,101 @@ L.sparks = makeSparks(); L.scene.add(L.sparks);
   }));
   L.vapor.renderOrder = 6; L.vapor.frustumCulled = false; LV.core.add(L.vapor);
 }
+
+// ---------- despegue: fuego por la fosa, agua del diluvio, vapor de oxígeno líquido y hielo ----------
+// posición del cohete (base de los motores) en la escena local, para efectos precalculados
+function rocketLocalAt(t) {
+  if (t <= 0) return [0, 8];
+  const s = ascAt(t), g = inertialToGround(t, s.x, s.y), q = groundToLocal(g[0], g[1]);
+  return [q[0], q[1]];
+}
+// chorro de fuego que el deflector desvía hacia el este, sobre el río
+{
+  const jet = new THREE.Group();
+  const outer = new THREE.Mesh(PLUME_GEO, plumeMaterial('#fff0c8', '#ffa040', '#c8501a', false));
+  const core = new THREE.Mesh(PLUME_CORE_GEO, plumeMaterial('#ffffff', '#ffd27a', '#ff8a30', true));
+  for (const m of [outer, core]) { m.frustumCulled = false; m.renderOrder = 5; jet.add(m); }
+  jet.rotation.z = Math.PI / 2; jet.position.set(6, 2.4, 0);
+  jet.userData = { outer, core };
+  L.trenchJet = jet; L.scene.add(jet);
+}
+function makeLoopPoints(n, init, vs, fs, uniforms) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  init(g, n);
+  const m = new THREE.ShaderMaterial({ uniforms, vertexShader: LOGV + vs, fragmentShader: LOGF + fs, transparent: true, depthWrite: false, fog: false });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; p.renderOrder = 4; return p;
+}
+// agua del sistema de supresión de sonido: chorros desde las boquillas de la mesa y de la fosa
+L.deluge = makeLoopPoints(1800, (g, n) => {
+  const r = rng(17), org = new Float32Array(n * 3), vel = new Float32Array(n * 3), ph = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    ph[i] = r();
+    if (i < n * 0.55) { // anillo de boquillas alrededor de cada núcleo
+      const x = [-3.95, 0, 3.95][i % 3], a = r() * Math.PI * 2; org.set([x + Math.cos(a) * 3.2, PAD.deckY + 2.5, Math.sin(a) * 3.2], i * 3);
+      const s = 5 + r() * 7; vel.set([Math.cos(a) * s * 0.4, 6 + r() * 6, Math.sin(a) * s * 0.4], i * 3);
+    } else { // rociadores en los bordes de la fosa
+      const x = 8 + r() * 60, side = r() < 0.5 ? -1 : 1; org.set([x, PAD.deckY, side * 8.2], i * 3);
+      vel.set([(r() - 0.5) * 2, 5 + r() * 6, -side * (3 + r() * 4)], i * 3);
+    }
+  }
+  g.setAttribute('org', new THREE.BufferAttribute(org, 3)); g.setAttribute('vel', new THREE.BufferAttribute(vel, 3)); g.setAttribute('ph', new THREE.BufferAttribute(ph, 1));
+}, `attribute vec3 org; attribute vec3 vel; attribute float ph; uniform float uT; uniform float uI; uniform float uScale; varying float vA;
+  void main(){ float life = 1.5; float tau = mod(uT + ph*life, life);
+    vec3 p = org + vel*tau + vec3(0.0, -4.9*tau*tau, 0.0);
+    vec4 mv = modelViewMatrix*vec4(p,1.0); gl_Position = projectionMatrix*mv;
+    gl_PointSize = (0.5 + tau*0.9) * uScale / -mv.z; vA = uI * (1.0 - tau/life) * step(0.0, p.y - 0.3);
+    #include <logdepthbuf_vertex>
+  }`, `uniform sampler2D uMap; uniform vec3 uCol; varying float vA; void main(){
+    #include <logdepthbuf_fragment>
+    float a = texture2D(uMap, gl_PointCoord).a * vA * 0.55; if (a < 0.01) discard; gl_FragColor = vec4(uCol, a); }`,
+  { uT: { value: 0 }, uI: { value: 0 }, uScale: { value: 400 }, uMap: { value: puffTex }, uCol: { value: new THREE.Color(0.85, 0.9, 0.95) } });
+L.scene.add(L.deluge);
+// vapor de oxígeno líquido: sale por las válvulas, es más frío que el aire y cae pegado al cohete
+L.lox = makeLoopPoints(900, (g, n) => {
+  const r = rng(23), org = new Float32Array(n * 3), dir = new Float32Array(n * 3), ph = new Float32Array(n);
+  const vents = [[0, 8 + 42.5], [-3.95, 8 + 37.5], [3.95, 8 + 37.5], [0, 8 + 45.2 + 11.8], [0, 8 + 21], [-3.95, 8 + 19], [3.95, 8 + 19]];
+  for (let i = 0; i < n; i++) {
+    const [x, y] = vents[i % vents.length], a = r() * Math.PI * 2; ph[i] = r();
+    org.set([x + Math.cos(a) * 1.9, y, Math.sin(a) * 1.9], i * 3);
+    dir.set([Math.cos(a) * (0.6 + r()), -(1.2 + r() * 1.6), Math.sin(a) * (0.6 + r())], i * 3);
+  }
+  g.setAttribute('org', new THREE.BufferAttribute(org, 3)); g.setAttribute('dir', new THREE.BufferAttribute(dir, 3)); g.setAttribute('ph', new THREE.BufferAttribute(ph, 1));
+}, `attribute vec3 org; attribute vec3 dir; attribute float ph; uniform float uT; uniform float uI; uniform float uScale; varying float vA;
+  void main(){ float life = 5.0; float tau = mod(uT*0.8 + ph*life, life);
+    vec3 p = org + dir*tau*(1.0 + tau*0.25) + vec3(0.4, 0.0, -0.2)*tau; p.y = max(p.y, 5.0);
+    vec4 mv = modelViewMatrix*vec4(p,1.0); gl_Position = projectionMatrix*mv;
+    gl_PointSize = (0.7 + tau*0.8) * uScale / -mv.z; vA = uI * smoothstep(0.0, 0.6, tau) * (1.0 - tau/life);
+    #include <logdepthbuf_vertex>
+  }`, `uniform sampler2D uMap; uniform vec3 uCol; varying float vA; void main(){
+    #include <logdepthbuf_fragment>
+    float a = texture2D(uMap, gl_PointCoord).a * vA * 0.3; if (a < 0.01) discard; gl_FragColor = vec4(uCol, a); }`,
+  { uT: { value: 0 }, uI: { value: 0 }, uScale: { value: 400 }, uMap: { value: puffTex }, uCol: { value: new THREE.Color(0.95, 0.97, 1.0) } });
+L.scene.add(L.lox);
+// hielo: la escarcha de los tanques de oxígeno se desprende con la vibración y cae
+L.ice = makeLoopPoints(260, (g, n) => {
+  const r = rng(29), pb = new Float32Array(n * 3), vb = new Float32Array(n * 3), tb = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const t0 = Math.pow(r(), 1.8) * 10, x = [-3.95, 0, 3.95][i % 3], a = r() * Math.PI * 2, yb = 12 + r() * 30;
+    const p0 = rocketLocalAt(t0), p1 = rocketLocalAt(t0 + 0.1);
+    tb[i] = t0;
+    pb.set([p0[0] + x + Math.cos(a) * 1.9, p0[1] + yb, Math.sin(a) * 1.9], i * 3);
+    vb.set([(p1[0] - p0[0]) * 10 + Math.cos(a) * 2, (p1[1] - p0[1]) * 10, Math.sin(a) * 2], i * 3);
+  }
+  g.setAttribute('pb', new THREE.BufferAttribute(pb, 3)); g.setAttribute('vb', new THREE.BufferAttribute(vb, 3)); g.setAttribute('tb', new THREE.BufferAttribute(tb, 1));
+}, `attribute vec3 pb; attribute vec3 vb; attribute float tb; uniform float uT; uniform float uScale; varying float vA;
+  void main(){ float dt = uT - tb;
+    if (dt < 0.0 || dt > 7.0) { gl_Position = vec4(2.0,2.0,2.0,1.0); gl_PointSize = 0.0; vA = 0.0; return; }
+    vec3 p = pb + vb*dt + vec3(0.0, -4.9*dt*dt, 0.0);
+    if (p.y < 5.0) { gl_Position = vec4(2.0,2.0,2.0,1.0); gl_PointSize = 0.0; vA = 0.0; return; }
+    vec4 mv = modelViewMatrix*vec4(p,1.0); gl_Position = projectionMatrix*mv;
+    gl_PointSize = 0.45 * uScale / -mv.z + 1.0; vA = 1.0;
+    #include <logdepthbuf_vertex>
+  }`, `uniform sampler2D uMap; varying float vA; void main(){
+    #include <logdepthbuf_fragment>
+    float a = texture2D(uMap, gl_PointCoord).a * vA; if (a < 0.05) discard; gl_FragColor = vec4(vec3(0.95, 0.97, 1.0), a); }`,
+  { uT: { value: 0 }, uScale: { value: 400 }, uMap: { value: dotTex } });
+L.scene.add(L.ice);
 
 // estela de humo del ascenso (columna)
 function makeTrail() {
@@ -2042,6 +2141,7 @@ const CAMS = {
   cohete: { az: 0.5, el: 0.1, dist: 190 },
   coheteG: { az: Math.PI + 0.5, el: 0.25, dist: 0.11 },
   malecon: { zoom: 1 },
+  plataforma: { zoom: 1 },
   ciudad: { az: 3.75, el: 0.36, dist: 7200 },
   tierra: { az: 0.9, el: 0.55, dist: 26000 },
   tierraluna: { az: -0.5, el: 1.05, dist: 860000 },
@@ -2053,8 +2153,9 @@ const MALECON = { lat: -2.1930, lon: -79.8786, eye: geoToLocal(-2.1930, -79.8786
 elevationAt(MALECON.lat, MALECON.lon).then(h => { MALECON.eye = geoToLocal(MALECON.lat, MALECON.lon, h + 18); }).catch(() => {});
 let camChoice = 'auto';
 function autoCam(t) {
-  if (t < -14) return 'ciudad';
-  if (t < 5) return 'malecon';
+  if (t < -16) return 'ciudad';
+  if (t < 9) return 'plataforma';
+  if (t < 35) return 'malecon';
   if (BEV.landingBurn && t > BEV.landingBurn - 14 && t < BEV.landing + 7) return 'malecon';
   if (t < T_SECO + 25) return 'cohete';
   if (t < T_TLI0 - 50) return 'tierra';
@@ -2135,8 +2236,8 @@ function setPlume(pl, thr, h, kind, s = 1, green = 0) {
   pl.visible = thr > 0.01;
   if (!pl.visible) return;
   const u = pl.userData, vac = smooth(5e3, 60e3, h), now = performance.now() / 1000;
-  const len = (kind === 2 ? 16 + vac * 46 : kind === 3 ? 6 : 34 + vac * 95) * (0.6 + 0.4 * thr) * s;
-  const rad = (kind === 2 ? 1.5 + vac * 10 : kind === 3 ? 0.6 : 2.7 + vac * 14) * s;
+  const len = (kind === 2 ? 16 + vac * 46 : kind === 3 ? 6 : 46 + vac * 85) * (0.6 + 0.4 * thr) * s;
+  const rad = (kind === 2 ? 1.5 + vac * 10 : kind === 3 ? 0.6 : 3.2 + vac * 14) * s;
   u.outer.scale.set(rad, len, rad);
   const cr = rad * 0.8 * (1 - vac * 0.55);
   u.core.scale.set(cr, len * (0.55 - vac * 0.25), cr);
@@ -2212,10 +2313,21 @@ function updateLocal(t) {
   const su = L.smoke.material.uniforms;
   su.uT.value = t; su.uGlow.value = t > IGN_SIDE && t < 25 ? clamp(fire * 1.2, 0, 1) * (1 - smooth(4, 25, t)) : 0;
   L.sparks.material.uniforms.uT.value = t;
+  // fuego por la fosa (mientras el cohete está cerca), agua, vapor de oxígeno y hielo
+  const jetI = t > IGN_SIDE && t < 20 ? fire * (1 - smooth(12, 70, vh)) : 0, ju = L.trenchJet.userData;
+  L.trenchJet.visible = jetI > 0.01;
+  if (L.trenchJet.visible) {
+    const k = 0.55 + 0.45 * jetI;
+    ju.outer.scale.set(6.5, 78 * k, 4.2); ju.core.scale.set(3.4, 40 * k, 2.4);
+    for (const m of [ju.outer, ju.core]) { const un = m.material.uniforms; un.uI.value = jetI; un.uTime.value = performance.now() / 1000; un.uVac.value = 0; un.uGreen.value = 0; }
+  }
+  L.deluge.material.uniforms.uT.value = t; L.deluge.material.uniforms.uI.value = smooth(-15, -12, t) * (1 - smooth(16, 30, t));
+  L.lox.material.uniforms.uT.value = t; L.lox.material.uniforms.uI.value = t < 1 ? 1 - smooth(-1.5, 0.8, t) : 0;
+  L.ice.material.uniforms.uT.value = t;
   L.trail.material.uniforms.uT.value = t;
-  L.plumeLight.intensity = fire * 6e5 * (1 - smooth(500, 6000, vh));
-  L.plumeLight.position.set(loc[0], Math.max(loc[1] - 25, 6), 0);
-  if (BEV.landingBurn && t > BEV.landingBurn && t < BEV.landing) { const b = boosterAt(t); L.plumeLight.intensity += 3e5; L.plumeLight.position.set(LZ.mid, Math.max(b.h - 20, 5), LZ.z); }
+  L.plumeLight.intensity = fire * 3e4 * (1 - smooth(500, 6000, vh));
+  L.plumeLight.position.set(loc[0] + 4, Math.max(loc[1] - 30, 12), 14);
+  if (BEV.landingBurn && t > BEV.landingBurn && t < BEV.landing) { const b = boosterAt(t); L.plumeLight.intensity += 1.5e4; L.plumeLight.position.set(LZ.mid, Math.max(b.h - 20, 5), LZ.z); }
   L.boostPos.set((LV.sideA.position.x + LV.sideB.position.x) / 2, (LV.sideA.position.y + LV.sideB.position.y) / 2 + 50, (LV.sideA.position.z + LV.sideB.position.z) / 2);
   const blink = performance.now();
   L.towerLights.forEach((s, i) => { s.material.opacity = (0.35 + 0.65 * (Math.sin(blink / 380 + i) > 0 ? 1 : 0.15)) * (0.5 + 0.5 * (1 - DAY)); });
@@ -2242,6 +2354,16 @@ function updateLocalCamera(t, mode, info) {
     cam.fov = clamp(2 * Math.atan(half / d) / DEG / CAMS.malecon.zoom, 0.25, 70);
     if (W < H) cam.fov = clamp(2 * Math.atan(Math.tan(cam.fov * DEG / 2) * H / W) / DEG, 0.25, 80);
     const dv = eye.distanceTo(veh); shakeFrac = thrustLevel(t - dv / 343) * 0.012 * Math.exp(-dv / 6000);
+  } else if (mode === 'plataforma') {
+    // cámara remota al sur‑suroeste, sobre un pilote en el río: ve los tres núcleos y queda contra el viento
+    const eye = _eye.set(-40, 9, 170);
+    const base = new THREE.Vector3(0, 30, 0);
+    const target = t < 1 ? base : base.lerp(veh, smooth(1, 6, t));
+    cam.position.copy(eye); cam.up.set(0, 1, 0); cam.lookAt(target);
+    const d = eye.distanceTo(target);
+    cam.fov = clamp(2 * Math.atan(50 / d) / DEG / CAMS.plataforma.zoom, 1.5, 75);
+    if (W < H) cam.fov = clamp(2 * Math.atan(Math.tan(cam.fov * DEG / 2) * H / W * 0.8) / DEG, 1.5, 95);
+    const dv = eye.distanceTo(veh); shakeFrac = thrustLevel(t - dv / 343) * 0.02 * Math.exp(-dv / 1500);
   } else if (mode === 'ciudad') {
     const k = CAMS.ciudad, ce = Math.cos(k.el);
     _tgt.set(-250, 0, 300);
@@ -2275,6 +2397,7 @@ function updateLocalCamera(t, mode, info) {
   L.scene.fog.density = (2.4e-5 * (1 - smooth(1500, 30000, camY)) + 1.2e-6) * (0.75 + 0.25 * DAY);
   const sc = 0.5 * H / Math.tan(cam.fov * DEG / 2);
   L.smoke.material.uniforms.uScale.value = sc; L.trail.material.uniforms.uScale.value = sc; L.sparks.material.uniforms.uScale.value = sc;
+  L.deluge.material.uniforms.uScale.value = sc; L.lox.material.uniforms.uScale.value = sc; L.ice.material.uniforms.uScale.value = sc;
   // luz del sol y sombras: siguen al cohete mientras está cerca del suelo
   const focusShadow = info.vh < 700 ? veh : (mode === 'malecon' && t > BEV.boostbackEnd + 60 ? _p.set(LZ.mid, 0, LZ.z) : _p.set(0, 0, 0));
   L.sun.target.position.copy(focusShadow); L.sun.position.copy(focusShadow).addScaledVector(SUN_LOCAL, 1800);
@@ -2283,7 +2406,7 @@ function updateLocalCamera(t, mode, info) {
   // etiquetas de lugares
   const placesOn = mode === 'ciudad' || (mode === 'malecon' && t < 12) || (mode === 'cohete' && camY > 4000);
   PLACES.forEach(l => { const d = l.p.distanceTo(cam.position); placeLabel(l.el, l.p, cam, placesOn && d > l.d0 && d < l.d1 && !(mode === 'malecon' && l.d0 >= 900 && d < 2500) && !belowHorizon(l.p, cam.position)); });
-  placeLabel(LBL.veh, veh, cam, t > 12 && (mode === 'malecon' || mode === 'ciudad') && t < 300, 12, -10);
+  placeLabel(LBL.veh, veh, cam, t > 12 && (mode === 'malecon' || mode === 'ciudad' || mode === 'plataforma') && t < 300, 12, -10);
   LBL.veh.textContent = t < EV.stageSep ? 'Falcon Heavy' : '2.ª etapa';
   const showB = t > EV.sideSep + 5 && t < BEV.landing + 40 && mode !== 'cohete';
   placeLabel(LBL.boost, L.boostPos, cam, showB, 14, -12);
@@ -2764,7 +2887,7 @@ addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input,select')) return;
   if (e.key === 'Escape') { sims.hidden = true; return; }
   if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
-  const map = { '0': 'auto', '1': 'cohete', '2': 'malecon', '3': 'ciudad', '4': 'tierra', '5': 'tierraluna', '6': 'luna' };
+  const map = { '0': 'auto', '1': 'cohete', '2': 'plataforma', '3': 'malecon', '4': 'ciudad', '5': 'tierra', '6': 'tierraluna', '7': 'luna' };
   if (map[e.key]) setCam(map[e.key]);
   if (e.key === 'ArrowRight') nextEvent();
   if (e.key === 'ArrowLeft') { const p = [...EVENTS].reverse().find(ev => ev.t < tNow - 3); if (p) setTime(p.t - 2); }
@@ -2823,7 +2946,7 @@ function loop(now) {
   }
   curMode = camChoice === 'auto' ? autoCam(tNow) : camChoice;
   if (curMode === 'ciudad' && now - userCamAt > 7000) CAMS.ciudad.az += dtReal * 0.025;
-  const useLocal = curMode === 'malecon' || curMode === 'ciudad' || (curMode === 'cohete' && tNow < LOCAL_UNTIL);
+  const useLocal = curMode === 'malecon' || curMode === 'ciudad' || curMode === 'plataforma' || (curMode === 'cohete' && tNow < LOCAL_UNTIL);
   let info = null;
   if (useLocal) {
     info = updateLocal(tNow); updateLocalCamera(tNow, curMode, info);
@@ -2847,6 +2970,6 @@ applyTimeOfDay();
 loadBuildings().catch(e => console.warn('Edificios OSM:', e));
 setTime(T_START); setPlaying(false); setCam('auto');
 requestAnimationFrame(t => { lastFrame = t; $('#loading').classList.add('done'); loop(t); });
-window.__sim = { MS, EVENTS, setTime, setCam, TER, BLD, NET, CAMS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); }, play: p => setPlaying(p), setRate: r => { rate = r; speedSel.value = String(r); }, step: n => { for (let i = 0; i < (n || 1); i++) loop(performance.now()); }, snap: (q = 0.82) => { loop(performance.now()); return canvas.toDataURL('image/jpeg', q); }, get t() { return tNow; } };
+window.__sim = { MS, EVENTS, L, LV, bloomPass, setTime, setCam, TER, BLD, NET, CAMS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); }, play: p => setPlaying(p), setRate: r => { rate = r; speedSel.value = String(r); }, step: n => { for (let i = 0; i < (n || 1); i++) loop(performance.now()); }, snap: (q = 0.82) => { loop(performance.now()); return canvas.toDataURL('image/jpeg', q); }, get t() { return tNow; } };
 
 </script>
