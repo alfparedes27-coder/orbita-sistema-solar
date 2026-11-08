@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Puerto Espacial Guayaquil</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -213,6 +214,7 @@ button{cursor:pointer}
   .lbl-txt{display:none}
   #attrib{font-size:9px}
   #mclock{font-size:22px}
+  #tilechip{top:calc(var(--top) + 104px);max-width:80vw;white-space:normal;text-align:center;line-height:1.3}
 }
 @media (max-width:560px){
   #sims-btn span{display:none}
@@ -1145,7 +1147,7 @@ const QS = new URLSearchParams(location.search);
   // Tierra de respaldo (más allá de las teselas, o si no cargan): esfera real con la textura global
   {
     const tex = new THREE.TextureLoader().load(document.getElementById('tex-earth').textContent.trim()); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = maxAniso;
-    const m = new THREE.Mesh(new THREE.SphereGeometry(R_E - 90, 360, 180), new THREE.MeshLambertMaterial({ map: tex }));
+    const m = new THREE.Mesh(new THREE.SphereGeometry(R_E - 4000, 360, 180), new THREE.MeshLambertMaterial({ map: tex }));
     m.matrixAutoUpdate = false;
     const rot = new THREE.Matrix4().set(E3[0], E3[1], E3[2], 0, S3[0], S3[1], S3[2], 0, -N3[0], -N3[1], -N3[2], 0, 0, 0, 0, 1);
     m.matrix.copy(rot.multiply(new THREE.Matrix4().makeTranslation(-SITE_G[0], -SITE_G[1], -SITE_G[2])));
@@ -1210,7 +1212,9 @@ const lon2tx = (lon, z) => (lon + 180) / 360 * 2 ** z;
 const lat2ty = (lat, z) => (1 - Math.log(Math.tan(lat * DEG) + 1 / Math.cos(lat * DEG)) / Math.PI) / 2 * 2 ** z;
 const DEM_MAX_Z = 13, IMG_MAX_Z = 17;
 
-const NET = { active: 0, max: 10, q: [] };
+const MOBILE = matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700;
+const NET = { active: 0, max: MOBILE ? 6 : 10, q: [] };
+const TILE_CAP = MOBILE ? 360 : 600, SPLIT_PX = MOBILE ? [420, 540] : [340, 440];
 function enqueue(job) { NET.q.push(job); pump(); }
 function pump() {
   if (NET.q.length > 1) NET.q.sort((a, b) => a.prio() - b.prio());
@@ -1221,7 +1225,7 @@ function pump() {
     j.run().catch(() => {}).finally(() => { NET.active--; pump(); });
   }
 }
-function loadImg(url, ms = 20000) {
+function loadImg(url, ms = 30000) {
   return new Promise((res, rej) => {
     const im = new Image(); im.crossOrigin = 'anonymous'; im.decoding = 'async';
     const to = setTimeout(() => { im.src = ''; rej(new Error('tiempo')); }, ms);
@@ -1241,7 +1245,7 @@ function getDem(z, x, y) {
     const d = demCtx.getImageData(0, 0, 256, 256).data, h = new Float32Array(65536);
     for (let i = 0; i < 65536; i++) h[i] = d[i * 4] * 256 + d[i * 4 + 1] + d[i * 4 + 2] / 256 - 32768;
     TER.demOk++; return h;
-  }).catch(() => { TER.demFail++; return null; }));
+  }).catch(() => { TER.demFail++; setTimeout(() => demCache.delete(key), 5000); return null; }));
   return demCache.get(key);
 }
 function sampleDem(h, px, py) {
@@ -1256,17 +1260,10 @@ async function elevationAt(lat, lon) {
   return Math.max(0, sampleDem(h, (fx - x) * 256, (fy - y) * 256));
 }
 
-// material del terreno: agua con brillo especular (zonas a nivel del mar), resto mate
+// material del terreno: mate; la foto satelital ya muestra el agua tal como se ve
+// (Guayaquil está casi a nivel del mar: un brillo de «agua» por altura tapaba media ciudad)
 function terrainMat(tex) {
-  const m = new THREE.MeshStandardMaterial({ map: tex || null, vertexColors: !tex, roughness: 0.96, metalness: 0, envMapIntensity: 0.8, side: THREE.DoubleSide });
-  m.onBeforeCompile = sh => {
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float wet;\nvarying float vWet;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWet = wet;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vWet;')
-      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.16, vWet);');
-  };
-  m.customProgramCacheKey = () => tex ? 'ter-img' : 'ter-col';
-  return m;
+  return new THREE.MeshStandardMaterial({ map: tex || null, vertexColors: !tex, roughness: 1, metalness: 0, envMapIntensity: 0.45, side: THREE.DoubleSide });
 }
 const FALLBACK_COL = (h, wet) => wet ? [0.07, 0.12, 0.2] : h < 400 ? [0.16, 0.25, 0.12] : h < 2500 ? [0.22, 0.24, 0.14] : h < 4300 ? [0.32, 0.29, 0.22] : [0.85, 0.87, 0.9];
 const _ga = [0, 0, 0];
@@ -1307,6 +1304,9 @@ class Tile {
       })();
       const [dem, im] = await Promise.all([getDem(ez, ex, ey), imgP]);
       if (this.disposed) return;
+      // si falló la foto o el relieve, se reintenta más tarde (mientras tanto se ve la tesela padre)
+      this.tries = (this.tries || 0) + 1;
+      if ((!im || !dem) && this.tries < 4 && !(TER.imgOk === 0 && TER.imgFail > 12)) { setTimeout(() => { if (!this.disposed) this.state = 'idle'; }, 3000 * this.tries); this.state = 'wait'; return; }
       this.build(dem, im, ez, ex, ey);
       this.state = 'ready'; TER.ready++;
     } });
@@ -1383,7 +1383,7 @@ function updateTerrain(cam) {
     _sph.set(t.center, t.radius);
     const inView = _frus.intersectsSphere(_sph);
     const px = t.size / d * pxPerRad;
-    const want = t.z < t.maxZ && (inView || d < t.size * 0.5) && px > (t.split ? 340 : 440) && TER.count < 600;
+    const want = t.z < t.maxZ && (inView || d < t.size * 0.5) && px > (t.split ? SPLIT_PX[0] : SPLIT_PX[1]) && TER.count < TILE_CAP;
     if (want) {
       if (!t.children) t.makeChildren();
       t.unsplitAt = 0;
