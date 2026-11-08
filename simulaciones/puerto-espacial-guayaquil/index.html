@@ -1217,7 +1217,7 @@ const MOBILE = matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, i
 // en el celular, nivel 11 y foto hasta nivel 16 para que cargue rápido con datos móviles
 const DEM_MAX_Z = MOBILE ? 11 : 12, IMG_MAX_Z = MOBILE ? 16 : 17;
 const NET = { active: 0, max: MOBILE ? 6 : 10, q: [] };
-const TILE_CAP = MOBILE ? 360 : 600, SPLIT_PX = MOBILE ? [420, 540] : [340, 440];
+const LEAF_BUDGET = MOBILE ? 190 : 320, SPLIT_PX = MOBILE ? [360, 460] : [320, 420];
 function enqueue(job) { NET.q.push(job); pump(); }
 function pump() {
   if (NET.q.length > 1) NET.q.sort((a, b) => a.prio() - b.prio());
@@ -1375,30 +1375,46 @@ class Tile {
 }
 const _frus = new THREE.Frustum(), _pm = new THREE.Matrix4(), _sph = new THREE.Sphere();
 function hideTree(t) { if (t.mesh) t.mesh.visible = false; if (t.children) t.children.forEach(hideTree); }
+// Nivel de detalle con presupuesto: se subdividen primero las teselas que más ocupan en pantalla,
+// hasta un máximo de hojas; así lo cercano siempre recibe el detalle y la memoria no crece sin límite.
+let terStamp = 0;
 function updateTerrain(cam) {
   cam.updateMatrixWorld();
   _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); _frus.setFromProjectionMatrix(_pm);
-  const pxPerRad = H / (2 * Math.tan(cam.fov * DEG / 2)), cp = cam.position, now = performance.now();
-  const visit = t => {
+  const pxPerRad = H / (2 * Math.tan(cam.fov * DEG / 2)), cp = cam.position, now = performance.now(), stamp = ++terStamp;
+  const measure = t => {
     const d = Math.max(1, t.center.distanceTo(cp) - t.radius);
-    t.prio = d / t.size;
-    if (t.state === 'idle') t.load();
     _sph.set(t.center, t.radius);
-    const inView = _frus.intersectsSphere(_sph);
-    const px = t.size / d * pxPerRad;
-    const want = t.z < t.maxZ && (inView || d < t.size * 0.5) && px > (t.split ? SPLIT_PX[0] : SPLIT_PX[1]) && TER.count < TILE_CAP;
-    if (want) {
-      if (!t.children) t.makeChildren();
+    const inView = _frus.intersectsSphere(_sph) || d < t.size * 0.5;
+    t.prio = d / t.size;
+    t.px = inView ? t.size / d * pxPerRad : 0;
+  };
+  // 1) elegir qué teselas se subdividen (de mayor a menor tamaño en pantalla)
+  const heap = [];
+  const push = t => { measure(t); let i = heap.length; heap.push(t); while (i > 0 && heap[i - 1].px < t.px) { heap[i] = heap[i - 1]; i--; } heap[i] = t; };
+  TER.roots.forEach(push);
+  let leaves = TER.roots.length;
+  while (heap.length) {
+    const t = heap.shift();
+    const thr = t.split ? SPLIT_PX[0] : SPLIT_PX[1];
+    if (t.z >= t.maxZ || t.px <= thr || leaves + 3 > LEAF_BUDGET) continue;
+    t.want = stamp; leaves += 3;
+    if (!t.children) t.makeChildren();
+    t.children.forEach(push);
+  }
+  // 2) mostrar: si los 4 hijos están listos se ven ellos; si no, el padre mientras cargan
+  const visit = t => {
+    if (t.state === 'idle') t.load();
+    if (t.want === stamp) {
       t.unsplitAt = 0;
-      const allReady = t.children.every(c => c.state === 'ready');
-      if (allReady) { if (t.mesh) t.mesh.visible = false; t.split = true; t.children.forEach(visit); return; }
-      t.children.forEach(c => { c.prio = Math.max(1, c.center.distanceTo(cp) - c.radius) / c.size; if (c.state === 'idle') c.load(); hideTree(c); });
+      if (t.children.every(c => c.state === 'ready')) { if (t.mesh) t.mesh.visible = false; t.split = true; t.children.forEach(visit); return; }
+      t.children.forEach(c => { if (c.state === 'idle') c.load(); hideTree(c); });
       if (t.mesh) t.mesh.visible = true;
       t.split = false; return;
     }
     t.split = false;
     if (t.mesh) t.mesh.visible = true;
-    if (t.children) { t.children.forEach(hideTree); if (!t.unsplitAt) t.unsplitAt = now; else if (now - t.unsplitAt > 3000) { t.children.forEach(c => c.dispose()); t.children = null; } }
+    if (t.children) { t.children.forEach(hideTree); if (!t.unsplitAt) t.unsplitAt = now; else if (now - t.unsplitAt > 4000) { t.children.forEach(c => c.dispose()); t.children = null; } }
   };
   TER.roots.forEach(visit);
 }
