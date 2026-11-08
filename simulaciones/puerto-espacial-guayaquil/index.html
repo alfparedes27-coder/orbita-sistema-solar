@@ -182,6 +182,13 @@ button{cursor:pointer}
 .simitem.empty .num{color:var(--faint)}
 .simitem.empty .st{color:var(--faint)}
 
+/* cabina de la Crew Dragon (simulador de cabina integrado, sobre la vista del puerto) */
+#dragon{position:absolute;inset:0;z-index:20;background:#000}
+#dragon iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+#dragon-out{position:absolute;right:var(--gutR);bottom:calc(var(--bot) + 4px);z-index:2}
+#cams button.cab{color:var(--craft)}
+#cams button.cab[aria-pressed="true"]{background:rgba(111,211,255,.16);color:var(--craft)}
+#bigplay .alt{background:var(--panel-solid);color:var(--craft);border:1px solid var(--craft);box-shadow:none;padding:12px 20px;font-size:13px}
 #toast{position:absolute;left:50%;top:calc(var(--top) + 6px);transform:translate(-50%,-8px);max-width:min(460px,calc(100% - 32px));padding:11px 16px;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;text-align:center;z-index:5}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 #toast b{display:block;font:600 15px/1.25 var(--f-display);margin-bottom:2px}
@@ -254,6 +261,8 @@ button{cursor:pointer}
     <button type="button" data-cam="tierra" aria-pressed="false" title="La Tierra y la órbita (6)">Tierra</button>
     <button type="button" data-cam="tierraluna" aria-pressed="false" title="Todo el viaje (7)">Tierra–Luna</button>
     <button type="button" data-cam="luna" aria-pressed="false" title="Llegada a la Luna (8)">Luna</button>
+    <span class="sep"></span>
+    <button type="button" id="cab-btn" class="cab" aria-pressed="false" title="Cabina de la Crew Dragon, con sus pantallas y controles (tecla D)">Cabina Dragon</button>
   </nav>
 
   <aside id="tele" class="panel" aria-label="Telemetría">
@@ -301,7 +310,7 @@ button{cursor:pointer}
       <span class="spacer"></span>
       <select id="cam-select" aria-label="Cámara">
         <option value="auto">Cámara: auto</option><option value="cohete">Cohete</option><option value="plataforma">Plataforma</option><option value="malecon">Malecón</option><option value="aterrizaje">Aterrizaje</option><option value="ciudad">Ciudad</option><option value="tierra">Tierra</option><option value="tierraluna">Tierra–Luna</option><option value="luna">Luna</option>
-      </select>
+      <option value="cabina">Cabina Dragon</option></select>
       <button class="tbtn mob" id="tele-btn" type="button" aria-expanded="false" aria-controls="tele">Datos</button>
       <button class="tbtn mob" id="side-btn" type="button" aria-expanded="false" aria-controls="side">Eventos</button>
     </div>
@@ -310,7 +319,7 @@ button{cursor:pointer}
     <div id="attrib">Imágenes satelitales: Esri, Maxar, Earthstar Geographics · Relieve: SRTM (NASA) vía Terrain Tiles de AWS · Tierra y Luna: NASA (Blue Marble, Black Marble, LRO) · Edificios: © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL)</div>
   </footer>
 
-  <div id="bigplay"><button type="button" id="bigplay-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>Iniciar cuenta regresiva</button><span>Arrastra para girar la cámara · rueda o pellizco para acercar o alejarte hasta cientos de kilómetros</span></div>
+  <div id="bigplay"><button type="button" id="bigplay-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>Iniciar cuenta regresiva</button><button type="button" class="alt" id="board-btn">Subir a la Dragon · desde T−46 min</button><span>Arrastra para girar la cámara · rueda o pellizco para acercar o alejarte hasta cientos de kilómetros</span></div>
 
   <div id="sims" hidden>
     <div class="simcard panel" role="dialog" aria-modal="true" aria-labelledby="sims-title">
@@ -336,6 +345,10 @@ button{cursor:pointer}
     </div>
   </div>
 
+  <div id="dragon" hidden>
+    <iframe id="dragon-f" title="Cabina de la Crew Dragon" allow="autoplay; fullscreen"></iframe>
+    <button type="button" class="hudbtn" id="dragon-out" title="Volver a la vista del puerto (tecla D o Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span>Volver al puerto</span></button>
+  </div>
   <div id="tilechip" class="off"></div>
   <div id="toast" class="panel" role="status"><b id="t-title"></b><span id="t-sub"></span></div>
   <div id="loading"><div><b>Simulaciones</b><span id="load-msg">Calculando la trayectoria…</span></div></div>
@@ -3020,7 +3033,8 @@ function loop(now) {
     renderPass.scene = G.scene; renderPass.camera = G.cam;
     bloomPass.strength = 0.5; bloomPass.threshold = 0.85;
   }
-  composer.render();
+  if (!DRG.open) composer.render();
+  sendDragon(false);
   updateAudio(tNow, L.cam.position, info ? _p.set(info.loc[0], info.loc[1], 0) : _p.set(0, 1e7, 0), useLocal);
   updateTileChip(useLocal);
   $('#mclock').innerHTML = tNow < 0 ? `<span class="neg">${fmtClock(tNow)}</span>` : fmtClock(tNow);
@@ -3029,10 +3043,55 @@ function loop(now) {
   if (!scrubbing) scrub.value = Math.round(tToF(tNow) * 100000);
   requestAnimationFrame(loop);
 }
+// ---------- cabina de la Crew Dragon ----------
+// El simulador de cabina corre en su propia página (dragon/) dentro de esta. Hasta T−30 s manda su reloj
+// (la cuenta regresiva desde T−46 min con los pasos de la tripulación); desde ahí manda el reloj del puerto.
+const DRG = { open: false, pre: false, last: 0, el: $('#dragon'), f: $('#dragon-f') };
+function dragonTel(t) {
+  if (t <= 0) return { alt: 0, v: 0, g: 1 };
+  if (t <= T_SECO) { const s = ascAt(t); return { alt: Math.max(0, s.h) / 1000, v: s.vrel / 1000, g: s.a }; }
+  const ms = mainState(t), r = Math.hypot(ms[0], ms[1]);
+  return { alt: (r - R_E) / 1000, v: Math.hypot(ms[2], ms[3]) / 1000, g: t > T_TLI0 && t < T_TLI1 ? 0.9 : 0 };
+}
+function sendDragon(force) {
+  if (!DRG.f.src || !DRG.f.contentWindow) return;
+  const now = performance.now(); if (!force && now - DRG.last < 100) return; DRG.last = now;
+  DRG.f.contentWindow.postMessage({ src: 'puerto', type: 'sync', mode: DRG.pre ? 'pre' : 'slave', t: tNow, rate, playing, hidden: !DRG.open, tel: dragonTel(tNow) }, '*');
+}
+function openDragon(pre) {
+  if (!DRG.f.src) {
+    const times = { IGN: IGN_CORE, MAXQ: A.tMaxQ, BECO: EV.beco, SIDESEP: EV.sideSep, MECO: EV.meco, STAGESEP: EV.stageSep, SES1: EV.ses1, SECO1: EV.seco1, TLI: T_TLI0, SECO2: T_TLI1 };
+    DRG.f.src = 'dragon/?embed=1&t=' + encodeURIComponent(JSON.stringify(times));
+  }
+  if (pre && tNow <= T_START + 0.01) { DRG.pre = true; setPlaying(false); }
+  DRG.open = true; DRG.el.hidden = false; hideBig();
+  $('#cab-btn').setAttribute('aria-pressed', 'true');
+  sendDragon(true); DRG.f.focus();
+}
+function closeDragon() {
+  DRG.open = false; DRG.el.hidden = true; $('#cab-btn').setAttribute('aria-pressed', 'false'); sendDragon(true);
+  if (DRG.pre) showToast({ title: 'La cuenta regresiva sigue en la cabina', desc: 'Vuelve a «Cabina Dragon» para continuar. Al llegar a T−30 s, la vista exterior se pone en marcha sola.' });
+}
+DRG.f.addEventListener('load', () => sendDragon(true));
+addEventListener('message', e => {
+  const d = e.data; if (!d || d.src !== 'dragon' || e.source !== DRG.f.contentWindow) return;
+  if (d.type === 'exit') { closeDragon(); return; }
+  if (d.type === 'state' && DRG.pre && d.t >= T_START) { DRG.pre = false; setTime(d.t); setPlaying(true); }
+  if (d.type === 'rate' && d.r > 0) { autoRateEl.checked = false; rate = d.r; speedSel.value = String(d.r); if (speedSel.value !== String(d.r)) { const o = document.createElement('option'); o.value = String(d.r); o.textContent = '×' + nf0.format(d.r); speedSel.appendChild(o); speedSel.value = String(d.r); } }
+});
+$('#cab-btn').addEventListener('click', () => DRG.open ? closeDragon() : openDragon(false));
+$('#dragon-out').addEventListener('click', closeDragon);
+$('#board-btn').addEventListener('click', () => openDragon(true));
+$('#cam-select').addEventListener('change', e => { if (e.target.value === 'cabina') { e.target.value = camChoice; openDragon(false); } });
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,select')) return;
+  if (e.key === 'd' || e.key === 'D') { DRG.open ? closeDragon() : openDragon(false); }
+  else if (e.key === 'Escape' && DRG.open) closeDragon();
+});
 applyTimeOfDay();
 loadBuildings().catch(e => console.warn('Edificios OSM:', e));
 setTime(T_START); setPlaying(false); setCam('auto');
 requestAnimationFrame(t => { lastFrame = t; $('#loading').classList.add('done'); loop(t); });
-window.__sim = { MS, EVENTS, L, LV, bloomPass, setTime, setCam, TER, BLD, NET, CAMS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); }, play: p => setPlaying(p), setRate: r => { rate = r; speedSel.value = String(r); }, step: n => { for (let i = 0; i < (n || 1); i++) loop(performance.now()); }, snap: (q = 0.82) => { loop(performance.now()); return canvas.toDataURL('image/jpeg', q); }, get t() { return tNow; } };
+window.__sim = { DRG, openDragon, closeDragon, MS, EVENTS, L, LV, bloomPass, setTime, setCam, TER, BLD, NET, CAMS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); }, play: p => setPlaying(p), setRate: r => { rate = r; speedSel.value = String(r); }, step: n => { for (let i = 0; i < (n || 1); i++) loop(performance.now()); }, snap: (q = 0.82) => { loop(performance.now()); return canvas.toDataURL('image/jpeg', q); }, get t() { return tNow; } };
 
 </script>
