@@ -307,7 +307,7 @@ button{cursor:pointer}
     </div>
     <div class="scrub"><div id="ticks"></div><input type="range" id="scrub" min="0" max="100000" step="1" aria-label="Línea de tiempo de la misión"></div>
     <div class="seglabels" id="seglabels"></div>
-    <div id="attrib">Imágenes satelitales: Esri, Maxar, Earthstar Geographics · Relieve: SRTM (NASA) vía Terrain Tiles de AWS · Edificios: © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL)</div>
+    <div id="attrib">Imágenes satelitales: Esri, Maxar, Earthstar Geographics · Relieve: SRTM (NASA) vía Terrain Tiles de AWS · Tierra y Luna: NASA (Blue Marble, Black Marble, LRO) · Edificios: © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL)</div>
   </footer>
 
   <div id="bigplay"><button type="button" id="bigplay-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>Iniciar cuenta regresiva</button><span>Arrastra para girar la cámara · rueda o pellizco para acercar o alejarte hasta cientos de kilómetros</span></div>
@@ -345,7 +345,6 @@ button{cursor:pointer}
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
 <script id="tex-earth" type="text/plain">tierra.jpg</script>
-<script id="tex-ecu" type="text/plain">ecuador.jpg</script>
 <script>
 // ===== Física de la misión (SI). Plano inercial 2D: x hacia el sitio en T=0, y hacia el este =====
 const G0 = 9.80665;
@@ -2034,14 +2033,20 @@ const RE_KM = R_E / 1000, RM_KM = R_M / 1000;
 {
   const sc = G.scene;
   const sun = new THREE.DirectionalLight(0xfff4e6, 3.0); sun.position.copy(SUN3).multiplyScalar(1e6); sc.add(sun); sc.add(sun.target); G.sunLight = sun;
-  sc.add(new THREE.AmbientLight(0x3a4260, 0.7));
+  sc.add(new THREE.AmbientLight(0x3a4260, 0.35));
   G.earth = new THREE.Group(); sc.add(G.earth);
   const loadTex = (id) => { const t = new THREE.TextureLoader().load(document.getElementById(id).textContent.trim()); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; return t; };
-  const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(RE_KM, 160, 120), new THREE.MeshPhongMaterial({ map: loadTex('tex-earth'), specular: 0x223344, shininess: 14 }));
+  // Tierra: Blue Marble de la NASA; en el lado nocturno se encienden las luces de las ciudades (Black Marble)
+  const earthMat = new THREE.MeshPhongMaterial({ map: loadTex('tex-earth'), specular: 0x2a3a50, shininess: 18, emissive: 0xffc890, emissiveMap: (() => { const t = new THREE.TextureLoader().load('tierra-noche.jpg'); t.colorSpace = THREE.SRGBColorSpace; return t; })(), emissiveIntensity: 1.6 });
+  earthMat.onBeforeCompile = sh => {
+    sh.uniforms.uSunW = { value: SUN3 };
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWN;').replace('#include <defaultnormal_vertex>', '#include <defaultnormal_vertex>\nvWN = normalize(mat3(modelMatrix) * objectNormal);');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWN;\nuniform vec3 uSunW;')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance *= smoothstep(0.08, -0.18, dot(normalize(vWN), uSunW));');
+  };
+  const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(RE_KM, 160, 120), earthMat);
   G.earth.add(earthMesh);
   const PS = (-86 + 180) * DEG, PL = 16 * DEG, TS = (90 - 4) * DEG, TL = 12 * DEG;
-  const ecu = new THREE.Mesh(new THREE.SphereGeometry(RE_KM + 0.03, 256, 192, PS, PL, TS, TL), new THREE.MeshPhongMaterial({ map: loadTex('tex-ecu'), specular: 0x223344, shininess: 14, polygonOffset: true, polygonOffsetFactor: -2 }));
-  G.earth.add(ecu);
   // marcador de Guayaquil
   const site = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0x6fd3ff, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: false }));
   site.scale.set(0.018, 0.018, 1); site.position.set(...S3.map(v => v * (RE_KM + 0.2))); G.earth.add(site); G.siteSprite = site;
@@ -2060,7 +2065,11 @@ const RE_KM = R_E / 1000, RM_KM = R_M / 1000;
   }));
   G.earth.add(atm);
   // Luna
-  G.moon = new THREE.Mesh(new THREE.SphereGeometry(RM_KM, 128, 96), new THREE.MeshPhongMaterial({ map: makeMoonTex(), shininess: 2, specular: 0x111111 }));
+  // Luna: mapa de color del orbitador LRO (NASA, CGI Moon Kit) con su relieve; la cara visible (longitud 0) mira a la Tierra
+  const moonGeo = new THREE.SphereGeometry(RM_KM, 160, 120); moonGeo.rotateY(-Math.PI / 2);
+  const moonMap = new THREE.TextureLoader().load('luna.jpg'); moonMap.colorSpace = THREE.SRGBColorSpace; moonMap.anisotropy = maxAniso;
+  const moonBump = new THREE.TextureLoader().load('luna-relieve.jpg');
+  G.moon = new THREE.Mesh(moonGeo, new THREE.MeshPhongMaterial({ map: moonMap, bumpMap: moonBump, bumpScale: 3.5, shininess: 2, specular: 0x0a0a0a }));
   sc.add(G.moon);
   G.stars = makeStars(5e7, 5000, 1.5); sc.add(G.stars);
 }
@@ -2621,7 +2630,22 @@ function updateGlobal(t, mode) {
   if (key === 'coheteG') { const off = t < EV.stageSep ? 30 * S : 8 * S; cam.position.addScaledVector(_p.set(...axis), off); }
   cam.up.set(e3[0], e3[1], e3[2]);
   cam.lookAt(key === 'coheteG' ? _p.set(...axis).multiplyScalar(t < EV.stageSep ? 30 * S : 8 * S) : _p.set(0, 0, 0));
-  cam.fov = 45; cam.near = Math.max(1e-6, dist * 1e-3); cam.far = 2e8; cam.updateProjectionMatrix();
+  cam.fov = 45;
+  // crucero: cámara detrás de la sonda, con la Tierra de fondo en la primera mitad del viaje y la Luna en la segunda
+  if (key === 'coheteG' && t > T_PSEP + 60) {
+    const toE = [-mainAbs[0], -mainAbs[1], -mainAbs[2]], toM = [moonAbs[0] - mainAbs[0], moonAbs[1] - mainAbs[1], moonAbs[2] - mainAbs[2]];
+    const dE = Math.hypot(...toE), dM = Math.hypot(...toM), useE = dE < dM && t < T_PERI - 3600;
+    const d = (useE ? toE : toM).map(v => v / (useE ? dE : dM));
+    let a = [N3[1] * d[2] - N3[2] * d[1], N3[2] * d[0] - N3[0] * d[2], N3[0] * d[1] - N3[1] * d[0]]; const la = Math.hypot(...a) || 1; a = a.map(v => v / la);
+    const b = [d[1] * a[2] - d[2] * a[1], d[2] * a[0] - d[0] * a[2], d[0] * a[1] - d[1] * a[0]];
+    // el cuerpo de fondo ocupa buena parte del cuadro; la sonda (≈13 m con paneles) queda abajo, a un cuarto del campo
+    cam.fov = clamp(2 * Math.atan(((useE ? RE_KM : RM_KM) * 2.6) / (useE ? dE : dM)) / DEG, 8, 60);
+    const hf = cam.fov * DEG / 2, back = 0.0065 / Math.tan(hf * 0.2) * clamp(k.dist / 0.11, 0.3, 30), lift = -Math.tan(hf * 0.32);
+    const ca2 = Math.cos(k.az), sa2 = Math.sin(k.az), side = [a[0] * sa2 + b[0] * ca2, a[1] * sa2 + b[1] * ca2, a[2] * sa2 + b[2] * ca2];
+    cam.position.set((-d[0] + side[0] * lift) * back, (-d[1] + side[1] * lift) * back, (-d[2] + side[2] * lift) * back);
+    cam.up.set(N3[0], N3[1], N3[2]); cam.lookAt(d[0] * 1e5, d[1] * 1e5, d[2] * 1e5);
+  }
+  cam.near = Math.max(1e-6, (key === 'coheteG' && t > T_PSEP + 60 ? 0.002 : dist * 1e-3)); cam.far = 2e8; cam.updateProjectionMatrix();
   G.stars.position.copy(cam.position);
   // color del cielo (dentro de la atmósfera)
   const camAbs = [cam.position.x + focus[0], cam.position.y + focus[1], cam.position.z + focus[2]];
