@@ -1,0 +1,1269 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cabo Cañaveral 3D</title>
+<meta name="description" content="Recorrido 3D del Centro Espacial Kennedy y la Estación de la Fuerza Espacial de Cabo Cañaveral: plataformas de la NASA y de SpaceX sobre el mapa satelital real.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: lienzo 3D a pantalla completa. Arriba la cabecera; a la derecha la lista de lugares;
+   abajo a la izquierda la ficha del lugar elegido. Mismo sistema visual que «Órbita · Sistema Solar 3D». */
+:root{
+  color-scheme:dark;
+  --void:#04060c; --panel:rgba(10,14,24,.84); --panel-solid:#0b101b; --line:#1e2940; --line-strong:#2d3c5a;
+  --ink:#e8ecf4; --dim:#8d99b0; --faint:#5c6884; --sol:#ffb547; --sol-ink:#1a1206; --craft:#6fd3ff; --ok:#7ee2a8;
+  --nasa:#7aa8ff; --spacex:#e8ecf4; --pub:#7ee2a8;
+  --f-display:"Jost","Futura","Century Gothic","Avenir Next",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --gutL:max(16px,env(safe-area-inset-left,0px)); --gutR:max(16px,env(safe-area-inset-right,0px));
+  --top:calc(env(safe-area-inset-top,0px) + 14px); --bot:calc(env(safe-area-inset-bottom,0px) + 12px);
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--void);color:var(--ink);overflow:hidden}
+body{font-family:var(--f-body);font-size:14px;line-height:1.45}
+#app{position:fixed;inset:0;overflow:hidden;background:var(--void)}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl.dragging{cursor:grabbing}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--sol);outline-offset:2px}
+.panel{background:var(--panel);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.kind{font:600 10.5px/1 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;white-space:nowrap;font:500 12px/1 var(--f-display);letter-spacing:.02em;color:var(--ink);padding:4px 7px 4px 6px;border-radius:5px;background:rgba(4,6,12,.62);border:1px solid transparent;will-change:transform;pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:6px}
+.lbl:hover{border-color:var(--sol)}
+.lbl i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--dim)}
+.lbl.nasa i{background:var(--nasa)} .lbl.spacex i{background:#fff;box-shadow:0 0 0 2px #333 inset} .lbl.pub i{background:var(--pub)} .lbl.hist i{background:var(--faint)}
+.lbl.sel{border-color:var(--sol);color:var(--sol)}
+.lbl.minor{font-size:11px;color:#cfd8ea;background:rgba(4,6,12,.45)}
+
+#hud{position:absolute;top:var(--top);left:var(--gutL);right:var(--gutR);display:flex;align-items:center;gap:10px;pointer-events:none;flex-wrap:wrap}
+#hud>*{pointer-events:auto}
+.brand{display:flex;flex-direction:column;gap:3px;padding:9px 14px 10px}
+.brand b{font:700 12px/1 var(--f-display);letter-spacing:.3em;text-transform:uppercase;color:var(--sol)}
+.brand span{font:600 17px/1.15 var(--f-display);letter-spacing:.01em}
+.hudbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:99px;border:1px solid var(--line-strong);background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font:600 12px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.hudbtn svg{width:17px;height:17px;color:var(--sol);flex:none}
+.hudbtn:hover{border-color:var(--sol)}
+.hudsel{height:38px;border-radius:99px;border:1px solid var(--line-strong);background:var(--panel-solid);padding:0 30px 0 14px;font:600 12px/1 var(--f-display);letter-spacing:.06em}
+.spacer{flex:1}
+
+#places{position:absolute;right:var(--gutR);top:calc(var(--top) + 64px);bottom:calc(var(--bot) + 34px);width:300px;display:flex;flex-direction:column;overflow:hidden}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:13px 14px 10px;border-bottom:1px solid var(--line)}
+.plist{overflow-y:auto;padding:4px 8px 12px;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.pgrp{margin:12px 6px 4px;display:flex;align-items:center;gap:8px}
+.pgrp i{width:8px;height:8px;border-radius:50%}
+.pit{display:block;width:100%;text-align:left;background:none;border:0;border-radius:9px;padding:8px 8px 9px;color:var(--ink)}
+.pit:hover{background:rgba(255,255,255,.05)}
+.pit[aria-current="true"]{background:rgba(255,181,71,.13)}
+.pit b{display:block;font:600 13.5px/1.25 var(--f-display)}
+.pit span{display:block;font-size:12px;color:var(--dim);line-height:1.35;margin-top:2px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font:500 10.5px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+#info{position:absolute;left:var(--gutL);bottom:calc(var(--bot) + 34px);width:min(400px,calc(100% - 32px));max-height:calc(100% - 150px);overflow-y:auto;padding:16px 16px 14px;scrollbar-width:thin}
+#info h2{margin:6px 0 6px;font:600 23px/1.12 var(--f-display);text-wrap:balance}
+#info p{margin:0 0 10px;color:#c6cedd;font-size:13.5px;line-height:1.55}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;font:600 10px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;padding:5px 8px;border-radius:99px;border:1px solid var(--line-strong);color:var(--dim);white-space:nowrap}
+.chip i{width:6px;height:6px;border-radius:50%;display:inline-block}
+.chip.nasa{color:var(--nasa)} .chip.nasa i{background:var(--nasa)}
+.chip.spacex{color:var(--spacex)} .chip.spacex i{background:#fff}
+.chip.pub{color:var(--pub)} .chip.pub i{background:var(--pub)}
+.chip.hist{color:var(--dim)} .chip.hist i{background:var(--faint)}
+.spec{display:grid;grid-template-columns:auto 1fr;margin:4px 0 10px;border-top:1px solid var(--line)}
+.spec dt,.spec dd{margin:0;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.spec dt{color:var(--dim);padding-right:12px}
+.spec dd{font:500 12px/1.45 var(--f-data);text-align:right}
+#info .close{position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--dim);font-size:17px;line-height:1}
+.irow{display:flex;gap:8px;flex-wrap:wrap}
+.tbtn{height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line-strong);background:rgba(255,255,255,.03);display:inline-flex;align-items:center;gap:6px;font:600 11.5px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;color:var(--ink);text-decoration:none}
+.tbtn:hover{border-color:var(--sol)}
+
+#foot{position:absolute;left:var(--gutL);right:var(--gutR);bottom:var(--bot);display:flex;gap:10px;align-items:center;pointer-events:none}
+#attrib{font:400 10px/1.35 var(--f-body);color:var(--faint);pointer-events:auto}
+#attrib a{color:inherit}
+#hint{font-size:11.5px;color:#cfd8ea;background:rgba(4,6,12,.55);padding:5px 9px;border-radius:6px;white-space:nowrap}
+#chip{position:absolute;left:50%;top:calc(var(--top) + 64px);transform:translateX(-50%);font:500 11px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding:6px 10px;border-radius:99px;background:rgba(4,6,12,.6);pointer-events:none;transition:opacity .5s;white-space:nowrap}
+#chip.off{opacity:0}
+#loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--void);z-index:40;transition:opacity .6s}
+#loading.done{opacity:0;pointer-events:none}
+#loading div{text-align:center}
+#loading b{display:block;font:700 13px/1 var(--f-display);letter-spacing:.4em;text-transform:uppercase;color:var(--sol)}
+#loading span{display:block;margin-top:10px;color:var(--dim);font-size:13px}
+.mob{display:none}
+
+@media (max-width:900px){
+  .brand span{font-size:14px}
+  #places{top:auto;bottom:calc(var(--bot) + 30px);left:var(--gutL);right:var(--gutR);width:auto;max-height:52vh;z-index:4}
+  #places:not(.open){display:none}
+  #info{bottom:calc(var(--bot) + 30px);max-height:46vh;width:auto;right:var(--gutR)}
+  .mob{display:inline-flex}
+  #hint{display:none}
+  #attrib{font-size:9px}
+}
+@media (max-width:560px){
+  .hudbtn span.t{display:none} .hudbtn{padding:10px}
+  .brand{padding:7px 11px 8px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="gl" aria-label="Vista 3D de Cabo Cañaveral y el Centro Espacial Kennedy"></canvas>
+  <div id="labels"></div>
+
+  <header id="hud">
+    <div class="brand panel"><b>Florida · EE. UU.</b><span>Cabo Cañaveral y Centro Espacial Kennedy</span></div>
+    <a class="hudbtn" id="back" href="../../" title="Volver al sistema solar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span class="t">Sistema solar</span></a>
+    <a class="hudbtn" href="../" title="Lista de simulaciones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2.5 4.5 6 4.5 10.5L12 17l-4.5-4.5C7.5 8 9 4.5 12 2z"/><circle cx="12" cy="9" r="1.6"/><path d="M7.5 12.5 5 15l2 2M16.5 12.5 19 15l-2 2M10 19.5l2 2.5 2-2.5"/></svg><span class="t">Simulaciones</span></a>
+    <span class="spacer"></span>
+    <select id="tod" class="hudsel" aria-label="Hora del día"><option value="dia">Mañana · 9:30</option><option value="tarde">Atardecer · 17:05</option><option value="noche">Noche · 19:30</option></select>
+    <button class="hudbtn mob" id="places-btn" type="button" aria-expanded="false" aria-controls="places"><span>Lugares</span></button>
+  </header>
+
+  <aside id="places" class="panel" aria-label="Lugares">
+    <div class="ph"><span class="kind">Lugares</span>
+      <div class="legend"><span><i style="background:var(--nasa)"></i>NASA</span><span><i style="background:#fff"></i>SpaceX</span><span><i style="background:var(--pub)"></i>Público</span></div></div>
+    <div class="plist" id="plist"></div>
+  </aside>
+
+  <section id="info" class="panel" aria-live="polite" hidden>
+    <button class="close" id="info-close" type="button" aria-label="Cerrar ficha">×</button>
+    <div class="chips" id="i-chips"></div>
+    <h2 id="i-name"></h2>
+    <p id="i-desc"></p>
+    <dl class="spec" id="i-spec"></dl>
+    <div class="irow"><button class="tbtn" type="button" id="i-near">Acercarse</button><button class="tbtn" type="button" id="i-far">Vista general</button></div>
+  </section>
+
+  <footer id="foot">
+    <span id="hint">Arrastra para girar · clic derecho o dos dedos para mover · rueda o pellizco para acercar</span>
+    <span class="spacer"></span>
+    <div id="attrib">Imágenes satelitales: Esri, Maxar, Earthstar Geographics · Relieve: SRTM (NASA) vía Terrain Tiles de AWS · Edificios: © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL), vía Overpass API</div>
+  </footer>
+
+  <div id="chip" class="off"></div>
+  <div id="loading"><div><b>Simulaciones</b><span id="load-msg">Preparando Cabo Cañaveral…</span></div></div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script id="tex-earth" type="text/plain">../puerto-espacial-guayaquil/tierra.jpg</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, f) => a + (b - a) * f;
+const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+const DEG = Math.PI / 180;
+const R_E = 6378137;
+const nf0 = new Intl.NumberFormat('es-EC', { maximumFractionDigits: 0 });
+// centro de la escena: entre el Centro Espacial Kennedy y la Estación de la Fuerza Espacial
+const SITE = { lat: 28.565, lon: -80.62 };
+
+// =====================================================================
+// 1. Lugares (coordenadas: Wikipedia/NASA; estado actualizado a noviembre de 2026)
+// =====================================================================
+// op: nasa · spacex · pub (abierto al público) · hist (histórico)
+const PLACES = [
+  { id: '39a', name: 'Complejo de Lanzamiento 39A', short: 'Falcon Heavy y la primera plataforma de Starship en Florida', ops: ['nasa', 'spacex'], lat: 28.6083, lon: -80.6041, lh: 120, view: { dist: 900, el: 0.32, az: 3.6 }, major: true,
+    desc: 'De aquí partieron el Apolo 11 hacia la Luna y la mayoría de los transbordadores espaciales. La NASA se la arrienda a SpaceX desde 2014. Desde diciembre de 2025 ya no despegan Falcon 9 de aquí: la plataforma quedó para el Falcon Heavy y para Starship, y en febrero de 2026 SpaceX retiró el brazo de acceso de la tripulación.',
+    spec: [['Propietario', 'NASA'], ['Operador', 'SpaceX (desde 2014)'], ['Cohetes', 'Falcon Heavy · Starship'], ['Primer lanzamiento', '9 nov. 1967 (Apolo 4)'], ['Apolo 11', '16 jul. 1969']] },
+  { id: '39a-ss', name: 'Torre de Starship (39A)', short: 'Torre de lanzamiento y captura con «palillos»', ops: ['spacex'], lat: 28.6110, lon: -80.6041, lh: 165, view: { dist: 520, el: 0.22, az: 3.3 }, minor: true,
+    desc: 'A unos 300 m de la plataforma del Falcon Heavy. La torre, de casi 150 m, tiene dos brazos («palillos») que sostienen el cohete y deben atraparlo al volver. En octubre de 2026 estaba casi terminada y en pruebas; el primer lanzamiento de Starship desde Florida aún no tiene fecha confirmada.',
+    spec: [['Altura de la torre', '≈ 150 m'], ['Starship completo', '≈ 124 m'], ['Lanzamientos aprobados', 'hasta 44 al año'], ['Estado (nov. 2026)', 'pruebas antes de activarla']] },
+  { id: '39b', name: 'Complejo de Lanzamiento 39B', short: 'El cohete SLS de la NASA · misiones Artemis', ops: ['nasa'], lat: 28.6272, lon: -80.6208, lh: 200, view: { dist: 1300, el: 0.3, az: 3.9 }, major: true,
+    desc: 'La plataforma del SLS, el cohete lunar de la NASA. El 1 de abril de 2026 despegó de aquí Artemis II, el primer vuelo tripulado del SLS con la nave Orion. Tres torres de casi 600 pies (≈ 180 m) sostienen cables que desvían los rayos lejos del cohete. Tras Artemis II, la torre de lanzamiento móvil volvió al edificio de ensamblaje para reparaciones.',
+    spec: [['Operador', 'NASA'], ['Cohete', 'SLS (Space Launch System)'], ['Artemis I', '16 nov. 2022 (sin tripulación)'], ['Artemis II', '1 abr. 2026 (4 astronautas)'], ['Pararrayos', '3 torres de ≈ 180 m']] },
+  { id: 'vab', name: 'Edificio de Ensamblaje de Vehículos (VAB)', short: 'Donde se arman los cohetes gigantes de la NASA', ops: ['nasa'], lat: 28.5864, lon: -80.6514, lh: 175, view: { dist: 1100, el: 0.28, az: 2.6 }, major: true,
+    desc: 'Uno de los edificios de un solo piso más grandes del mundo. Aquí se armaron los Saturno V del programa Apolo, los transbordadores y hoy el SLS. Sus puertas altas miden 139 m. De aquí los cohetes salen hacia las plataformas 39A y 39B sobre una oruga gigante, por un camino de grava.',
+    spec: [['Altura', '160 m'], ['Largo', '218 m'], ['Ancho', '158 m'], ['Puertas altas', '139 m'], ['Construido', '1966']] },
+  { id: 'lcc', name: 'Centro de Control de Lanzamiento', short: 'Las salas de control de los lanzamientos', ops: ['nasa'], lat: 28.5850, lon: -80.6493, lh: 40, view: { dist: 520, el: 0.3, az: 2.4 }, minor: true,
+    desc: 'Junto al VAB. Desde sus salas de control («firing rooms») se dirigieron los lanzamientos del Apolo y del transbordador, y hoy los del SLS. Sus ventanas miran hacia las plataformas 39A y 39B, a unos 5,6 km.',
+    spec: [['Operador', 'NASA'], ['Distancia a la 39A', '≈ 5,6 km']] },
+  { id: 'crawler', name: 'Camino de las orugas', short: 'La ruta del VAB a las plataformas', ops: ['nasa'], lat: 28.6025, lon: -80.6295, lh: 25, view: { dist: 4200, el: 0.55, az: 3.5 }, minor: true,
+    desc: 'Camino de grava de río por el que la oruga transportadora lleva el cohete y su torre desde el VAB hasta las plataformas, a menos de 2 km/h. El viaje hasta la 39B dura unas 10 horas o más.',
+    spec: [['Longitud', '≈ 6,8 km hasta la 39B'], ['Velocidad con carga', '≈ 1,6 km/h']] },
+  { id: 'slf', name: 'Pista de aterrizaje del transbordador', short: 'Una de las pistas más largas del mundo', ops: ['nasa', 'hist'], lat: 28.6150, lon: -80.6945, lh: 25, view: { dist: 6500, el: 0.45, az: 3.0 }, minor: true,
+    desc: 'Construida para que los transbordadores espaciales aterrizaran planeando, sin motor. Mide 4,6 km de largo y 91 m de ancho. Hoy la administra Space Florida.',
+    spec: [['Largo', '4 572 m'], ['Ancho', '91 m'], ['Operador actual', 'Space Florida (desde 2015)']] },
+  { id: 'saturn', name: 'Centro Apolo/Saturno V', short: 'Un Saturno V real, acostado', ops: ['pub'], lat: 28.6055, lon: -80.6696, lh: 30, view: { dist: 650, el: 0.35, az: 2.8 }, major: true,
+    desc: 'Edificio de exhibición con un cohete Saturno V auténtico de 110 m, una cápsula Apolo, un módulo lunar y una roca lunar que se puede tocar. Se llega en los buses del Complejo de Visitantes.',
+    spec: [['Acceso', 'Con la entrada del Complejo de Visitantes'], ['Pieza principal', 'Saturno V restaurado']] },
+  { id: 'kscvc', name: 'Complejo de Visitantes del Kennedy', short: 'Atlantis, el Jardín de Cohetes y el Salón de la Fama', ops: ['pub'], lat: 28.5233, lon: -80.6819, lh: 40, view: { dist: 900, el: 0.38, az: 2.5 }, major: true,
+    desc: 'La puerta de entrada pública al centro espacial. Aquí está el transbordador Atlantis de verdad, el Jardín de Cohetes con cohetes históricos de pie y el Salón de la Fama de los Astronautas. Desde aquí salen los buses hacia el VAB, las plataformas y el Centro Apolo/Saturno V.',
+    spec: [['Acceso', 'Abierto al público (con entrada)'], ['Transbordador', 'Atlantis (exhibido desde 2013)']] },
+  { id: 'slc40', name: 'Complejo de Lanzamiento Espacial 40', short: 'El Falcon 9 y las naves Dragon', ops: ['spacex'], lat: 28.5619, lon: -80.5772, lh: 110, view: { dist: 620, el: 0.22, az: 3.4 }, major: true,
+    desc: 'La plataforma de trabajo diario del Falcon 9. Desde 2026 todos los vuelos Dragon, con astronautas o con carga, salen de aquí. La torre de acceso para tripulaciones se construyó en 2023, y la primera tripulación que despegó de aquí fue la Crew‑9, en septiembre de 2024. El 13 de febrero de 2026 la primera etapa de la Crew‑12 aterrizó en la nueva zona de aterrizaje LZ‑40, dentro del mismo complejo.',
+    spec: [['Operador', 'SpaceX'], ['Cohete', 'Falcon 9 · Dragon'], ['Primera tripulación', 'Crew‑9 (sept. 2024)'], ['Aterrizajes', 'LZ‑40, en el complejo (desde feb. 2026)']] },
+  { id: 'slc37', name: 'Complejo de Lanzamiento Espacial 37', short: 'Futuras plataformas de Starship (en obra)', ops: ['spacex'], lat: 28.5320, lon: -80.5668, lh: 60, view: { dist: 1600, el: 0.4, az: 3.4 }, minor: true,
+    desc: 'Antigua plataforma del Delta IV, demolida en 2025. SpaceX la convierte en un complejo con dos plataformas de Starship, cada una con su torre. La Fuerza Aérea lo aprobó en noviembre de 2025, para hasta 76 lanzamientos al año. Aquí solo hay una etiqueta porque la obra cambia cada mes.',
+    spec: [['Operador', 'SpaceX'], ['Plan', '2 plataformas con torre'], ['Aprobado', '20 nov. 2025'], ['Estado (nov. 2026)', 'en construcción']] },
+  { id: 'lc34', name: 'Complejo 34 · Memorial del Apolo 1', short: 'Homenaje a Grissom, White y Chaffee', ops: ['nasa', 'hist'], lat: 28.5219, lon: -80.5614, lh: 25, view: { dist: 220, el: 0.3, az: 3.0 }, minor: true,
+    desc: 'Aquí murieron los astronautas Gus Grissom, Ed White y Roger Chaffee en un incendio durante una prueba, el 27 de enero de 1967. Queda el pedestal de hormigón del lanzador, que hoy es un memorial con la frase «Ad astra per aspera». Desde aquí despegó el Apolo 7 en 1968, el primer vuelo tripulado del programa.',
+    spec: [['Apolo 1', '27 ene. 1967'], ['Apolo 7', '11 oct. 1968'], ['Hoy', 'Memorial']] },
+  { id: 'lz1', name: 'Antiguas zonas LZ‑1 y LZ‑2', short: 'Donde aterrizaron 53 primeras etapas', ops: ['spacex', 'hist'], lat: 28.4858, lon: -80.5444, lh: 25, view: { dist: 900, el: 0.4, az: 3.2 }, minor: true,
+    desc: 'El 21 de diciembre de 2015 aterrizó aquí la primera etapa de un Falcon 9: la primera vez que un cohete orbital volvió a tierra en pie. LZ‑1 recibió 53 aterrizajes en una década, y SpaceX devolvió ambas zonas a la Fuerza Espacial en 2025. Ahora los aterrizajes son junto a cada plataforma (LZ‑40).',
+    spec: [['Primer aterrizaje', '21 dic. 2015'], ['Aterrizajes en LZ‑1', '53'], ['Retiradas', '2025']] },
+  { id: 'faro', name: 'Faro de Cabo Cañaveral', short: 'El faro de 1868, dentro de la base', ops: ['pub', 'hist'], lat: 28.4601, lon: -80.5434, lh: 50, view: { dist: 300, el: 0.25, az: 3.0 }, minor: true,
+    desc: 'Faro en funcionamiento dentro de la Estación de la Fuerza Espacial. Se trasladó a este lugar en 1893 porque el mar erosionaba la costa. Solo se visita en recorridos organizados.',
+    spec: [['Encendido', '1868'], ['Acceso', 'Recorridos con reserva']] },
+  { id: 'puerto', name: 'Puerto Cañaveral', short: 'Base de las barcazas de aterrizaje de SpaceX', ops: ['pub', 'spacex'], lat: 28.4105, lon: -80.6200, lh: 30, view: { dist: 2600, el: 0.42, az: 2.9 }, minor: true,
+    desc: 'Puerto público. Aquí atracan las barcazas autónomas de SpaceX, sobre las que aterrizan las primeras etapas en el océano, y vuelven con ellas de pie sobre la cubierta. También zarpan cruceros, y desde sus playas se ven muy bien los lanzamientos.',
+    spec: [['Operador', 'Autoridad Portuaria de Cañaveral'], ['SpaceX', 'Barcazas de aterrizaje y barcos de apoyo']] },
+];
+const PLACE = Object.fromEntries(PLACES.map(p => [p.id, p]));
+// zonas de otras empresas que no se dibujan (pedido: sólo NASA, SpaceX y lugares públicos)
+const EXCL = [
+  [28.4711, -80.5378, 1100], // LC‑36 · Blue Origin
+  [28.5834, -80.5829, 1000], // SLC‑41 · ULA
+  [28.5017, -80.5566, 450],  // LC‑16
+  [28.5122, -80.5567, 450],  // LC‑20
+  [28.4584, -80.5284, 450],  // SLC‑46
+  [28.4466, -80.5653, 450],  // LC‑17
+];
+const EXCL_RE = /blue\s*origin|united launch|\bula\b|relativity|firefly|rocket\s*lab|boeing|lockheed|northrop|airbus|oneweb|\bastra\b|abl space|phantom|vaya|stoke|terran|\bksat\b/i;
+
+// =====================================================================
+// 2. Escena, geodesia y luz
+// =====================================================================
+const canvas = $('#gl');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
+} catch (e) {
+  $('#load-msg').textContent = 'Este navegador no pudo iniciar WebGL, que la simulación necesita para dibujar en 3D.';
+  throw e;
+}
+const PIXEL_RATIO = Math.min(devicePixelRatio || 1, 2);
+renderer.setPixelRatio(PIXEL_RATIO);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+
+// capas de render: escena → brillo (bloom) → mapeo de tonos ACES y sRGB
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: renderer.capabilities.isWebGL2 ? 4 : 0 }));
+const renderPass = new RenderPass(new THREE.Scene(), new THREE.PerspectiveCamera());
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.55, 0.9);
+composer.addPass(renderPass); composer.addPass(bloomPass); composer.addPass(new OutputPass());
+
+const LOGV = '#include <common>\n#include <logdepthbuf_pars_vertex>\n';
+const LOGF = '#include <logdepthbuf_pars_fragment>\n';
+// ---------- geodesia: marco local del pad (x este, y arriba, z sur; metros) ----------
+const latR = SITE.lat * DEG, lonR = SITE.lon * DEG;
+const S3 = [Math.cos(latR) * Math.cos(lonR), Math.sin(latR), -Math.cos(latR) * Math.sin(lonR)];
+const E3 = [-Math.sin(lonR), 0, -Math.cos(lonR)];
+const N3 = [S3[1] * E3[2] - S3[2] * E3[1], S3[2] * E3[0] - S3[0] * E3[2], S3[0] * E3[1] - S3[1] * E3[0]];
+function geoGlobal(lat, lon, h) { const a = lat * DEG, b = lon * DEG, r = R_E + h; return [r * Math.cos(a) * Math.cos(b), r * Math.sin(a), -r * Math.cos(a) * Math.sin(b)]; }
+const SITE_G = geoGlobal(SITE.lat, SITE.lon, 0);
+function geoToLocalArr(lat, lon, h, out = [0, 0, 0]) {
+  const p = geoGlobal(lat, lon, h), dx = p[0] - SITE_G[0], dy = p[1] - SITE_G[1], dz = p[2] - SITE_G[2];
+  out[0] = dx * E3[0] + dy * E3[1] + dz * E3[2];
+  out[1] = dx * S3[0] + dy * S3[1] + dz * S3[2];
+  out[2] = -(dx * N3[0] + dy * N3[1] + dz * N3[2]);
+  return out;
+}
+const geoToLocal = (lat, lon, h = 0) => new THREE.Vector3(...geoToLocalArr(lat, lon, h));
+const globalToLocalDir = v => new THREE.Vector3(v.x * E3[0] + v.y * E3[1] + v.z * E3[2], v.x * S3[0] + v.y * S3[1] + v.z * S3[2], -(v.x * N3[0] + v.y * N3[1] + v.z * N3[2]));
+const TOD = { dia: { hour: 9.5 }, tarde: { hour: 17.08 }, noche: { hour: 19.5 } };
+let todKey = 'dia';
+const SUN3 = new THREE.Vector3(), SUN_LOCAL = new THREE.Vector3();
+let SUN_EL = 0, DAY = 1;
+function computeSun(key) {
+  // declinación solar el 8 de noviembre ≈ −16,6°; Florida usa UTC−5 en noviembre (meridiano 75° O);
+  // Cabo Cañaveral está 5,6° más al oeste (−22 min) y la ecuación del tiempo suma +16,1 min.
+  const decl = -16.6, solar = TOD[key].hour - (-75 - SITE.lon) / 15 + 16.1 / 60;
+  const H = (solar - 12) * 15;
+  const lat = decl * DEG, lon = (SITE.lon - H) * DEG;
+  SUN3.set(Math.cos(lat) * Math.cos(lon), Math.sin(lat), -Math.cos(lat) * Math.sin(lon)).normalize();
+  SUN_LOCAL.copy(globalToLocalDir(SUN3)).normalize();
+  SUN_EL = Math.asin(SUN_LOCAL.y) / DEG;
+  DAY = smooth(-4, 20, SUN_EL);
+}
+computeSun(todKey);
+function canvasTex(w, h, draw, srgb = true) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = maxAniso;
+  return t;
+}
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function makeDotTex() {
+  return canvasTex(64, 64, g => {
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  });
+}
+const dotTex = makeDotTex();
+const TEX_BODY = canvasTex(256, 1024, (g, w, h) => {
+  const R = rng(31);
+  g.fillStyle = '#eef0ee'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${R() < 0.5 ? '255,255,255' : '120,120,115'},${R() * 0.035})`; g.fillRect(R() * w, R() * h, 2 + R() * 6, 1 + R() * 3); }
+  // soldaduras circunferenciales de los tanques
+  for (let y = 0; y < h; y += 46) { g.fillStyle = 'rgba(90,92,95,.22)'; g.fillRect(0, y, w, 1); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(0, y + 1, w, 1); }
+  // canaleta de cables (sombra)
+  g.fillStyle = 'rgba(70,72,78,.16)'; g.fillRect(w * 0.245, 0, 6, h);
+  // escarcha del oxígeno líquido en la mitad superior del tanque
+  const fr = g.createLinearGradient(0, h * 0.18, 0, h * 0.5); fr.addColorStop(0, 'rgba(255,255,255,0)'); fr.addColorStop(0.5, 'rgba(250,252,255,.35)'); fr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = fr; g.fillRect(0, h * 0.18, w, h * 0.32);
+});
+TEX_BODY.wrapS = THREE.RepeatWrapping;
+const TEX_CARBON = canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#17181b'; g.fillRect(0, 0, w, h);
+  for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) { g.fillStyle = ((x + y) / 4) % 2 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.12)'; g.fillRect(x, y, 4, 4); }
+});
+TEX_CARBON.wrapS = TEX_CARBON.wrapT = THREE.RepeatWrapping; TEX_CARBON.repeat.set(6, 3);
+const L = { scene: new THREE.Scene(), cam: new THREE.PerspectiveCamera(50, 1, 0.5, 4e6), boostPos: new THREE.Vector3() };
+const QS = new URLSearchParams(location.search);
+{
+  const sc = L.scene;
+  sc.fog = new THREE.FogExp2(0x9fb3cc, 0.00002);
+  L.hemi = new THREE.HemisphereLight(0xbfd4ff, 0x40382c, 0.7); sc.add(L.hemi);
+  L.sun = new THREE.DirectionalLight(0xffffff, 3); sc.add(L.sun); sc.add(L.sun.target);
+  L.sun.castShadow = true;
+  L.sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(L.sun.shadow.camera, { left: -130, right: 130, top: 130, bottom: -130, near: 10, far: 4000 });
+  L.sun.shadow.bias = -0.0004; L.sun.shadow.normalBias = 0.6;
+  L.plumeLight = new THREE.PointLight(0xff9a4a, 0, 0, 2); sc.add(L.plumeLight);
+  L.flood = [];
+
+  // cielo: dispersión aproximada (Rayleigh en el cenit, Mie alrededor del Sol), se oscurece con la altitud
+  const skyMat = new THREE.ShaderMaterial({
+    uniforms: { uSun: { value: SUN_LOCAL }, uAlt: { value: 0 }, uDay: { value: 1 } },
+    vertexShader: LOGV + `varying vec3 vD; void main(){ vD = normalize(position); vec4 mv = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mv;
+      #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: LOGF + `uniform vec3 uSun; uniform float uAlt; uniform float uDay; varying vec3 vD;
+      void main(){
+        #include <logdepthbuf_fragment>
+        vec3 d = normalize(vD); float mu = dot(d, uSun);
+        float k = smoothstep(9000.0, 70000.0, uAlt);
+        float hor = -0.012 - 0.075*k;
+        float el = d.y - hor;
+        vec3 zen = mix(vec3(0.035,0.055,0.15), vec3(0.09,0.22,0.6), uDay);
+        vec3 horc = mix(vec3(0.42,0.27,0.24), vec3(0.58,0.68,0.84), uDay);
+        float t = pow(clamp(el*2.4, 0.0, 1.0), 0.42);
+        vec3 col = mix(horc, zen, t);
+        float az = max(dot(normalize(vec3(d.x,0.0,d.z) + 1e-5), normalize(vec3(uSun.x,0.0,uSun.z) + 1e-5)), 0.0);
+        col += vec3(1.0,0.48,0.2) * pow(az, 5.0) * (1.0 - uDay*0.8) * exp(-max(el,0.0)*7.0) * 1.1;
+        col += vec3(1.0,0.82,0.6) * pow(max(mu,0.0), 18.0) * (0.25 + 0.35*uDay);
+        col += vec3(1.0,0.92,0.8) * smoothstep(0.99986, 0.99993, mu) * 60.0;
+        col = mix(col, vec3(0.0), k*smoothstep(-0.01, 0.2, el));
+        float band = exp(-pow(el/0.018, 2.0))*k;
+        col += vec3(0.25,0.5,1.0)*band*0.55*uDay + vec3(1.0,0.45,0.2)*band*(1.0-uDay)*0.5;
+        if (el < 0.0) col = mix(horc*0.55, vec3(0.03,0.035,0.045), clamp(-el*10.0, 0.0, 1.0));
+        gl_FragColor = vec4(col, 1.0);
+      }`,
+    side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+  });
+  L.sky = new THREE.Mesh(new THREE.SphereGeometry(3e6, 64, 32), skyMat); L.sky.renderOrder = -10; L.sky.frustumCulled = false; sc.add(L.sky);
+
+  // Tierra de respaldo (más allá de las teselas, o si no cargan): esfera real con la textura global
+  {
+    const tex = new THREE.TextureLoader().load(document.getElementById('tex-earth').textContent.trim()); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = maxAniso;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(R_E - 90, 360, 180), new THREE.MeshLambertMaterial({ map: tex }));
+    m.matrixAutoUpdate = false;
+    const rot = new THREE.Matrix4().set(E3[0], E3[1], E3[2], 0, S3[0], S3[1], S3[2], 0, -N3[0], -N3[1], -N3[2], 0, 0, 0, 0, 1);
+    m.matrix.copy(rot.multiply(new THREE.Matrix4().makeTranslation(-SITE_G[0], -SITE_G[1], -SITE_G[2])));
+    m.matrixWorldNeedsUpdate = true; m.renderOrder = -2;
+    sc.add(m); L.fallbackEarth = m;
+  }
+}
+// iluminación ambiental (PMREM) a partir de un cielo sintético, se rehace al cambiar la hora
+const pmrem = new THREE.PMREMGenerator(renderer);
+function buildEnv() {
+  const w = 128, h = 64, data = new Uint16Array(w * h * 4), c = new THREE.Color();
+  const zen = new THREE.Color().lerpColors(new THREE.Color(0.03, 0.05, 0.13), new THREE.Color(0.12, 0.27, 0.65), DAY);
+  const hor = new THREE.Color().lerpColors(new THREE.Color(0.38, 0.24, 0.2), new THREE.Color(0.62, 0.7, 0.82), DAY);
+  const gnd = new THREE.Color().lerpColors(new THREE.Color(0.03, 0.03, 0.035), new THREE.Color(0.16, 0.15, 0.12), DAY);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const el = (0.5 - (j + 0.5) / h) * Math.PI, az = (i + 0.5) / w * Math.PI * 2;
+    const d = new THREE.Vector3(Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az));
+    if (el > 0) c.lerpColors(hor, zen, Math.pow(Math.min(1, el * 1.6), 0.5)); else c.lerpColors(hor, gnd, Math.min(1, -el * 6));
+    const glow = Math.pow(Math.max(0, d.dot(SUN_LOCAL)), 8) * (0.6 + 0.6 * DAY);
+    const k = (j * w + i) * 4;
+    data[k] = THREE.DataUtils.toHalfFloat(c.r + glow); data[k + 1] = THREE.DataUtils.toHalfFloat(c.g + glow * 0.8); data[k + 2] = THREE.DataUtils.toHalfFloat(c.b + glow * 0.6); data[k + 3] = THREE.DataUtils.toHalfFloat(1);
+  }
+  const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat, THREE.HalfFloatType); tex.mapping = THREE.EquirectangularReflectionMapping; tex.needsUpdate = true;
+  const rt = pmrem.fromEquirectangular(tex); tex.dispose();
+  if (L.envRT) L.envRT.dispose();
+  L.envRT = rt; L.scene.environment = rt.texture;
+}
+const LIGHTS = []; // luces de las plataformas (se encienden de noche)
+function applyTimeOfDay() {
+  computeSun(todKey);
+  const sun = L.sun, dusk = 1 - DAY;
+  sun.color.setRGB(1, 0.93 - 0.35 * dusk, 0.85 - 0.6 * dusk);
+  sun.intensity = 0.15 + 3.0 * smooth(-1, 25, SUN_EL);
+  sun.castShadow = SUN_EL > 3;
+  L.hemi.intensity = 0.18 + 0.6 * DAY;
+  L.hemi.color.setRGB(0.55 + 0.2 * DAY, 0.6 + 0.2 * DAY, 0.85 + 0.15 * DAY);
+  L.sky.material.uniforms.uDay.value = DAY;
+  L.scene.fog.color.setRGB(0.2 + 0.42 * DAY, 0.19 + 0.51 * DAY, 0.24 + 0.58 * DAY);
+  renderer.toneMappingExposure = 0.86 + 0.55 * dusk;
+  buildEnv();
+  BLD.mats.forEach(m => { m.emissiveIntensity = 0.03 + 1.0 * dusk; });
+  const night = smooth(4, -3, SUN_EL);
+  LIGHTS.forEach(f => { if (f.light) f.light.intensity = night * f.max; if (f.sprite) f.sprite.material.opacity = f.always ? 0.35 + 0.65 * night : night; });
+}
+
+// =====================================================================
+// 3. Terreno real (imágenes satelitales + relieve SRTM)
+// =====================================================================
+// ---------- terreno real: imágenes satelitales + relieve SRTM en un árbol de teselas ----------
+// Las teselas siguen la cuadrícula Web Mercator (como los mapas web). Cada tesela es una malla
+// con su relieve real; su textura es la foto satelital de esa misma tesela.
+const TILE_SRC = QS.get('tiles') === 'local' ? {
+  img: [(z, x, y) => `mock/img/${z}/${x}/${y}.jpg`],
+  dem: (z, x, y) => `mock/dem/${z}/${x}/${y}.png`,
+} : {
+  img: [
+    (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+    (z, x, y) => `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/${z}/${y}/${x}.jpg`,
+  ],
+  dem: (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`,
+};
+const tile2lon = (x, z) => x / 2 ** z * 360 - 180;
+const tile2lat = (y, z) => Math.atan(Math.sinh(Math.PI - 2 * Math.PI * y / 2 ** z)) / DEG;
+const lon2tx = (lon, z) => (lon + 180) / 360 * 2 ** z;
+const lat2ty = (lat, z) => (1 - Math.log(Math.tan(lat * DEG) + 1 / Math.cos(lat * DEG)) / Math.PI) / 2 * 2 ** z;
+const DEM_MAX_Z = 13, IMG_MAX_Z = 17;
+
+const NET = { active: 0, max: 10, q: [] };
+function enqueue(job) { NET.q.push(job); pump(); }
+function pump() {
+  if (NET.q.length > 1) NET.q.sort((a, b) => a.prio() - b.prio());
+  while (NET.active < NET.max && NET.q.length) {
+    const j = NET.q.shift();
+    if (j.cancelled && j.cancelled()) continue;
+    NET.active++;
+    j.run().catch(() => {}).finally(() => { NET.active--; pump(); });
+  }
+}
+function loadImg(url, ms = 20000) {
+  return new Promise((res, rej) => {
+    const im = new Image(); im.crossOrigin = 'anonymous'; im.decoding = 'async';
+    const to = setTimeout(() => { im.src = ''; rej(new Error('tiempo')); }, ms);
+    im.onload = () => { clearTimeout(to); res(im); }; im.onerror = () => { clearTimeout(to); rej(new Error('error')); };
+    im.src = url;
+  });
+}
+const TER = { group: new THREE.Group(), roots: [], count: 0, ready: 0, imgOk: 0, imgFail: 0, demOk: 0, demFail: 0, srcIdx: 0, nearReady: false };
+L.scene.add(TER.group);
+const demCache = new Map();
+const demCanvas = document.createElement('canvas'); demCanvas.width = demCanvas.height = 256;
+const demCtx = demCanvas.getContext('2d', { willReadFrequently: true });
+function getDem(z, x, y) {
+  const key = `${z}/${x}/${y}`;
+  if (!demCache.has(key)) demCache.set(key, loadImg(TILE_SRC.dem(z, x, y)).then(im => {
+    demCtx.clearRect(0, 0, 256, 256); demCtx.drawImage(im, 0, 0);
+    const d = demCtx.getImageData(0, 0, 256, 256).data, h = new Float32Array(65536);
+    for (let i = 0; i < 65536; i++) h[i] = d[i * 4] * 256 + d[i * 4 + 1] + d[i * 4 + 2] / 256 - 32768;
+    TER.demOk++; return h;
+  }).catch(() => { TER.demFail++; return null; }));
+  return demCache.get(key);
+}
+function sampleDem(h, px, py) {
+  px = clamp(px - 0.5, 0, 255); py = clamp(py - 0.5, 0, 255);
+  const x0 = Math.floor(px), y0 = Math.floor(py), x1 = Math.min(255, x0 + 1), y1 = Math.min(255, y0 + 1), fx = px - x0, fy = py - y0;
+  return (h[y0 * 256 + x0] * (1 - fx) + h[y0 * 256 + x1] * fx) * (1 - fy) + (h[y1 * 256 + x0] * (1 - fx) + h[y1 * 256 + x1] * fx) * fy;
+}
+// altura del terreno (m) en una coordenada, con los datos de relieve más finos (promesa)
+async function elevationAt(lat, lon) {
+  const z = DEM_MAX_Z, fx = lon2tx(lon, z), fy = lat2ty(lat, z), x = Math.floor(fx), y = Math.floor(fy);
+  const h = await getDem(z, x, y); if (!h) return 0;
+  return Math.max(0, sampleDem(h, (fx - x) * 256, (fy - y) * 256));
+}
+
+// material del terreno: agua con brillo especular (zonas a nivel del mar), resto mate
+function terrainMat(tex) {
+  const m = new THREE.MeshStandardMaterial({ map: tex || null, vertexColors: !tex, roughness: 0.96, metalness: 0, envMapIntensity: 0.8, side: THREE.DoubleSide });
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float wet;\nvarying float vWet;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWet = wet;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vWet;')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.16, vWet);');
+  };
+  m.customProgramCacheKey = () => tex ? 'ter-img' : 'ter-col';
+  return m;
+}
+const FALLBACK_COL = (h, wet) => wet ? [0.07, 0.12, 0.2] : h < 400 ? [0.16, 0.25, 0.12] : h < 2500 ? [0.22, 0.24, 0.14] : h < 4300 ? [0.32, 0.29, 0.22] : [0.85, 0.87, 0.9];
+const _ga = [0, 0, 0];
+class Tile {
+  constructor(z, x, y) {
+    this.z = z; this.x = x; this.y = y;
+    this.lon0 = tile2lon(x, z); this.lon1 = tile2lon(x + 1, z); this.latN = tile2lat(y, z); this.latS = tile2lat(y + 1, z);
+    const latC = tile2lat(y + 0.5, z), lonC = (this.lon0 + this.lon1) / 2;
+    this.center = geoToLocal(latC, lonC, 0);
+    this.size = (this.lon1 - this.lon0) * DEG * R_E * Math.cos(latC * DEG);
+    const ang = this.size / R_E;
+    this.radius = this.size * 0.72 + R_E * (1 - Math.cos(ang * 0.72)) + 6500 * (z < 11 ? 1 : 0.3);
+    const dSite = Math.hypot(this.center.x, this.center.z);
+    this.maxZ = dSite < 24e3 ? IMG_MAX_Z : dSite < 60e3 ? 15 : dSite < 200e3 ? 12 : 9;
+    this.state = 'idle'; this.mesh = null; this.children = null; this.split = false; this.unsplitAt = 0; this.prio = 1e9;
+    TER.count++;
+  }
+  load() {
+    this.state = 'loading';
+    enqueue({ prio: () => this.prio, cancelled: () => this.disposed, run: async () => {
+      const ez = Math.min(this.z, DEM_MAX_Z), sh = this.z - ez, ex = this.x >> sh, ey = this.y >> sh;
+      const imgP = (async () => {
+        for (let k = 0; k < TILE_SRC.img.length; k++) {
+          const idx = (TER.srcIdx + k) % TILE_SRC.img.length;
+          try { const im = await loadImg(TILE_SRC.img[idx](this.z, this.x, this.y)); TER.imgOk++; return im; }
+          catch (e) { TER.imgFail++; if (TER.imgOk === 0 && TER.imgFail > 6 && idx === TER.srcIdx) TER.srcIdx = (TER.srcIdx + 1) % TILE_SRC.img.length; }
+        }
+        return null;
+      })();
+      const [dem, im] = await Promise.all([getDem(ez, ex, ey), imgP]);
+      if (this.disposed) return;
+      this.build(dem, im, ez, ex, ey);
+      this.state = 'ready'; TER.ready++;
+    } });
+  }
+  build(dem, im, ez, ex, ey) {
+    const N = this.z <= 8 ? 40 : this.z <= 12 ? 32 : 24, NV = (N + 1) * (N + 1), NS = 4 * N;
+    const pos = new Float32Array((NV + NS + 4) * 3), uv = new Float32Array((NV + NS + 4) * 2), wet = new Float32Array(NV + NS + 4);
+    const col = im ? null : new Float32Array((NV + NS + 4) * 3);
+    const c = this.center, near = Math.hypot(c.x, c.z) < 3000 + this.size;
+    for (let j = 0; j <= N; j++) {
+      const ty = this.y + j / N, lat = tile2lat(ty, this.z);
+      for (let i = 0; i <= N; i++) {
+        const lon = this.lon0 + (this.lon1 - this.lon0) * i / N;
+        let h = 0;
+        if (dem) h = sampleDem(dem, (lon2tx(lon, ez) - ex) * 256, (lat2ty(lat, ez) - ey) * 256);
+        const w = h < 0.3 ? 1 : 0; h = Math.max(h, 0);
+        geoToLocalArr(lat, lon, h, _ga);
+        const k = j * (N + 1) + i;
+        pos[k * 3] = _ga[0] - c.x; pos[k * 3 + 1] = _ga[1] - c.y; pos[k * 3 + 2] = _ga[2] - c.z;
+        uv[k * 2] = i / N; uv[k * 2 + 1] = 1 - j / N; wet[k] = w;
+        if (col) col.set(FALLBACK_COL(h, w), k * 3);
+      }
+    }
+    const idx = [];
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = j * (N + 1) + i, b = a + 1, d = a + N + 1, e = d + 1; idx.push(a, d, b, b, d, e); }
+    // faldones: tapan las grietas entre teselas de distinto detalle
+    const drop = Math.max(25, this.size * 0.012), edge = [];
+    for (let i = 0; i < N; i++) edge.push(i); for (let j = 0; j < N; j++) edge.push(j * (N + 1) + N);
+    for (let i = N; i > 0; i--) edge.push(N * (N + 1) + i); for (let j = N; j > 0; j--) edge.push(j * (N + 1));
+    edge.forEach((src, e) => {
+      const k = NV + e; pos[k * 3] = pos[src * 3]; pos[k * 3 + 1] = pos[src * 3 + 1] - drop; pos[k * 3 + 2] = pos[src * 3 + 2];
+      uv[k * 2] = uv[src * 2]; uv[k * 2 + 1] = uv[src * 2 + 1]; wet[k] = wet[src]; if (col) { col[k * 3] = col[src * 3]; col[k * 3 + 1] = col[src * 3 + 1]; col[k * 3 + 2] = col[src * 3 + 2]; }
+    });
+    for (let e = 0; e < edge.length; e++) { const a = edge[e], b = edge[(e + 1) % edge.length], a2 = NV + e, b2 = NV + (e + 1) % edge.length; idx.push(a, b, a2, b, b2, a2); }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); geo.setAttribute('wet', new THREE.BufferAttribute(wet, 1));
+    if (col) geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
+    let tex = null;
+    if (im) { tex = new THREE.Texture(im); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = maxAniso; tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.needsUpdate = true; }
+    const mesh = new THREE.Mesh(geo, terrainMat(tex));
+    mesh.position.copy(c); mesh.receiveShadow = true; mesh.visible = false; mesh.renderOrder = -1;
+    mesh.matrixAutoUpdate = false; mesh.updateMatrix();
+    this.mesh = mesh; this.tex = tex; TER.group.add(mesh);
+  }
+  makeChildren() {
+    const z = this.z + 1, x = this.x * 2, y = this.y * 2;
+    this.children = [new Tile(z, x, y), new Tile(z, x + 1, y), new Tile(z, x, y + 1), new Tile(z, x + 1, y + 1)];
+  }
+  dispose() {
+    this.disposed = true;
+    if (this.children) { this.children.forEach(c => c.dispose()); this.children = null; }
+    if (this.mesh) { TER.group.remove(this.mesh); this.mesh.geometry.dispose(); this.mesh.material.dispose(); if (this.tex) this.tex.dispose(); this.mesh = null; }
+    if (this.state === 'ready') TER.ready--;
+    TER.count--;
+  }
+}
+{
+  const z = 5, x0 = Math.floor(lon2tx(SITE.lon - 12, z)), x1 = Math.floor(lon2tx(SITE.lon + 12, z)), y0 = Math.floor(lat2ty(SITE.lat + 12, z)), y1 = Math.floor(lat2ty(SITE.lat - 12, z));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) TER.roots.push(new Tile(z, x, y));
+}
+const _frus = new THREE.Frustum(), _pm = new THREE.Matrix4(), _sph = new THREE.Sphere();
+function hideTree(t) { if (t.mesh) t.mesh.visible = false; if (t.children) t.children.forEach(hideTree); }
+function updateTerrain(cam) {
+  cam.updateMatrixWorld();
+  _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); _frus.setFromProjectionMatrix(_pm);
+  const pxPerRad = H / (2 * Math.tan(cam.fov * DEG / 2)), cp = cam.position, now = performance.now();
+  const visit = t => {
+    const d = Math.max(1, t.center.distanceTo(cp) - t.radius);
+    t.prio = d / t.size;
+    if (t.state === 'idle') t.load();
+    _sph.set(t.center, t.radius);
+    const inView = _frus.intersectsSphere(_sph);
+    const px = t.size / d * pxPerRad;
+    const want = t.z < t.maxZ && (inView || d < t.size * 0.5) && px > (t.split ? 340 : 440) && TER.count < 600;
+    if (want) {
+      if (!t.children) t.makeChildren();
+      t.unsplitAt = 0;
+      const allReady = t.children.every(c => c.state === 'ready');
+      if (allReady) { if (t.mesh) t.mesh.visible = false; t.split = true; t.children.forEach(visit); return; }
+      t.children.forEach(c => { c.prio = Math.max(1, c.center.distanceTo(cp) - c.radius) / c.size; if (c.state === 'idle') c.load(); hideTree(c); });
+      if (t.mesh) t.mesh.visible = true;
+      t.split = false; return;
+    }
+    t.split = false;
+    if (t.mesh) t.mesh.visible = true;
+    if (t.children) { t.children.forEach(hideTree); if (!t.unsplitAt) t.unsplitAt = now; else if (now - t.unsplitAt > 3000) { t.children.forEach(c => c.dispose()); t.children = null; } }
+  };
+  TER.roots.forEach(visit);
+}
+
+// =====================================================================
+// 4. Edificios reales de OpenStreetMap (descargados en vivo desde Overpass)
+// =====================================================================
+const BLD = { mats: [], group: new THREE.Group(), count: 0, skipped: 0 };
+L.scene.add(BLD.group);
+// fachadas: tres tipos (vivienda, torre de vidrio, casa). Cada textura cubre 4 vanos × 4 pisos; la versión
+// nocturna usa las mismas ventanas, así las luces caen dentro de los marcos.
+const FAC = { res: { bay: 3.4, floor: 3.0 }, glass: { bay: 3.0, floor: 3.7 }, house: { bay: 3.6, floor: 3.0 } };
+function makeFacades(type) {
+  const S = 512, cw = S / 4, ch = S / 4, R = rng(type === 'res' ? 11 : type === 'glass' ? 12 : 13), wins = [];
+  const day = document.createElement('canvas'), night = document.createElement('canvas'); day.width = day.height = night.width = night.height = S;
+  const g = day.getContext('2d'), n = night.getContext('2d');
+  n.fillStyle = '#000'; n.fillRect(0, 0, S, S);
+  if (type === 'glass') {
+    // muro cortina: paneles de vidrio con reflejo del cielo, montantes metálicos y franja opaca en cada losa
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) {
+      const x = c * cw / 2, y = r * ch, k = 0.85 + R() * 0.25;
+      const gr = g.createLinearGradient(x, y, x + cw / 2, y + ch);
+      gr.addColorStop(0, `rgb(${138 * k | 0},${152 * k | 0},${162 * k | 0})`); gr.addColorStop(1, `rgb(${58 * k | 0},${66 * k | 0},${74 * k | 0})`);
+      g.fillStyle = gr; g.fillRect(x, y, cw / 2, ch);
+      wins.push([x + 3, y + ch * 0.18, cw / 2 - 6, ch * 0.78]);
+    }
+    for (let r = 0; r < 4; r++) { g.fillStyle = '#3d4650'; g.fillRect(0, r * ch, S, ch * 0.16); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, r * ch + ch * 0.16, S, 2); }
+    g.fillStyle = '#c9ced3'; for (let c = 0; c <= 8; c++) g.fillRect(c * cw / 2 - 2, 0, 4, S);
+  } else {
+    // muro pintado (blanco: el color de cada edificio lo pone el color de vértice) con suciedad suave
+    g.fillStyle = '#f4f4f2'; g.fillRect(0, 0, S, S);
+    for (let i = 0; i < 2500; i++) { g.fillStyle = `rgba(${R() < 0.5 ? '255,255,255' : '90,85,80'},${R() * 0.05})`; g.fillRect(R() * S, R() * S, 2 + R() * 10, 1 + R() * 6); }
+    for (let r = 0; r < 4; r++) {
+      // losa de entrepiso
+      g.fillStyle = 'rgba(0,0,0,.07)'; g.fillRect(0, r * ch + ch - 7, S, 7); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(0, r * ch + ch - 8, S, 1);
+      for (let c = 0; c < 4; c++) {
+        if (type === 'house' && R() < 0.25) continue;
+        const ww = type === 'house' ? cw * 0.38 : cw * 0.5, wh = ch * (type === 'house' ? 0.5 : 0.48);
+        const x = c * cw + (cw - ww) / 2, y = r * ch + ch * 0.2;
+        // vano: marco, vidrio oscuro con reflejo, alféizar y sombra del dintel
+        g.fillStyle = 'rgba(60,58,55,.35)'; g.fillRect(x - 4, y - 4, ww + 8, wh + 10);
+        g.fillStyle = '#e9e9e6'; g.fillRect(x - 2, y - 2, ww + 4, wh + 4);
+        const gl = g.createLinearGradient(0, y, 0, y + wh); const cur = R() < 0.35;
+        gl.addColorStop(0, cur ? '#8f8a80' : '#6f8191'); gl.addColorStop(0.45, cur ? '#6c675f' : '#3a4651'); gl.addColorStop(1, cur ? '#5a554e' : '#27313a');
+        g.fillStyle = gl; g.fillRect(x, y, ww, wh);
+        g.fillStyle = '#d8d8d4'; g.fillRect(x + ww / 2 - 1.5, y, 3, wh); g.fillRect(x, y + wh * 0.38, ww, 3);
+        g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x, y, ww, 4);
+        g.fillStyle = '#fafaf8'; g.fillRect(x - 5, y + wh + 2, ww + 10, 4);
+        if (type === 'res' && R() < 0.3) { g.fillStyle = 'rgba(70,72,76,.75)'; for (let k = 0; k < 7; k++) g.fillRect(x - 6 + k * (ww + 12) / 6, y + wh * 0.62, 2, wh * 0.4); g.fillRect(x - 6, y + wh * 0.62, ww + 12, 3); }
+        wins.push([x, y, ww, wh]);
+      }
+    }
+  }
+  for (const [x, y, w, h] of wins) if (R() < (type === 'glass' ? 0.45 : 0.4)) {
+    n.fillStyle = R() < 0.7 ? '#ffcf8a' : '#dce8ff'; n.globalAlpha = 0.45 + R() * 0.55; n.fillRect(x, y, w, h);
+  }
+  n.globalAlpha = 1;
+  const mk = (c, srgb) => { const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+  return { map: mk(day, true), lit: mk(night, true) };
+}
+// fachada industrial (hangares y naves): chapa ondulada vertical y una franja de ventanas altas
+function makeIndustrial() {
+  const S = 512, ch = S / 4, R = rng(14);
+  const day = document.createElement('canvas'), night = document.createElement('canvas'); day.width = day.height = night.width = night.height = S;
+  const g = day.getContext('2d'), n = night.getContext('2d');
+  g.fillStyle = '#eeeeec'; g.fillRect(0, 0, S, S); n.fillStyle = '#000'; n.fillRect(0, 0, S, S);
+  for (let x = 0; x < S; x += 8) { g.fillStyle = 'rgba(0,0,0,.06)'; g.fillRect(x, 0, 3, S); g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(x + 4, 0, 1, S); }
+  for (let i = 0; i < 1600; i++) { g.fillStyle = `rgba(${R() < 0.5 ? '255,255,255' : '90,85,80'},${R() * 0.04})`; g.fillRect(R() * S, R() * S, 2 + R() * 14, 2 + R() * 30); }
+  for (let r = 0; r < 4; r++) { g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(0, r * ch, S, 3); }
+  // franja de ventanas altas en una de cada cuatro filas
+  const y = ch * 0.3, h = ch * 0.22;
+  for (let x = 6; x < S; x += 64) {
+    g.fillStyle = '#4a5662'; g.fillRect(x, y, 52, h); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(x, y, 52, 3);
+    if (R() < 0.5) { n.fillStyle = '#ffd9a0'; n.globalAlpha = 0.5 + R() * 0.5; n.fillRect(x, y, 52, h); }
+  }
+  n.globalAlpha = 1;
+  const mk = c => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+  return { map: mk(day), lit: mk(night) };
+}
+FAC.ind = { bay: 4, floor: 4 };
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const OSM_Q = `[out:json][timeout:90];(way["building"](28.44,-80.72,28.65,-80.53);relation["building"](28.44,-80.72,28.65,-80.53);way["building"](28.398,-80.64,28.42,-80.595););out geom;`;
+async function fetchOSM() {
+  if (QS.get('osm') === 'local') { const r = await fetch('mock/osm.json'); return r.json(); }
+  let err;
+  for (const url of OVERPASS) {
+    try {
+      const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 100000);
+      const r = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(OSM_Q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal });
+      clearTimeout(to);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    } catch (e) { err = e; }
+  }
+  throw err || new Error('sin datos');
+}
+const KM = R_E * DEG;
+const distM = (la1, lo1, la2, lo2) => Math.hypot((la1 - la2) * KM, (lo1 - lo2) * KM * Math.cos(la1 * DEG));
+// lugares donde el modelo propio reemplaza a los edificios de OpenStreetMap (torres de lanzamiento)
+const MODEL_CLEAR = [['39a', 0, 0, 70], ['39a-ss', 0, 0, 55], ['39b', 0, 0, 90], ['slc40', 0, 0, 60], ['lc34', 0, 0, 25]];
+function parseOSM(data) {
+  const list = [];
+  const num = v => { const m = /^\s*([\d.]+)\s*(m|ft|')?/.exec(v || ''); if (!m) return 0; return parseFloat(m[1]) * (m[2] === 'ft' || m[2] === "'" ? 0.3048 : 1); };
+  const add = (geom, tags) => {
+    if (!geom || geom.length < 4) return;
+    const pts = geom.map(g => [g.lat, g.lon]);
+    if (pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]) pts.pop();
+    if (pts.length < 3) return;
+    let cla = 0, clo = 0; for (const [a, b] of pts) { cla += a; clo += b; } cla /= pts.length; clo /= pts.length;
+    const txt = [tags.name, tags.operator, tags.owner, tags['name:en'], tags.brand].filter(Boolean).join(' ');
+    if (EXCL_RE.test(txt)) { BLD.skipped++; return; }
+    if (EXCL.some(([a, b, r]) => distM(cla, clo, a, b) < r)) { BLD.skipped++; return; }
+    if (MODEL_CLEAR.some(([id, , , r]) => distM(cla, clo, PLACE[id].lat, PLACE[id].lon) < r)) return;
+    let h = num(tags.height) || num(tags['building:height']);
+    if (!h && tags['building:levels']) h = parseFloat(tags['building:levels']) * 3.6;
+    const minH = num(tags.min_height);
+    list.push({ pts, h, minH, kind: tags.building, name: tags.name || '', cla, clo });
+  };
+  for (const e of data.elements || []) {
+    if (e.type === 'way') add(e.geometry, e.tags || {});
+    else if (e.type === 'relation') for (const m of e.members || []) if (m.type === 'way' && m.role === 'outer') add(m.geometry, e.tags || {});
+  }
+  return list;
+}
+// techos con la foto satelital real: se recorta de las teselas nivel 16 el rectángulo de cada edificio
+// y se empaquetan todos los recortes en una sola textura (no hace falta cargar la península entera)
+async function roofAtlas(cells) {
+  const maxT = Math.min(4096, renderer.capabilities.maxTextureSize);
+  let area = 0; for (const c of cells) area += (c.w + 4) * (c.h + 4);
+  const AW = area > 2048 * 2048 * 0.62 && maxT >= 4096 ? 4096 : 2048;
+  const s = Math.min(1, Math.sqrt(AW * AW * 0.6 / Math.max(1, area)));
+  cells.sort((a, b) => b.h - a.h);
+  let x = 0, y = 0, rowH = 0;
+  for (const c of cells) {
+    const w = Math.ceil(c.w * s) + 2, h = Math.ceil(c.h * s) + 2;
+    if (x + w > AW) { x = 0; y += rowH; rowH = 0; }
+    c.ax = x + 1; c.ay = y + 1; c.s = s; x += w; rowH = Math.max(rowH, h);
+  }
+  const AH = Math.min(AW, 2 ** Math.ceil(Math.log2(Math.max(64, y + rowH))));
+  const cv = document.createElement('canvas'); cv.width = AW; cv.height = AH;
+  const g = cv.getContext('2d'); g.fillStyle = '#8a8a86'; g.fillRect(0, 0, AW, AH);
+  // teselas necesarias
+  const tiles = new Map();
+  for (const c of cells) {
+    for (let ty = Math.floor(c.gy0 / 256); ty <= Math.floor((c.gy0 + c.h) / 256); ty++)
+      for (let tx = Math.floor(c.gx0 / 256); tx <= Math.floor((c.gx0 + c.w) / 256); tx++) {
+        const k = tx + '/' + ty; if (!tiles.has(k)) tiles.set(k, { tx, ty, cells: [] }); tiles.get(k).cells.push(c);
+      }
+  }
+  const jobs = [...tiles.values()]; let next = 0, ok = 0;
+  BLD.roofJobs = jobs.length;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const j = jobs[next++];
+      let im = null;
+      for (let k = 0; k < TILE_SRC.img.length && !im; k++) { try { im = await loadImg(TILE_SRC.img[(TER.srcIdx + k) % TILE_SRC.img.length](16, j.tx, j.ty)); } catch (e) {} }
+      if (!im) continue;
+      ok++; BLD.roofDone = ok;
+      for (const c of j.cells) {
+        // intersección de la tesela con el rectángulo del edificio (en píxeles globales del nivel 16)
+        const x0 = Math.max(c.gx0, j.tx * 256), x1 = Math.min(c.gx0 + c.w, j.tx * 256 + 256), y0 = Math.max(c.gy0, j.ty * 256), y1 = Math.min(c.gy0 + c.h, j.ty * 256 + 256);
+        if (x1 <= x0 || y1 <= y0) continue;
+        g.drawImage(im, x0 - j.tx * 256, y0 - j.ty * 256, x1 - x0, y1 - y0, c.ax + (x0 - c.gx0) * c.s, c.ay + (y0 - c.gy0) * c.s, (x1 - x0) * c.s, (y1 - y0) * c.s);
+      }
+    }
+  };
+  await Promise.all([0, 1, 2, 3, 4, 5].map(worker));
+  if (ok < jobs.length * 0.5) return null;
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; t.flipY = false;
+  return { tex: t, AW, AH };
+}
+async function loadBuildings() {
+  setChip('Descargando edificios de OpenStreetMap…', 0);
+  const list = parseOSM(await fetchOSM());
+  BLD.osm = list.length;
+  // relieve bajo cada edificio
+  const z = DEM_MAX_Z, need = new Set();
+  for (const b of list) need.add(`${Math.floor(lon2tx(b.clo, z))}/${Math.floor(lat2ty(b.cla, z))}`);
+  const dems = new Map(await Promise.all([...need].map(async k => { const [x, y] = k.split('/').map(Number); return [k, await getDem(z, x, y)]; })));
+  const elev = (la, lo) => { const fx = lon2tx(lo, z), fy = lat2ty(la, z), x = Math.floor(fx), y = Math.floor(fy), d = dems.get(`${x}/${y}`); return d ? Math.max(0, sampleDem(d, (fx - x) * 256, (fy - y) * 256)) : 0; };
+  const R = rng(99), P = [], N = [], U = [], U2 = [], C = [], idxT = { res: [], house: [], glass: [], ind: [] }, idxR = [], col = new THREE.Color();
+  const PALETTE = [0xf1efe9, 0xe9e6de, 0xdfdcd4, 0xf5f4f0, 0xd8dbdc, 0xe9e1d0, 0xdcd6ca];
+  const IND = [0xe6e6e3, 0xd9dcde, 0xcfd3d6, 0xe8e4da, 0xc9cdcf, 0xb8bfc4];
+  const GLASS = [0xdfe3e6, 0xd2d8dc, 0xe8eaeb];
+  const cells = [], vab = PLACE.vab;
+  let v = 0;
+  for (const b of list) {
+    const pts = b.pts;
+    let area = 0; const loc = pts.map(([la, lo]) => geoToLocalArr(la, lo, 0, [0, 0, 0]));
+    for (let k = 0; k < loc.length; k++) { const a = loc[k], c2 = loc[(k + 1) % loc.length]; area += a[0] * c2[2] - c2[0] * a[2]; }
+    if (area > 0) { pts.reverse(); loc.reverse(); }
+    const A = Math.abs(area) / 2; if (A < 12) continue;
+    const base = Math.min(...pts.map(([la, lo]) => elev(la, lo))) - 0.5 + b.minH;
+    const kind = b.kind || 'yes', dVab = distM(b.cla, b.clo, vab.lat, vab.lon);
+    let h = b.h;
+    if (!h && dVab < 170) h = A > 20000 ? 160 : A > 3000 ? 64 : 0; // VAB (torre alta) y su nave baja, si OSM no trae la altura
+    const indK = /industrial|hangar|warehouse|manufacture|storage_tank|service|garage|shed|transportation/.test(kind);
+    if (!h) h = indK ? (A > 8000 ? 20 : A > 2000 ? 13 : 7) : kind === 'house' || kind === 'residential' || kind === 'detached' ? 6 : A < 150 ? 4.5 : A < 1500 ? 7.5 : 11;
+    h = Math.max(2.5, h - b.minH);
+    const type = dVab < 170 || indK || A > 2500 ? 'ind' : h >= 28 ? 'glass' : h < 7 && A < 400 ? 'house' : 'res';
+    const F = FAC[type];
+    col.setHex(type === 'ind' ? IND[Math.floor(R() * IND.length)] : type === 'glass' ? GLASS[Math.floor(R() * GLASS.length)] : PALETTE[Math.floor(R() * PALETTE.length)]);
+    col.multiplyScalar(0.93 + R() * 0.07);
+    const top = pts.map(([la, lo]) => geoToLocalArr(la, lo, base + h, [0, 0, 0])), bot = pts.map(([la, lo]) => geoToLocalArr(la, lo, base, [0, 0, 0]));
+    let run = Math.floor(R() * 4) * F.bay;
+    const iw = idxT[type];
+    for (let k = 0; k < pts.length; k++) {
+      const a = k, c2 = (k + 1) % pts.length;
+      const dx = top[c2][0] - top[a][0], dz = top[c2][2] - top[a][2], len = Math.hypot(dx, dz); if (len < 0.05) continue;
+      const nx = -dz / len, nz = dx / len;
+      const u0 = run / F.bay / 4, u1 = (run + len) / F.bay / 4, v1 = h / F.floor / 4; run += len;
+      for (const [p, uu, vv, ao] of [[bot[a], u0, 0, 0.8], [bot[c2], u1, 0, 0.8], [top[c2], u1, v1, 1], [top[a], u0, v1, 1]]) {
+        P.push(p[0], p[1], p[2]); N.push(nx, 0, nz); U.push(uu, vv); U2.push(0, 0); C.push(col.r * ao, col.g * ao, col.b * ao);
+      }
+      iw.push(v, v + 1, v + 2, v, v + 2, v + 3); v += 4;
+    }
+    let tri;
+    try { tri = THREE.ShapeUtils.triangulateShape(top.map(p => new THREE.Vector2(p[0], -p[2])), []); } catch (e) { tri = []; }
+    // rectángulo del techo en píxeles globales del nivel 16 (para recortar la foto)
+    let gx0 = 1e12, gy0 = 1e12, gx1 = -1e12, gy1 = -1e12;
+    const gp = pts.map(([la, lo]) => { const gx = lon2tx(lo, 16) * 256, gy = lat2ty(la, 16) * 256; gx0 = Math.min(gx0, gx); gy0 = Math.min(gy0, gy); gx1 = Math.max(gx1, gx); gy1 = Math.max(gy1, gy); return [gx, gy]; });
+    const cell = { gx0: Math.floor(gx0) - 1, gy0: Math.floor(gy0) - 1, w: Math.ceil(gx1 - gx0) + 3, h: Math.ceil(gy1 - gy0) + 3, verts: [] };
+    cells.push(cell);
+    const r0 = v, rc = 0.62 + R() * 0.12;
+    for (let k = 0; k < top.length; k++) {
+      const p = top[k];
+      P.push(p[0], p[1], p[2]); N.push(0, 1, 0); U.push(0.01, 0.01); U2.push(0, 0); C.push(rc, rc, rc * 0.98);
+      cell.verts.push([v, gp[k][0], gp[k][1]]); v++;
+    }
+    for (const t of tri) idxR.push(r0 + t[0], r0 + t[1], r0 + t[2]);
+    BLD.count++;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); const uv1 = new THREE.Float32BufferAttribute(U2, 2); geo.setAttribute('uv1', uv1); geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+  const order = ['res', 'house', 'glass', 'ind'], all = [];
+  order.forEach((k, i) => { geo.addGroup(all.length, idxT[k].length, i); for (const x of idxT[k]) all.push(x); });
+  geo.addGroup(all.length, idxR.length, 4); for (const x of idxR) all.push(x);
+  geo.setIndex(all);
+  const mats = order.map(k => {
+    const f = k === 'ind' ? makeIndustrial() : makeFacades(k);
+    return k === 'glass'
+      ? new THREE.MeshStandardMaterial({ map: f.map, vertexColors: true, roughness: 0.18, metalness: 0.6, envMapIntensity: 1.0, emissive: 0xffffff, emissiveMap: f.lit, emissiveIntensity: 0.1 })
+      : new THREE.MeshStandardMaterial({ map: f.map, vertexColors: true, roughness: k === 'ind' ? 0.7 : 0.86, metalness: k === 'ind' ? 0.1 : 0, emissive: 0xffffff, emissiveMap: f.lit, emissiveIntensity: 0.1 });
+  });
+  const roof = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 });
+  BLD.mats = mats;
+  const mesh = new THREE.Mesh(geo, [...mats, roof]); mesh.castShadow = true; mesh.receiveShadow = true;
+  BLD.group.add(mesh); BLD.mesh = mesh;
+  applyTimeOfDay();
+  setChip(`${nf0.format(BLD.count)} edificios de OpenStreetMap · cargando la foto de los techos…`, 6000);
+  roofAtlas(cells).then(at => {
+    if (!at) return;
+    for (const c of cells) for (const [vi, gx, gy] of c.verts) uv1.setXY(vi, (c.ax + (gx - c.gx0) * c.s) / at.AW, (c.ay + (gy - c.gy0) * c.s) / at.AH);
+    uv1.needsUpdate = true;
+    const m = new THREE.MeshStandardMaterial({ map: at.tex, roughness: 0.9, color: 0xf2f2f2 });
+    m.map.channel = 1;
+    mesh.material[4] = m; roof.dispose(); BLD.roofPhoto = true;
+  }).catch(e => { BLD.roofErr = String(e); });
+}
+
+// =====================================================================
+// 5. Modelos de las plataformas (medidas reales donde se conocen; disposición aproximada)
+// =====================================================================
+const M_STEEL = new THREE.MeshStandardMaterial({ color: 0x8b9096, roughness: 0.55, metalness: 0.6 });
+const M_DARK = new THREE.MeshStandardMaterial({ color: 0x3a3e44, roughness: 0.6, metalness: 0.5 });
+const M_RED = new THREE.MeshStandardMaterial({ color: 0xb8462e, roughness: 0.6, metalness: 0.3 });
+const M_CONC = new THREE.MeshStandardMaterial({ color: 0xb9b5ac, roughness: 0.95 });
+const M_WHITE = new THREE.MeshStandardMaterial({ color: 0xffffff, map: TEX_BODY, roughness: 0.42, metalness: 0.05 });
+const M_WHITE_PLAIN = new THREE.MeshStandardMaterial({ color: 0xf2f3f1, roughness: 0.45, metalness: 0.05 });
+const M_BLACK = new THREE.MeshStandardMaterial({ color: 0xffffff, map: TEX_CARBON, roughness: 0.55, metalness: 0.15 });
+const M_SOOT = new THREE.MeshStandardMaterial({ color: 0x55524d, roughness: 0.85 });
+const M_PANEL = new THREE.MeshStandardMaterial({ color: 0x1b2433, roughness: 0.3, metalness: 0.5 });
+const M_CABLE = new THREE.LineBasicMaterial({ color: 0x2a2d31 });
+const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+// viga entre dos puntos
+function beam(arr, a, b, t) {
+  _a.set(...a); _b.set(...b); const len = _a.distanceTo(_b); if (len < 1e-3) return;
+  const g = new THREE.BoxGeometry(t, len, t);
+  _q.setFromUnitVectors(_up, _b.clone().sub(_a).normalize());
+  _m4.compose(_a.clone().add(_b).multiplyScalar(0.5), _q, _s.set(1, 1, 1)); g.applyMatrix4(_m4); arr.push(g);
+}
+// torre de celosía cuadrada: 4 columnas, anillos y diagonales en cada cara
+function lattice(w, h, step, col = 0.7, br = 0.35, taper = 1) {
+  const arr = [], n = Math.round(h / step);
+  const half = y => w / 2 * lerp(1, taper, y / h);
+  const C = (i, y) => { const s = half(y), k = [[-1, -1], [1, -1], [1, 1], [-1, 1]][i]; return [k[0] * s, y, k[1] * s]; };
+  for (let i = 0; i < 4; i++) for (let j = 0; j < n; j++) beam(arr, C(i, j * step), C(i, (j + 1) * step), col);
+  for (let j = 1; j <= n; j++) for (let i = 0; i < 4; i++) beam(arr, C(i, j * step), C((i + 1) % 4, j * step), br);
+  for (let j = 0; j < n; j++) for (let i = 0; i < 4; i++) { const ii = (i + 1) % 4; beam(arr, C(i, j * step), C(ii, (j + 1) * step), br * 0.8); beam(arr, C(ii, j * step), C(i, (j + 1) * step), br * 0.8); }
+  return mergeGeometries(arr);
+}
+const MODELS = new THREE.Group(); L.scene.add(MODELS);
+// coloca un grupo en una coordenada, con su eje «arriba» en la vertical local (la Tierra es curva: a 15 km el suelo baja ≈ 18 m)
+function placeAt(obj, lat, lon, rotDeg = 0) {
+  obj.userData.geo = { lat, lon, rot: rotDeg };
+  const set = h => {
+    const p = geoToLocal(lat, lon, h), up = geoToLocal(lat, lon, h + 1).sub(p).normalize();
+    obj.position.copy(p); obj.quaternion.setFromUnitVectors(_up, up).multiply(new THREE.Quaternion().setFromAxisAngle(_up, -rotDeg * DEG));
+  };
+  set(3); MODELS.add(obj);
+  elevationAt(lat, lon).then(h => set(h)).catch(() => {});
+  return obj;
+}
+// metros al norte y al este de un lugar → lat, lon
+const offset = (p, north, east) => [p.lat + north / KM, p.lon + east / (KM * Math.cos(p.lat * DEG))];
+function redLight(g, x, y, z) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0xff3a2a, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true }));
+  sp.position.set(x, y, z); sp.scale.set(5, 5, 1); g.add(sp); LIGHTS.push({ sprite: sp, always: true });
+}
+function flood(g, x, y, z, tx, ty, tz, max = 9000) {
+  const lt = new THREE.SpotLight(0xfff0d8, 0, 600, 0.55, 0.6, 2); lt.position.set(x, y, z); lt.target.position.set(tx, ty, tz); g.add(lt, lt.target);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0xfff3dc, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true })); sp.position.set(x, y, z); sp.scale.set(4, 4, 1); g.add(sp);
+  LIGHTS.push({ light: lt, max, sprite: sp });
+}
+function cables(g, pairs) {
+  const pts = []; for (const [a, b] of pairs) { pts.push(new THREE.Vector3(...a), new THREE.Vector3(...b)); }
+  const l = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), M_CABLE); g.add(l);
+}
+// Falcon 9 con Dragon (≈ 70 m)
+function makeF9() {
+  const g = new THREE.Group(), R = 1.83, seg = 40;
+  const add = (geo, mat, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+  add(new THREE.CylinderGeometry(R, R, 40.2, seg), M_WHITE, 21.1);
+  add(new THREE.CylinderGeometry(R * 1.004, R * 1.004, 3, seg), M_SOOT, 2.5);
+  add(new THREE.CylinderGeometry(R, R * 0.97, 1, seg), M_BLACK, 0.5);
+  add(new THREE.CylinderGeometry(R, R, 6, seg), M_BLACK, 44.2);
+  add(new THREE.CylinderGeometry(R, R, 11.6, seg), M_WHITE, 53);
+  add(new THREE.CylinderGeometry(1.85, 1.85, 4.4, seg), M_WHITE_PLAIN, 61);
+  const sol = add(new THREE.CylinderGeometry(1.87, 1.87, 2.2, seg, 1, true, 0, Math.PI), M_PANEL, 61);
+  add(new THREE.CylinderGeometry(1.15, 1.95, 3.6, seg), M_WHITE_PLAIN, 65);
+  add(new THREE.SphereGeometry(1.15, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), M_WHITE_PLAIN, 66.8).scale.y = 0.9;
+  for (let i = 0; i < 4; i++) { // patas plegadas y aletas de rejilla
+    const a = i * Math.PI / 2 + Math.PI / 4, c = Math.cos(a), s = Math.sin(a);
+    const leg = add(new THREE.BoxGeometry(0.5, 9.6, 0.3), M_BLACK, 5.5); leg.position.x = c * (R + 0.15); leg.position.z = s * (R + 0.15); leg.rotation.y = -a;
+    const fin = add(new THREE.BoxGeometry(1.4, 1.6, 0.15), M_DARK, 45.5); fin.position.x = c * (R + 0.2); fin.position.z = s * (R + 0.2); fin.rotation.y = -a + Math.PI / 2;
+  }
+  return g;
+}
+function buildModels() {
+  // --- 39A: torre fija (FSS) del Falcon Heavy, con su pararrayos ---
+  {
+    const g = new THREE.Group();
+    const fss = new THREE.Mesh(lattice(12, 84, 6, 0.8, 0.4), M_RED); fss.position.set(0, 0, -22); fss.castShadow = true; g.add(fss);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 26, 10), M_WHITE_PLAIN); mast.position.set(0, 97, -22); g.add(mast);
+    const hard = new THREE.Mesh(new THREE.BoxGeometry(60, 1.2, 70), M_CONC); hard.position.y = 0.4; hard.receiveShadow = true; g.add(hard);
+    const te = new THREE.Mesh(lattice(4, 70, 5, 0.5, 0.25), M_STEEL); te.position.set(0, 0, 9); te.castShadow = true; g.add(te); // erector del cohete (vacío, en vertical)
+    redLight(g, 0, 111, -22); flood(g, 40, 30, 40, 0, 40, 0); flood(g, -40, 30, 40, 0, 40, 0);
+    placeAt(g, PLACE['39a'].lat, PLACE['39a'].lon);
+  }
+  // --- 39A: torre de Starship, «palillos» y mesa de lanzamiento ---
+  {
+    const g = new THREE.Group();
+    const tw = new THREE.Mesh(lattice(10, 144, 8, 1.1, 0.5), M_DARK); tw.castShadow = true; g.add(tw);
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 6, 8), M_STEEL); rod.position.y = 147; g.add(rod);
+    const car = new THREE.Mesh(new THREE.BoxGeometry(12, 9, 12), M_STEEL); car.position.set(0, 112, 0); g.add(car);
+    for (const k of [-1, 1]) { const arm = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3, 33), M_DARK); arm.position.set(k * 7.5, 110, 20); arm.rotation.y = -k * 0.18; arm.castShadow = true; g.add(arm); }
+    // mesa de lanzamiento (anillo sobre seis patas)
+    const olm = new THREE.Group(); olm.position.set(0, 0, 32);
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 4, 40, 1, true), M_STEEL); ring.position.y = 20; olm.add(ring);
+    const deck = new THREE.Mesh(new THREE.RingGeometry(5.5, 11, 40), M_STEEL); deck.rotation.x = -Math.PI / 2; deck.position.y = 22; olm.add(deck);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, leg = new THREE.Mesh(new THREE.BoxGeometry(2.2, 18, 2.2), M_CONC); leg.position.set(Math.cos(a) * 10, 9, Math.sin(a) * 10); leg.castShadow = true; olm.add(leg); }
+    g.add(olm);
+    redLight(g, 0, 150, 0);
+    placeAt(g, PLACE['39a-ss'].lat, PLACE['39a-ss'].lon);
+  }
+  // --- 39B: tres torres pararrayos de ≈ 180 m con cables ---
+  {
+    const g = new THREE.Group(), pts = [];
+    for (let i = 0; i < 3; i++) {
+      const a = (90 + i * 120) * DEG, x = Math.cos(a) * 125, z = -Math.sin(a) * 125;
+      const t = new THREE.Mesh(lattice(6, 150, 7.5, 0.6, 0.3, 0.55), M_STEEL); t.position.set(x, 0, z); t.castShadow = true; g.add(t);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.8, 32, 10), M_WHITE_PLAIN); mast.position.set(x, 166, z); g.add(mast);
+      pts.push([x, 182, z]); redLight(g, x, 183, z);
+    }
+    const pairs = [];
+    for (let i = 0; i < 3; i++) {
+      const a = pts[i], b = pts[(i + 1) % 3];
+      // cable colgante entre torres (catenaria aproximada con segmentos)
+      for (let k = 0; k < 16; k++) { const u0 = k / 16, u1 = (k + 1) / 16, sag = u => 38 * 4 * u * (1 - u); pairs.push([[lerp(a[0], b[0], u0), a[1] - sag(u0), lerp(a[2], b[2], u0)], [lerp(a[0], b[0], u1), a[1] - sag(u1), lerp(a[2], b[2], u1)]]); }
+      const out = [a[0] * 2.3, 0, a[2] * 2.3]; pairs.push([a, out]);
+    }
+    cables(g, pairs);
+    const hard = new THREE.Mesh(new THREE.BoxGeometry(70, 1.2, 70), M_CONC); hard.position.y = 0.4; hard.receiveShadow = true; g.add(hard);
+    placeAt(g, PLACE['39b'].lat, PLACE['39b'].lon);
+  }
+  // --- SLC-40: Falcon 9 con Dragon, erector, torre de acceso de la tripulación y pararrayos ---
+  {
+    const g = new THREE.Group();
+    const f9 = makeF9(); f9.position.y = 2; g.add(f9);
+    const te = new THREE.Mesh(lattice(3.2, 66, 4, 0.45, 0.22), M_STEEL); te.position.set(-4.2, 2, 0); te.castShadow = true; g.add(te);
+    const cat = new THREE.Mesh(lattice(9, 78, 6, 0.8, 0.4), M_DARK); cat.position.set(0, 0, -16); cat.castShadow = true; g.add(cat);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.8, 12), M_STEEL); arm.position.set(0, 64, -7.5); g.add(arm);
+    const white = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 3), M_WHITE_PLAIN); white.position.set(0, 64, -2.6); g.add(white);
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(46, 1.4, 46), M_CONC); pad.position.y = 0.5; pad.receiveShadow = true; g.add(pad);
+    const tops = [];
+    for (const [x, z] of [[-60, -60], [60, -60], [60, 60], [-60, 60]]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 1.4, 95, 8), M_STEEL); t.position.set(x, 47.5, z); t.castShadow = true; g.add(t); tops.push([x, 95, z]); redLight(g, x, 96, z); }
+    cables(g, tops.map((a, i) => [a, tops[(i + 1) % 4]]));
+    flood(g, 30, 25, 30, 0, 35, 0, 7000); flood(g, -30, 25, 30, 0, 35, 0, 7000);
+    placeAt(g, PLACE.slc40.lat, PLACE.slc40.lon);
+  }
+  // --- Complejo 34: pedestal de lanzamiento del Saturno IB (memorial del Apolo 1) ---
+  {
+    const g = new THREE.Group(), s = 13, hh = 8;
+    for (const [x, z] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const c = new THREE.Mesh(new THREE.BoxGeometry(2.6, hh, 2.6), M_CONC); c.position.set(x * (s / 2 - 1.3), hh / 2, z * (s / 2 - 1.3)); c.castShadow = true; g.add(c); }
+    const shape = new THREE.Shape([[-s / 2, -s / 2], [s / 2, -s / 2], [s / 2, s / 2], [-s / 2, s / 2]].map(p => new THREE.Vector2(...p)));
+    const hole = new THREE.Path(); hole.absarc(0, 0, 4.2, 0, Math.PI * 2, true); shape.holes.push(hole);
+    const top = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 1.6, bevelEnabled: false, curveSegments: 32 }), M_CONC); top.rotation.x = -Math.PI / 2; top.position.y = hh; top.castShadow = true; g.add(top);
+    placeAt(g, PLACE.lc34.lat, PLACE.lc34.lon);
+  }
+}
+buildModels();
+
+function makeStars(R, n, size) {
+  const r = rng(1234), pos = new Float32Array(n * 3), col = new Float32Array(n * 3), sz = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const u = r() * 2 - 1, a = r() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+    pos.set([Math.cos(a) * s * R, u * R, Math.sin(a) * s * R], i * 3);
+    const t = r(); const c = t < 0.15 ? [0.75, 0.82, 1] : t < 0.8 ? [1, 1, 1] : [1, 0.85, 0.7];
+    col.set(c, i * 3); sz[i] = size * (0.5 + Math.pow(r(), 6) * 3.5);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('size', new THREE.BufferAttribute(sz, 1));
+  const m = new THREE.ShaderMaterial({
+    uniforms: { uOp: { value: 1 }, uMap: { value: dotTex } },
+    vertexShader: LOGV + `attribute float size; varying vec3 vC; void main(){ vC = color; vec4 mv = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mv; gl_PointSize = size*2.0;
+      #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: LOGF + `uniform float uOp; uniform sampler2D uMap; varying vec3 vC; void main(){
+      #include <logdepthbuf_fragment>
+      float a = texture2D(uMap, gl_PointCoord).a; gl_FragColor = vec4(vC*a*uOp, a*uOp); }`,
+    vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+  });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; p.renderOrder = -5;
+  return p;
+}
+L.stars = makeStars(2.5e6, 2600, 1.6); L.scene.add(L.stars);
+
+// =====================================================================
+// 6. Etiquetas y lista de lugares
+// =====================================================================
+const labelsEl = $('#labels');
+const _v = new THREE.Vector3();
+function belowHorizon(p, cam) {
+  const R = R_E - 300, cx = cam.x, cy = cam.y + R_E, cz = cam.z, dx = p.x - cam.x, dy = p.y - cam.y, dz = p.z - cam.z, L2 = Math.hypot(dx, dy, dz);
+  const ux = dx / L2, uy = dy / L2, uz = dz / L2, b = cx * ux + cy * uy + cz * uz, c = cx * cx + cy * cy + cz * cz - R * R, disc = b * b - c;
+  if (disc < 0) return false; const tHit = -b - Math.sqrt(disc); return tHit > 0 && tHit < L2 - 10;
+}
+const opMain = p => p.ops.includes('spacex') && !p.ops.includes('nasa') ? 'spacex' : p.ops.includes('nasa') ? 'nasa' : p.ops[0];
+const OPN = { nasa: 'NASA', spacex: 'SpaceX', pub: 'Abierto al público', hist: 'Histórico' };
+for (const p of PLACES) {
+  const el = document.createElement('button'); el.type = 'button'; el.className = `lbl ${opMain(p)}${p.minor ? ' minor' : ''}`;
+  el.innerHTML = '<i></i><span></span>'; el.lastChild.textContent = p.name.replace('Complejo de Lanzamiento Espacial', 'SLC').replace('Complejo de Lanzamiento', 'LC');
+  el.addEventListener('click', () => select(p.id, true));
+  labelsEl.appendChild(el); p.el = el; p.pos = geoToLocal(p.lat, p.lon, p.lh); p.w = 0;
+  elevationAt(p.lat, p.lon).then(h => { p.pos = geoToLocal(p.lat, p.lon, h + p.lh); }).catch(() => {});
+}
+{
+  const groups = [['nasa', 'NASA · Centro Espacial Kennedy', p => opMain(p) === 'nasa'], ['spacex', 'SpaceX', p => opMain(p) === 'spacex'], ['pub', 'Abierto al público', p => opMain(p) === 'pub']];
+  const pl = $('#plist');
+  for (const [k, title, f] of groups) {
+    const h = document.createElement('div'); h.className = 'pgrp'; h.innerHTML = `<i style="background:${k === 'nasa' ? 'var(--nasa)' : k === 'spacex' ? '#fff' : 'var(--pub)'}"></i><span class="kind"></span>`; h.lastChild.textContent = title; pl.appendChild(h);
+    for (const p of PLACES.filter(f)) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'pit'; b.innerHTML = '<b></b><span></span>';
+      b.firstChild.textContent = p.name; b.lastChild.textContent = p.short;
+      b.addEventListener('click', () => { select(p.id, true); if (innerWidth <= 900) togglePlaces(false); });
+      pl.appendChild(b); p.item = b;
+    }
+  }
+}
+function placeLabels(cam) {
+  const boxes = [];
+  const order = PLACES.slice().sort((a, b) => (b.id === selId) - (a.id === selId) || (a.minor ? 1 : 0) - (b.minor ? 1 : 0));
+  for (const p of order) {
+    const el = p.el, d = p.pos.distanceTo(cam.position);
+    const maxD = p.id === selId ? 1e6 : p.minor ? 16000 : 60000;
+    let show = d < maxD && d > 60 && !belowHorizon(p.pos, cam.position);
+    if (show) { _v.copy(p.pos).project(cam); show = _v.z < 1 && _v.z > -1 && Math.abs(_v.x) < 1.02 && Math.abs(_v.y) < 1.02; }
+    if (show) {
+      const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H;
+      if (!p.w) p.w = el.offsetWidth || 120;
+      const bx = [x - 6, y - 12, x + p.w, y + 12];
+      if (boxes.some(b => bx[0] < b[2] && bx[2] > b[0] && bx[1] < b[3] && bx[3] > b[1])) show = false;
+      else { boxes.push(bx); el.style.transform = `translate(${(x - 6).toFixed(1)}px,${(y - 12).toFixed(1)}px)`; }
+    }
+    el.style.display = show ? '' : 'none';
+  }
+}
+
+// =====================================================================
+// 7. Cámara: órbita alrededor de un punto, desplazamiento y vuelos suaves
+// =====================================================================
+const CAM = { tgt: geoToLocal(28.57, -80.61, 0), az: 2.75, el: 0.5, dist: 26000, fly: null };
+function camPos(c, out) {
+  const ce = Math.cos(c.el);
+  return out.set(c.tgt.x + c.dist * ce * Math.sin(c.az), c.tgt.y + c.dist * Math.sin(c.el), c.tgt.z + c.dist * ce * Math.cos(c.az));
+}
+function flyTo(lat, lon, h, view, ms = 2200) {
+  const to = { tgt: geoToLocal(lat, lon, h), az: view.az, el: view.el, dist: view.dist };
+  let da = (to.az - CAM.az) % (Math.PI * 2); if (da > Math.PI) da -= Math.PI * 2; if (da < -Math.PI) da += Math.PI * 2;
+  to.az = CAM.az + da;
+  CAM.fly = { from: { tgt: CAM.tgt.clone(), az: CAM.az, el: CAM.el, dist: CAM.dist }, to, t0: performance.now(), ms };
+}
+function stepFly(now) {
+  const f = CAM.fly; if (!f) return;
+  const u = clamp((now - f.t0) / f.ms, 0, 1), k = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  CAM.tgt.lerpVectors(f.from.tgt, f.to.tgt, k);
+  CAM.az = lerp(f.from.az, f.to.az, k); CAM.el = lerp(f.from.el, f.to.el, k);
+  // la distancia sube a mitad de camino en vuelos largos, para ver de dónde a dónde se va
+  const span = f.from.tgt.distanceTo(f.to.tgt), peak = Math.max(f.from.dist, f.to.dist, span * 0.9);
+  CAM.dist = Math.exp(lerp(Math.log(f.from.dist), Math.log(f.to.dist), k)) + (peak - Math.max(f.from.dist, f.to.dist)) * Math.sin(Math.PI * k) * (span > 1500 ? 1 : 0);
+  if (u >= 1) CAM.fly = null;
+}
+const pointers = new Map();
+let panMode = false;
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  panMode = e.button === 2 || e.shiftKey || e.ctrlKey; canvas.classList.add('dragging'); CAM.fly = null; idleAt = performance.now();
+});
+function panBy(dx, dy) {
+  const k = CAM.dist * 0.0017, s = Math.sin(CAM.az), c = Math.cos(CAM.az);
+  // derecha de la cámara (en el suelo) y hacia adelante
+  CAM.tgt.x += (-c * dx - s * dy) * k; CAM.tgt.z += (s * dx - c * dy) * k;
+  const lim = 60000, r = Math.hypot(CAM.tgt.x, CAM.tgt.z); if (r > lim) { CAM.tgt.x *= lim / r; CAM.tgt.z *= lim / r; }
+}
+canvas.addEventListener('pointermove', e => {
+  if (!pointers.has(e.pointerId)) return;
+  const prev = pointers.get(e.pointerId);
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()]; const d0 = Math.hypot(a.x - b.x, a.y - b.y), m0 = [(a.x + b.x) / 2, (a.y + b.y) / 2];
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const [c, d] = [...pointers.values()]; const d1 = Math.hypot(c.x - d.x, c.y - d.y), m1 = [(c.x + d.x) / 2, (c.y + d.y) / 2];
+    if (d0 > 0 && d1 > 0) zoomBy(d0 / d1);
+    panBy(m1[0] - m0[0], m1[1] - m0[1]);
+    return;
+  }
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+  if (panMode) panBy(dx, dy);
+  else { CAM.az -= dx * 0.006; CAM.el = clamp(CAM.el + dy * 0.005, 0.03, 1.5); }
+  idleAt = performance.now();
+});
+const endPtr = e => { pointers.delete(e.pointerId); if (!pointers.size) canvas.classList.remove('dragging'); };
+canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
+canvas.addEventListener('wheel', e => { e.preventDefault(); CAM.fly = null; zoomBy(Math.exp(e.deltaY * 0.0012)); idleAt = performance.now(); }, { passive: false });
+function zoomBy(f) { CAM.dist = clamp(CAM.dist * f, 35, 400000); }
+let idleAt = -1e9;
+
+// =====================================================================
+// 8. Ficha del lugar
+// =====================================================================
+let selId = null;
+function select(id, fly) {
+  const p = PLACE[id]; if (!p) return;
+  selId = id;
+  PLACES.forEach(q => { q.el.classList.toggle('sel', q.id === id); if (q.item) q.item.setAttribute('aria-current', String(q.id === id)); });
+  $('#i-chips').innerHTML = p.ops.map(o => `<span class="chip ${o}"><i></i>${OPN[o]}</span>`).join('');
+  $('#i-name').textContent = p.name; $('#i-desc').textContent = p.desc;
+  $('#i-spec').innerHTML = ''; for (const [k, v] of p.spec) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; $('#i-spec').append(dt, dd); }
+  $('#info').hidden = false;
+  if (fly) goPlace(p, 1);
+  try { history.replaceState(null, '', '#' + id); } catch (e) {}
+}
+function goPlace(p, k) {
+  flyTo(p.lat, p.lon, groundAt(p), { ...p.view, dist: p.view.dist * k });
+}
+const groundH = {}; // altura del terreno en cada lugar
+PLACES.forEach(p => elevationAt(p.lat, p.lon).then(h => { groundH[p.id] = h; }).catch(() => {}));
+const groundAt = p => (groundH[p.id] || 0) + Math.min(40, p.lh * 0.25);
+$('#info-close').addEventListener('click', () => { $('#info').hidden = true; selId = null; PLACES.forEach(q => { q.el.classList.remove('sel'); if (q.item) q.item.setAttribute('aria-current', 'false'); }); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} });
+$('#i-near').addEventListener('click', () => { const p = PLACE[selId]; if (p) goPlace(p, 0.45); });
+$('#i-far').addEventListener('click', () => flyTo(28.55, -80.615, 0, { az: 2.75, el: 0.62, dist: 30000 }));
+function togglePlaces(open) { const pl = $('#places'); open = open ?? !pl.classList.contains('open'); pl.classList.toggle('open', open); $('#places-btn').setAttribute('aria-expanded', String(open)); }
+$('#places-btn').addEventListener('click', () => togglePlaces());
+const todSel = $('#tod');
+todSel.addEventListener('change', () => { todKey = todSel.value; applyTimeOfDay(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#info').hidden) $('#info-close').click(); });
+const chipEl = $('#chip'); let chipUntil = 0;
+function setChip(txt, ms) { chipEl.textContent = txt; chipEl.classList.toggle('off', !txt); chipUntil = ms ? performance.now() + ms : 0; }
+
+// =====================================================================
+// 9. Bucle
+// =====================================================================
+let W = 1, H = 1;
+function resize() {
+  W = innerWidth; H = innerHeight;
+  renderer.setSize(W, H, false);
+  composer.setPixelRatio(PIXEL_RATIO); composer.setSize(W, H);
+  L.cam.aspect = W / H; L.cam.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+let last = performance.now(), frame = 0;
+function loop(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now; frame++;
+  stepFly(now);
+  if (!CAM.fly && !pointers.size && now - idleAt > 12000 && !selId) CAM.az += dt * 0.02;
+  const cam = L.cam;
+  camPos(CAM, cam.position);
+  const minY = CAM.tgt.y + 6; if (cam.position.y < minY) cam.position.y = minY;
+  cam.up.set(0, 1, 0); cam.lookAt(CAM.tgt);
+  cam.fov = 50; cam.near = clamp(CAM.dist * 0.002, 0.5, 50); cam.far = 4e6; cam.updateProjectionMatrix();
+  const camY = cam.position.y;
+  L.sky.position.copy(cam.position); L.stars.position.copy(cam.position);
+  L.sky.material.uniforms.uAlt.value = camY;
+  L.stars.material.uniforms.uOp.value = (1 - DAY * 0.97) * (0.35 + 0.65 * smooth(3000, 30000, camY)) + smooth(30000, 70000, camY) * DAY;
+  L.scene.fog.density = (1.8e-5 * (1 - smooth(1500, 30000, camY)) + 1.2e-6) * (0.75 + 0.25 * DAY);
+  // sol y sombras: siguen al punto que se mira; el área de sombras crece con la distancia
+  const sh = clamp(CAM.dist * 0.7, 150, 2500), sc = L.sun.shadow.camera;
+  if (sc.right !== sh) { sc.left = -sh; sc.right = sh; sc.top = sh; sc.bottom = -sh; sc.far = 6000; sc.updateProjectionMatrix(); }
+  L.sun.shadow.normalBias = 0.6 * sh / 130;
+  L.sun.target.position.copy(CAM.tgt); L.sun.position.copy(CAM.tgt).addScaledVector(SUN_LOCAL, 3000);
+  if ((frame & 1) === 0 || TER.ready < 40) updateTerrain(cam);
+  placeLabels(cam);
+  renderPass.scene = L.scene; renderPass.camera = cam;
+  bloomPass.strength = 0.25 + 0.4 * (1 - DAY); bloomPass.threshold = 0.92;
+  composer.render();
+  // estado de la carga
+  if (chipUntil && now > chipUntil) setChip('', 0);
+  if (!chipUntil) {
+    const pend = NET.q.length + NET.active;
+    let txt = '';
+    if (TER.imgOk === 0 && TER.imgFail > 8) txt = 'Sin conexión con el servidor de mapas: se ve la Tierra simplificada';
+    else if (pend > 0 && TER.ready < 400) txt = `Cargando mapa satelital y relieve · ${pend}`;
+    else if (BLD.roofJobs && BLD.roofDone < BLD.roofJobs && !BLD.roofPhoto) txt = `Foto de los techos · ${Math.round((BLD.roofDone || 0) / BLD.roofJobs * 100)} %`;
+    if (chipEl.textContent !== txt) setChip(txt, 0);
+  }
+  requestAnimationFrame(loop);
+}
+applyTimeOfDay();
+loadBuildings().catch(e => { console.warn('Edificios OSM:', e); BLD.err = String(e); setChip('No se pudieron descargar los edificios de OpenStreetMap; las plataformas sí se ven', 9000); });
+requestAnimationFrame(t => { last = t; $('#loading').classList.add('done'); loop(t); });
+// lugar inicial: el del enlace (#39a, #slc40…) o vista general
+{
+  const id = (location.hash || '').slice(1) || QS.get('lugar');
+  if (PLACE[id]) setTimeout(() => select(id, true), 600);
+  else setTimeout(() => flyTo(28.57, -80.615, 0, { az: 2.75, el: 0.55, dist: 30000 }, 2600), 300);
+}
+window.__cape = { PLACES, select, flyTo, CAM, TER, BLD, NET, MODELS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); } };
+</script>
+</body>
+</html>
