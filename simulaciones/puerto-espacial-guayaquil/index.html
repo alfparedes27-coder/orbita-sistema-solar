@@ -214,6 +214,7 @@ button{cursor:pointer}
   .lbl-txt{display:none}
   #attrib{font-size:9px}
   #mclock{font-size:22px}
+  #toast{top:calc(var(--top) + 96px)}
   #tilechip{top:calc(var(--top) + 104px);max-width:80vw;white-space:normal;text-align:center;line-height:1.3}
 }
 @media (max-width:560px){
@@ -1210,9 +1211,11 @@ const tile2lon = (x, z) => x / 2 ** z * 360 - 180;
 const tile2lat = (y, z) => Math.atan(Math.sinh(Math.PI - 2 * Math.PI * y / 2 ** z)) / DEG;
 const lon2tx = (lon, z) => (lon + 180) / 360 * 2 ** z;
 const lat2ty = (lat, z) => (1 - Math.log(Math.tan(lat * DEG) + 1 / Math.cos(lat * DEG)) / Math.PI) / 2 * 2 ** z;
-const DEM_MAX_Z = 13, IMG_MAX_Z = 17;
 
 const MOBILE = matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700;
+// relieve: una tesela de nivel 12 (~10 km, 38 m por punto) sirve a cientos de teselas de foto;
+// en el celular, nivel 11 y foto hasta nivel 16 para que cargue rápido con datos móviles
+const DEM_MAX_Z = MOBILE ? 11 : 12, IMG_MAX_Z = MOBILE ? 16 : 17;
 const NET = { active: 0, max: MOBILE ? 6 : 10, q: [] };
 const TILE_CAP = MOBILE ? 360 : 600, SPLIT_PX = MOBILE ? [420, 540] : [340, 440];
 function enqueue(job) { NET.q.push(job); pump(); }
@@ -1293,7 +1296,7 @@ class Tile {
   load() {
     this.state = 'loading';
     enqueue({ prio: () => this.prio, cancelled: () => this.disposed, run: async () => {
-      const ez = Math.min(this.z, DEM_MAX_Z), sh = this.z - ez, ex = this.x >> sh, ey = this.y >> sh;
+      const ez = Math.max(0, Math.min(this.z - 2, DEM_MAX_Z)), sh = this.z - ez, ex = this.x >> sh, ey = this.y >> sh;
       const imgP = (async () => {
         for (let k = 0; k < TILE_SRC.img.length; k++) {
           const idx = (TER.srcIdx + k) % TILE_SRC.img.length;
@@ -1458,6 +1461,8 @@ function makeFacades(type) {
 }
 // techos con la foto satelital real: se arma un mosaico de teselas nivel 16 que cubre todos los edificios
 async function roofPhoto(bb) {
+  // primero el terreno: los techos esperan a que se vacíe la cola de teselas (máx. 40 s)
+  for (let i = 0; i < 40 && (NET.q.length || NET.active); i++) await new Promise(r => setTimeout(r, 1000));
   const z = 16, tx0 = Math.floor(lon2tx(bb.lon0, z)), tx1 = Math.floor(lon2tx(bb.lon1, z)), ty0 = Math.floor(lat2ty(bb.lat1, z)), ty1 = Math.floor(lat2ty(bb.lat0, z));
   const nx = tx1 - tx0 + 1, ny = ty1 - ty0 + 1, cv = document.createElement('canvas'); cv.width = nx * 256; cv.height = ny * 256;
   const g = cv.getContext('2d'); let ok = 0;
@@ -2771,12 +2776,13 @@ function resize() {
 }
 addEventListener('resize', resize); resize();
 
-const tileChip = $('#tilechip'); let tileMsgUntil = 0;
+const tileChip = $('#tilechip'), DIAG = QS.has('diag');
 function updateTileChip(local) {
   const pend = NET.q.length + NET.active;
   let txt = '';
   if (TER.imgOk === 0 && TER.imgFail > 8) txt = 'Sin conexión con el servidor de mapas: se ve la Tierra simplificada';
   else if (local && pend > 0 && TER.ready < 400) txt = `Cargando mapa satelital y relieve · ${pend}`;
+  if (DIAG) txt = `fotos ${TER.imgOk}✓ ${TER.imgFail}✗ · relieve ${TER.demOk}✓ ${TER.demFail}✗ · teselas ${TER.ready}/${TER.count} · cola ${pend} · techos ${BLD.roofTiles ? BLD.roofTiles.join('/') : '–'}`;
   if (tileChip.textContent !== txt) tileChip.textContent = txt;
   tileChip.classList.toggle('off', !txt);
 }
