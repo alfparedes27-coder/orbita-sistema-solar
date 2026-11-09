@@ -274,27 +274,29 @@ const PLACES = [
     desc: 'Puerto público. Aquí atracan las barcazas autónomas de SpaceX, sobre las que aterrizan las primeras etapas en el océano, y vuelven con ellas de pie sobre la cubierta. También zarpan cruceros, y desde sus playas se ven muy bien los lanzamientos.',
     spec: [['Operador', 'Autoridad Portuaria de Cañaveral'], ['SpaceX', 'Barcazas de aterrizaje y barcos de apoyo']] },
 ];
+PLACES.push({ id: 'slc41', label: 'SLC-41 · Starliner', name: 'Complejo de Lanzamiento Espacial 41', short: 'Boeing Starliner sobre el Atlas V', ops: ['boeing'], link: { href: 'starliner/', label: 'Subir a la cabina de la Starliner →' }, lat: 28.5834, lon: -80.5829, lh: 75, view: { dist: 600, el: 0.24, az: 3.4 }, major: true,
+  desc: 'Plataforma de la empresa ULA (de Boeing y Lockheed Martin), donde se construyó una torre de acceso para tripulaciones para la Starliner de Boeing. De aquí despegó el 5 de junio de 2024 el primer vuelo con astronautas de la Starliner, con Butch Wilmore y Suni Williams. Por fallas en los propulsores y fugas de helio, la cápsula volvió vacía y ellos regresaron en una Dragon de SpaceX en marzo de 2025.',
+  spec: [['Operador', 'ULA'], ['Cohetes', 'Atlas V · Vulcan'], ['Starliner CFT', '5 jun. 2024'], ['Próxima Starliner', 'Starliner‑1, solo carga (dic. 2026 – ene. 2027)']] });
 const PLACE = Object.fromEntries(PLACES.map(p => [p.id, p]));
 // zonas de otras empresas que no se dibujan (pedido: sólo NASA, SpaceX y lugares públicos)
 const EXCL = [
   [28.4711, -80.5378, 1100], // LC‑36 · Blue Origin
-  [28.5834, -80.5829, 1000], // SLC‑41 · ULA
   [28.5017, -80.5566, 450],  // LC‑16
   [28.5122, -80.5567, 450],  // LC‑20
   [28.4584, -80.5284, 450],  // SLC‑46
   [28.4466, -80.5653, 450],  // LC‑17
 ];
-const EXCL_RE = /blue\s*origin|united launch|\bula\b|relativity|firefly|rocket\s*lab|boeing|lockheed|northrop|airbus|oneweb|\bastra\b|abl space|phantom|vaya|stoke|terran|\bksat\b/i;
+const EXCL_RE = /blue\s*origin|relativity|firefly|rocket\s*lab|lockheed|northrop|airbus|oneweb|\bastra\b|abl space|phantom|vaya|stoke|terran|\bksat\b/i;
 const CFG = {
   short: 'Cabo Cañaveral',
   decl: -16.6, eot: 16.1, tzMer: -75,           // 8 de noviembre; Florida usa UTC−5 (meridiano 75° O)
   tod: { dia: { hour: 9.5 }, tarde: { hour: 17.08 }, noche: { hour: 19.5 } },
   osmBoxes: ['28.44,-80.72,28.65,-80.53', '28.398,-80.64,28.42,-80.595'],
-  modelClear: [['39a', 0, 0, 70], ['39a-ss', 0, 0, 55], ['39b', 0, 0, 90], ['slc40', 0, 0, 60], ['lc34', 0, 0, 25]],
+  modelClear: [['39a', 0, 0, 70], ['39a-ss', 0, 0, 55], ['39b', 0, 0, 90], ['slc40', 0, 0, 60], ['lc34', 0, 0, 25], ['slc41', 0, 0, 45]],
   home: { lat: 28.57, lon: -80.615, az: 2.75, el: 0.55, dist: 30000 },
-  ops: { nasa: { name: 'NASA', color: '#7aa8ff' }, spacex: { name: 'SpaceX', color: '#ffffff' }, pub: { name: 'Abierto al público', short: 'Público', color: '#7ee2a8' }, hist: { name: 'Histórico', color: '#8d99b0' } },
-  groups: [['nasa', 'NASA · Centro Espacial Kennedy'], ['spacex', 'SpaceX'], ['pub', 'Abierto al público']],
-  opMain: p => p.ops.includes('spacex') && !p.ops.includes('nasa') ? 'spacex' : p.ops.includes('nasa') ? 'nasa' : p.ops[0],
+  ops: { boeing: { name: 'Boeing', color: '#5fb4d9' }, nasa: { name: 'NASA', color: '#7aa8ff' }, spacex: { name: 'SpaceX', color: '#ffffff' }, pub: { name: 'Abierto al público', short: 'Público', color: '#7ee2a8' }, hist: { name: 'Histórico', color: '#8d99b0' } },
+  groups: [['nasa', 'NASA · Centro Espacial Kennedy'], ['spacex', 'SpaceX'], ['boeing', 'Boeing'], ['pub', 'Abierto al público']],
+  opMain: p => p.ops.includes('boeing') ? 'boeing' : p.ops.includes('spacex') && !p.ops.includes('nasa') ? 'spacex' : p.ops.includes('nasa') ? 'nasa' : p.ops[0],
   // el VAB y su nave baja, si OpenStreetMap no trae la altura
   heightHint(b, A) { const d = distM(b.cla, b.clo, PLACE.vab.lat, PLACE.vab.lon); if (d > 170) return null; return { h: A > 20000 ? 160 : A > 3000 ? 64 : 0, ind: true }; },
   tours: [
@@ -390,6 +392,23 @@ CFG.models = function () {
     const hole = new THREE.Path(); hole.absarc(0, 0, 4.2, 0, Math.PI * 2, true); shape.holes.push(hole);
     const top = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 1.6, bevelEnabled: false, curveSegments: 32 }), M_CONC); top.rotation.x = -Math.PI / 2; top.position.y = hh; top.castShadow = true; g.add(top);
     placeAt(g, PLACE.lc34.lat, PLACE.lc34.lon);
+  }
+  // --- SLC-41: Atlas V N22 con Starliner y torre de acceso de la tripulación (disposición aproximada) ---
+  {
+    const g = new THREE.Group(), mk = (geo, mat, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+    const MAt = new THREE.MeshStandardMaterial({ color: 0xe0a36a, roughness: 0.6 });
+    mk(new THREE.CylinderGeometry(1.905, 1.905, 32.5, 32), MAt, 2 + 16.25);
+    for (const k of [-1, 1]) { const b = mk(new THREE.CylinderGeometry(0.79, 0.79, 17, 20), M_WHITE_PLAIN, 2 + 9.5); b.position.z = k * 2.75; const n = mk(new THREE.ConeGeometry(0.79, 2.4, 20), M_WHITE_PLAIN, 2 + 19.2); n.position.z = k * 2.75; }
+    mk(new THREE.CylinderGeometry(1.53, 1.905, 2, 32), M_STEEL, 2 + 33.5);
+    mk(new THREE.CylinderGeometry(1.53, 1.53, 11, 32), M_STEEL, 2 + 40);
+    mk(new THREE.CylinderGeometry(2.28, 1.53, 1.5, 32), M_WHITE_PLAIN, 2 + 46.25);
+    mk(new THREE.CylinderGeometry(2.28, 2.28, 1.3, 32), M_WHITE_PLAIN, 2 + 47.65);
+    mk(new THREE.CylinderGeometry(0.9, 2.28, 3.1, 32), M_WHITE_PLAIN, 2 + 49.85);
+    const cat = new THREE.Mesh(lattice(9, 62, 6, 0.8, 0.4), M_DARK); cat.position.set(0, 0, -14); cat.castShadow = true; g.add(cat);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.8, 9), M_STEEL); arm.position.set(0, 51, -7.5); g.add(arm);
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(30, 2, 30), M_CONC); pad.position.y = 1; pad.receiveShadow = true; g.add(pad);
+    redLight(g, 0, 63, -14); flood(g, 30, 25, 30, 0, 30, 0, 7000);
+    placeAt(g, PLACE.slc41.lat, PLACE.slc41.lon);
   }
 };
 
