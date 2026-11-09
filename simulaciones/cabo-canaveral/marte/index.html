@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rumbo a Marte</title>
+<meta name="description" content="Las cinco últimas misiones que despegaron de Cabo Cañaveral y dejaron robots en Marte: despegue, viaje interplanetario, entrada y aterrizaje, con reloj real y aceleración del tiempo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Diseño: lienzo 3D a pantalla completa con HUD flotante (paleta oscura del proyecto Órbita Sistema Solar 3D, acento marciano). */
+:root{
+  --void:#05060b; --panel:rgba(10,12,20,.86); --line:#232a3d; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9a9fb3; --faint:#646b82;
+  --mars:#ff8a4c; --mars-ink:#1c0b03; --craft:#6fd3ff; --ok:#7ee2a8; --warn:#ffcf6b;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  --gl:max(16px, env(safe-area-inset-left,0px)); --gr:max(16px, env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px;white-space:nowrap}
+.back:hover{color:var(--ink)}
+.title{padding:8px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--mars)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.missions{display:flex;gap:6px;flex-wrap:wrap;padding:6px}
+.mis{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 9px;text-align:left;line-height:1.15}
+.mis b{display:block;font:600 13px var(--f-display)}
+.mis span{font-size:11px;color:var(--dim)}
+.mis[aria-pressed=true]{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
+.mis[aria-pressed=true] span{color:#4a2410}
+.clock{position:fixed;left:var(--gl);top:calc(118px + var(--top));padding:10px 12px;z-index:4;min-width:250px}
+.phase{font:600 11px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--craft)}
+.big{font:500 22px/1.25 var(--f-data);font-variant-numeric:tabular-nums}
+.utc{font:400 12px var(--f-data);color:var(--dim)}
+.tele{position:fixed;right:var(--gr);top:calc(118px + var(--top));padding:10px 12px;z-index:4;width:265px}
+.tele h3,.log h3{margin:0 0 6px;font:600 11px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid rgba(255,255,255,.05);font-size:12.5px}
+.row:first-of-type{border-top:0}
+.row span{color:var(--dim)} .row b{font:500 12.5px var(--f-data);text-align:right}
+.note{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.35}
+.event{margin-top:8px;padding:7px 9px;border-left:3px solid var(--mars);background:rgba(255,138,76,.08);border-radius:4px;font-size:13px;line-height:1.35}
+.bottom{position:fixed;left:var(--gl);right:var(--gr);bottom:calc(10px + var(--bot));display:flex;flex-direction:column;gap:8px;align-items:center;z-index:5;pointer-events:none}
+.bottom>*{pointer-events:auto}
+.bar{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;padding:6px}
+.bar button{background:transparent;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font:500 12.5px var(--f-data)}
+.bar button:hover{border-color:var(--line2)}
+.bar button[aria-pressed=true]{background:var(--craft);color:#03131b;border-color:var(--craft)}
+.bar .lab{font:600 10.5px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);align-self:center;padding:0 4px}
+.views button[aria-pressed=true]{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
+.log{position:fixed;left:var(--gl);top:calc(232px + var(--top));bottom:calc(150px + var(--bot));width:265px;padding:10px 6px 10px 12px;z-index:3;display:flex;flex-direction:column}
+.log ol{list-style:none;margin:0;padding:0 6px 0 0;overflow:auto;flex:1}
+.log li{font-size:12px;line-height:1.3;padding:4px 6px;border-radius:5px;cursor:pointer;color:var(--dim)}
+.log li:hover{background:rgba(255,255,255,.05)}
+.log li.past{color:var(--ink)} .log li.now{background:rgba(255,138,76,.16);color:var(--ink)}
+.log li i{font-style:normal;font:500 11px var(--f-data);color:var(--faint);display:block}
+.toast{position:fixed;left:50%;top:calc(120px + var(--top));transform:translateX(-50%);padding:9px 14px;z-index:6;font-size:13px;max-width:min(520px,calc(100vw - 32px));text-align:center;transition:opacity .4s}
+.info{font-size:12.5px;line-height:1.45;color:var(--ink)}
+.info p{margin:6px 0}
+.src{position:fixed;right:var(--gr);bottom:calc(150px + var(--bot));z-index:3;font-size:11px;padding:6px 10px;max-width:265px}
+.src summary{cursor:pointer;color:var(--dim)} .src p{margin:6px 0;color:var(--dim);line-height:1.4}
+.lbl{position:fixed;left:0;top:0;pointer-events:none;font:600 11px var(--f-display);letter-spacing:.06em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;transform:translate(-50%,-140%);z-index:2}
+.lbl.sel{color:var(--mars)}
+@media (max-width:820px){
+  .log{display:none}
+  .clock{top:auto;bottom:calc(158px + var(--bot));min-width:0}
+  .tele{top:auto;bottom:calc(158px + var(--bot));width:200px}
+  .tele .note,.tele .event{display:none}
+  .src{display:none}
+  .big{font-size:17px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="Simulación 3D de la misión"></canvas>
+
+<div class="top">
+  <a class="back panel" href="../../">← Simulaciones</a>
+  <div class="title panel"><div class="kick">Cabo Cañaveral → Marte</div><h1>Rumbo a Marte</h1></div>
+  <div class="missions panel" id="missions" role="group" aria-label="Misión"></div>
+</div>
+
+<div class="clock panel">
+  <div class="phase" id="phase">—</div>
+  <div class="big" id="met">T−00:00:30</div>
+  <div class="utc" id="utc">—</div>
+</div>
+
+<div class="log panel"><h3>Cronología (clic para saltar)</h3><ol id="log"></ol></div>
+
+<div class="tele panel" aria-live="off">
+  <h3 id="teleH">Telemetría</h3>
+  <div id="rows"></div>
+  <div class="event" id="event" hidden></div>
+  <div class="note" id="tnote"></div>
+</div>
+
+<details class="src panel">
+  <summary>De dónde salen los datos</summary>
+  <p>Fechas y horas de despegue y aterrizaje, cohetes, plataformas y coordenadas de aterrizaje: NASA/JPL.</p>
+  <p>Viaje a Marte: trayectoria calculada (problema de Lambert) entre la posición real de la Tierra al separarse la sonda y la de Marte al llegar (Astronomy Engine). Coincide con la energía de lanzamiento publicada en pocos %.</p>
+  <p>Ascenso y entrada en Marte: tiempos y valores nominales aproximados de los kits de prensa, interpolados entre eventos. No es la telemetría cruda de la NASA.</p>
+  <p>Texturas: Tierra (three.js, NASA), Marte (Planet Pixel Emporium).</p>
+</details>
+
+<div class="toast panel" id="toast" hidden></div>
+
+<div class="bottom">
+  <div class="bar panel views" id="views">
+    <span class="lab">Vista</span>
+    <button data-v="launch">Despegue</button><button data-v="cruise">Viaje</button><button data-v="edl">Llegada</button><button data-v="mars">Marte</button>
+    <button id="auto" aria-pressed="true">Auto</button>
+  </div>
+  <div class="bar panel" id="speeds"><span class="lab">Velocidad</span></div>
+  <div class="bar panel" id="jumps"><span class="lab">Ir a</span></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const AE = window.Astronomy;
+const $ = id => document.getElementById(id);
+
+/* ================= DATOS DE LAS MISIONES ================= */
+// landKind: 'SCET' = hora del evento en Marte; 'ERT' = hora en que llegó la señal a la Tierra.
+const MISSIONS = [
+ { id:'m2020', name:'Perseverance', full:'Mars 2020 · Perseverance', year:2020, rocket:'atlas', rocketName:'Atlas V 541', pad:'SLC‑41', lat:28.5834, lon:-80.5829, az:105,
+   launch:'2020-07-30T11:50:00Z', sep:57*60+30, land:'2021-02-18T20:55:00Z', landKind:'ERT', edl:'sky', vEntry:5.42,
+   site:'Cráter Jezero', slat:18.4446, slon:77.4509, mass:'1.025 kg', chute:21.5, aero:4.5,
+   status:'Activo. Ha recorrido unos 45 km (agosto de 2026) y guarda muestras de roca en tubos sellados para traerlas algún día a la Tierra.',
+   find:'Explora el delta de un río que desembocaba en un lago hace unos 3.500 millones de años, buscando señales de vida microbiana antigua. Llevó al helicóptero Ingenuity: 72 vuelos, el primer vuelo propulsado en otro planeta.' },
+ { id:'msl', name:'Curiosity', full:'Mars Science Laboratory · Curiosity', year:2011, rocket:'atlas', rocketName:'Atlas V 541', pad:'SLC‑41', lat:28.5834, lon:-80.5829, az:103,
+   launch:'2011-11-26T15:02:00Z', sep:44*60, land:'2012-08-06T05:17:57Z', landKind:'SCET', edl:'sky', vEntry:5.9,
+   site:'Cráter Gale', slat:-4.5895, slon:137.4417, mass:'899 kg', chute:21.5, aero:4.5,
+   status:'Activo después de casi 14 años. Ha recorrido unos 37 km subiendo las capas del monte Sharp.',
+   find:'Demostró que el cráter Gale tuvo un lago con agua dulce y los ingredientes químicos para la vida microbiana. Primer aterrizaje con grúa aérea.' },
+ { id:'phx', name:'Phoenix', full:'Phoenix Mars Lander', year:2007, rocket:'delta', heavy:false, rocketName:'Delta II 7925', pad:'SLC‑17A', lat:28.4467, lon:-80.5658, az:93,
+   launch:'2007-08-04T09:26:34Z', sep:87*60, land:'2008-05-25T23:38:24Z', landKind:'SCET', edl:'retro', vEntry:5.7,
+   site:'Vastitas Borealis (polo norte)', slat:68.2188, slon:234.2508, mass:'350 kg', chute:11.7, aero:2.65,
+   status:'Funcionó 157 soles. Perdió contacto el 2 de noviembre de 2008 al llegar el invierno marciano; el hielo luego dañó sus paneles.',
+   find:'Excavó y tocó hielo de agua bajo el suelo, detectó percloratos y vio nieve cayendo de las nubes. No es un rover: es un módulo fijo con brazo robótico.' },
+ { id:'merb', name:'Opportunity', full:'Mars Exploration Rover B · Opportunity', year:2003, rocket:'delta', heavy:true, rocketName:'Delta II 7925H', pad:'SLC‑17B', lat:28.4458, lon:-80.5658, az:96,
+   launch:'2003-07-08T03:18:15Z', sep:83*60, land:'2004-01-25T05:05:00Z', landKind:'ERT', edl:'bags', vEntry:5.5,
+   site:'Meridiani Planum (cráter Eagle)', slat:-1.9462, slon:354.4734, mass:'185 kg', chute:15, aero:2.65,
+   status:'Iba a durar 90 soles y trabajó casi 15 años. Una tormenta de polvo global la apagó en junio de 2018. Recorrió 45,16 km.',
+   find:'Al rebotar, rodó y cayó justo dentro del pequeño cráter Eagle. Encontró esferitas de hematita ("arándanos") que se forman en agua.' },
+ { id:'mera', name:'Spirit', full:'Mars Exploration Rover A · Spirit', year:2003, rocket:'delta', heavy:false, rocketName:'Delta II 7925', pad:'SLC‑17A', lat:28.4467, lon:-80.5658, az:93,
+   launch:'2003-06-10T17:58:47Z', sep:36*60, land:'2004-01-04T04:35:00Z', landKind:'ERT', edl:'bags', vEntry:5.4,
+   site:'Cráter Gusev', slat:-14.5684, slon:175.4726, mass:'185 kg', chute:15, aero:2.65,
+   status:'Iba a durar 90 soles y trabajó más de 6 años. Quedó atascada en arena en 2009; último contacto el 22 de marzo de 2010. Recorrió 7,73 km.',
+   find:'Con una rueda rota que arrastraba, desenterró sílice casi pura: señal de aguas termales o vapor en el pasado de Marte.' },
+];
+
+/* ---- Perfiles de ascenso (aprox.) [s, alt km, vel km/s, texto] ---- */
+function ascent(m){
+  const s=m.sep, mi=60;
+  if(m.rocket==='atlas') return [
+   [0,0,0,'Despegue: motor RD‑180 y 4 cohetes sólidos'],[8,0.12,0.03,'Libra la torre'],[50,8,0.33,'Supera la velocidad del sonido (Mach 1)'],
+   [62,12,0.45,'Máxima presión aerodinámica (Max‑Q)'],[109,46,1.45,'Se separan los 4 cohetes sólidos'],[208,116,2.9,'Se abre la cofia: la sonda queda al descubierto'],
+   [261,150,4.6,'Se apaga el Atlas (BECO)'],[267,153,4.62,'Se separa el Atlas; queda la etapa Centaur'],[277,156,4.65,'Primer encendido del Centaur (RL‑10)'],
+   [700,185,7.8,'Se apaga el Centaur: órbita de estacionamiento'],[s-11*mi,185,7.8,'Segundo encendido del Centaur: inyección hacia Marte'],
+   [s-3*mi,260,11.4,'Se apaga el Centaur: la sonda ya escapa de la Tierra'],[s,1050,10.6,'Separación de la sonda: empieza el viaje']];
+  const srb=m.heavy?'GEM‑46':'GEM‑40';
+  return [
+   [0,0,0,`Despegue: motor RS‑27A y 6 cohetes sólidos ${srb}`],[8,0.1,0.03,'Libra la torre'],[40,5.5,0.33,'Supera la velocidad del sonido (Mach 1)'],
+   [52,9,0.48,'Máxima presión aerodinámica (Max‑Q)'],[64,14,0.8,'Se apagan 6 sólidos y se encienden los otros 3 en el aire'],[67,15,0.82,'Se sueltan los 6 sólidos usados'],
+   [132,44,2.0,'Se sueltan los últimos 3 sólidos'],[263,115,4.9,'Se apaga la primera etapa (MECO)'],[271,118,4.92,'Separación; enciende la segunda etapa'],
+   [277,120,4.95,'Se abre la cofia: la sonda queda al descubierto'],[620,185,7.8,'Se apaga la segunda etapa: órbita de estacionamiento'],
+   [s-13*mi,185,7.8,'Reencendido de la segunda etapa'],[s-11*mi,195,8.9,'Se apaga; la tercera etapa gira como un trompo para estabilizarse'],
+   [s-10.5*mi,197,8.9,'Enciende la tercera etapa Star‑48B'],[s-9*mi,270,11.4,'Se apaga la Star‑48B'],[s-5*mi,600,10.9,'Frenado del giro con pesas yo‑yo'],
+   [s,1000,10.6,'Separación de la sonda: empieza el viaje']];
+}
+/* ---- Perfiles de entrada, descenso y aterrizaje (aprox.) [s desde la entrada, alt km, vel km/s, texto, clave] ---- */
+function edlProfile(m){
+  const v=m.vEntry;
+  if(m.edl==='sky') return { td:412, ev:[
+   [-600,1400,4.9,'Se separa la etapa de crucero','cruiseSep'],[-570,1300,4.92,'Se expulsan 2 pesos de tungsteno para inclinar la cápsula'],
+   [0,125,v,'Interfaz de entrada: toca la atmósfera','entry'],[60,62,v*0.97,'Entrada guiada: pequeños propulsores corrigen el rumbo'],
+   [80,42,v*0.78,'Calentamiento máximo: el escudo llega a ~1.300 °C'],[90,33,v*0.58,'Frenado máximo: unos 10 g'],
+   [190,14,0.9,'Se expulsan 6 pesos de 25 kg para enderezar la cápsula'],
+   [241,11,0.43,'Se abre el paracaídas supersónico (21,5 m)','chute'],[261,9.6,0.16,'Se suelta el escudo térmico','shield'],
+   [300,6.5,0.12, m.id==='m2020'?'Navegación por terreno: compara fotos con un mapa y elige dónde bajar':'El radar mide la altura y la velocidad'],
+   [373,2.1,0.088,'Se suelta la cubierta trasera con el paracaídas','backshell'],[375,2.05,0.088,'Descenso propulsado: 8 motores'],
+   [404,0.021,0.00075,'Grúa aérea: baja al rover colgado de cables','crane'],[412,0,0,'¡Contacto! Las 6 ruedas tocan el suelo','touch'],
+   [414,0,0,'Se cortan los cables; la etapa de descenso se va a estrellar lejos','fly']]};
+  if(m.edl==='retro') return { td:431, ev:[
+   [-420,950,5.0,'Se separa la etapa de crucero','cruiseSep'],[0,125,v,'Interfaz de entrada: toca la atmósfera','entry'],
+   [85,40,v*0.8,'Calentamiento máximo'],[100,32,v*0.55,'Frenado máximo: unos 9 g'],
+   [220,12.9,0.42,'Se abre el paracaídas (7 s más tarde de lo previsto)','chute'],[235,12,0.24,'Se suelta el escudo térmico','shield'],
+   [245,11.5,0.2,'Se despliegan las 3 patas'],[300,7,0.1,'El radar detecta el suelo'],
+   [388,0.94,0.056,'Se suelta del paracaídas; encienden 12 retrocohetes','backshell'],[426,0.012,0.0024,'Baja a velocidad constante: 2,4 m/s'],
+   [431,0,0,'¡Contacto! Tres patas sobre el suelo helado','touch']]};
+  return { td:360, ev:[
+   [-900,1900,4.8,'Se separa la etapa de crucero','cruiseSep'],[0,128,v,'Interfaz de entrada: toca la atmósfera','entry'],
+   [80,42,v*0.8,'Calentamiento máximo'],[95,33,v*0.55,'Frenado máximo: unos 6 g'],
+   [245,8.6,0.43,'Se abre el paracaídas (15 m)','chute'],[265,8.0,0.16,'Se suelta el escudo térmico','shield'],
+   [275,7.5,0.1,'El módulo baja colgado de una brida de 20 m','bridle'],[335,2.4,0.075,'El radar mide la altura'],
+   [352,0.28,0.07,'Se inflan las bolsas de aire','bags'],[356,0.13,0.06,'Disparan los retrocohetes RAD para frenar','rad'],
+   [358,0.012,0.004,'Se corta la brida: caída libre de unos 12 m','cut'],[360,0,0.012,'¡Primer rebote!','touch'],
+   [600,0,0,'Se detiene tras unos 26 rebotes y cientos de metros rodando','stop'],
+   [3600,0,0,'Se desinflan las bolsas y se abren los pétalos del módulo','petals']]};
+}
+
+/* ================= MECÁNICA ORBITAL ================= */
+const MU = 2.9591220828559115e-4, AU_KM = 149597870.7, KMS = AU_KM/86400, C_KMS = 299792.458;
+function stC(z){ if(z>1e-8){const s=Math.sqrt(z);return (1-Math.cos(s))/z;} if(z<-1e-8){const s=Math.sqrt(-z);return (Math.cosh(s)-1)/(-z);} return 1/2-z/24; }
+function stS(z){ if(z>1e-8){const s=Math.sqrt(z);return (s-Math.sin(s))/(s*s*s);} if(z<-1e-8){const s=Math.sqrt(-z);return (Math.sinh(s)-s)/(s*s*s);} return 1/6-z/120; }
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2], nrm=a=>Math.sqrt(dot(a,a));
+const add=(a,b,k=1)=>[a[0]+k*b[0],a[1]+k*b[1],a[2]+k*b[2]], mul=(a,k)=>[a[0]*k,a[1]*k,a[2]*k];
+function lambert(r1,r2,dt){
+  const R1=nrm(r1),R2=nrm(r2); let th=Math.acos(Math.max(-1,Math.min(1,dot(r1,r2)/(R1*R2))));
+  if(r1[0]*r2[1]-r1[1]*r2[0]<0) th=2*Math.PI-th;
+  const A=Math.sin(th)*Math.sqrt(R1*R2/(1-Math.cos(th)));
+  const y=z=>R1+R2+A*(z*stS(z)-1)/Math.sqrt(stC(z));
+  const F=z=>{const Y=y(z);return Math.pow(Y/stC(z),1.5)*stS(z)+A*Math.sqrt(Y)-Math.sqrt(MU)*dt;};
+  let lo=-4*Math.PI*Math.PI, hi=4*Math.PI*Math.PI*0.999; while(y(lo)<0) lo+=0.1;
+  for(let i=0;i<200;i++){const m=(lo+hi)/2; if(F(m)>0) hi=m; else lo=m;}
+  const z=(lo+hi)/2,Y=y(z),f=1-Y/R1,g=A*Math.sqrt(Y/MU),gd=1-Y/R2;
+  return { v1:mul(add(r2,r1,-f),1/g), v2:mul(add(mul(r2,gd),r1,-1),1/g) };
+}
+function kepler(r0,v0,dt){
+  const R0=nrm(r0),V0=nrm(v0),vr0=dot(r0,v0)/R0,al=2/R0-V0*V0/MU,sm=Math.sqrt(MU); let x=sm*Math.abs(al)*dt;
+  for(let i=0;i<60;i++){const z=al*x*x,C=stC(z),S=stS(z);
+    const Fx=R0*vr0/sm*x*x*C+(1-al*R0)*x*x*x*S+R0*x-sm*dt, dF=R0*vr0/sm*x*(1-al*x*x*S)+(1-al*R0)*x*x*C+R0, d=Fx/dF; x-=d; if(Math.abs(d)<1e-12) break;}
+  const z=al*x*x,f=1-x*x/R0*stC(z),g=dt-x*x*x/sm*stS(z),r=add(mul(r0,f),v0,g),R=nrm(r);
+  const fd=sm/(R*R0)*(al*x*x*x*stS(z)-x),gd=1-x*x/R*stC(z); return { r, v:add(mul(r0,fd),v0,gd) };
+}
+const ROT = AE.Rotation_EQJ_ECL();
+function helio(body,date){ const s=AE.HelioState(body,date);
+  const p=AE.RotateVector(ROT,new AE.Vector(s.x,s.y,s.z,s.t)), q=AE.RotateVector(ROT,new AE.Vector(s.vx,s.vy,s.vz,s.t));
+  return { r:[p.x,p.y,p.z], v:[q.x,q.y,q.z] }; }
+
+/* ================= PREPARACIÓN DE CADA MISIÓN ================= */
+function prep(m){
+  m.tL = Date.parse(m.launch);
+  m.asc = ascent(m);
+  m.prof = edlProfile(m);
+  let tLand = Date.parse(m.land);
+  const E0 = helio(AE.Body.Earth,new Date(tLand)), M0 = helio(AE.Body.Mars,new Date(tLand));
+  m.owlt = nrm(add(M0.r,E0.r,-1))*AU_KM/C_KMS; // s
+  if(m.landKind==='ERT') tLand -= m.owlt*1000;
+  m.tTouch = tLand; m.tEntry = tLand - m.prof.td*1000; m.tSep = m.tL + m.sep*1000;
+  m.tEDL = m.tEntry + m.prof.ev[0][0]*1000;
+  // Viaje: Lambert entre la Tierra (separación) y Marte (entrada)
+  const dtD=(m.tEntry-m.tSep)/864e5, E=helio(AE.Body.Earth,new Date(m.tSep)), Ma=helio(AE.Body.Mars,new Date(m.tEntry));
+  const L=lambert(E.r,Ma.r,dtD); m.r1=E.r; m.v1=L.v1; m.cruiseDays=dtD;
+  const vinf=nrm(add(L.v1,E.v,-1))*KMS; m.c3=vinf*vinf; m.vinfArr=nrm(add(L.v2,Ma.v,-1))*KMS;
+  m.pathKm = 0; let prev=m.r1; for(let i=1;i<=400;i++){const p=kepler(m.r1,m.v1,dtD*i/400).r; m.pathKm+=nrm(add(p,prev,-1))*AU_KM; prev=p;}
+  // cronología completa
+  const ev=[]; m.asc.forEach(a=>ev.push({t:m.tL+a[0]*1000, txt:a[3], ph:'launch'}));
+  ev.push({t:m.tSep+86400e3*Math.round(dtD/2), txt:'Mitad del viaje', ph:'cruise'});
+  ev.push({t:m.tSep+10*86400e3, txt:'Primera corrección de trayectoria (TCM‑1, aprox.)', ph:'cruise'});
+  m.prof.ev.forEach(e=>ev.push({t:m.tEntry+e[0]*1000, txt:e[3], ph: e[4]==='touch'||e[0]>m.prof.td?'mars':'edl', key:e[4]}));
+  ev.sort((a,b)=>a.t-b.t); m.events=ev;
+  // tabla para integrar el recorrido horizontal (ascenso y EDL)
+  m.tOrbit = m.asc[m.rocket==='atlas'?9:10][0];
+  m.pitch = t=> t<10?0:Math.PI/2*Math.min(1,Math.pow((t-10)/(m.tOrbit-10),0.5));
+  m.ascDR = integrateDR(m.asc.map(a=>[a[0],a[1],a[2]]), m.pitch);
+  m.edlDR = integrateDR(m.prof.ev.filter(e=>e[0]<=m.prof.td).map(e=>[e[0],e[1],e[2]]));
+}
+function interp(tab,t,col){ // tab: [[t,...]] ordenado
+  if(t<=tab[0][0]) return tab[0][col]; const n=tab.length; if(t>=tab[n-1][0]) return tab[n-1][col];
+  let i=0; while(tab[i+1][0]<t) i++; const a=tab[i],b=tab[i+1],u=(t-a[0])/(b[0]-a[0]);
+  const s=u*u*(3-2*u); return a[col]+(b[col]-a[col])*(col===1?(u*0.5+s*0.5):u);
+}
+function integrateDR(tab,pitch){ const t0=tab[0][0],t1=tab[tab.length-1][0],out=[]; let dr=0,pa=interp(tab,t0,1);
+  for(let t=t0;t<=t1+0.5;t+=1){ const a=interp(tab,t,1),v=interp(tab,t,2),dh=a-pa; dr+=pitch?v*Math.sin(pitch(t)):Math.sqrt(Math.max(0,v*v-dh*dh)); out.push(dr); pa=a; }
+  return {t0,arr:out}; }
+const drAt=(D,t)=>{const i=Math.max(0,Math.min(D.arr.length-1,Math.floor(t-D.t0)));return D.arr[i];};
+MISSIONS.forEach(prep);
+
+/* ================= RENDER ================= */
+const canvas=$('gl');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,logarithmicDepthBuffer:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
+const texL=new THREE.TextureLoader();
+const earthTex=texL.load('tex/tierra.jpg'); earthTex.colorSpace=THREE.SRGBColorSpace; earthTex.anisotropy=8;
+const marsTex=texL.load('tex/marte.jpg'); marsTex.colorSpace=THREE.SRGBColorSpace; marsTex.anisotropy=8;
+const RE=6371, RM=3389.5;
+// mapa equirectangular de la Tierra: borde izquierdo en −180°; de Marte: borde izquierdo en 0° E
+const llE=(lat,lon,r)=>{const f=lat*Math.PI/180,l=lon*Math.PI/180;return new THREE.Vector3(r*Math.cos(f)*Math.cos(l),r*Math.sin(f),-r*Math.cos(f)*Math.sin(l));};
+const llM=(lat,lon,r)=>{const f=lat*Math.PI/180,l=lon*Math.PI/180;return new THREE.Vector3(-r*Math.cos(f)*Math.cos(l),r*Math.sin(f),r*Math.cos(f)*Math.sin(l));};
+function frame(lat,lon,fn){ // vectores locales: arriba, este, norte
+  const up=fn(lat,lon,1).normalize(), e=fn(lat,lon+0.01,1).sub(fn(lat,lon,1)).normalize(), n=new THREE.Vector3().crossVectors(up,e).normalize();
+  return {up,e,n}; }
+function glowTex(stops){ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'), g=x.createRadialGradient(64,64,0,64,64,64);
+  stops.forEach(s=>g.addColorStop(s[0],s[1])); x.fillStyle=g; x.fillRect(0,0,128,128); return new THREE.CanvasTexture(c); }
+const GLOW=glowTex([[0,'rgba(255,255,255,1)'],[0.25,'rgba(255,220,160,.8)'],[1,'rgba(255,140,40,0)']]);
+const PLASMA=glowTex([[0,'rgba(255,255,230,1)'],[0.3,'rgba(255,170,90,.85)'],[0.7,'rgba(255,90,40,.3)'],[1,'rgba(255,60,20,0)']]);
+const sprite=(tex,s,col=0xffffff)=>{const m=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:col,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));m.scale.set(s,s,1);return m;};
+const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:0.6,metalness:0.1,...o});
+const cyl=(r1,r2,h,mat,seg=24)=>new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),mat);
+function stars(n,R){ const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<n;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(R);p.push(v.x,v.y,v.z);}
+  g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); return new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:1.4,sizeAttenuation:false})); }
+
+/* ---- Naves ---- */
+function spacecraft(m){ // pila de crucero: etapa de crucero abajo, cubierta trasera, escudo arriba (como en el cohete)
+  const g=new THREE.Group(), D=m.aero, big=D>3;
+  const cs=cyl(D*0.45,D*0.45,D*0.13,M(0xb9bcc4,{metalness:0.6})); cs.position.y=D*0.065; g.add(cs);
+  const sol=cyl(D*0.44,D*0.44,0.02,M(0x1b2b5a,{roughness:0.3,metalness:0.4}),24); sol.position.y=0.005; g.add(sol);
+  const bs=cyl(D*0.18,D*0.5,D*0.62,M(0xe6e6e2,{roughness:0.8})); bs.position.y=D*0.13+D*0.31; g.add(bs);
+  const hs=cyl(D*0.5,D*0.12,D*0.2,M(0x6b4a33,{roughness:0.9}),24); hs.rotation.x=Math.PI; hs.position.y=D*0.75+D*0.1; g.add(hs);
+  if(big){ const rtg=cyl(0.3,0.3,0.6,M(0x444444)); rtg.position.set(0,D*0.13+0.2,D*0.25); }
+  g.userData.h=D*0.95; return g;
+}
+function rocket(m){
+  const g=new THREE.Group(), parts={srb:[],srb2:[],stage1:[],stage2:[],fair:[],stage3:[]};
+  const white=M(0xf2f2f0,{roughness:0.55}), orange=M(0xc98448,{roughness:0.7}), teal=M(0x3f8fa2,{roughness:0.5}), dark=M(0x222326,{roughness:0.5,metalness:0.4});
+  const sc=spacecraft(m);
+  if(m.rocket==='atlas'){
+    const b=cyl(1.905,1.905,32.5,orange); b.position.y=16.25+1; g.add(b); parts.stage1.push(b);
+    const n=cyl(1.2,1.6,1.2,dark); n.position.y=0.6; g.add(n); parts.stage1.push(n);
+    for(let i=0;i<4;i++){ const a=(i*90+45)*Math.PI/180, s=new THREE.Group();
+      const c=cyl(0.79,0.79,17.5,white); c.position.y=9.5; s.add(c); const nc=new THREE.Mesh(new THREE.ConeGeometry(0.79,2.4,20),white); nc.position.y=19.45; s.add(nc);
+      const nz=cyl(0.45,0.7,1.2,dark); nz.position.y=0.4; s.add(nz); s.position.set(Math.cos(a)*2.72,0.5,Math.sin(a)*2.72); g.add(s); parts.srb.push(s); }
+    const bt=cyl(2.7,1.905,1.6,white); bt.position.y=34.3; g.add(bt); parts.stage1.push(bt);
+    const cen=cyl(1.525,1.525,12.7,M(0xd9d9d6,{metalness:0.5,roughness:0.35})); cen.position.y=35.1+6.35; g.add(cen); parts.stage2.push(cen);
+    const rl=cyl(0.35,0.75,1.6,dark); rl.position.y=34.5; g.add(rl); parts.stage2.push(rl);
+    sc.position.y=47.9; g.add(sc); parts.sc=sc;
+    for(const s of [1,-1]){ const h=new THREE.Group();
+      const c=new THREE.Mesh(new THREE.CylinderGeometry(2.7,2.7,13.5,24,1,true,s>0?0:Math.PI,Math.PI),white); c.position.y=35.1+6.75; h.add(c);
+      const o=new THREE.Mesh(new THREE.CylinderGeometry(0.5,2.7,8.2,24,1,true,s>0?0:Math.PI,Math.PI),white); o.position.y=35.1+13.5+4.1; h.add(o);
+      white.side=THREE.DoubleSide; g.add(h); h.userData.dir=s; parts.fair.push(h); }
+    g.userData.h=58;
+  } else {
+    const R=1.22, sr=m.heavy?0.585:0.51, sl=m.heavy?14.7:13;
+    const b=cyl(R,R,26,teal); b.position.y=13.6; g.add(b); parts.stage1.push(b);
+    const band=cyl(R+0.01,R+0.01,3,white); band.position.y=24; g.add(band); parts.stage1.push(band);
+    const n=cyl(0.7,1.0,1.2,dark); n.position.y=0.6; g.add(n); parts.stage1.push(n);
+    for(let i=0;i<9;i++){ const a=i*40*Math.PI/180, s=new THREE.Group(); const c=cyl(sr,sr,sl,white); c.position.y=sl/2+0.6; s.add(c);
+      const nc=new THREE.Mesh(new THREE.ConeGeometry(sr,1.6,16),white); nc.position.y=sl+1.4; s.add(nc);
+      s.position.set(Math.cos(a)*(R+sr),0,Math.sin(a)*(R+sr)); g.add(s); (i%3===2?parts.srb2:parts.srb).push(s); }
+    const s2=cyl(R,R,6,M(0xdedede,{metalness:0.3})); s2.position.y=26.6+3; g.add(s2); parts.stage2.push(s2);
+    const s3=cyl(0.62,0.62,2.1,M(0x333333)); s3.position.y=33.7; g.add(s3); parts.stage3.push(s3);
+    sc.position.y=34.8; g.add(sc); parts.sc=sc;
+    for(const s of [1,-1]){ const h=new THREE.Group();
+      const c=new THREE.Mesh(new THREE.CylinderGeometry(1.45,1.45,6.5,24,1,true,s>0?0:Math.PI,Math.PI),white); c.position.y=32.6+3.25; h.add(c);
+      const o=new THREE.Mesh(new THREE.CylinderGeometry(0.35,1.45,3.6,24,1,true,s>0?0:Math.PI,Math.PI),white); o.position.y=32.6+6.5+1.8; h.add(o);
+      white.side=THREE.DoubleSide; g.add(h); h.userData.dir=s; parts.fair.push(h); }
+    g.userData.h=43;
+  }
+  const pl=new THREE.Group(); const flame=sprite(GLOW,14,0xffc070); flame.position.y=-6; pl.add(flame);
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(2.2,22,16,1,true),new THREE.MeshBasicMaterial({color:0xffb35a,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false}));
+  cone.rotation.x=Math.PI; cone.position.y=-11; pl.add(cone); g.add(pl); parts.plume=pl;
+  g.userData.parts=parts; return g;
+}
+
+/* ================= ESCENA 1: DESPEGUE (Tierra) ================= */
+const S1=new THREE.Scene(), C1=new THREE.PerspectiveCamera(50,1,0.002,4e6);
+const earth=new THREE.Mesh(new THREE.SphereGeometry(RE,384,192),new THREE.MeshPhongMaterial({map:earthTex,shininess:8,specular:0x222222}));
+S1.add(earth);
+const atmo=new THREE.Mesh(new THREE.SphereGeometry(RE*1.015,96,64),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vP=p.xyz;gl_Position=projectionMatrix*p;}',
+  fragmentShader:'varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(-vP),vN)),3.0);gl_FragColor=vec4(0.35,0.6,1.0,1.0)*f*1.4;}'}));
+S1.add(atmo); S1.add(stars(3000,3e6));
+const sun1=new THREE.DirectionalLight(0xffffff,2.6); S1.add(sun1); S1.add(new THREE.AmbientLight(0x404858,1.2)); S1.add(new THREE.HemisphereLight(0xbfd8ff,0x2a3020,0.8));
+const padG=new THREE.Group(); S1.add(padG);
+let R1=null, launchFrame=null;
+
+function buildLaunch(m){
+  if(R1){ S1.remove(R1); } padG.clear();
+  launchFrame=frame(m.lat,m.lon,llE);
+  const {up,e,n}=launchFrame, az=m.az*Math.PI/180;
+  launchFrame.dir=e.clone().multiplyScalar(Math.sin(az)).add(n.clone().multiplyScalar(Math.cos(az))).normalize();
+  const P=up.clone().multiplyScalar(RE);
+  // terreno local: plataforma, torre, costa
+  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),up);
+  const loc=new THREE.Group(); loc.position.copy(P); loc.quaternion.copy(q); padG.add(loc);
+  const yawFix=new THREE.Group(); loc.add(yawFix);
+  const eLoc=e.clone().applyQuaternion(q.clone().invert()); yawFix.rotation.y=Math.atan2(-eLoc.z,eLoc.x); // +x local = este
+  const gTex=(()=>{const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.fillStyle='#4f6b3a';x.fillRect(0,0,512,512);
+    for(let i=0;i<2500;i++){x.fillStyle=`rgba(${60+Math.random()*40|0},${80+Math.random()*50|0},${40+Math.random()*30|0},.5)`;x.fillRect(Math.random()*512,Math.random()*512,3+Math.random()*8,3+Math.random()*8);}
+    x.fillStyle='#d8cfb4';x.fillRect(330,0,30,512); x.fillStyle='#1f4f6e';x.fillRect(360,0,152,512); return new THREE.CanvasTexture(c);})();
+  gTex.colorSpace=THREE.SRGBColorSpace;
+  const ground=new THREE.Mesh(new THREE.CircleGeometry(6,64),new THREE.MeshStandardMaterial({map:gTex,roughness:1,transparent:true,opacity:1}));
+  ground.rotation.x=-Math.PI/2; ground.position.y=0.0005; ground.rotation.z=0; yawFix.add(ground);
+  const pad=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.1,0.006,40),M(0x9a9a96,{roughness:1})); pad.position.y=0.003; yawFix.add(pad);
+  const tw=new THREE.Mesh(new THREE.BoxGeometry(0.012,0.07,0.012),M(m.rocket==='atlas'?0x6a6f74:0xb8402e,{roughness:0.8,wireframe:false})); tw.position.set(-0.02,0.035,0); yawFix.add(tw);
+  if(m.rocket==='atlas'){ const vif=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.09,0.035),M(0xd8d8d0)); vif.position.set(-0.6,0.045,0.2); yawFix.add(vif); }
+  // cohete (metros → km)
+  R1=rocket(m); R1.scale.setScalar(0.001); S1.add(R1);
+  R1.position.copy(P); R1.quaternion.copy(q);
+  // Sol según la fecha (punto subsolar)
+  const d=new Date(m.tL), eq=AE.Equator(AE.Body.Sun,d,new AE.Observer(0,0,0),true,true), gst=AE.SiderealTime(d);
+  let slon=((eq.ra-gst)*15+540)%360-180; sun1.position.copy(llE(eq.dec,slon,1e5));
+  C1.position.copy(P).add(up.clone().multiplyScalar(0.02)).add(n.clone().multiplyScalar(-0.1)).add(e.clone().multiplyScalar(0.09));
+  ctl1.target.copy(P).add(up.clone().multiplyScalar(0.03)); C1.up.copy(up); ctl1.update();
+  lastRocketPos.copy(R1.position);
+}
+const lastRocketPos=new THREE.Vector3();
+function launchState(m,tS){ // tS segundos desde el despegue
+  const {up,dir}=launchFrame, t=Math.max(0,tS), last=m.asc[m.asc.length-1][0];
+  let alt,v,dr;
+  if(t<=last){ alt=interp(m.asc,t,1); v=interp(m.asc,t,2); dr=drAt(m.ascDR,t); }
+  else { const k=t-last; v=m.asc[m.asc.length-1][2]; alt=m.asc[m.asc.length-1][1]+k*7; dr=drAt(m.ascDR,last)+k*2.5; }
+  const th=dr/RE, pos=up.clone().multiplyScalar(Math.cos(th)).add(dir.clone().multiplyScalar(Math.sin(th))).multiplyScalar(RE+alt);
+  return {alt,v,dr,pos};
+}
+function updateLaunch(m,tS){
+  if(!R1) return; const p=R1.userData.parts, st=launchState(m,tS), st2=launchState(m,tS+1);
+  const prev=R1.position.clone(); R1.position.copy(st.pos);
+  const ru=st.pos.clone().normalize(), tg=st2.pos.clone().sub(st.pos); tg.sub(ru.clone().multiplyScalar(tg.dot(ru)));
+  if(tg.lengthSq()<1e-14) tg.copy(launchFrame.dir); tg.normalize(); const pt=m.pitch(Math.max(0,Math.min(tS,m.sep)));
+  const fw=ru.multiplyScalar(Math.cos(pt)).add(tg.multiplyScalar(Math.sin(pt))).normalize();
+  R1.quaternion.slerp(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),fw),tS<1?1:0.15);
+  const ev=m.asc, T=k=>ev[k][0], A=m.rocket==='atlas';
+  const srbOff=A?T(4):T(5), srb2Off=A?T(4):T(6), s1Off=A?T(7):T(8), fairOff=A?T(5):T(9);
+  p.srb.forEach(s=>s.visible=tS<srbOff); p.srb2.forEach(s=>s.visible=tS<srb2Off);
+  p.stage1.forEach(s=>s.visible=tS<s1Off);
+  p.fair.forEach(h=>{ const k=Math.max(0,tS-fairOff); h.visible=k<25; h.position.x=h.userData.dir*k*1.2; h.rotation.z=-h.userData.dir*Math.min(0.9,k*0.08); });
+  const sepT=m.sep; p.stage2.forEach(s=>s.visible=tS<(A?sepT:T(12))); p.stage3.forEach(s=>s.visible=tS<sepT);
+  // propulsión encendida
+  let burn=false; if(tS>=0){ if(A) burn=tS<T(6)||(tS>T(8)&&tS<T(9))||(tS>T(10)&&tS<T(11));
+    else burn=tS<T(7)||(tS>T(8)&&tS<T(10))||(tS>T(11)&&tS<T(12))||(tS>T(13)&&tS<T(14)); }
+  p.plume.visible=burn; const plY=A?(tS<T(7)?0:34):(tS<T(8)?0:(tS<T(12)?26.6:32.6)); p.plume.position.y=plY;
+  p.plume.scale.setScalar(tS<(A?T(4):T(6))?1.3:0.7);
+  if(tS>sepT){ const k=tS-sepT; p.sc.position.y=(A?47.9:34.8)+k*0.4; }
+  else p.sc.position.y=A?47.9:34.8;
+  // cámara: sigue al cohete, se aleja con la altura
+  const d=R1.position.clone().sub(prev); C1.position.add(d); ctl1.target.copy(R1.position);
+  const want=Math.min(2500,Math.max(0.14,st.alt*0.04+0.14)), cur=C1.position.distanceTo(ctl1.target);
+  if(!userZoom1) C1.position.sub(ctl1.target).multiplyScalar(THREE.MathUtils.lerp(cur,want,0.05)/cur).add(ctl1.target);
+  C1.up.copy(R1.position).normalize();
+  // escala visual cuando la cámara está lejos
+  R1.scale.setScalar(0.001*Math.max(1,C1.position.distanceTo(R1.position)/0.25));
+  const sky=Math.max(0,1-st.alt/70); renderer.setClearColor(new THREE.Color(0x000000).lerp(new THREE.Color(0x6f9fd8),sky*sky));
+  padG.visible=st.alt<200;
+  return st;
+}
+const ctl1=new OrbitControls(C1,canvas); ctl1.enableDamping=true; ctl1.minDistance=0.03; let userZoom1=false; ctl1.addEventListener('start',()=>userZoom1=false);
+canvas.addEventListener('wheel',()=>{userZoom1=true;userZoomE=true;},{passive:true});
+
+/* ================= ESCENA 2: VIAJE INTERPLANETARIO ================= */
+const S2=new THREE.Scene(), C2=new THREE.PerspectiveCamera(45,1,0.01,1e5), U=100; // 1 UA = 100
+S2.add(stars(4000,5e4)); S2.add(new THREE.AmbientLight(0x404050,0.6));
+const sunL=new THREE.PointLight(0xffffff,3,0,0); S2.add(sunL);
+const sunM=new THREE.Mesh(new THREE.SphereGeometry(3,32,24),new THREE.MeshBasicMaterial({color:0xffe9a8})); S2.add(sunM); S2.add(sprite(GLOW,26,0xffd27a));
+const toV=r=>new THREE.Vector3(r[0]*U,r[2]*U,-r[1]*U);
+const earth2=new THREE.Mesh(new THREE.SphereGeometry(1.4,48,32),new THREE.MeshPhongMaterial({map:earthTex})); S2.add(earth2);
+const mars2=new THREE.Mesh(new THREE.SphereGeometry(1.0,48,32),new THREE.MeshPhongMaterial({map:marsTex})); S2.add(mars2);
+const orbE=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x4f8cff,transparent:true,opacity:0.55})); S2.add(orbE);
+const orbM=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xff7a45,transparent:true,opacity:0.55})); S2.add(orbM);
+const pathAll=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineDashedMaterial({color:0x9fdcff,dashSize:1.2,gapSize:1.2,transparent:true,opacity:0.5})); S2.add(pathAll);
+const pathDone=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x6fd3ff})); S2.add(pathDone);
+const gE=sprite(GLOW,7,0x6fa8ff), gM=sprite(GLOW,6,0xff8a4c); earth2.add(gE); mars2.add(gM);
+const lab2=['Tierra','Marte','Sol','nave'].map(t=>{const d=document.createElement('div');d.className='lbl';d.textContent=t;d.hidden=true;document.body.appendChild(d);return d;});
+const craft2=new THREE.Group(); S2.add(craft2); const craftDot=sprite(GLOW,5,0x9fe6ff); craft2.add(craftDot);
+const ctl2=new OrbitControls(C2,canvas); ctl2.enableDamping=true; ctl2.minDistance=3; ctl2.maxDistance=2000;
+let follow2=false;
+function buildCruise(m){
+  const pts=n=>{const a=[];return a;};
+  const eP=[],mP=[]; for(let i=0;i<=366;i++) eP.push(toV(helio(AE.Body.Earth,new Date(m.tSep+i*86400e3)).r));
+  for(let i=0;i<=687;i+=2) mP.push(toV(helio(AE.Body.Mars,new Date(m.tEntry-(687-i)*86400e3)).r));
+  orbE.geometry.setFromPoints(eP); orbM.geometry.setFromPoints(mP);
+  const P=[]; for(let i=0;i<=600;i++) P.push(toV(kepler(m.r1,m.v1,m.cruiseDays*i/600).r));
+  pathAll.geometry.setFromPoints(P); pathAll.computeLineDistances(); pathDone.geometry.setFromPoints(P); m._P=P;
+  C2.position.set(0,300,220); ctl2.target.set(0,0,0); ctl2.update(); lab2[3].textContent=m.name;
+  craft2.clear(); craft2.add(craftDot); const sc=spacecraft(m); sc.scale.setScalar(0.25); craft2.add(sc);
+}
+function cruiseState(m,t){
+  const dd=Math.max(0,Math.min(m.cruiseDays,(t-m.tSep)/864e5)); const k=kepler(m.r1,m.v1,dd);
+  const d=new Date(t), E=helio(AE.Body.Earth,d), Ma=helio(AE.Body.Mars,d);
+  return {day:dd, r:k.r, v:nrm(k.v)*KMS, dSun:nrm(k.r)*AU_KM, dE:nrm(add(k.r,E.r,-1))*AU_KM, dM:nrm(add(k.r,Ma.r,-1))*AU_KM, E, Ma};
+}
+function updateCruise(m,t){
+  const s=cruiseState(m,t), d=new Date(t);
+  earth2.position.copy(toV(s.E.r)); mars2.position.copy(toV(s.Ma.r));
+  earth2.rotation.y+=0.01; mars2.rotation.y+=0.01;
+  craft2.position.copy(toV(s.r)); craft2.lookAt(0,0,0);
+  const i=Math.round(600*s.day/m.cruiseDays); pathDone.geometry.setDrawRange(0,Math.max(2,i+1));
+  if(follow2){ const off=C2.position.clone().sub(ctl2.target); ctl2.target.lerp(craft2.position,0.15); C2.position.copy(ctl2.target).add(off); }
+  renderer.setClearColor(0x000000); return s;
+}
+
+/* ================= ESCENA 3: MARTE (llegada y superficie) ================= */
+const S3=new THREE.Scene(), C3=new THREE.PerspectiveCamera(50,1,0.0005,1e6);
+const marsG=new THREE.Mesh(new THREE.SphereGeometry(RM,320,200),new THREE.MeshStandardMaterial({map:marsTex,roughness:1,metalness:0})); S3.add(marsG);
+const matmo=new THREE.Mesh(new THREE.SphereGeometry(RM*1.012,96,64),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vP=p.xyz;gl_Position=projectionMatrix*p;}',
+  fragmentShader:'varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(-vP),vN)),3.0);gl_FragColor=vec4(1.0,0.62,0.4,1.0)*f*0.9;}'}));
+S3.add(matmo); S3.add(stars(3000,9e5));
+const sun3=new THREE.DirectionalLight(0xfff1e0,2.4); S3.add(sun3); S3.add(new THREE.AmbientLight(0x5a4030,0.7));
+const local3=new THREE.Group(); S3.add(local3);
+const veh=new THREE.Group(); S3.add(veh);
+const ctl3=new OrbitControls(C3,canvas); ctl3.enableDamping=true; ctl3.minDistance=0.006; let userZoomE=false;
+let marsFrame=null, VP={};
+const siteMarkers=[]; MISSIONS.forEach(m=>{ const s=sprite(GLOW,120,0xffb070); s.position.copy(llM(m.slat,m.slon,RM*1.003)); s.userData.m=m; S3.add(s); siteMarkers.push(s); });
+const labels=MISSIONS.map(m=>{const d=document.createElement('div');d.className='lbl';d.textContent=m.name;document.body.appendChild(d);return d;});
+
+function terrainTex(){ const c=document.createElement('canvas'); c.width=c.height=1024; const x=c.getContext('2d');
+  x.fillStyle='#a8603a'; x.fillRect(0,0,1024,1024);
+  for(let i=0;i<9000;i++){ const r=Math.random(); x.fillStyle=`rgba(${120+r*70|0},${60+r*40|0},${35+r*25|0},.35)`; const s=2+Math.random()*14; x.fillRect(Math.random()*1024,Math.random()*1024,s,s); }
+  for(let i=0;i<70;i++){ const cx=Math.random()*1024,cy=Math.random()*1024,r=4+Math.pow(Math.random(),3)*90;
+    const g=x.createRadialGradient(cx,cy,r*0.2,cx,cy,r); g.addColorStop(0,'rgba(70,35,20,.45)'); g.addColorStop(0.8,'rgba(90,45,25,.2)'); g.addColorStop(0.93,'rgba(215,150,105,.55)'); g.addColorStop(1,'rgba(200,130,90,0)');
+    x.fillStyle=g; x.beginPath(); x.arc(cx,cy,r,0,7); x.fill(); }
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+const TT=terrainTex();
+function edlVehicle(m){
+  const g=new THREE.Group(), D=m.aero, P={};
+  const shell=new THREE.Group(); g.add(shell); P.shell=shell;
+  const hs=cyl(D*0.5,D*0.12,D*0.2,M(0x6b4a33,{roughness:0.9})); hs.rotation.x=Math.PI; hs.position.y=-D*0.1; P.hs=hs; g.add(hs);
+  const bs=cyl(D*0.18,D*0.5,D*0.62,M(0xe6e6e2,{roughness:0.8})); bs.position.y=D*0.31; shell.add(bs);
+  const cs=cyl(D*0.45,D*0.45,D*0.13,M(0xb9bcc4,{metalness:0.6})); cs.position.y=D*0.68; g.add(cs); P.cs=cs;
+  const plasma=sprite(PLASMA,D*3.2,0xffffff); plasma.position.y=-D*0.3; g.add(plasma); P.plasma=plasma;
+  const trail=new THREE.Mesh(new THREE.ConeGeometry(D*0.55,D*7,24,1,true),new THREE.MeshBasicMaterial({color:0xff7a3a,transparent:true,opacity:0.0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+  trail.position.y=D*3.2; g.add(trail); P.trail=trail;
+  const ch=new THREE.Group(); const cd=m.chute;
+  const can=new THREE.Mesh(new THREE.SphereGeometry(cd/2,32,12,0,Math.PI*2,0,Math.PI*0.42),new THREE.MeshStandardMaterial({color:0xf3efe6,side:THREE.DoubleSide,roughness:0.9}));
+  can.position.y=cd*1.7; ch.add(can);
+  const band=new THREE.Mesh(new THREE.CylinderGeometry(cd*0.37,cd*0.37,cd*0.12,32,1,true),new THREE.MeshStandardMaterial({color:0xd0442c,side:THREE.DoubleSide})); band.position.y=cd*1.62; ch.add(band);
+  const lg=[]; for(let i=0;i<16;i++){const a=i/16*Math.PI*2; lg.push(Math.cos(a)*cd*0.37,cd*1.58,Math.sin(a)*cd*0.37, 0,D*0.62,0);}
+  const lgeo=new THREE.BufferGeometry(); lgeo.setAttribute('position',new THREE.Float32BufferAttribute(lg,3)); ch.add(new THREE.LineSegments(lgeo,new THREE.LineBasicMaterial({color:0xcccccc})));
+  g.add(ch); P.chute=ch;
+  // vehículo de aterrizaje
+  const lander=new THREE.Group(); g.add(lander); P.lander=lander;
+  const plume=new THREE.Group(); P.plume=plume;
+  if(m.edl==='sky'){
+    const ds=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.7,2.6),M(0xc9b48a,{metalness:0.5,roughness:0.4})); lander.add(ds);
+    for(let i=0;i<8;i++){ const a=(i+0.5)/8*Math.PI*2, nz=cyl(0.12,0.22,0.4,M(0x333333)); nz.position.set(Math.cos(a)*1.8,-0.35,Math.sin(a)*1.5); lander.add(nz);
+      const f=sprite(GLOW,1.6,0x9fc6ff); f.position.set(Math.cos(a)*1.8,-1.0,Math.sin(a)*1.5); plume.add(f); }
+    lander.add(plume);
+    const rv=rover(m); rv.position.y=-1.3; lander.add(rv); P.rover=rv;
+    const cab=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xdddddd})); lander.add(cab); P.cables=cab;
+  } else if(m.edl==='retro'){
+    const deck=cyl(0.75,0.75,0.35,M(0xd6c9a8,{metalness:0.4}),10); lander.add(deck);
+    for(let i=0;i<3;i++){ const a=i/3*Math.PI*2, leg=cyl(0.04,0.04,1.1,M(0x999999)); leg.position.set(Math.cos(a)*0.75,-0.45,Math.sin(a)*0.75); leg.rotation.z=Math.cos(a)*0.35; leg.rotation.x=-Math.sin(a)*0.35; lander.add(leg);
+      const foot=cyl(0.14,0.14,0.04,M(0x999999)); foot.position.set(Math.cos(a)*0.95,-0.98,Math.sin(a)*0.95); lander.add(foot); }
+    for(let i=0;i<12;i++){ const a=i/12*Math.PI*2, f=sprite(GLOW,0.7,0xffd6a0); f.position.set(Math.cos(a)*0.6,-0.6,Math.sin(a)*0.6); plume.add(f); }
+    lander.add(plume);
+    const arrs=new THREE.Group(); for(const s of [1,-1]){ const p=cyl(0.95,0.95,0.03,M(0x1c2d63,{metalness:0.4,roughness:0.3}),10); p.position.set(s*1.75,0.2,0); arrs.add(p);} lander.add(arrs); P.arrays=arrs;
+    const arm=cyl(0.04,0.04,2.3,M(0xeeeeee)); arm.rotation.z=1.2; arm.position.set(0.3,0.5,0.9); lander.add(arm); P.arm=arm;
+  } else {
+    const bag=new THREE.Group(); for(let i=0;i<24;i++){ const v=new THREE.Vector3().randomDirection().multiplyScalar(1.6);
+      const b=new THREE.Mesh(new THREE.SphereGeometry(1.0,16,12),M(0xe8e0cc,{roughness:0.95})); b.position.copy(v); bag.add(b); }
+    lander.add(bag); P.bags=bag;
+    const tet=new THREE.Mesh(new THREE.TetrahedronGeometry(1.6),M(0xaaaaaa)); lander.add(tet); P.tet=tet;
+    for(let i=0;i<3;i++){ const a=i/3*Math.PI*2, f=sprite(GLOW,2.2,0xffd6a0); f.position.set(Math.cos(a)*0.9,-3,Math.sin(a)*0.9); plume.add(f); }
+    P.radPlume=plume; shell.add(plume); plume.position.y=0.4;
+    const br=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xdddddd})); g.add(br); P.bridle=br;
+    const rv=rover(m); rv.visible=false; P.rover=rv; lander.add(rv);
+    const pet=new THREE.Group(); for(let i=0;i<3;i++){ const p=new THREE.Mesh(new THREE.CircleGeometry(1.6,3),M(0x9a9a9a,{side:THREE.DoubleSide})); p.rotation.x=-Math.PI/2; p.rotation.z=i*2.094;
+      p.position.set(Math.cos(i*2.094+Math.PI)*1.6,-1.3,Math.sin(i*2.094+Math.PI)*1.6); pet.add(p);} pet.visible=false; lander.add(pet); P.petals=pet;
+  }
+  g.userData.P=P; return g;
+}
+function rover(m){
+  const g=new THREE.Group(), big=m.edl==='sky', s=big?1:0.55, w=M(0x2b2b2b), body=M(0xdcd6c8,{metalness:0.3});
+  const b=new THREE.Mesh(new THREE.BoxGeometry(2.0*s,0.7*s,2.8*s),body); b.position.y=0.95*s; g.add(b);
+  for(const x of [-1,1]) for(const z of [-1,0,1]){ const wh=cyl(0.26*s,0.26*s,0.4*s,w,18); wh.rotation.z=Math.PI/2; wh.position.set(x*1.25*s,0.26*s,z*1.15*s); g.add(wh); }
+  const mast=cyl(0.06*s,0.06*s,1.4*s,body); mast.position.set(0.5*s,1.9*s,-1.1*s); g.add(mast);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.5*s,0.25*s,0.3*s),body); head.position.set(0.5*s,2.65*s,-1.1*s); g.add(head);
+  if(big){ const rtg=cyl(0.3,0.3,0.9,M(0x4a4a4a)); rtg.rotation.x=1.0; rtg.position.set(0,1.2,1.6); g.add(rtg); }
+  else { const sp=new THREE.Mesh(new THREE.BoxGeometry(2.6*s,0.04,3.2*s),M(0x1c2d63,{metalness:0.4,roughness:0.3})); sp.position.y=1.32*s; g.add(sp); }
+  return g;
+}
+let V3=null;
+function buildMars(m){
+  if(V3) veh.remove(V3); V3=edlVehicle(m); veh.add(V3);
+  local3.clear();
+  marsFrame=frame(m.slat,m.slon,llM); const {up,e,n}=marsFrame;
+  const az=(80+((m.slon*7)%40))*Math.PI/180; marsFrame.dir=e.clone().multiplyScalar(Math.sin(az)).add(n.clone().multiplyScalar(Math.cos(az))).normalize();
+  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),up); marsFrame.q=q;
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(30,96),new THREE.ShaderMaterial({transparent:true,depthWrite:true,uniforms:{map:{value:TT}},
+    vertexShader:'varying vec2 vU;varying float vR;void main(){vU=uv;vR=length(position.xy)/30.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:'uniform sampler2D map;varying vec2 vU;varying float vR;void main(){vec3 a=texture2D(map,vU*6.0).rgb;vec3 b=texture2D(map,vU*90.0).rgb;vec3 c=mix(a,b,0.45);gl_FragColor=vec4(pow(c,vec3(2.2))*1.0,1.0-smoothstep(0.55,1.0,vR));}'}));
+  disc.rotation.x=-Math.PI/2; const L=new THREE.Group(); L.position.copy(up.clone().multiplyScalar(RM+0.0001)); L.quaternion.copy(q); L.add(disc); local3.add(L);
+  // piedras
+  const rk=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.001,0),M(0x7a4a30,{roughness:1}),400), mm=new THREE.Matrix4();
+  for(let i=0;i<400;i++){ const r=Math.sqrt(Math.random())*0.25, a=Math.random()*7, s=0.1+Math.pow(Math.random(),4)*1.4;
+    mm.compose(new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r),new THREE.Quaternion().random(),new THREE.Vector3(s,s*0.6,s)); rk.setMatrixAt(i,mm); }
+  L.add(rk); marsFrame.L=L;
+  sun3.position.copy(up.clone().multiplyScalar(1).add(e.clone().multiplyScalar(-0.9)).add(n.clone().multiplyScalar(0.3)).multiplyScalar(1e5));
+  // trayectoria total de la llegada: recorrido horizontal hasta el contacto
+  marsFrame.DRtot=drAt(m.edlDR,m.prof.td);
+  siteMarkers.forEach(s=>{ s.material.color.set(s.userData.m===m?0xffe0a0:0xff9a60); });
+  labels.forEach((l,i)=>l.classList.toggle('sel',MISSIONS[i]===m));
+  setMarsCamera(true);
+}
+function edlPos(m,tE){
+  const {up,dir}=marsFrame, P=m.prof.ev, last=m.prof.td;
+  const alt=interp(P.filter(e=>e[0]<=last),Math.min(tE,last),1), v=interp(P.filter(e=>e[0]<=last),Math.min(tE,last),2);
+  const dr=drAt(m.edlDR,Math.min(tE,last))-marsFrame.DRtot, th=dr/RM;
+  return { alt, v, pos: up.clone().multiplyScalar(Math.cos(th)).add(dir.clone().multiplyScalar(Math.sin(th))).multiplyScalar(RM+alt+0.0015) };
+}
+let edlCamInit=false;
+function setMarsCamera(edl){
+  const {up,e,n}=marsFrame;
+  if(edl){ edlCamInit=false; }
+  else { C3.position.copy(up.clone().multiplyScalar(RM*2.6)).add(n.clone().multiplyScalar(-RM*0.5)); ctl3.target.set(0,0,0); C3.up.set(0,1,0); ctl3.minDistance=RM*1.15; ctl3.update(); }
+}
+const kv=(m,key)=>{const e=m.prof.ev.find(x=>x[4]===key);return e?e[0]:1e9;};
+function updateEDL(m,tE){
+  const P=V3.userData.P, D=m.aero, s=edlPos(m,tE), s2=edlPos(m,tE+1), {up,dir}=marsFrame;
+  const td=m.prof.td, tChute=kv(m,'chute'), tShield=kv(m,'shield'), tBack=kv(m,'backshell');
+  const shellOff=tE>=tBack?(tE-tBack)*12:0;
+  P.cs.visible=tE<kv(m,'cruiseSep');
+  const heat=Math.max(0,Math.sin(Math.PI*THREE.MathUtils.clamp((tE-5)/190,0,1))); P.plasma.material.opacity=heat; P.plasma.visible=heat>0.01;
+  P.plasma.scale.setScalar(D*(2+heat*2.5)); P.trail.material.opacity=heat*0.45;
+  P.hs.visible=tE<tShield+15; P.hs.position.y=-D*0.1-(tE>tShield?(tE-tShield)**2*1.86:0);
+  P.chute.visible=tE>=tChute && tE<tBack+20; if(P.chute.visible){ const k=Math.min(1,(tE-tChute)/1.5); P.chute.scale.set(0.2+0.8*k,1,0.2+0.8*k); }
+  P.shell.visible=tE<tBack+15; P.shell.position.y=shellOff; P.chute.position.y=shellOff;
+  let clr=0.0015, extra=null;
+  if(m.edl==='sky'){
+    const crane=kv(m,'crane'), L=tE>crane?Math.min(7.6,(tE-crane)/(td-crane)*7.6):0;
+    let ly=0,lx=0; if(tE>td){ const k=tE-td; ly=k*k*0.6; lx=k*k*0.8; }
+    P.lander.visible=tE>=tShield; P.lander.position.set(lx,ly,0); P.rover.position.set(-lx,-1.3-L-ly,0);
+    const away=tE>td+30; P.lander.children.forEach(c=>{ if(c!==P.rover) c.visible=!away; });
+    P.plume.visible=!away && tE>=tBack+2 && tE<td+20; clr=0.0089;
+    const cp=[]; if(tE>crane && tE<kv(m,'fly')){ const r=P.rover.position; for(const [x,z] of [[0.6,0.6],[-0.6,0.6],[0,-0.7]]) cp.push(x,-0.35,z, r.x+x,r.y+0.8,r.z+z); }
+    P.cables.geometry.setAttribute('position',new THREE.Float32BufferAttribute(cp,3));
+  } else if(m.edl==='retro'){
+    P.lander.visible=tE>=tShield; P.plume.visible=tE>=tBack && tE<td+1; clr=0.001;
+    P.arrays.visible=tE>td+900; P.arm.visible=tE>td+1800;
+  } else {
+    const tBr=kv(m,'bridle'), tBags=kv(m,'bags'), tRad=kv(m,'rad'), tCut=kv(m,'cut'), tStop=kv(m,'stop'), tPet=kv(m,'petals');
+    const drop=tE>=tBr?Math.min(20,(tE-tBr)*2):0; V3.userData.drop=tE<tCut?drop:0;
+    P.lander.visible=tE>=tShield;
+    if(tE<tCut){ P.lander.position.y=-drop; clr=0.0026+drop/1000; }
+    else { P.lander.position.y=0; clr=0.0026; const y=20+(tE-tCut)*25; P.shell.position.y=y; P.chute.position.y=y; P.shell.visible=tE<tCut+15; P.chute.visible=tE<tCut+20; }
+    P.bags.visible=tE>=tBags && tE<tPet; P.bags.scale.setScalar(Math.min(1,Math.max(0.05,(tE-tBags)/2)));
+    P.radPlume.visible=tE>=tRad && tE<tRad+2.5;
+    const bl=[]; if(tE>=tBr && tE<tCut) bl.push(0,0,0, 0,-drop,0); P.bridle.geometry.setAttribute('position',new THREE.Float32BufferAttribute(bl,3));
+    P.tet.visible=tE<tPet; P.petals.visible=tE>=tPet; P.rover.visible=tE>=tPet; P.rover.position.y=-1.25;
+    if(tE>td){ const k=Math.min(tE,tStop)-td, T=tStop-td, u=k/T, ph=u*26, hb=tE<tStop?15*Math.pow(1-u,2.2)*Math.abs(Math.sin(Math.PI*ph)):0;
+      extra=up.clone().multiplyScalar(RM+clr+hb/1000).add(dir.clone().multiplyScalar(0.35*(1-Math.pow(1-u,2)))); }
+  }
+  V3.position.copy(extra || (tE>=td? up.clone().multiplyScalar(RM+clr) : s.pos.clone().setLength(s.pos.length()-0.0015+clr)));
+  // orientación: escudo hacia la velocidad mientras es hipersónico; luego vertical
+  const vel=s2.pos.clone().sub(s.pos); const qVel=vel.lengthSq()>1e-12?new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,-1,0),vel.normalize()):marsFrame.q.clone();
+  V3.quaternion.copy(qVel).slerp(marsFrame.q,THREE.MathUtils.clamp((tE-tChute)/12,0,1));
+  if(tE>td){ V3.quaternion.copy(marsFrame.q); if(m.edl==='bags' && tE<kv(m,'stop')) V3.rotateX((tE-td)*1.3); }
+  V3.scale.setScalar(0.001);
+  // cámara de persecución
+  if(!edlCamInit){ const {e,n}=marsFrame; C3.position.copy(V3.position).add(e.clone().multiplyScalar(-0.03)).add(marsFrame.up.clone().multiplyScalar(0.01)).add(n.clone().multiplyScalar(-0.02));
+    ctl3.target.copy(V3.position); ctl3.minDistance=0.004; edlCamInit=true; userZoomE=false; }
+  const aim=V3.position.clone().add(marsFrame.up.clone().multiplyScalar(V3.userData.P.chute.visible?(m.edl==='bags'?(m.chute*1.7-(V3.userData.drop||0))/2000:m.chute*0.0009):0));
+  const d=aim.sub(ctl3.target); ctl3.target.add(d); C3.position.add(d);
+  const want = tE>td? (m.edl==='bags'?0.03:0.022) : (tE>tChute? 0.045 + (m.chute/1000)*2 : 0.035);
+  const cur=C3.position.distanceTo(ctl3.target); if(!userZoomE) C3.position.sub(ctl3.target).multiplyScalar(THREE.MathUtils.lerp(cur,want,0.04)/cur).add(ctl3.target);
+  C3.up.copy(marsFrame.up);
+  const sky=THREE.MathUtils.clamp(1-s.alt/45,0,1); renderer.setClearColor(new THREE.Color(0x000000).lerp(new THREE.Color(0xc8a07a),sky*0.9));
+  return s;
+}
+
+/* ================= ESTADO, RELOJ Y CONTROLES ================= */
+let mis=MISSIONS[0], simT=0, speed=1, paused=false, view='launch', auto=true, curScene=null;
+const SPEEDS=[[0,'⏸'],[1,'×1'],[10,'×10'],[20,'×20'],[50,'×50'],[100,'×100'],[1000,'×1.000'],[1e4,'×10.000'],[1e5,'×100.000'],[1e6,'×1 millón']];
+SPEEDS.forEach(([v,l])=>{ const b=document.createElement('button'); b.textContent=l; b.dataset.s=v; b.onclick=()=>setSpeed(v); $('speeds').appendChild(b); });
+function setSpeed(v){ if(v===0){ paused=!paused; } else { speed=v; paused=false; }
+  [...$('speeds').querySelectorAll('button')].forEach(b=>b.setAttribute('aria-pressed', (+b.dataset.s===0?paused:(!paused&&+b.dataset.s===speed))+'')); }
+const JUMPS=[['Despegue',m=>m.tL-30e3],['Separación',m=>m.tSep-20e3],['Mitad del viaje',m=>(m.tSep+m.tEntry)/2],['Llegada (E−10 min)',m=>m.tEntry-600e3],['Paracaídas',m=>m.tEntry+(kv(m,'chute')-15)*1e3],['Aterrizaje',m=>m.tTouch-40e3],['En Marte',m=>m.tTouch+86400e3]];
+JUMPS.forEach(([l,f])=>{ const b=document.createElement('button'); b.textContent=l; b.onclick=()=>{ jump(f(mis)); if(l==='Mitad del viaje') setSpeed(1e5); else if(l!=='En Marte') setSpeed(1); }; $('jumps').appendChild(b); });
+function jump(t){ simT=t; auto=true; $('auto').setAttribute('aria-pressed','true'); userZoom1=userZoomE=false; edlCamInit=false; slowed=false; }
+$('views').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{ auto=false; $('auto').setAttribute('aria-pressed','false'); setView(b.dataset.v); });
+$('auto').onclick=()=>{ auto=!auto; $('auto').setAttribute('aria-pressed',auto+''); };
+function setView(v){ if(v===view && curScene) return; view=v; $('views').querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v===v)+''));
+  if(v==='mars') setMarsCamera(false); if(v==='edl') edlCamInit=false; if(v==='cruise'){ follow2=false; C2.position.set(0,300,220); ctl2.target.set(0,0,0); }
+  [ctl1,ctl2,ctl3].forEach(c=>c.enabled=false); ({launch:ctl1,cruise:ctl2,edl:ctl3,mars:ctl3})[v].enabled=true; curScene=v; }
+MISSIONS.forEach(m=>{ const b=document.createElement('button'); b.className='mis'; b.innerHTML=`<b>${m.name}</b><span>${m.year} · ${m.rocketName}</span>`; b.onclick=()=>selectMission(m); m.btn=b; $('missions').appendChild(b); });
+function selectMission(m){ mis=m; MISSIONS.forEach(x=>x.btn.setAttribute('aria-pressed',(x===m)+''));
+  buildLaunch(m); buildCruise(m); buildMars(m); buildLog(m); jump(m.tL-30e3); setSpeed(1); view=''; setView('launch');
+  try{ history.replaceState(null,'','#'+m.id); }catch(e){} }
+function buildLog(m){ const ol=$('log'); ol.innerHTML=''; m.events.forEach(ev=>{ const li=document.createElement('li'); li.innerHTML=`<i>${relLabel(m,ev.t)}</i>${ev.txt}`; li.onclick=()=>{ jump(ev.t-(ev.ph==='cruise'?0:8e3)); setSpeed(ev.ph==='cruise'?1e5:1); }; ev.li=li; ol.appendChild(li); }); }
+const pad2=n=>String(Math.floor(n)).padStart(2,'0');
+function hms(s){ s=Math.abs(s); const d=Math.floor(s/86400); s-=d*86400; return (d?d+' d ':'')+pad2(s/3600)+':'+pad2(s/60%60)+':'+pad2(s%60); }
+function relLabel(m,t){ if(t<m.tSep+600e3) return 'T'+(t<m.tL?'−':'+')+hms((t-m.tL)/1000);
+  if(t<m.tEDL) return 'Día '+Math.floor((t-m.tSep)/864e5)+' del viaje'; return 'E'+(t<m.tEntry?'−':'+')+hms((t-m.tEntry)/1000); }
+const fmt=(x,d=0)=>x.toLocaleString('es-EC',{maximumFractionDigits:d,minimumFractionDigits:d});
+function rows(arr){ $('rows').innerHTML=arr.map(([a,b])=>`<div class="row"><span>${a}</span><b>${b}</b></div>`).join(''); }
+let toastT=0; function toast(t){ const el=$('toast'); el.textContent=t; el.hidden=false; el.style.opacity=1; clearTimeout(toastT); toastT=setTimeout(()=>{el.style.opacity=0;setTimeout(()=>el.hidden=true,450);},4200); }
+let slowed=false, lastEv=null;
+
+function phaseOf(m,t){ if(t<m.tSep+120e3) return 'launch'; if(t<m.tEDL) return 'cruise'; if(t<m.tTouch+600e3 || (m.edl==='bags'&&t<m.tEntry+(kv(m,'stop')+120)*1e3)) return 'edl'; return 'mars'; }
+
+/* ================= BUCLE ================= */
+let lastF=performance.now();
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); [C1,C2,C3].forEach(c=>{c.aspect=w/h;c.updateProjectionMatrix();}); }
+addEventListener('resize',resize); resize();
+function loop(now){
+  requestAnimationFrame(loop); const dt=Math.min(0.1,(now-lastF)/1000); lastF=now; const m=mis;
+  if(!paused) simT+=dt*1000*speed;
+  simT=Math.max(m.tL-120e3,Math.min(simT,m.tTouch+400*86400e3));
+  // al llegar a Marte se baja la velocidad para no perderse la entrada
+  if(!slowed && simT>=m.tEDL-30e3 && simT<m.tTouch && speed>100 && !paused){ simT=Math.max(simT,m.tEDL-30e3); slowed=true; setSpeed(10); toast('Llegando a Marte: velocidad reducida a ×10 para ver la entrada.'); }
+  if(simT<m.tEDL-30e3) slowed=false;
+  const ph=phaseOf(m,simT); if(auto) setView(ph);
+  const tS=(simT-m.tL)/1000, tE=(simT-m.tEntry)/1000;
+  // reloj
+  const pName={launch:'Despegue · '+m.pad,cruise:'Viaje interplanetario',edl:'Entrada, descenso y aterrizaje',mars:'En la superficie de Marte'}[ph];
+  $('phase').textContent=pName; $('met').textContent=relLabel(m,simT);
+  $('utc').textContent=new Date(simT).toISOString().replace('T',' ').slice(0,19)+' UTC';
+  // evento actual
+  let cur=null; for(const ev of m.events){ if(ev.t<=simT) cur=ev; else break; }
+  m.events.forEach(ev=>{ ev.li.className= ev===cur?'now':(ev.t<=simT?'past':''); });
+  if(cur!==lastEv){ lastEv=cur; if(cur && cur.li){ cur.li.scrollIntoView({block:'nearest'}); } }
+  const evEl=$('event'); if(cur && simT-cur.t<(ph==='cruise'?86400e3*3:40e3)*Math.max(1,speed/10)){ evEl.hidden=false; evEl.textContent=cur.txt; } else evEl.hidden=true;
+  // escenas
+  let scene,cam,ctl;
+  if(view==='launch'){ const st=updateLaunch(m,tS); scene=S1; cam=C1; ctl=ctl1;
+    $('teleH').textContent='Telemetría del cohete · '+m.rocketName;
+    rows([['Altitud',fmt(st.alt,st.alt<10?2:0)+' km'],['Velocidad',fmt(st.v*3600)+' km/h'],['Recorrido sobre la Tierra',fmt(st.dr)+' km'],['Plataforma',m.pad+', Cabo Cañaveral']]);
+    $('tnote').textContent='Perfil de ascenso nominal aproximado (interpolado entre eventos publicados).';
+  } else if(view==='cruise'){ const st=updateCruise(m,Math.max(simT,m.tSep)); scene=S2; cam=C2; ctl=ctl2;
+    $('teleH').textContent='Viaje · '+m.full;
+    rows([['Día del viaje',fmt(st.day,1)+' de '+fmt(m.cruiseDays,0)],['Distancia a la Tierra',fmt(st.dE)+' km'],['Distancia a Marte',fmt(st.dM)+' km'],['Distancia al Sol',fmt(st.dSun/AU_KM,3)+' UA'],
+      ['Velocidad (respecto al Sol)',fmt(st.v*3600)+' km/h'],['Retraso de la señal',fmt(st.dE/C_KMS/60,1)+' min'],['Camino total',fmt(m.pathKm/1e6)+' millones de km']]);
+    $('tnote').textContent=`Trayectoria calculada (Lambert) con las posiciones reales de la Tierra y Marte. Energía de lanzamiento calculada C3 = ${fmt(m.c3,1)} km²/s².`;
+  } else { const tEe=view==='mars'?Math.max(tE,m.prof.td+4000):tE;
+    if(view==='edl'){ const st=updateEDL(m,tE); scene=S3; cam=C3; ctl=ctl3;
+      $('teleH').textContent='Llegada · '+m.name+' → '+m.site;
+      rows([['Altitud',st.alt>=1?fmt(st.alt,1)+' km':fmt(st.alt*1000,0)+' m'],['Velocidad',fmt(st.v*3600)+' km/h'],['Tiempo desde la entrada',(tE<0?'−':'+')+hms(tE)],
+        ['La Tierra lo ve',fmt(m.owlt/60,1)+' min después'],['Masa del '+(m.edl==='retro'?'módulo':'rover'),m.mass]]);
+      $('tnote').textContent='Valores nominales aproximados de los kits de prensa. Cuando la señal llegó a la Tierra, el vehículo ya estaba en el suelo: los "7 minutos de terror".';
+    } else { V3.visible=false; scene=S3; cam=C3; ctl=ctl3; renderer.setClearColor(0x000000);
+      $('teleH').textContent=m.name+' · '+m.site;
+      const sol=Math.max(0,(simT-m.tTouch)/88775244);
+      rows([['Coordenadas',fmt(Math.abs(m.slat),2)+'° '+(m.slat>=0?'N':'S')+', '+fmt(m.slon,2)+'° E'],['Aterrizó',new Date(m.tTouch).toISOString().slice(0,16).replace('T',' ')+' UTC'],['Sol (día marciano)',fmt(sol,1)],['Viaje',fmt(m.cruiseDays,0)+' días']]);
+      $('tnote').innerHTML=`<div class="info"><p>${m.find}</p><p><b>Estado:</b> ${m.status}</p></div>`;
+    }
+    if(view==='mars'){ marsG.rotation.y=0; }
+    V3.visible = view==='edl';
+  }
+  ctl.update();
+  [earth2,mars2,sunM,craft2].forEach((o,i)=>{ const l=lab2[i]; if(view!=='cruise'){l.hidden=true;return;} const p=o.position.clone().project(C2);
+    l.hidden=p.z>1; l.style.left=((p.x+1)/2*innerWidth)+'px'; l.style.top=((1-p.y)/2*innerHeight)+'px'; l.classList.toggle('sel',i===3); });
+  // etiquetas de los sitios en Marte
+  labels.forEach((l,i)=>{ if(view!=='mars'){ l.hidden=true; return; } const p=siteMarkers[i].position.clone(), cn=p.clone().normalize(), toC=C3.position.clone().sub(p).normalize();
+    if(cn.dot(toC)<0.05){ l.hidden=true; return; } p.project(C3); l.hidden=false; l.style.left=((p.x+1)/2*innerWidth)+'px'; l.style.top=((1-p.y)/2*innerHeight)+'px'; });
+  siteMarkers.forEach(s=>{ s.visible=view==='mars'; const k=s.userData.m===m?1+0.25*Math.sin(now/300):0.7; s.scale.set(140*k,140*k,1); });
+  local3.visible=view==='edl';
+  renderer.render(scene,cam);
+}
+canvas.addEventListener('dblclick',()=>{ if(view==='cruise'){ follow2=!follow2; toast(follow2?'Siguiendo a la nave (doble clic para soltar).':'Vista libre del sistema solar.'); } });
+const start=MISSIONS.find(m=>'#'+m.id===location.hash)||MISSIONS[0];
+selectMission(start);
+requestAnimationFrame(loop);
+window.__mars={MISSIONS,get mis(){return mis;},jump,setSpeed,setView,get simT(){return simT;}};
+</script>
+</body>
+</html>
