@@ -118,8 +118,8 @@ const SIM='../cabo-canaveral/marte/';
 const SITES=[
  {id:'m2020',name:'Perseverance',sub:'+ helicóptero Ingenuity',st:'ok',lat:18.4446,lon:77.4509,place:'Cráter Jezero',date:'18 feb 2021',full:true,model:'perse'},
  {id:'msl',name:'Curiosity',st:'ok',lat:-4.5895,lon:137.4417,place:'Cráter Gale',date:'6 ago 2012',full:true,model:'curio'},
- {id:'mera',name:'Spirit',st:'end',lat:-14.5684,lon:175.4726,place:'Cráter Gusev',date:'4 ene 2004'},
- {id:'merb',name:'Opportunity',st:'end',lat:-1.9462,lon:354.4734,place:'Meridiani Planum',date:'25 ene 2004'},
+ {id:'mera',name:'Spirit',st:'end',lat:-14.5684,lon:175.4726,place:'Cráter Gusev',date:'4 ene 2004',full:true,model:'mer'},
+ {id:'merb',name:'Opportunity',st:'end',lat:-1.9462,lon:354.4734,place:'Meridiani Planum',date:'25 ene 2004',full:true,model:'mer'},
  {id:'phx',name:'Phoenix',st:'end',lat:68.2188,lon:234.2508,place:'Vastitas Borealis',date:'25 may 2008'},
  {id:'insight',name:'InSight',st:'end',lat:4.502,lon:135.623,place:'Elysium Planitia',date:'26 nov 2018'},
  {id:'vk1',name:'Viking 1',st:'end',lat:22.27,lon:312.05,place:'Chryse Planitia',date:'20 jul 1976'},
@@ -131,12 +131,33 @@ const SITES=[
  {id:'mars2',name:'Mars 2',st:'bad',lat:-45,lon:313,place:'Hellas (aprox.)',date:'27 nov 1971'},
  {id:'mars6',name:'Mars 6',st:'bad',lat:-23.9,lon:340.6,place:'Margaritifer Terra',date:'12 mar 1974'},
  {id:'mpl',name:'Mars Polar Lander',st:'bad',lat:-76.57,lon:165.2,place:'Cerca del polo sur (zona prevista)',date:'3 dic 1999'},
- {id:'schia',name:'Schiaparelli',st:'bad',lat:-2.05,lon:353.79,place:'Meridiani Planum',date:'19 oct 2016'},
+ {id:'schia',name:'Schiaparelli',st:'bad',lat:-2.05,lon:353.79,place:'Meridiani Planum',date:'19 oct 2016',below:true},
 ];
 const COL={ok:0x7ee2a8,end:0xffcf6b,bad:0xff7a6b}, STX={ok:'Funcionando',end:'Misión terminada',bad:'Se estrelló o se perdió'};
 
 /* ============ FICHAS COMPLETAS ============ */
+const MERHOW=`<p>Spirit y Opportunity eran gemelos idénticos: geólogos robot del tamaño de un carrito de golf (1,6 m de largo, 185 kg).</p><ul>
+   <li><b>Energía solar:</b> paneles de 1,3 m² en forma de alas daban unos 900 Wh por día al principio. El polvo los iba tapando, y los remolinos de viento ("dust devils") a veces los limpiaban.</li>
+   <li><b>Calor:</b> 8 pequeñas pastillas radiactivas (RHU) y calentadores eléctricos mantenían viva la electrónica en noches de −100 °C.</li>
+   <li><b>Ruedas:</b> 6 ruedas con suspensión rocker‑bogie; velocidad máxima de 5 cm por segundo.</li>
+   <li><b>Pancam:</b> cámaras a color en un mástil de 1,5 m, a la altura de los ojos de una persona. <b>Mini‑TES</b> veía el calor de las rocas en infrarrojo.</li>
+   <li><b>Brazo:</b> con una lupa (Microscopic Imager), dos espectrómetros (Mössbauer y APXS) y el <b>RAT</b>, una lija de piedra que raspaba la capa de polvo de las rocas.</li>
+   <li><b>Cerebro:</b> una computadora de 20 MHz, miles de veces más lenta que un celular actual.</li></ul>`;
 const INFO={
+ mera:{
+  launch:[['Cohete','Delta II 7925 (Boeing)'],['Plataforma','SLC‑17A, Cabo Cañaveral (Florida)'],['Despegue','10 de junio de 2003, 17:58 UTC'],['Viaje','208 días'],['Sonda que lo llevó','Mars Exploration Rover A: etapa de crucero + cápsula de 2,65 m'],['Aterrizaje','Paracaídas, retrocohetes y bolsas de aire: unos 28 rebotes'],['Masa del rover','185 kg · 1,6 m de largo']],
+  how:MERHOW,
+  story:`<p>Aterrizó en el cráter Gusev, que desde la órbita parecía el fondo de un lago. Al llegar encontró sobre todo lava basáltica: la sorpresa obligó a manejar 3 km hasta unas colinas que llamaron Columbia Hills, en honor a los 7 astronautas del transbordador Columbia.</p>
+   <p>A los 18 días casi se pierde por un problema de memoria; lo arreglaron a distancia. Subió la colina Husband Hill y en 2006 se le trabó la rueda delantera derecha, así que manejó en reversa arrastrándola.</p>
+   <p>Esa rueda arrastrada destapó en 2007 un suelo blanco de sílice casi pura, que en la Tierra se forma en aguas termales o con vapor volcánico: una de las señales más fuertes de ambientes habitables.</p>
+   <p>En mayo de 2009 quedó atrapado en arena blanda ("Troy"). Siguió trabajando como estación fija hasta su último mensaje, el 22 de marzo de 2010. Debía durar 90 soles y duró más de 2.200.</p>`},
+ merb:{
+  launch:[['Cohete','Delta II 7925H (versión Heavy, con sólidos más grandes)'],['Plataforma','SLC‑17B, Cabo Cañaveral (Florida)'],['Despegue','8 de julio de 2003, 03:18 UTC (noche del 7 en Florida)'],['Viaje','201 días'],['Sonda que lo llevó','Mars Exploration Rover B: etapa de crucero + cápsula de 2,65 m'],['Aterrizaje','Paracaídas, retrocohetes y bolsas de aire: rodó dentro del cráter Eagle'],['Masa del rover','185 kg · 1,6 m de largo']],
+  how:MERHOW,
+  story:`<p>Fue un "hoyo en uno": después de rebotar, rodó y se metió en el pequeño cráter Eagle, de 22 m, justo frente a una pared de roca en capas.</p>
+   <p>Ahí encontró esferitas de hematita que los científicos llamaron "arándanos". Se forman en agua: fue la prueba de que en Meridiani hubo agua líquida.</p>
+   <p>Después exploró los cráteres Endurance y Victoria, y en 2011 llegó al gigante Endeavour, de 22 km. Allí halló vetas de yeso depositadas por agua. En 2015 superó la distancia de un maratón (42 km).</p>
+   <p>En junio de 2018 una tormenta de polvo que cubrió todo el planeta tapó el Sol y lo dejó sin energía. La NASA envió más de 1.000 comandos y dio por terminada la misión el 13 de febrero de 2019. Debía durar 90 soles y duró casi 15 años, con 45,16 km recorridos.</p>`},
  m2020:{
   launch:[['Cohete','Atlas V 541 (United Launch Alliance)'],['Plataforma','SLC‑41, Cabo Cañaveral (Florida)'],['Despegue','30 de julio de 2020, 11:50 UTC'],['Viaje','203 días'],['Sonda que lo llevó','Mars 2020: etapa de crucero + cápsula de 4,5 m'],['Aterrizaje','Grúa aérea con navegación por terreno'],['Masa del rover','1.025 kg · 3 m de largo']],
   how:`<p>Es un laboratorio de geología con ruedas, del tamaño de un auto pequeño.</p><ul>
@@ -240,7 +261,7 @@ const ctl=new OrbitControls(cam,canvas); ctl.enableDamping=true; ctl.minDistance
 cam.position.copy(ll(10,100,3.6)); ctl.update();
 const dotTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle='#fff';x.beginPath();x.arc(32,32,20,0,7);x.fill();x.lineWidth=5;x.strokeStyle='rgba(0,0,0,.6)';x.stroke();return new THREE.CanvasTexture(c);})();
 const markers=SITES.map(s=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:dotTex,color:COL[s.st],depthTest:true})); sp.position.copy(ll(s.lat,s.lon,R*1.004)); sp.scale.setScalar(0.035); sp.userData.s=s; scene.add(sp);
-  const l=document.createElement('div'); l.className='lbl'; l.textContent=s.name; l.onclick=()=>select(s); document.body.appendChild(l); s.lbl=l; s.sp=sp; return sp; });
+  const l=document.createElement('div'); l.className='lbl'; l.textContent=s.name; if(s.below) l.style.transform='translate(-50%,60%)'; l.onclick=()=>select(s); document.body.appendChild(l); s.lbl=l; s.sp=sp; return sp; });
 let sel=null, fly=null;
 function select(s){
   sel=s; SITES.forEach(x=>x.lbl.classList.toggle('sel',x===s));
@@ -301,7 +322,7 @@ const Mt=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:0.55,metaln
 const box=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m), cy=(r1,r2,h,m,s=20)=>new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,s),m);
 function rodBetween(a,b,r,m){ const d=b.clone().sub(a), c=cy(r,r,d.length(),m,8); c.position.copy(a).add(b).multiplyScalar(0.5); c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); return c; }
 function buildRobot(kind){
-  robot.clear(); robot.userData.rot=null; const P=kind==='perse';
+  robot.clear(); robot.userData.rot=null; robot.scale.setScalar(1); const P=kind==='perse', MER=kind==='mer';
   const body=Mt(P?0xe9e4d8:0xd9d2c0), alu=Mt(0xb9bcc2,{metalness:0.7,roughness:0.35}), dark=Mt(0x2a2a2c), gold=Mt(0xc9a34a,{metalness:0.8,roughness:0.3});
   // chasis (caja "WEB")
   const ch=box(1.9,0.5,2.6,body); ch.position.y=1.0; robot.add(ch);
@@ -327,7 +348,7 @@ function buildRobot(kind){
   // generador nuclear (MMRTG) atrás, con aletas
   const rtg=new THREE.Group(); const core=cy(0.22,0.22,0.8,Mt(0x3a3a3a,{metalness:0.4}),16); rtg.add(core);
   for(let k=0;k<8;k++){ const f=box(0.02,0.8,0.36,Mt(0x2e2e2e)); const a=k/8*Math.PI*2; f.position.set(Math.cos(a)*0.24,0,Math.sin(a)*0.24); f.rotation.y=-a; rtg.add(f); }
-  rtg.rotation.x=-0.9; rtg.position.set(0,1.45,1.55); robot.add(rtg);
+  rtg.rotation.x=-0.9; rtg.position.set(0,1.45,1.55); if(!MER) robot.add(rtg);
   // brazo robótico con torreta
   const sh=new THREE.Vector3(0.6,1.05,-1.35), el=new THREE.Vector3(0.45,1.5,-2.2), wr2=new THREE.Vector3(0.1,0.85,-2.55);
   robot.add(rodBetween(sh,el,0.06,alu)); robot.add(rodBetween(el,wr2,0.055,alu));
@@ -343,6 +364,16 @@ function buildRobot(kind){
     const rot=[]; for(const y of [0.55,0.7]){ const r=box(1.2,0.008,0.08,Mt(0x33302c)); r.position.y=y; ing.add(r); rot.push(r); }
     for(let k=0;k<4;k++){ const a=k/4*Math.PI*2+0.78; ing.add(rodBetween(new THREE.Vector3(0,0.25,0),new THREE.Vector3(Math.cos(a)*0.3,0,Math.sin(a)*0.3),0.008,Mt(0xdddddd))); }
     ing.position.set(2.4,0,-0.6); robot.add(ing); robot.userData.rot=rot;
+  } else if(MER){ // alas de paneles solares, mástil Pancam más alto, sin generador nuclear
+    const sol=Mt(0x1a2a5c,{metalness:0.5,roughness:0.25}), frame=Mt(0xd8d8d8);
+    const sh=new THREE.Shape([[-1.2,-1.5],[1.2,-1.5],[1.25,1.0],[0.6,1.7],[-0.6,1.7],[-1.25,1.0]].map(p=>new THREE.Vector2(p[0],p[1])));
+    const main=new THREE.Mesh(new THREE.ShapeGeometry(sh),sol); main.rotation.x=-Math.PI/2; main.position.y=1.31; robot.add(main);
+    for(const sx of [-1,1]){ const w=box(1.0,0.03,1.6,sol); w.position.set(sx*1.75,1.31,0.5); robot.add(w); const e=box(1.02,0.035,0.04,frame); e.position.set(sx*1.75,1.31,1.3); robot.add(e); }
+    const w2=box(1.6,0.03,0.7,sol); w2.position.set(0,1.31,2.05); robot.add(w2);
+    robot.add(rodBetween(new THREE.Vector3(0.55,2.15,mz),new THREE.Vector3(0.55,2.45,mz),0.05,body)); head.position.y=2.55; laser.visible=false;
+    robot.children.filter(c=>c.position.y>2.1&&c.position.y<2.3&&Math.abs(c.position.z-mz+0.19)<0.02).forEach(c=>c.position.y+=0.36);
+    const lga=cy(0.02,0.02,0.7,frame,6); lga.position.set(-0.75,1.66,0.9); robot.add(lga);
+    robot.scale.setScalar(0.62);
   } else { // ChemCam y estación meteorológica
     const rems=rodBetween(new THREE.Vector3(0.55,1.6,mz),new THREE.Vector3(0.85,1.6,mz),0.02,alu); robot.add(rems);
   }
