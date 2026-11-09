@@ -101,7 +101,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 <aside class="cat panel" aria-label="Catálogo de misiones">
   <h2>Todo lo que llegó a la Luna</h2>
   <p class="sub">Cara visible, desde 1959, en 3 grupos y de 3 en 3 por fecha. Toca una misión para verla en el mapa. Abajo, los mares.</p>
-  <a class="go" href="apollo/" style="margin:0 0 8px">Misiones Apollo completas: Apollo 8 (10 vueltas a la Luna) y Apollo 11 →</a>
+  <a class="go" href="apollo/" style="margin:0 0 8px">Misiones Apollo completas: 8, 11, 12 y 13 →</a>
   <div class="scroll" id="cat"></div>
 </aside>
 
@@ -124,7 +124,7 @@ const $=id=>document.getElementById(id);
 const S=(id,name,g,lat,lon,date,place,who,o={})=>({id,name,g,lat,lon,date,place,who,...o});
 const SITES=[
  S('a11','Apollo 11','crew',0.674,23.473,'20 jul 1969','Mar de la Tranquilidad','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
- S('a12','Apollo 12','crew',-3.012,-23.422,'19 nov 1969','Océano de las Tormentas','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
+ S('a12','Apollo 12','crew',-3.012,-23.422,'19 nov 1969','Océano de las Tormentas','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
  S('a14','Apollo 14','crew',-3.645,-17.471,'5 feb 1971','Fra Mauro','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
  S('a15','Apollo 15','crew',26.132,3.634,'30 jul 1971','Hadley‑Apeninos','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
  S('a16','Apollo 16','crew',-8.973,15.5,'21 abr 1972','Altiplanicie Descartes','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
@@ -179,6 +179,12 @@ const INFO={
    <p>El piloto automático los llevaba a un cráter lleno de rocas. Armstrong tomó el control manual y voló el Eagle más lejos hasta encontrar un lugar plano. Alunizaron con unos 45 segundos de combustible antes del límite (en ese momento se creyó que eran 25).</p>
    <p>"Houston, aquí Base Tranquilidad. El Águila ha alunizado." Seis horas y media después, Armstrong bajó la escalera: "Es un pequeño paso para un hombre, un gran salto para la humanidad". Caminaron 2 horas y 31 minutos y trajeron 21,5 kg de roca y suelo.</p>`,
   prof:{name:'Eagle',td:756,ev:[[0,15200,1690,0,'Inicio del descenso propulsado (PDI), a 15 km de altura'],[317,10200,1150,-25,'Alarma 1202: la computadora está sobrecargada; Houston dice que sigan'],[507,2300,150,-35,'"High gate": el Eagle se endereza y por fin ven el suelo'],[605,150,15,-6,'Armstrong toma el control manual para evitar un cráter con rocas'],[700,30,2,-0.8,'El motor levanta polvo'],[745,3,0.5,-0.5,'"Luz de contacto": las sondas de las patas tocan el suelo'],[756,0,0,0,'"El Águila ha alunizado"']]}},
+ a12:{ launch:[['Cohete','Saturn V (SA‑507)'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','14 de noviembre de 1969, 16:22 UTC, bajo lluvia: le cayeron 2 rayos'],['Viaje','3,5 días hasta la órbita lunar; 45 vueltas'],['Nave','Yankee Clipper (módulo de mando) e Intrepid (módulo lunar)'],['Tripulación','Pete Conrad, Alan Bean y Richard Gordon (en órbita)'],['Alunizaje','19 de noviembre de 1969, 06:54 UTC']],
+  how:LMHOW+`<p>El Apollo 12 probó el <b>alunizaje de precisión</b>: el objetivo era bajar junto a la sonda robótica Surveyor 3, que estaba allí desde 1967. Lo lograron a unos 180 m. También dejaron la primera estación científica completa (ALSEP), alimentada por una batería nuclear.</p>`,
+  story:`<p>A los 36 segundos del despegue un rayo cayó sobre el Saturn V y, 16 segundos después, otro. Se apagaron los instrumentos de la nave y en Houston los datos se volvieron basura. El ingeniero John Aaron recordó un caso parecido y pidió "SCE en AUX": Alan Bean encontró ese interruptor casi desconocido y todo volvió a funcionar.</p>
+   <p>Conrad pilotó el Intrepid hasta el borde del "cráter Surveyor". Hicieron 2 caminatas de casi 4 horas cada una, llegaron caminando hasta la sonda y le cortaron la cámara y otras piezas para estudiar en la Tierra cómo les afectaron 2,5 años en la Luna.</p>
+   <p>Al terminar, soltaron al Intrepid y lo hicieron chocar contra la Luna: los sismógrafos registraron vibraciones durante casi una hora, como si la Luna "sonara como una campana".</p>`,
+  prof:{name:'Intrepid',td:718,ev:[[0,15200,1690,0,'Inicio del descenso propulsado (PDI)'],[500,2300,150,-35,'"High gate": el Intrepid se endereza; Conrad ve el "cráter Muñeco de nieve"'],[630,120,10,-4,'Conrad toma el control manual para bajar junto a la Surveyor 3'],[680,30,1.5,-1,'Mucho polvo: alunizan casi a ciegas'],[712,3,0.3,-0.6,'Luz de contacto'],[718,0,0,0,'Alunizaje junto a la Surveyor 3']]}},
  a17:{ launch:[['Cohete','Saturn V (SA‑512)'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','7 de diciembre de 1972, 05:33 UTC: el único despegue nocturno de un Saturn V'],['Viaje','4 días hasta la órbita lunar'],['Nave','America (módulo de mando) y Challenger (módulo lunar)'],['Tripulación','Eugene Cernan, Harrison Schmitt (geólogo) y Ronald Evans (en órbita)'],['Alunizaje','11 de diciembre de 1972, 19:54 UTC']],
   how:LMHOW+`<p>El Apollo 17 llevaba el <b>vehículo lunar (LRV)</b>: un auto eléctrico plegable con ruedas de malla de acero, que recorrió 35,9 km. Con él llegaron a 7,6 km del módulo.</p>`,
   story:`<p>Fue la última misión Apollo y la primera con un científico de verdad: el geólogo Harrison Schmitt. Aterrizaron en un valle profundo entre montañas de más de 2 km, para tomar rocas de las tierras altas y de lava volcánica.</p>
@@ -240,10 +246,10 @@ function openCard(s){
   const coords=`${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${Math.abs(s.lon).toFixed(2)}° ${s.lon>=0?'E':'O'}`;
   if(!I){ $('cbody').innerHTML=`<p>${NOTE[s.id]||''}</p><div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${coords}</b><span>Quién y cómo</span><b>${s.who}</b></div>
     <div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`; return; }
-  buildLM(s.id==='a17'); setPose(1e9,I.prof);
+  buildLM(s.id==='a17', s.id==='a12'); setPose(1e9,I.prof);
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
     <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>
-    ${s.id==='a11'?'<a class="go alt" href="apollo/#a11">Ver la misión completa: Saturn V, viaje, 30 vueltas y regreso →</a>':''}
+    ${s.id==='a11'||s.id==='a12'?`<a class="go alt" href="apollo/#${s.id}">Ver la misión completa: Saturn V, viaje, ${s.id==='a11'?30:45} vueltas y regreso →</a>`:''}
     <p style="font-size:11.5px;color:var(--faint)">Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.</p>`;
   $('cbody').innerHTML=h; $('cbody').scrollTop=0;
   if($('play')) $('play').onclick=()=>startAnim(I.prof);
@@ -270,7 +276,7 @@ const Mt=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:0.5,metalne
 const box=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m), cy=(r1,r2,h,m,s=20)=>new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,s),m);
 function rod(a,b,r,m){ const d=b.clone().sub(a), c=cy(r,r,d.length(),m,8); c.position.copy(a).add(b).multiplyScalar(0.5); c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); return c; }
 let plume=null;
-function buildLM(lrv){
+function buildLM(lrv,sv){
   lm.clear(); stay.clear();
   const gold=Mt(0xc9a03a,{metalness:0.85,roughness:0.35}), blk=Mt(0x2a2a2a), gray=Mt(0xb8b8b2,{metalness:0.5}), alu=Mt(0xcfd2d6,{metalness:0.8,roughness:0.3});
   const ds=cy(2.1,2.1,1.6,gold,8); ds.rotation.y=Math.PI/8; ds.position.y=2.0; lm.add(ds);
@@ -293,6 +299,12 @@ function buildLM(lrv){
   const flag=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.9),new THREE.MeshStandardMaterial({color:0xeeeeee,side:THREE.DoubleSide,emissive:0x222222})); flag.position.set(-4.25,2.0,4); stay.add(flag);
   const stripe=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.1),new THREE.MeshBasicMaterial({color:0xb22234,side:THREE.DoubleSide})); stripe.position.set(-4.25,1.8,4.005); stay.add(stripe);
   const canton=new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.45),new THREE.MeshBasicMaterial({color:0x3c3b6e,side:THREE.DoubleSide})); canton.position.set(-4.7,2.22,4.01); stay.add(canton);
+  if(sv){ const S=new THREE.Group(), w=Mt(0xd8d8d0,{metalness:0.6});
+    const body=cy(0.35,0.35,0.5,w,3); body.position.y=1.0; S.add(body);
+    for(let i=0;i<3;i++){ const a=i/3*Math.PI*2, f=new THREE.Vector3(Math.cos(a)*1.4,0.08,Math.sin(a)*1.4); S.add(rod(new THREE.Vector3(Math.cos(a)*0.3,0.9,Math.sin(a)*0.3),f,0.04,w)); const pd=cy(0.15,0.15,0.08,w,10); pd.position.copy(f); S.add(pd); }
+    S.add(rod(new THREE.Vector3(0,1.2,0),new THREE.Vector3(0,3.2,0),0.04,w)); const sol=box(0.9,0.03,0.7,Mt(0x1a2a5c,{metalness:0.5})); sol.position.y=3.2; sol.rotation.x=0.6; S.add(sol);
+    const cam=cy(0.12,0.12,0.4,Mt(0x444444),12); cam.position.set(0.4,1.2,0.2); cam.rotation.z=0.8; S.add(cam);
+    S.position.set(9,-0.3,6); S.rotation.z=0.12; stay.add(S); }
   if(lrv){ const car=new THREE.Group(); const ch=box(1.8,0.12,3.0,alu); ch.position.y=0.75; car.add(ch);
     for(const x of [-0.95,0.95]) for(const z of [-1.1,1.1]){ const w=cy(0.41,0.41,0.23,Mt(0x5a5a5a,{wireframe:true}),18); w.rotation.z=Math.PI/2; w.position.set(x,0.41,z); car.add(w);
       const fe=box(0.35,0.06,0.9,gray); fe.position.set(x,0.9,z); car.add(fe); }

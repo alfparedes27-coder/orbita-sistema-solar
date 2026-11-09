@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Apollo a la Luna</title>
-<meta name="description" content="Las misiones Apollo 8 y Apollo 11 completas: despegue del Saturn V desde Cabo Cañaveral, viaje a la Luna, vueltas en órbita lunar, alunizaje, regreso y amerizaje, con reloj real y aceleración del tiempo.">
+<meta name="description" content="Las misiones Apollo 8, 11, 12 y 13 completas: despegue del Saturn V desde Cabo Cañaveral, viaje a la Luna, vueltas en órbita lunar, alunizaje, regreso y amerizaje, con reloj real y aceleración del tiempo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -150,7 +150,7 @@ const MISSIONS=[
  { id:'a11', name:'Apollo 11', year:1969, crew:'Neil Armstrong, Buzz Aldrin y Michael Collins', csm:'Columbia (mando) y Eagle (módulo lunar)', launch:'1969-07-16T13:32:00Z', revs:30,
    tliA:G(2,44,16), tliB:G(2,50,3), loi:G(75,49,50), tei:G(135,23,42), ei:G(195,3,6), spl:G(195,18,35), slat:13.32, slon:-169.15, ship:'USS Hornet',
    ins:G(0,11,49), sIC:G(0,2,42), sII:G(0,9,8),
-   und:G(100,12,0), pdi:G(102,33,5), land:G(102,45,40), lift:G(124,22,0), dock:G(128,3,0), jet:G(130,9,31), site:[0.674,23.473],
+   und:G(100,12,0), pdi:G(102,33,5), land:G(102,45,40), lift:G(124,22,0), dock:G(128,3,0), jet:G(130,9,31), site:[0.674,23.473], lmName:'Eagle', siteName:'Base Tranquilidad',
    ev:[[G(3,17,5),'Columbia se separa de la tercera etapa'],[G(3,24,3),'Columbia gira y se acopla al Eagle'],[G(4,16,59),'Sacan al Eagle de la tercera etapa'],[G(26,44,58),'Corrección de rumbo'],
      [G(61,40,0),'Entran en la zona donde manda la gravedad de la Luna'],[G(75,41,0),'Pasan detrás de la Luna: sin contacto'],[G(75,49,50),'Encendido de 5 min 57 s para entrar en órbita lunar'],[G(80,11,36),'Segundo encendido: órbita casi circular'],
      [G(100,12,0),'El Eagle se separa de Columbia: "El Águila tiene alas"'],[G(101,36,14),'El Eagle baja su órbita a 15 km (DOI)'],[G(102,33,5),'Inicio del descenso propulsado'],[G(102,38,22),'Alarma 1202'],[G(102,45,40),'"El Águila ha alunizado"'],
@@ -160,6 +160,31 @@ const MISSIONS=[
      [G(195,12,6),'Se abren los paracaídas de frenado'],[G(195,18,35),'Amerizaje en el Pacífico']],
    slow:[G(75,46,0),G(102,32,0),G(109,22,0),G(124,21,0),G(195,1,0)],
    jumps:[['Despegue',-30],['Inyección a la Luna',G(2,44,0)],['Mitad del viaje',G(38,0,0)],['Órbita lunar',G(75,48,0)],['Alunizaje',G(102,32,0)],['Primer paso',G(109,23,0)],['Despegue lunar',G(124,21,0)],['Regreso',G(135,22,0)],['Amerizaje',G(195,1,0)]] },
+ { id:'a12', name:'Apollo 12', year:1969, crew:'Pete Conrad, Alan Bean y Richard Gordon', csm:'Yankee Clipper (mando) e Intrepid (módulo lunar)', lmName:'Intrepid', launch:'1969-11-14T16:22:00Z', revs:45,
+   tliA:G(2,47,23), tliB:G(2,53,4), loi:G(83,25,23), tei:G(172,27,17), ei:G(244,22,19), spl:G(244,36,25), slat:-15.78, slon:-165.15, ship:'USS Hornet',
+   ins:G(0,11,44), sIC:G(0,2,42), sII:G(0,9,12),
+   und:G(107,54,2), pdi:G(110,20,38), land:G(110,32,36), lift:G(142,3,47), dock:G(145,36,20), jet:G(147,59,31), site:[-3.012,-23.422], siteName:'Océano de las Tormentas',
+   ev:[[36,'¡Un rayo cae sobre el cohete! Se apagan los instrumentos de la nave'],[52,'Segundo rayo'],[96,'"Prueben SCE en AUX": Alan Bean mueve el interruptor y vuelven los datos (aprox.)'],
+     [G(3,18,5),'Yankee Clipper se separa y se acopla al Intrepid'],[G(30,52,44),'Corrección que deja la trayectoria sin retorno libre: la primera vez que se hizo'],
+     [G(83,25,23),'Encendido para entrar en órbita lunar'],[G(107,54,2),'El Intrepid se separa'],[G(110,20,38),'Inicio del descenso propulsado'],[G(110,32,36),'Alunizaje a 180 m de la sonda Surveyor 3, que llevaba 2,5 años allí'],
+     [G(115,10,35),'Primera caminata: Conrad, de 1,68 m: "Puede que haya sido un pequeño paso para Neil, pero para mí es uno grande"'],[G(131,32,45),'Segunda caminata: caminan hasta la Surveyor 3 y le cortan la cámara para traerla'],
+     [G(142,3,47),'Despegue del Intrepid desde la Luna'],[G(145,36,20),'Acoplamiento en órbita lunar'],[G(147,59,31),'Sueltan al Intrepid'],[G(149,55,16),'El Intrepid choca a propósito contra la Luna: los sismógrafos la hacen "sonar" casi 1 hora'],
+     [G(172,27,17),'Encendido para regresar (TEI)'],[G(244,22,19),'Entrada en la atmósfera'],[G(244,36,25),'Amerizaje en el Pacífico; a Bean lo golpea una cámara en la frente']],
+   slow:[0,G(83,23,0),G(110,19,0),G(244,20,0)],
+   jumps:[['Despegue (rayos)',-30],['Inyección a la Luna',G(2,47,0)],['Mitad del viaje',G(40,0,0)],['Órbita lunar',G(83,24,0)],['Alunizaje',G(110,19,0)],['Despegue lunar',G(142,2,0)],['Regreso',G(172,26,0)],['Amerizaje',G(244,20,0)]] },
+ { id:'a13', name:'Apollo 13', year:1970, crew:'Jim Lovell, Jack Swigert y Fred Haise', csm:'Odyssey (mando) y Aquarius (módulo lunar, usado de bote salvavidas)', launch:'1970-04-11T19:13:00Z', revs:0, flyAlt:254,
+   tliA:G(2,35,46), tliB:G(2,41,37), loi:G(77,2,39), tei:G(77,2,39), ei:G(142,40,46), spl:G(142,54,41), slat:-21.63, slon:-165.37, ship:'USS Iwo Jima',
+   ins:G(0,12,40), sIC:G(0,2,44), sII:G(0,9,53), boom:G(55,54,53),
+   ev:[[330,'Se apaga antes de tiempo el motor central de la segunda etapa (vibraciones "pogo"); los otros 4 arden más tiempo para compensar'],
+     [G(3,19,9),'Odyssey se acopla al Aquarius'],[G(30,40,49),'Corrección que los saca de la trayectoria de retorno libre, rumbo al cráter Fra Mauro'],
+     [G(55,54,53),'Explota el tanque de oxígeno 2 del módulo de servicio'],[G(55,55,20),'"Houston, hemos tenido un problema"'],[G(57,40,0),'Apagan Odyssey para ahorrar baterías; los 3 se mudan al Aquarius'],
+     [G(61,29,43),'Encendido del motor del Aquarius: vuelven a la trayectoria de retorno libre'],[G(76,42,0),'Pasan detrás de la Luna: sin contacto'],
+     [G(77,2,39),'Máximo acercamiento: 254 km sobre la cara oculta. A 400.171 km de la Tierra: el récord de distancia para seres humanos'],
+     [G(79,27,39),'Encendido de 4 min 23 s para volver más rápido (PC+2)'],[G(83,0,0),'Arman con cinta y cartón un adaptador para los filtros de CO₂ (aprox.)'],
+     [G(105,18,28),'Corrección a mano, apuntando a la línea entre el día y la noche de la Tierra'],[G(138,1,48),'Sueltan el módulo de servicio y por fin ven el daño'],
+     [G(141,30,0),'Sueltan al Aquarius, el bote salvavidas'],[G(142,40,46),'Entrada en la atmósfera; el apagón de radio dura más de lo normal'],[G(142,54,41),'Amerizaje: los 3 a salvo']],
+   slow:[G(55,53,0),G(77,0,0),G(142,38,0)],
+   jumps:[['Despegue',-30],['Inyección a la Luna',G(2,35,0)],['La explosión',G(55,54,0)],['Detrás de la Luna',G(77,0,0)],['Regreso de emergencia',G(80,0,0)],['Amerizaje',G(142,38,0)]] },
 ];
 function ascent(m){ return [
   [0,0,0,'Despegue: 5 motores F‑1, 3.400 toneladas de empuje'],[12,0.14,0.01,'Libra la torre: el control pasa a Houston'],[66,8,0.33,'Supera la velocidad del sonido'],
@@ -209,13 +234,13 @@ function prep(m){
   m.dr=[]; let dr=0; for(let t=0;t<=m.tliB+1;t++){ dr+=interp(m.asc,t,2)*Math.sin(pitch(t)); m.dr.push(dr); }
   // plano de la órbita lunar y trayectoria de ida (Lambert entre el fin de la TLI y la llegada detrás de la Luna)
   const rm=moonAt(T(m.loi)); NORM=new THREE.Vector3().crossVectors(rm,moonVel(T(m.loi))).normalize(); m.norm=NORM.clone();
-  const rh=rm.clone().normalize(), r2=rm.clone().addScaledVector(rh,RORB), r1=rotAx(rh,m.norm,-170*Math.PI/180).multiplyScalar(RE+334);
+  const rh=rm.clone().normalize(), r2=rm.clone().addScaledVector(rh,m.flyAlt?RM+m.flyAlt:RORB), r1=rotAx(rh,m.norm,-170*Math.PI/180).multiplyScalar(RE+334);
   const L=lambert(r1,r2,m.loi-m.tliB); m.r1=r1; m.v1=L.v1; m.vtli=L.v1.length();
   const vrel=L.v2.clone().sub(moonVel(T(m.loi))); m.vArr=vrel.length();
-  m.loiPhase=0; m.P=(m.tei-m.loi)/m.revs;
+  m.loiPhase=0; m.P=m.revs?(m.tei-m.loi)/m.revs:7200; m.rArr=r2.clone().sub(rm);
   // regreso: Lambert desde la órbita lunar hasta la entrada a la atmósfera sobre el sitio de amerizaje
   const sp=splashAt(m,T(m.ei)), eiP=rotAx(sp.clone().normalize(),m.norm,-20*Math.PI/180).multiplyScalar(RE+122);
-  m.teiR=lunarOrbit(m,T(m.tei)); const L2=lambert(m.teiR,eiP,m.ei-m.tei); m.v2=L2.v1; m.vEI=L2.v2.length(); m.eiP=eiP;
+  m.teiR=m.revs?lunarOrbit(m,T(m.tei)):r2.clone(); const L2=lambert(m.teiR,eiP,m.ei-m.tei); m.v2=L2.v1; m.vEI=L2.v2.length(); m.eiP=eiP;
   m.events=[...m.asc.map(a=>({g:a[0],txt:a[3]})),...m.ev.map(e=>({g:e[0],txt:e[1]}))].sort((a,b)=>a.g-b.g);
   m.events.forEach(e=>e.t=T(e.g));
 }
@@ -231,6 +256,7 @@ function craft(m,t){ const g=(t-m.tL)/1000;
   if(g<m.tliB) return null;
   if(g<m.loi) return {ph:'ida',p:kepler(m.r1,m.v1,g-m.tliB).r};
   if(g<m.tei) return {ph:'orbita',p:lunarOrbit(m,t)};
+  if(!m.revs && g<m.tei+1) return {ph:'regreso',p:m.teiR.clone()};
   if(g<m.ei) return {ph:'regreso',p:kepler(m.teiR,m.v2,g-m.tei).r};
   const k=Math.min(1,(g-m.ei)/(m.spl-m.ei)), alt=interp(REENTRY,g-m.ei,1), sp=splashAt(m,t);
   const p=m.eiP.clone().normalize().lerp(sp.clone().normalize(),Math.pow(k,0.35)).normalize().multiplyScalar(RE+Math.max(0,g>=m.spl?0:alt)+0.01);
@@ -328,6 +354,7 @@ function updateLaunch(m,g){
   if(!userZoom) C1.position.sub(ctl1.target).multiplyScalar(THREE.MathUtils.lerp(cur,want,0.05)/cur).add(ctl1.target);
   C1.up.copy(R1.position).normalize(); R1.scale.setScalar(0.001*Math.max(1,C1.position.distanceTo(R1.position)/0.35));
   const sky=Math.max(0,1-alt/70); renderer.setClearColor(new THREE.Color(0).lerp(new THREE.Color(0x6f9fd8),sky*sky)); padG.visible=alt<200;
+  if(m.id==='a12' && ((g>36.5&&g<36.9)||(g>52&&g<52.3))) renderer.setClearColor(0xf4f0ff); // los rayos
   return {alt,v,dr}; }
 
 /* ================= ESCENA 2: TIERRA–LUNA (1 unidad = 1 km) ================= */
@@ -379,7 +406,7 @@ function setView(v){ if(v===view) return; view=v; $('views').querySelectorAll('[
   ctl1.enabled=v==='launch'; ctl2.enabled=v!=='launch'; userZoom=false;
   if(v!=='launch'){ follow=v==='moon'?'moon':v==='earth'?'craft':'mid'; camInit=true; } }
 let camInit=true;
-MISSIONS.forEach(m=>{ const b=document.createElement('button'); b.className='mis'; b.innerHTML=`<b>${m.name}</b><span>${m.year} · ${m.id==='a8'?'10 vueltas a la Luna':'alunizaje'}</span>`; b.onclick=()=>select(m); m.btn=b; $('missions').appendChild(b); });
+MISSIONS.forEach(m=>{ const b=document.createElement('button'); b.className='mis'; b.innerHTML=`<b>${m.name}</b><span>${m.year} · ${{a8:'10 vueltas a la Luna',a11:'primer alunizaje',a12:'rayos y Surveyor 3',a13:'¡emergencia!'}[m.id]}</span>`; b.onclick=()=>select(m); m.btn=b; $('missions').appendChild(b); });
 function select(m){ mis=m; MISSIONS.forEach(x=>x.btn.setAttribute('aria-pressed',(x===m)+'')); buildLaunch(m); buildSpace(m); buildLog(m); buildJumps(m); jump(m.tL-30e3); setSpeed(1); view=''; setView('launch');
   try{ history.replaceState(null,'','#'+m.id); }catch(e){} }
 function buildJumps(m){ const J=$('jumps'); J.querySelectorAll('button').forEach(b=>b.remove());
@@ -426,18 +453,19 @@ function loop(now){
     const dE=c?c.p.length():0, dM=c?c.p.distanceTo(sp.B.p):0;
     const behind = c && c.ph==='orbita' && c.p.clone().sub(sp.B.p).dot(sp.B.p.clone().negate())<0;
     const rev = Math.min(m.revs,Math.floor((g-m.loi)/m.P)+1);
-    $('phase').textContent={ida:'Viaje a la Luna',orbita:`Órbita lunar · vuelta ${rev} de ${m.revs}`,regreso:'Regreso a la Tierra',entrada:'Entrada en la atmósfera',mar:'En el océano Pacífico'}[c?.ph]||'—';
+    $('phase').textContent=(m.boom&&g>m.boom&&g<m.ei)?'Emergencia: el Aquarius como bote salvavidas':{ida:'Viaje a la Luna',orbita:`Órbita lunar · vuelta ${rev} de ${m.revs}`,regreso:'Regreso a la Tierra',entrada:'Entrada en la atmósfera',mar:'En el océano Pacífico'}[c?.ph]||'—';
     $('teleH').textContent=m.name+' · '+m.csm;
     let speedKm=0; if(c){ const c2=craft(m,simT+1000); if(c2) speedKm=c2.p.distanceTo(c.p); if(c.ph==='orbita') speedKm=2*Math.PI*RORB/m.P; }
     const R=[['Distancia a la Tierra',fmt(Math.max(0,dE-RE))+' km'],['Distancia a la Luna',fmt(Math.max(0,dM-RM))+' km'],['Velocidad',fmt(speedKm*3600)+' km/h']];
     if(c?.ph==='orbita'){ R.unshift(['Vuelta',`${rev} de ${m.revs} (unas 2 h cada una)`]); R.push(['Radio con la Tierra',behind?'Sin señal: detrás de la Luna':'Con señal']); }
     if(c?.ph==='entrada') R.unshift(['Altitud',fmt(c.alt,1)+' km']);
-    const lp=sp.lp; if(lp && m.site){ const gg=g; R.push(['Eagle',gg<m.pdi?'En órbita, separado':gg<m.land?'Descendiendo':gg<m.lift?'En la Base Tranquilidad':gg<m.dock?'Subiendo a la órbita':gg<m.jet?'Acoplado':'Abandonado en órbita']); }
+    if(m.boom&&g>m.boom&&g<m.spl) R.push(['Oxígeno del módulo de servicio','Perdido: viven del Aquarius']);
+    const lp=sp.lp; if(lp && m.site){ const gg=g; R.push([m.lmName,gg<m.pdi?'En órbita, separado':gg<m.land?'Descendiendo':gg<m.lift?'En la Base Tranquilidad':gg<m.dock?'Subiendo a la órbita':gg<m.jet?'Acoplado':'Abandonado en órbita']); }
     R.push(['Retraso de la señal',fmt(dE/299792.458,2)+' s']); rows(R);
     $('tnote').textContent=`Trayectoria calculada con física real entre los tiempos oficiales: con las posiciones reales de la Tierra y la Luna da ${fmt(m.vtli,2)} km/s al terminar la TLI (real: 10,8) y ${fmt(m.vEI,2)} km/s al entrar en la atmósfera (real: 11,0). No es la telemetría cruda.`;
-    place(LBL[0],earth2.position,C2,true); place(LBL[1],sp.B.p,C2,true); LBL[2].textContent=m.id==='a11'?'Columbia':'Apollo 8'; place(LBL[2],csmDot.position,C2,csmDot.visible);
-    LBL[3].textContent='Eagle'; place(LBL[3],lmDot.position,C2,lmDot.visible && view==='moon');
-    place(LBL[4],splashDot.getWorldPosition(new THREE.Vector3()),C2,view==='earth'); place(LBL[5],siteDot.position,C2,siteDot.visible&&view==='moon'&&!lmDot.visible);
+    place(LBL[0],earth2.position,C2,true); place(LBL[1],sp.B.p,C2,true); LBL[2].textContent={a8:'Apollo 8',a11:'Columbia',a12:'Yankee Clipper',a13:'Odyssey + Aquarius'}[m.id]; place(LBL[2],csmDot.position,C2,csmDot.visible);
+    LBL[3].textContent=m.lmName||''; place(LBL[3],lmDot.position,C2,lmDot.visible && view==='moon');
+    place(LBL[4],splashDot.getWorldPosition(new THREE.Vector3()),C2,view==='earth'); LBL[5].textContent=m.siteName||''; place(LBL[5],siteDot.position,C2,siteDot.visible&&view==='moon'&&!lmDot.visible);
   }
   renderer.render(scene,cam);
 }

@@ -1935,7 +1935,7 @@ const MOON_SITES = [
   ['vikram2','Vikram (Chandrayaan‑2)',-70.88,22.78,'hit','6 sep 2019','Cerca del polo sur'],
   ['hakuto','Hakuto‑R M1',47.58,44.09,'hit','25 abr 2023','Cráter Atlas'],
   ['luna25','Luna 25',-57.86,61.36,'hit','19 ago 2023','Cerca del cráter Pontécoulant']
-].map(([id,name,lat,lon,g,date,place])=>({id,name,lat,lon,g,date,place,full:['a11','a17'].includes(id)}));
+].map(([id,name,lat,lon,g,date,place])=>({id,name,lat,lon,g,date,place,full:['a11','a12','a17'].includes(id)}));
 const MOON_MARIA = [['Océano de las Tormentas',18,-57],['Mar de las Lluvias',33,-16],['Mar de la Serenidad',28,17],['Mar de la Tranquilidad',8.5,31],['Mar de las Crisis',17,59],['Mar de la Fecundidad',-8,51],['Mar del Néctar',-15,35],['Mar de las Nubes',-21,-17],['Mar de los Humores',-24,-39],['Mar del Frío',56,0],['Mar de los Vapores',13,4],['Mar Conocido',-10,-23],['Cráter Tycho',-43,-11],['Cráter Copérnico',9.6,-20]];
 const MG = { crew:['#6fd3ff','Con astronautas'], robot:['#ffcf6b','Alunizaje robótico'], hit:['#ff7a6b','Impacto o choque'] };
 const lxy = (lat,lon) => { const f=lat*Math.PI/180, l=lon*Math.PI/180; return [300+290*Math.cos(f)*Math.sin(l), 300-290*Math.sin(f)]; };
@@ -1960,7 +1960,7 @@ function showMoonIntro(){
     <p>${Object.values(MG).map(([c,t])=>`<span style="white-space:nowrap;margin-right:10px"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};margin-right:5px"></i>${t}</span>`).join('')}</p>
     <a class="vtile" href="${SIM_LOCAL ? '' : SIM_SITE}simulaciones/luna/apollo/" target="${SIM_TARGET}" rel="noopener">
       <span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2.5 4.5 6 4.5 10.5L12 17l-4.5-4.5C7.5 8 9 4.5 12 2z"/><circle cx="12" cy="9" r="1.6"/></svg></span>
-      <span class="vtxt"><span class="vk">Simulación · reloj real o acelerado</span><b>Apollo 8 y Apollo 11: la misión completa</b><span>Saturn V desde Cabo Cañaveral, viaje, vueltas a la Luna, alunizaje y amerizaje</span></span></a>
+      <span class="vtxt"><span class="vk">Simulación · reloj real o acelerado</span><b>Apollo 8, 11, 12 y 13: la misión completa</b><span>Saturn V desde Cabo Cañaveral, viaje, vueltas a la Luna, alunizaje, la emergencia del 13 y el amerizaje</span></span></a>
     <a class="sall" href="${SIM_LOCAL ? '' : SIM_SITE}simulaciones/luna/" target="${SIM_TARGET}" rel="noopener">Abrir la Luna en 3D con el catálogo completo ↗</a>`;
 }
 function pickMoon(id){
@@ -1972,7 +1972,7 @@ function pickMoon(id){
       <span class="vtxt"><span class="vk">${k}</span><b>${t}</b><span>${d}</span></span></a>`;
   $('sm-list').innerHTML = `<p>Llegó el <b style="color:var(--ink)">${s.date}</b> · ${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${Math.abs(s.lon).toFixed(2)}° ${s.lon>=0?'E':'O'}</p>` +
     tile(base, s.full ? 'Modelo 3D · ficha' : 'Ficha', s.full ? 'Cómo funciona e historia' : 'Qué fue y qué hizo', s.full ? 'El módulo lunar en 3D, la tripulación, el cohete y lo que encontraron' : 'Fecha, lugar, cohete y lo más importante de la misión') +
-    (s.id==='a11' ? tile((SIM_LOCAL ? '' : SIM_SITE) + 'simulaciones/luna/apollo/#a11', 'Simulación · misión completa', 'Del despegue al amerizaje', 'Saturn V desde LC‑39A, viaje de 3 días, 30 vueltas a la Luna y regreso') : '') +
+    (s.id==='a11'||s.id==='a12' ? tile((SIM_LOCAL ? '' : SIM_SITE) + 'simulaciones/luna/apollo/#' + s.id, 'Simulación · misión completa', 'Del despegue al amerizaje', 'Saturn V desde LC‑39A, viaje de 3 días, ' + (s.id==='a11'?30:45) + ' vueltas a la Luna y regreso') : '') +
     (s.full ? tile(base + '/alunizaje', 'Animación · ×1 a ×50', 'Animación del alunizaje', 'Los 12 minutos del descenso, desde 15 km de altura hasta el contacto') : `<div class="sempty">El modelo 3D y la animación de ${s.name} llegarán en una próxima tanda.</div>`) +
     `<button class="btn" type="button" id="sm-back">← Volver al mapa de la Luna</button>`;
   $('sm-back').onclick = () => { animViewBox([0,0,600,600]); $('sm-svg').setAttribute('class',''); showMoonIntro(); };
