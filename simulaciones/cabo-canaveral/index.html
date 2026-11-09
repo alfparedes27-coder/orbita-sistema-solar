@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Cabo Cañaveral 3D</title>
-<meta name="description" content="Recorrido 3D del Centro Espacial Kennedy y la Estación de la Fuerza Espacial de Cabo Cañaveral: plataformas de la NASA y de SpaceX sobre el mapa satelital real.">
+<meta name="description" content="Recorrido 3D del Centro Espacial Kennedy y la Estación de la Fuerza Espacial de Cabo Cañaveral: plataformas de la NASA y de SpaceX sobre el mapa satelital real, a pie o desde el aire.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -86,6 +86,35 @@ button{cursor:pointer}
 .tbtn{height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line-strong);background:rgba(255,255,255,.03);display:inline-flex;align-items:center;gap:6px;font:600 11.5px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;color:var(--ink);text-decoration:none}
 .tbtn:hover{border-color:var(--sol)}
 
+#tour{position:absolute;left:var(--gutL);bottom:calc(var(--bot) + 34px);width:min(420px,calc(100% - 32px));max-height:calc(100% - 150px);overflow-y:auto;padding:16px 16px 14px;z-index:3}
+#tour h2{margin:6px 32px 8px 0;font:600 21px/1.15 var(--f-display)}
+#tour p{margin:0 0 12px;color:#c6cedd;font-size:13.5px;line-height:1.55}
+#tour .tlist{display:flex;flex-direction:column;gap:6px}
+#tour .tlist button{text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line-strong);background:rgba(255,255,255,.03);font:600 13.5px/1.3 var(--f-display);color:var(--ink)}
+#tour .tlist button:hover{border-color:var(--sol)}
+#tour .tlist span{display:block;font:400 12px/1.35 var(--f-body);color:var(--dim);margin-top:3px}
+#tour .close{position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--dim);font-size:17px;line-height:1}
+.dots{display:flex;gap:5px;margin:2px 0 12px}.dots i{width:18px;height:4px;border-radius:2px;background:var(--line-strong)}.dots i.on{background:var(--sol)}
+.walking #places,.walking #info,.walking #tour,.walking #hint{display:none!important}
+.walking #gl{cursor:crosshair}
+.hudbtn[aria-pressed="true"]{border-color:var(--sol);background:rgba(255,181,71,.14)}
+#walkui{position:absolute;inset:0;pointer-events:none}
+#walkui>*{pointer-events:auto}
+#joy{position:absolute;left:calc(var(--gutL) + 8px);bottom:calc(var(--bot) + 44px);width:120px;height:120px;border-radius:50%;background:rgba(10,14,24,.5);border:1px solid var(--line-strong);touch-action:none;display:none}
+#knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(255,181,71,.85);box-shadow:0 4px 18px rgba(0,0,0,.4)}
+.wbar{position:absolute;right:var(--gutR);bottom:calc(var(--bot) + 34px);display:flex;gap:8px;align-items:center;padding:8px}
+.seg{display:flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:none;padding:0 12px;height:34px;font:600 11.5px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.seg button[aria-pressed="true"]{background:rgba(255,181,71,.16);color:var(--sol)}
+#zone{position:absolute;left:50%;top:calc(var(--top) + 64px);transform:translateX(-50%);font:600 11.5px/1.3 var(--f-display);letter-spacing:.08em;text-transform:uppercase;padding:7px 12px;border-radius:99px;background:rgba(4,6,12,.66);border:1px solid var(--line-strong);text-align:center;max-width:calc(100% - 32px);pointer-events:none}
+#zone:empty{display:none}
+#zone.r{color:#ffb4a8;border-color:rgba(255,138,122,.5)} #zone.p{color:var(--ok);border-color:rgba(126,226,168,.45)}
+#whint{position:absolute;left:50%;bottom:calc(var(--bot) + 8px);transform:translateX(-50%);font-size:11.5px;color:#cfd8ea;background:rgba(4,6,12,.55);padding:5px 9px;border-radius:6px;white-space:nowrap;pointer-events:none}
+.walking #chip{top:calc(var(--top) + 100px)}
+.lbl.poi{font-size:10.5px;color:#d9e1ef;background:rgba(4,6,12,.4);cursor:default}
+.lbl.poi i{background:#ffd27a;width:5px;height:5px}
+@media (pointer:coarse){#joy{display:block}#whint{display:none}}
+@media (max-width:900px){.wbar{bottom:calc(var(--bot) + 40px)}.seg button{padding:0 9px}#tour{bottom:calc(var(--bot) + 30px);max-height:50vh;width:auto;right:var(--gutR)}}
 #foot{position:absolute;left:var(--gutL);right:var(--gutR);bottom:var(--bot);display:flex;gap:10px;align-items:center;pointer-events:none}
 #attrib{font:400 10px/1.35 var(--f-body);color:var(--faint);pointer-events:auto}
 #attrib a{color:inherit}
@@ -116,7 +145,7 @@ button{cursor:pointer}
 </head>
 <body>
 <div id="app">
-  <canvas id="gl" aria-label="Vista 3D de Cabo Cañaveral y el Centro Espacial Kennedy"></canvas>
+  <canvas id="gl" aria-label="Vista 3D de Cabo Cañaveral y Centro Espacial Kennedy"></canvas>
   <div id="labels"></div>
 
   <header id="hud">
@@ -126,13 +155,15 @@ button{cursor:pointer}
     <a class="hudbtn" href="../" title="Lista de simulaciones">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2.5 4.5 6 4.5 10.5L12 17l-4.5-4.5C7.5 8 9 4.5 12 2z"/><circle cx="12" cy="9" r="1.6"/><path d="M7.5 12.5 5 15l2 2M16.5 12.5 19 15l-2 2M10 19.5l2 2.5 2-2.5"/></svg><span class="t">Simulaciones</span></a>
     <span class="spacer"></span>
+    <button class="hudbtn" id="tour-btn" type="button" title="Recorridos guiados: cómo funciona cada parte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7"/></svg><span class="t">Cómo funciona</span></button>
+    <button class="hudbtn" id="walk-btn" type="button" aria-pressed="false" title="Caminar en primera persona (tecla C)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2"/><path d="M12 7.5v6M12 13.5l-3 7M12 13.5l3 7M7.5 10.5l4.5-2 4.5 2"/></svg><span class="t">Caminar</span></button>
     <select id="tod" class="hudsel" aria-label="Hora del día"><option value="dia">Mañana · 9:30</option><option value="tarde">Atardecer · 17:05</option><option value="noche">Noche · 19:30</option></select>
     <button class="hudbtn mob" id="places-btn" type="button" aria-expanded="false" aria-controls="places"><span>Lugares</span></button>
   </header>
 
   <aside id="places" class="panel" aria-label="Lugares">
     <div class="ph"><span class="kind">Lugares</span>
-      <div class="legend"><span><i style="background:var(--nasa)"></i>NASA</span><span><i style="background:#fff"></i>SpaceX</span><span><i style="background:var(--pub)"></i>Público</span></div></div>
+      <div class="legend" id="legend"></div></div>
     <div class="plist" id="plist"></div>
   </aside>
 
@@ -142,9 +173,24 @@ button{cursor:pointer}
     <h2 id="i-name"></h2>
     <p id="i-desc"></p>
     <dl class="spec" id="i-spec"></dl>
-    <div class="irow"><button class="tbtn" type="button" id="i-near">Acercarse</button><button class="tbtn" type="button" id="i-far">Vista general</button></div>
+    <div class="irow"><button class="tbtn" type="button" id="i-walk"><svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2"/><path d="M12 7.5v6M12 13.5l-3 7M12 13.5l3 7M7.5 10.5l4.5-2 4.5 2"/></svg>Caminar aquí</button><button class="tbtn" type="button" id="i-near">Acercarse</button><a class="tbtn" id="i-link" hidden></a><button class="tbtn" type="button" id="i-far">Vista general</button></div>
   </section>
 
+  <section id="tour" class="panel" aria-live="polite" hidden>
+    <button class="close" id="tour-close" type="button" aria-label="Cerrar recorrido">×</button>
+    <div class="kind" id="tour-kind">Cómo funciona</div>
+    <h2 id="tour-title"></h2>
+    <div id="tour-body"></div>
+  </section>
+  <div id="walkui" hidden>
+    <div id="joy" aria-hidden="true"><div id="knob"></div></div>
+    <div class="wbar panel">
+      <div class="seg" role="group" aria-label="Velocidad"><button type="button" data-v="1.4" aria-pressed="true">A pie</button><button type="button" data-v="5" aria-pressed="false">Corriendo</button><button type="button" data-v="14" aria-pressed="false">En bus</button></div>
+      <button type="button" class="tbtn" id="walk-exit">Salir</button>
+    </div>
+    <div id="zone"></div>
+    <div id="whint">W A S D o flechas para moverte · arrastra para mirar · Mayús para correr</div>
+  </div>
   <footer id="foot">
     <span id="hint">Arrastra para girar · clic derecho o dos dedos para mover · rueda o pellizco para acercar</span>
     <span class="spacer"></span>
@@ -182,13 +228,13 @@ const SITE = { lat: 28.565, lon: -80.62 };
 // =====================================================================
 // op: nasa · spacex · pub (abierto al público) · hist (histórico)
 const PLACES = [
-  { id: '39a', name: 'Complejo de Lanzamiento 39A', short: 'Falcon Heavy y la primera plataforma de Starship en Florida', ops: ['nasa', 'spacex'], lat: 28.6083, lon: -80.6041, lh: 120, view: { dist: 900, el: 0.32, az: 3.6 }, major: true,
+  { id: '39a', label: 'LC-39A', name: 'Complejo de Lanzamiento 39A', short: 'Falcon Heavy y la primera plataforma de Starship en Florida', ops: ['nasa', 'spacex'], lat: 28.6083, lon: -80.6041, lh: 120, view: { dist: 900, el: 0.32, az: 3.6 }, major: true,
     desc: 'De aquí partieron el Apolo 11 hacia la Luna y la mayoría de los transbordadores espaciales. La NASA se la arrienda a SpaceX desde 2014. Desde diciembre de 2025 ya no despegan Falcon 9 de aquí: la plataforma quedó para el Falcon Heavy y para Starship, y en febrero de 2026 SpaceX retiró el brazo de acceso de la tripulación.',
     spec: [['Propietario', 'NASA'], ['Operador', 'SpaceX (desde 2014)'], ['Cohetes', 'Falcon Heavy · Starship'], ['Primer lanzamiento', '9 nov. 1967 (Apolo 4)'], ['Apolo 11', '16 jul. 1969']] },
-  { id: '39a-ss', name: 'Torre de Starship (39A)', short: 'Torre de lanzamiento y captura con «palillos»', ops: ['spacex'], lat: 28.6110, lon: -80.6041, lh: 165, view: { dist: 520, el: 0.22, az: 3.3 }, minor: true,
+  { id: '39a-ss', label: 'Torre de Starship (39A)', name: 'Torre de Starship (39A)', short: 'Torre de lanzamiento y captura con «palillos»', ops: ['spacex'], lat: 28.6110, lon: -80.6041, lh: 165, view: { dist: 520, el: 0.22, az: 3.3 }, minor: true,
     desc: 'A unos 300 m de la plataforma del Falcon Heavy. La torre, de casi 150 m, tiene dos brazos («palillos») que sostienen el cohete y deben atraparlo al volver. En octubre de 2026 estaba casi terminada y en pruebas; el primer lanzamiento de Starship desde Florida aún no tiene fecha confirmada.',
     spec: [['Altura de la torre', '≈ 150 m'], ['Starship completo', '≈ 124 m'], ['Lanzamientos aprobados', 'hasta 44 al año'], ['Estado (nov. 2026)', 'pruebas antes de activarla']] },
-  { id: '39b', name: 'Complejo de Lanzamiento 39B', short: 'El cohete SLS de la NASA · misiones Artemis', ops: ['nasa'], lat: 28.6272, lon: -80.6208, lh: 200, view: { dist: 1300, el: 0.3, az: 3.9 }, major: true,
+  { id: '39b', label: 'LC-39B', name: 'Complejo de Lanzamiento 39B', short: 'El cohete SLS de la NASA · misiones Artemis', ops: ['nasa'], lat: 28.6272, lon: -80.6208, lh: 200, view: { dist: 1300, el: 0.3, az: 3.9 }, major: true,
     desc: 'La plataforma del SLS, el cohete lunar de la NASA. El 1 de abril de 2026 despegó de aquí Artemis II, el primer vuelo tripulado del SLS con la nave Orion. Tres torres de casi 600 pies (≈ 180 m) sostienen cables que desvían los rayos lejos del cohete. Tras Artemis II, la torre de lanzamiento móvil volvió al edificio de ensamblaje para reparaciones.',
     spec: [['Operador', 'NASA'], ['Cohete', 'SLS (Space Launch System)'], ['Artemis I', '16 nov. 2022 (sin tripulación)'], ['Artemis II', '1 abr. 2026 (4 astronautas)'], ['Pararrayos', '3 torres de ≈ 180 m']] },
   { id: 'vab', name: 'Edificio de Ensamblaje de Vehículos (VAB)', short: 'Donde se arman los cohetes gigantes de la NASA', ops: ['nasa'], lat: 28.5864, lon: -80.6514, lh: 175, view: { dist: 1100, el: 0.28, az: 2.6 }, major: true,
@@ -203,16 +249,16 @@ const PLACES = [
   { id: 'slf', name: 'Pista de aterrizaje del transbordador', short: 'Una de las pistas más largas del mundo', ops: ['nasa', 'hist'], lat: 28.6150, lon: -80.6945, lh: 25, view: { dist: 6500, el: 0.45, az: 3.0 }, minor: true,
     desc: 'Construida para que los transbordadores espaciales aterrizaran planeando, sin motor. Mide 4,6 km de largo y 91 m de ancho. Hoy la administra Space Florida.',
     spec: [['Largo', '4 572 m'], ['Ancho', '91 m'], ['Operador actual', 'Space Florida (desde 2015)']] },
-  { id: 'saturn', name: 'Centro Apolo/Saturno V', short: 'Un Saturno V real, acostado', ops: ['pub'], lat: 28.6055, lon: -80.6696, lh: 30, view: { dist: 650, el: 0.35, az: 2.8 }, major: true,
+  { id: 'saturn', walk: [28.6046, -80.6705, 40], name: 'Centro Apolo/Saturno V', short: 'Un Saturno V real, acostado', ops: ['pub'], lat: 28.6055, lon: -80.6696, lh: 30, view: { dist: 650, el: 0.35, az: 2.8 }, major: true,
     desc: 'Edificio de exhibición con un cohete Saturno V auténtico de 110 m, una cápsula Apolo, un módulo lunar y una roca lunar que se puede tocar. Se llega en los buses del Complejo de Visitantes.',
     spec: [['Acceso', 'Con la entrada del Complejo de Visitantes'], ['Pieza principal', 'Saturno V restaurado']] },
-  { id: 'kscvc', name: 'Complejo de Visitantes del Kennedy', short: 'Atlantis, el Jardín de Cohetes y el Salón de la Fama', ops: ['pub'], lat: 28.5233, lon: -80.6819, lh: 40, view: { dist: 900, el: 0.38, az: 2.5 }, major: true,
+  { id: 'kscvc', walk: [28.5225, -80.6826, 20], name: 'Complejo de Visitantes del Kennedy', short: 'Atlantis, el Jardín de Cohetes y el Salón de la Fama', ops: ['pub'], lat: 28.5233, lon: -80.6819, lh: 40, view: { dist: 900, el: 0.38, az: 2.5 }, major: true,
     desc: 'La puerta de entrada pública al centro espacial. Aquí está el transbordador Atlantis de verdad, el Jardín de Cohetes con cohetes históricos de pie y el Salón de la Fama de los Astronautas. Desde aquí salen los buses hacia el VAB, las plataformas y el Centro Apolo/Saturno V.',
     spec: [['Acceso', 'Abierto al público (con entrada)'], ['Transbordador', 'Atlantis (exhibido desde 2013)']] },
-  { id: 'slc40', name: 'Complejo de Lanzamiento Espacial 40', short: 'El Falcon 9 y las naves Dragon', ops: ['spacex'], lat: 28.5619, lon: -80.5772, lh: 110, view: { dist: 620, el: 0.22, az: 3.4 }, major: true,
+  { id: 'slc40', label: 'SLC-40', name: 'Complejo de Lanzamiento Espacial 40', short: 'El Falcon 9 y las naves Dragon', ops: ['spacex'], lat: 28.5619, lon: -80.5772, lh: 110, view: { dist: 620, el: 0.22, az: 3.4 }, major: true,
     desc: 'La plataforma de trabajo diario del Falcon 9. Desde 2026 todos los vuelos Dragon, con astronautas o con carga, salen de aquí. La torre de acceso para tripulaciones se construyó en 2023, y la primera tripulación que despegó de aquí fue la Crew‑9, en septiembre de 2024. El 13 de febrero de 2026 la primera etapa de la Crew‑12 aterrizó en la nueva zona de aterrizaje LZ‑40, dentro del mismo complejo.',
     spec: [['Operador', 'SpaceX'], ['Cohete', 'Falcon 9 · Dragon'], ['Primera tripulación', 'Crew‑9 (sept. 2024)'], ['Aterrizajes', 'LZ‑40, en el complejo (desde feb. 2026)']] },
-  { id: 'slc37', name: 'Complejo de Lanzamiento Espacial 37', short: 'Futuras plataformas de Starship (en obra)', ops: ['spacex'], lat: 28.5320, lon: -80.5668, lh: 60, view: { dist: 1600, el: 0.4, az: 3.4 }, minor: true,
+  { id: 'slc37', label: 'SLC-37', name: 'Complejo de Lanzamiento Espacial 37', short: 'Futuras plataformas de Starship (en obra)', ops: ['spacex'], lat: 28.5320, lon: -80.5668, lh: 60, view: { dist: 1600, el: 0.4, az: 3.4 }, minor: true,
     desc: 'Antigua plataforma del Delta IV, demolida en 2025. SpaceX la convierte en un complejo con dos plataformas de Starship, cada una con su torre. La Fuerza Aérea lo aprobó en noviembre de 2025, para hasta 76 lanzamientos al año. Aquí solo hay una etiqueta porque la obra cambia cada mes.',
     spec: [['Operador', 'SpaceX'], ['Plan', '2 plataformas con torre'], ['Aprobado', '20 nov. 2025'], ['Estado (nov. 2026)', 'en construcción']] },
   { id: 'lc34', name: 'Complejo 34 · Memorial del Apolo 1', short: 'Homenaje a Grissom, White y Chaffee', ops: ['nasa', 'hist'], lat: 28.5219, lon: -80.5614, lh: 25, view: { dist: 220, el: 0.3, az: 3.0 }, minor: true,
@@ -221,10 +267,10 @@ const PLACES = [
   { id: 'lz1', name: 'Antiguas zonas LZ‑1 y LZ‑2', short: 'Donde aterrizaron 53 primeras etapas', ops: ['spacex', 'hist'], lat: 28.4858, lon: -80.5444, lh: 25, view: { dist: 900, el: 0.4, az: 3.2 }, minor: true,
     desc: 'El 21 de diciembre de 2015 aterrizó aquí la primera etapa de un Falcon 9: la primera vez que un cohete orbital volvió a tierra en pie. LZ‑1 recibió 53 aterrizajes en una década, y SpaceX devolvió ambas zonas a la Fuerza Espacial en 2025. Ahora los aterrizajes son junto a cada plataforma (LZ‑40).',
     spec: [['Primer aterrizaje', '21 dic. 2015'], ['Aterrizajes en LZ‑1', '53'], ['Retiradas', '2025']] },
-  { id: 'faro', name: 'Faro de Cabo Cañaveral', short: 'El faro de 1868, dentro de la base', ops: ['pub', 'hist'], lat: 28.4601, lon: -80.5434, lh: 50, view: { dist: 300, el: 0.25, az: 3.0 }, minor: true,
+  { id: 'faro', walk: [28.4594, -80.5437, 10], name: 'Faro de Cabo Cañaveral', short: 'El faro de 1868, dentro de la base', ops: ['pub', 'hist'], lat: 28.4601, lon: -80.5434, lh: 50, view: { dist: 300, el: 0.25, az: 3.0 }, minor: true,
     desc: 'Faro en funcionamiento dentro de la Estación de la Fuerza Espacial. Se trasladó a este lugar en 1893 porque el mar erosionaba la costa. Solo se visita en recorridos organizados.',
     spec: [['Encendido', '1868'], ['Acceso', 'Recorridos con reserva']] },
-  { id: 'puerto', name: 'Puerto Cañaveral', short: 'Base de las barcazas de aterrizaje de SpaceX', ops: ['pub', 'spacex'], lat: 28.4105, lon: -80.6200, lh: 30, view: { dist: 2600, el: 0.42, az: 2.9 }, minor: true,
+  { id: 'puerto', walk: [28.4093, -80.6086, 300], name: 'Puerto Cañaveral', short: 'Base de las barcazas de aterrizaje de SpaceX', ops: ['pub', 'spacex'], lat: 28.4105, lon: -80.6200, lh: 30, view: { dist: 2600, el: 0.42, az: 2.9 }, minor: true,
     desc: 'Puerto público. Aquí atracan las barcazas autónomas de SpaceX, sobre las que aterrizan las primeras etapas en el océano, y vuelven con ellas de pie sobre la cubierta. También zarpan cruceros, y desde sus playas se ven muy bien los lanzamientos.',
     spec: [['Operador', 'Autoridad Portuaria de Cañaveral'], ['SpaceX', 'Barcazas de aterrizaje y barcos de apoyo']] },
 ];
@@ -239,6 +285,114 @@ const EXCL = [
   [28.4466, -80.5653, 450],  // LC‑17
 ];
 const EXCL_RE = /blue\s*origin|united launch|\bula\b|relativity|firefly|rocket\s*lab|boeing|lockheed|northrop|airbus|oneweb|\bastra\b|abl space|phantom|vaya|stoke|terran|\bksat\b/i;
+const CFG = {
+  short: 'Cabo Cañaveral',
+  decl: -16.6, eot: 16.1, tzMer: -75,           // 8 de noviembre; Florida usa UTC−5 (meridiano 75° O)
+  tod: { dia: { hour: 9.5 }, tarde: { hour: 17.08 }, noche: { hour: 19.5 } },
+  osmBoxes: ['28.44,-80.72,28.65,-80.53', '28.398,-80.64,28.42,-80.595'],
+  modelClear: [['39a', 0, 0, 70], ['39a-ss', 0, 0, 55], ['39b', 0, 0, 90], ['slc40', 0, 0, 60], ['lc34', 0, 0, 25]],
+  home: { lat: 28.57, lon: -80.615, az: 2.75, el: 0.55, dist: 30000 },
+  ops: { nasa: { name: 'NASA', color: '#7aa8ff' }, spacex: { name: 'SpaceX', color: '#ffffff' }, pub: { name: 'Abierto al público', short: 'Público', color: '#7ee2a8' }, hist: { name: 'Histórico', color: '#8d99b0' } },
+  groups: [['nasa', 'NASA · Centro Espacial Kennedy'], ['spacex', 'SpaceX'], ['pub', 'Abierto al público']],
+  opMain: p => p.ops.includes('spacex') && !p.ops.includes('nasa') ? 'spacex' : p.ops.includes('nasa') ? 'nasa' : p.ops[0],
+  // el VAB y su nave baja, si OpenStreetMap no trae la altura
+  heightHint(b, A) { const d = distM(b.cla, b.clo, PLACE.vab.lat, PLACE.vab.lon); if (d > 170) return null; return { h: A > 20000 ? 160 : A > 3000 ? 64 : 0, ind: true }; },
+  tours: [
+    { id: 'sls', title: 'Así se lanza el SLS de Artemis', steps: [
+      { p: 'vab', t: 'Las piezas llegan por separado: la etapa central del SLS viaja en la barcaza Pegasus por el canal hasta el VAB, y los segmentos de los cohetes laterales llegan en tren. Dentro de una de las naves altas se apilan de pie sobre la torre de lanzamiento móvil, con la nave Orion arriba.' },
+      { p: 'crawler', t: 'Con el cohete armado, la oruga transportadora levanta la torre de lanzamiento con todo encima y la lleva por el camino de grava a menos de 2 km/h. Llegar a la 39B toma unas 10 horas o más.' },
+      { p: '39b', t: 'En la plataforma, la oruga deja la torre sobre pedestales y se retira. Los pararrayos protegen el cohete durante los días de pruebas. El día del lanzamiento se cargan unos 2,8 millones de litros de hidrógeno y oxígeno líquidos.' },
+      { p: 'lcc', t: 'Desde una sala de control del Centro de Control de Lanzamiento, el equipo vigila cada sistema. En los últimos segundos, la secuencia final la manda la computadora.' },
+      { p: '39b', t: 'Despegue. La torre de lanzamiento queda en la plataforma, chamuscada; después la oruga la lleva de vuelta al VAB para revisarla y preparar la siguiente misión.' },
+    ] },
+    { id: 'falcon', title: 'Así trabaja SpaceX con el Falcon 9', steps: [
+      { p: 'slc40', t: 'El Falcon 9 se arma acostado, en el hangar junto a la plataforma. Un carro, el «erector», lo lleva por rieles hasta la plataforma y lo pone de pie.' },
+      { p: 'slc40', t: 'En los últimos 35 minutos se carga el propelente súper enfriado: queroseno RP-1 y oxígeno líquido. Si va gente a bordo, entra antes por el brazo de la torre de tripulación.' },
+      { p: 'slc40', t: 'Despegue. A los dos minutos y medio se separa la primera etapa: puede volver a tierra, a la zona LZ‑40 junto a la plataforma, o aterrizar en una barcaza en el océano.' },
+      { p: 'puerto', t: 'Si aterrizó en el mar, la barcaza vuelve a Puerto Cañaveral con la etapa de pie sobre la cubierta. Allí una grúa la levanta y la acuesta para llevarla por carretera.' },
+      { p: 'slc40', t: 'De vuelta en el hangar, se revisa y se prepara para volar otra vez. Reusar la primera etapa es lo que más abarató los lanzamientos.' },
+    ] },
+    { id: 'visita', title: 'La visita pública', steps: [
+      { p: 'kscvc', t: 'Todo empieza en el Complejo de Visitantes: el transbordador Atlantis, el Jardín de Cohetes y el Salón de la Fama de los Astronautas. De aquí salen los buses que entran a la zona restringida.' },
+      { p: 'vab', t: 'El bus pasa junto al VAB. De cerca se entiende su tamaño: la bandera pintada en su pared es más alta que un edificio de 20 pisos.' },
+      { p: 'saturn', t: 'El Centro Apolo/Saturno V: un Saturno V real acostado a lo largo del edificio y una sala que recrea el control del lanzamiento del Apolo 8.' },
+      { p: 'puerto', t: 'Fuera del centro, las playas junto a Puerto Cañaveral son de los mejores sitios gratuitos para ver un lanzamiento.' },
+    ] },
+  ],
+};
+CFG.models = function () {
+  // --- 39A: torre fija (FSS) del Falcon Heavy, con su pararrayos ---
+  {
+    const g = new THREE.Group();
+    const fss = new THREE.Mesh(lattice(12, 84, 6, 0.8, 0.4), M_RED); fss.position.set(0, 0, -22); fss.castShadow = true; g.add(fss);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 26, 10), M_WHITE_PLAIN); mast.position.set(0, 97, -22); g.add(mast);
+    const hard = new THREE.Mesh(new THREE.BoxGeometry(60, 1.2, 70), M_CONC); hard.position.y = 0.4; hard.receiveShadow = true; g.add(hard);
+    const te = new THREE.Mesh(lattice(4, 70, 5, 0.5, 0.25), M_STEEL); te.position.set(0, 0, 9); te.castShadow = true; g.add(te); // erector del cohete (vacío, en vertical)
+    redLight(g, 0, 111, -22); flood(g, 40, 30, 40, 0, 40, 0); flood(g, -40, 30, 40, 0, 40, 0);
+    placeAt(g, PLACE['39a'].lat, PLACE['39a'].lon);
+  }
+  // --- 39A: torre de Starship, «palillos» y mesa de lanzamiento ---
+  {
+    const g = new THREE.Group();
+    const tw = new THREE.Mesh(lattice(10, 144, 8, 1.1, 0.5), M_DARK); tw.castShadow = true; g.add(tw);
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 6, 8), M_STEEL); rod.position.y = 147; g.add(rod);
+    const car = new THREE.Mesh(new THREE.BoxGeometry(12, 9, 12), M_STEEL); car.position.set(0, 112, 0); g.add(car);
+    for (const k of [-1, 1]) { const arm = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3, 33), M_DARK); arm.position.set(k * 7.5, 110, 20); arm.rotation.y = -k * 0.18; arm.castShadow = true; g.add(arm); }
+    // mesa de lanzamiento (anillo sobre seis patas)
+    const olm = new THREE.Group(); olm.position.set(0, 0, 32);
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 4, 40, 1, true), M_STEEL); ring.position.y = 20; olm.add(ring);
+    const deck = new THREE.Mesh(new THREE.RingGeometry(5.5, 11, 40), M_STEEL); deck.rotation.x = -Math.PI / 2; deck.position.y = 22; olm.add(deck);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, leg = new THREE.Mesh(new THREE.BoxGeometry(2.2, 18, 2.2), M_CONC); leg.position.set(Math.cos(a) * 10, 9, Math.sin(a) * 10); leg.castShadow = true; olm.add(leg); }
+    g.add(olm);
+    redLight(g, 0, 150, 0);
+    placeAt(g, PLACE['39a-ss'].lat, PLACE['39a-ss'].lon);
+  }
+  // --- 39B: tres torres pararrayos de ≈ 180 m con cables ---
+  {
+    const g = new THREE.Group(), pts = [];
+    for (let i = 0; i < 3; i++) {
+      const a = (90 + i * 120) * DEG, x = Math.cos(a) * 125, z = -Math.sin(a) * 125;
+      const t = new THREE.Mesh(lattice(6, 150, 7.5, 0.6, 0.3, 0.55), M_STEEL); t.position.set(x, 0, z); t.castShadow = true; g.add(t);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.8, 32, 10), M_WHITE_PLAIN); mast.position.set(x, 166, z); g.add(mast);
+      pts.push([x, 182, z]); redLight(g, x, 183, z);
+    }
+    const pairs = [];
+    for (let i = 0; i < 3; i++) {
+      const a = pts[i], b = pts[(i + 1) % 3];
+      // cable colgante entre torres (catenaria aproximada con segmentos)
+      for (let k = 0; k < 16; k++) { const u0 = k / 16, u1 = (k + 1) / 16, sag = u => 38 * 4 * u * (1 - u); pairs.push([[lerp(a[0], b[0], u0), a[1] - sag(u0), lerp(a[2], b[2], u0)], [lerp(a[0], b[0], u1), a[1] - sag(u1), lerp(a[2], b[2], u1)]]); }
+      const out = [a[0] * 2.3, 0, a[2] * 2.3]; pairs.push([a, out]);
+    }
+    cables(g, pairs);
+    const hard = new THREE.Mesh(new THREE.BoxGeometry(70, 1.2, 70), M_CONC); hard.position.y = 0.4; hard.receiveShadow = true; g.add(hard);
+    placeAt(g, PLACE['39b'].lat, PLACE['39b'].lon);
+  }
+  // --- SLC-40: Falcon 9 con Dragon, erector, torre de acceso de la tripulación y pararrayos ---
+  {
+    const g = new THREE.Group();
+    const f9 = makeF9(); f9.position.y = 2; g.add(f9);
+    const te = new THREE.Mesh(lattice(3.2, 66, 4, 0.45, 0.22), M_STEEL); te.position.set(-4.2, 2, 0); te.castShadow = true; g.add(te);
+    const cat = new THREE.Mesh(lattice(9, 78, 6, 0.8, 0.4), M_DARK); cat.position.set(0, 0, -16); cat.castShadow = true; g.add(cat);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.8, 12), M_STEEL); arm.position.set(0, 64, -7.5); g.add(arm);
+    const white = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 3), M_WHITE_PLAIN); white.position.set(0, 64, -2.6); g.add(white);
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(46, 1.4, 46), M_CONC); pad.position.y = 0.5; pad.receiveShadow = true; g.add(pad);
+    const tops = [];
+    for (const [x, z] of [[-60, -60], [60, -60], [60, 60], [-60, 60]]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 1.4, 95, 8), M_STEEL); t.position.set(x, 47.5, z); t.castShadow = true; g.add(t); tops.push([x, 95, z]); redLight(g, x, 96, z); }
+    cables(g, tops.map((a, i) => [a, tops[(i + 1) % 4]]));
+    flood(g, 30, 25, 30, 0, 35, 0, 7000); flood(g, -30, 25, 30, 0, 35, 0, 7000);
+    placeAt(g, PLACE.slc40.lat, PLACE.slc40.lon);
+  }
+  // --- Complejo 34: pedestal de lanzamiento del Saturno IB (memorial del Apolo 1) ---
+  {
+    const g = new THREE.Group(), s = 13, hh = 8;
+    for (const [x, z] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const c = new THREE.Mesh(new THREE.BoxGeometry(2.6, hh, 2.6), M_CONC); c.position.set(x * (s / 2 - 1.3), hh / 2, z * (s / 2 - 1.3)); c.castShadow = true; g.add(c); }
+    const shape = new THREE.Shape([[-s / 2, -s / 2], [s / 2, -s / 2], [s / 2, s / 2], [-s / 2, s / 2]].map(p => new THREE.Vector2(...p)));
+    const hole = new THREE.Path(); hole.absarc(0, 0, 4.2, 0, Math.PI * 2, true); shape.holes.push(hole);
+    const top = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 1.6, bevelEnabled: false, curveSegments: 32 }), M_CONC); top.rotation.x = -Math.PI / 2; top.position.y = hh; top.castShadow = true; g.add(top);
+    placeAt(g, PLACE.lc34.lat, PLACE.lc34.lon);
+  }
+};
+
 
 // =====================================================================
 // 2. Escena, geodesia y luz
@@ -284,14 +438,13 @@ function geoToLocalArr(lat, lon, h, out = [0, 0, 0]) {
 }
 const geoToLocal = (lat, lon, h = 0) => new THREE.Vector3(...geoToLocalArr(lat, lon, h));
 const globalToLocalDir = v => new THREE.Vector3(v.x * E3[0] + v.y * E3[1] + v.z * E3[2], v.x * S3[0] + v.y * S3[1] + v.z * S3[2], -(v.x * N3[0] + v.y * N3[1] + v.z * N3[2]));
-const TOD = { dia: { hour: 9.5 }, tarde: { hour: 17.08 }, noche: { hour: 19.5 } };
+const TOD = CFG.tod;
 let todKey = 'dia';
 const SUN3 = new THREE.Vector3(), SUN_LOCAL = new THREE.Vector3();
 let SUN_EL = 0, DAY = 1;
 function computeSun(key) {
-  // declinación solar el 8 de noviembre ≈ −16,6°; Florida usa UTC−5 en noviembre (meridiano 75° O);
-  // Cabo Cañaveral está 5,6° más al oeste (−22 min) y la ecuación del tiempo suma +16,1 min.
-  const decl = -16.6, solar = TOD[key].hour - (-75 - SITE.lon) / 15 + 16.1 / 60;
+  // hora solar = hora del reloj + (longitud − meridiano del huso)/15 + ecuación del tiempo
+  const decl = CFG.decl, solar = TOD[key].hour + (SITE.lon - CFG.tzMer) / 15 + CFG.eot / 60;
   const H = (solar - 12) * 15;
   const lat = decl * DEG, lon = (SITE.lon - H) * DEG;
   SUN3.set(Math.cos(lat) * Math.cos(lon), Math.sin(lat), -Math.cos(lat) * Math.sin(lon)).normalize();
@@ -707,7 +860,8 @@ function makeIndustrial() {
 }
 FAC.ind = { bay: 4, floor: 4 };
 const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
-const OSM_Q = `[out:json][timeout:90];(way["building"](28.44,-80.72,28.65,-80.53);relation["building"](28.44,-80.72,28.65,-80.53);way["building"](28.398,-80.64,28.42,-80.595););out geom;`;
+const OSM_Q = `[out:json][timeout:90];(${CFG.osmBoxes.map(b => `way["building"](${b});relation["building"](${b});`).join('')});out geom;`;
+const POI_Q = `[out:json][timeout:60];(${CFG.osmBoxes.map(b => `node["tourism"~"museum|attraction|viewpoint|artwork"]["name"](${b});node["historic"]["name"](${b});`).join('')});out;`;
 async function fetchOSM() {
   if (QS.get('osm') === 'local') { const r = await fetch('mock/osm.json'); return r.json(); }
   let err;
@@ -725,7 +879,7 @@ async function fetchOSM() {
 const KM = R_E * DEG;
 const distM = (la1, lo1, la2, lo2) => Math.hypot((la1 - la2) * KM, (lo1 - lo2) * KM * Math.cos(la1 * DEG));
 // lugares donde el modelo propio reemplaza a los edificios de OpenStreetMap (torres de lanzamiento)
-const MODEL_CLEAR = [['39a', 0, 0, 70], ['39a-ss', 0, 0, 55], ['39b', 0, 0, 90], ['slc40', 0, 0, 60], ['lc34', 0, 0, 25]];
+const MODEL_CLEAR = CFG.modelClear;
 function parseOSM(data) {
   const list = [];
   const num = v => { const m = /^\s*([\d.]+)\s*(m|ft|')?/.exec(v || ''); if (!m) return 0; return parseFloat(m[1]) * (m[2] === 'ft' || m[2] === "'" ? 0.3048 : 1); };
@@ -810,7 +964,7 @@ async function loadBuildings() {
   const PALETTE = [0xf1efe9, 0xe9e6de, 0xdfdcd4, 0xf5f4f0, 0xd8dbdc, 0xe9e1d0, 0xdcd6ca];
   const IND = [0xe6e6e3, 0xd9dcde, 0xcfd3d6, 0xe8e4da, 0xc9cdcf, 0xb8bfc4];
   const GLASS = [0xdfe3e6, 0xd2d8dc, 0xe8eaeb];
-  const cells = [], vab = PLACE.vab;
+  const cells = [];
   let v = 0;
   for (const b of list) {
     const pts = b.pts;
@@ -818,14 +972,14 @@ async function loadBuildings() {
     for (let k = 0; k < loc.length; k++) { const a = loc[k], c2 = loc[(k + 1) % loc.length]; area += a[0] * c2[2] - c2[0] * a[2]; }
     if (area > 0) { pts.reverse(); loc.reverse(); }
     const A = Math.abs(area) / 2; if (A < 12) continue;
+    footAdd(loc);
     const base = Math.min(...pts.map(([la, lo]) => elev(la, lo))) - 0.5 + b.minH;
-    const kind = b.kind || 'yes', dVab = distM(b.cla, b.clo, vab.lat, vab.lon);
-    let h = b.h;
-    if (!h && dVab < 170) h = A > 20000 ? 160 : A > 3000 ? 64 : 0; // VAB (torre alta) y su nave baja, si OSM no trae la altura
+    const kind = b.kind || 'yes', hint = CFG.heightHint ? CFG.heightHint(b, A) : null;
+    let h = b.h || (hint && hint.h) || 0;
     const indK = /industrial|hangar|warehouse|manufacture|storage_tank|service|garage|shed|transportation/.test(kind);
     if (!h) h = indK ? (A > 8000 ? 20 : A > 2000 ? 13 : 7) : kind === 'house' || kind === 'residential' || kind === 'detached' ? 6 : A < 150 ? 4.5 : A < 1500 ? 7.5 : 11;
     h = Math.max(2.5, h - b.minH);
-    const type = dVab < 170 || indK || A > 2500 ? 'ind' : h >= 28 ? 'glass' : h < 7 && A < 400 ? 'house' : 'res';
+    const type = (hint && hint.ind) || indK || A > 2500 ? 'ind' : h >= 28 ? 'glass' : h < 7 && A < 400 ? 'house' : 'res';
     const F = FAC[type];
     col.setHex(type === 'ind' ? IND[Math.floor(R() * IND.length)] : type === 'glass' ? GLASS[Math.floor(R() * GLASS.length)] : PALETTE[Math.floor(R() * PALETTE.length)]);
     col.multiplyScalar(0.93 + R() * 0.07);
@@ -965,79 +1119,8 @@ function makeF9() {
   }
   return g;
 }
-function buildModels() {
-  // --- 39A: torre fija (FSS) del Falcon Heavy, con su pararrayos ---
-  {
-    const g = new THREE.Group();
-    const fss = new THREE.Mesh(lattice(12, 84, 6, 0.8, 0.4), M_RED); fss.position.set(0, 0, -22); fss.castShadow = true; g.add(fss);
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 26, 10), M_WHITE_PLAIN); mast.position.set(0, 97, -22); g.add(mast);
-    const hard = new THREE.Mesh(new THREE.BoxGeometry(60, 1.2, 70), M_CONC); hard.position.y = 0.4; hard.receiveShadow = true; g.add(hard);
-    const te = new THREE.Mesh(lattice(4, 70, 5, 0.5, 0.25), M_STEEL); te.position.set(0, 0, 9); te.castShadow = true; g.add(te); // erector del cohete (vacío, en vertical)
-    redLight(g, 0, 111, -22); flood(g, 40, 30, 40, 0, 40, 0); flood(g, -40, 30, 40, 0, 40, 0);
-    placeAt(g, PLACE['39a'].lat, PLACE['39a'].lon);
-  }
-  // --- 39A: torre de Starship, «palillos» y mesa de lanzamiento ---
-  {
-    const g = new THREE.Group();
-    const tw = new THREE.Mesh(lattice(10, 144, 8, 1.1, 0.5), M_DARK); tw.castShadow = true; g.add(tw);
-    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 6, 8), M_STEEL); rod.position.y = 147; g.add(rod);
-    const car = new THREE.Mesh(new THREE.BoxGeometry(12, 9, 12), M_STEEL); car.position.set(0, 112, 0); g.add(car);
-    for (const k of [-1, 1]) { const arm = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3, 33), M_DARK); arm.position.set(k * 7.5, 110, 20); arm.rotation.y = -k * 0.18; arm.castShadow = true; g.add(arm); }
-    // mesa de lanzamiento (anillo sobre seis patas)
-    const olm = new THREE.Group(); olm.position.set(0, 0, 32);
-    const ring = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 4, 40, 1, true), M_STEEL); ring.position.y = 20; olm.add(ring);
-    const deck = new THREE.Mesh(new THREE.RingGeometry(5.5, 11, 40), M_STEEL); deck.rotation.x = -Math.PI / 2; deck.position.y = 22; olm.add(deck);
-    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, leg = new THREE.Mesh(new THREE.BoxGeometry(2.2, 18, 2.2), M_CONC); leg.position.set(Math.cos(a) * 10, 9, Math.sin(a) * 10); leg.castShadow = true; olm.add(leg); }
-    g.add(olm);
-    redLight(g, 0, 150, 0);
-    placeAt(g, PLACE['39a-ss'].lat, PLACE['39a-ss'].lon);
-  }
-  // --- 39B: tres torres pararrayos de ≈ 180 m con cables ---
-  {
-    const g = new THREE.Group(), pts = [];
-    for (let i = 0; i < 3; i++) {
-      const a = (90 + i * 120) * DEG, x = Math.cos(a) * 125, z = -Math.sin(a) * 125;
-      const t = new THREE.Mesh(lattice(6, 150, 7.5, 0.6, 0.3, 0.55), M_STEEL); t.position.set(x, 0, z); t.castShadow = true; g.add(t);
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.8, 32, 10), M_WHITE_PLAIN); mast.position.set(x, 166, z); g.add(mast);
-      pts.push([x, 182, z]); redLight(g, x, 183, z);
-    }
-    const pairs = [];
-    for (let i = 0; i < 3; i++) {
-      const a = pts[i], b = pts[(i + 1) % 3];
-      // cable colgante entre torres (catenaria aproximada con segmentos)
-      for (let k = 0; k < 16; k++) { const u0 = k / 16, u1 = (k + 1) / 16, sag = u => 38 * 4 * u * (1 - u); pairs.push([[lerp(a[0], b[0], u0), a[1] - sag(u0), lerp(a[2], b[2], u0)], [lerp(a[0], b[0], u1), a[1] - sag(u1), lerp(a[2], b[2], u1)]]); }
-      const out = [a[0] * 2.3, 0, a[2] * 2.3]; pairs.push([a, out]);
-    }
-    cables(g, pairs);
-    const hard = new THREE.Mesh(new THREE.BoxGeometry(70, 1.2, 70), M_CONC); hard.position.y = 0.4; hard.receiveShadow = true; g.add(hard);
-    placeAt(g, PLACE['39b'].lat, PLACE['39b'].lon);
-  }
-  // --- SLC-40: Falcon 9 con Dragon, erector, torre de acceso de la tripulación y pararrayos ---
-  {
-    const g = new THREE.Group();
-    const f9 = makeF9(); f9.position.y = 2; g.add(f9);
-    const te = new THREE.Mesh(lattice(3.2, 66, 4, 0.45, 0.22), M_STEEL); te.position.set(-4.2, 2, 0); te.castShadow = true; g.add(te);
-    const cat = new THREE.Mesh(lattice(9, 78, 6, 0.8, 0.4), M_DARK); cat.position.set(0, 0, -16); cat.castShadow = true; g.add(cat);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.8, 12), M_STEEL); arm.position.set(0, 64, -7.5); g.add(arm);
-    const white = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 3), M_WHITE_PLAIN); white.position.set(0, 64, -2.6); g.add(white);
-    const pad = new THREE.Mesh(new THREE.BoxGeometry(46, 1.4, 46), M_CONC); pad.position.y = 0.5; pad.receiveShadow = true; g.add(pad);
-    const tops = [];
-    for (const [x, z] of [[-60, -60], [60, -60], [60, 60], [-60, 60]]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 1.4, 95, 8), M_STEEL); t.position.set(x, 47.5, z); t.castShadow = true; g.add(t); tops.push([x, 95, z]); redLight(g, x, 96, z); }
-    cables(g, tops.map((a, i) => [a, tops[(i + 1) % 4]]));
-    flood(g, 30, 25, 30, 0, 35, 0, 7000); flood(g, -30, 25, 30, 0, 35, 0, 7000);
-    placeAt(g, PLACE.slc40.lat, PLACE.slc40.lon);
-  }
-  // --- Complejo 34: pedestal de lanzamiento del Saturno IB (memorial del Apolo 1) ---
-  {
-    const g = new THREE.Group(), s = 13, hh = 8;
-    for (const [x, z] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const c = new THREE.Mesh(new THREE.BoxGeometry(2.6, hh, 2.6), M_CONC); c.position.set(x * (s / 2 - 1.3), hh / 2, z * (s / 2 - 1.3)); c.castShadow = true; g.add(c); }
-    const shape = new THREE.Shape([[-s / 2, -s / 2], [s / 2, -s / 2], [s / 2, s / 2], [-s / 2, s / 2]].map(p => new THREE.Vector2(...p)));
-    const hole = new THREE.Path(); hole.absarc(0, 0, 4.2, 0, Math.PI * 2, true); shape.holes.push(hole);
-    const top = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 1.6, bevelEnabled: false, curveSegments: 32 }), M_CONC); top.rotation.x = -Math.PI / 2; top.position.y = hh; top.castShadow = true; g.add(top);
-    placeAt(g, PLACE.lc34.lat, PLACE.lc34.lon);
-  }
-}
-buildModels();
+
+CFG.models();
 
 function makeStars(R, n, size) {
   const r = rng(1234), pos = new Float32Array(n * 3), col = new Float32Array(n * 3), sz = new Float32Array(n);
@@ -1073,20 +1156,26 @@ function belowHorizon(p, cam) {
   const ux = dx / L2, uy = dy / L2, uz = dz / L2, b = cx * ux + cy * uy + cz * uz, c = cx * cx + cy * cy + cz * cz - R * R, disc = b * b - c;
   if (disc < 0) return false; const tHit = -b - Math.sqrt(disc); return tHit > 0 && tHit < L2 - 10;
 }
-const opMain = p => p.ops.includes('spacex') && !p.ops.includes('nasa') ? 'spacex' : p.ops.includes('nasa') ? 'nasa' : p.ops[0];
-const OPN = { nasa: 'NASA', spacex: 'SpaceX', pub: 'Abierto al público', hist: 'Histórico' };
+const opMain = CFG.opMain;
+const OPN = Object.fromEntries(Object.entries(CFG.ops).map(([k, o]) => [k, o.name]));
+{ // colores de cada operador
+  const st = document.createElement('style');
+  st.textContent = Object.entries(CFG.ops).map(([k, o]) => `.lbl.${k} i,.chip.${k} i{background:${o.color}}.chip.${k}{color:${o.color}}`).join('');
+  document.head.appendChild(st);
+  $('#legend').innerHTML = CFG.groups.map(([k]) => `<span><i style="background:${CFG.ops[k].color}"></i>${CFG.ops[k].short || CFG.ops[k].name}</span>`).join('');
+}
 for (const p of PLACES) {
   const el = document.createElement('button'); el.type = 'button'; el.className = `lbl ${opMain(p)}${p.minor ? ' minor' : ''}`;
-  el.innerHTML = '<i></i><span></span>'; el.lastChild.textContent = p.name.replace('Complejo de Lanzamiento Espacial', 'SLC').replace('Complejo de Lanzamiento', 'LC');
+  el.innerHTML = '<i></i><span></span>'; el.lastChild.textContent = p.label || p.name;
   el.addEventListener('click', () => select(p.id, true));
   labelsEl.appendChild(el); p.el = el; p.pos = geoToLocal(p.lat, p.lon, p.lh); p.w = 0;
   elevationAt(p.lat, p.lon).then(h => { p.pos = geoToLocal(p.lat, p.lon, h + p.lh); }).catch(() => {});
 }
 {
-  const groups = [['nasa', 'NASA · Centro Espacial Kennedy', p => opMain(p) === 'nasa'], ['spacex', 'SpaceX', p => opMain(p) === 'spacex'], ['pub', 'Abierto al público', p => opMain(p) === 'pub']];
+  const groups = CFG.groups.map(([k, title]) => [k, title, p => opMain(p) === k]);
   const pl = $('#plist');
   for (const [k, title, f] of groups) {
-    const h = document.createElement('div'); h.className = 'pgrp'; h.innerHTML = `<i style="background:${k === 'nasa' ? 'var(--nasa)' : k === 'spacex' ? '#fff' : 'var(--pub)'}"></i><span class="kind"></span>`; h.lastChild.textContent = title; pl.appendChild(h);
+    const h = document.createElement('div'); h.className = 'pgrp'; h.innerHTML = `<i style="background:${CFG.ops[k].color}"></i><span class="kind"></span>`; h.lastChild.textContent = title; pl.appendChild(h);
     for (const p of PLACES.filter(f)) {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'pit'; b.innerHTML = '<b></b><span></span>';
       b.firstChild.textContent = p.name; b.lastChild.textContent = p.short;
@@ -1100,7 +1189,7 @@ function placeLabels(cam) {
   const order = PLACES.slice().sort((a, b) => (b.id === selId) - (a.id === selId) || (a.minor ? 1 : 0) - (b.minor ? 1 : 0));
   for (const p of order) {
     const el = p.el, d = p.pos.distanceTo(cam.position);
-    const maxD = p.id === selId ? 1e6 : p.minor ? 16000 : 60000;
+    const maxD = p.id === selId ? 1e6 : WALK.on ? (p.minor ? 2500 : 6000) : p.minor ? 16000 : 60000;
     let show = d < maxD && d > 60 && !belowHorizon(p.pos, cam.position);
     if (show) { _v.copy(p.pos).project(cam); show = _v.z < 1 && _v.z > -1 && Math.abs(_v.x) < 1.02 && Math.abs(_v.y) < 1.02; }
     if (show) {
@@ -1112,12 +1201,24 @@ function placeLabels(cam) {
     }
     el.style.display = show ? '' : 'none';
   }
+  for (const q of POIS) {
+    const d = q.pos.distanceTo(cam.position);
+    let show = d < (WALK.on ? 1200 : 3500) && d > 15;
+    if (show) { _v.copy(q.pos).project(cam); show = _v.z < 1 && _v.z > -1 && Math.abs(_v.x) < 1 && Math.abs(_v.y) < 1; }
+    if (show) {
+      const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H; if (!q.w) q.w = q.el.offsetWidth || 90;
+      const bx = [x - 6, y - 10, x + q.w, y + 10];
+      if (boxes.some(b => bx[0] < b[2] && bx[2] > b[0] && bx[1] < b[3] && bx[3] > b[1])) show = false;
+      else { boxes.push(bx); q.el.style.transform = `translate(${(x - 6).toFixed(1)}px,${(y - 10).toFixed(1)}px)`; }
+    }
+    q.el.style.display = show ? '' : 'none';
+  }
 }
 
 // =====================================================================
 // 7. Cámara: órbita alrededor de un punto, desplazamiento y vuelos suaves
 // =====================================================================
-const CAM = { tgt: geoToLocal(28.57, -80.61, 0), az: 2.75, el: 0.5, dist: 26000, fly: null };
+const CAM = { tgt: geoToLocal(CFG.home.lat, CFG.home.lon, 0), az: CFG.home.az, el: 0.5, dist: CFG.home.dist * 0.85, fly: null };
 function camPos(c, out) {
   const ce = Math.cos(c.el);
   return out.set(c.tgt.x + c.dist * ce * Math.sin(c.az), c.tgt.y + c.dist * Math.sin(c.el), c.tgt.z + c.dist * ce * Math.cos(c.az));
@@ -1158,19 +1259,21 @@ canvas.addEventListener('pointermove', e => {
     const [a, b] = [...pointers.values()]; const d0 = Math.hypot(a.x - b.x, a.y - b.y), m0 = [(a.x + b.x) / 2, (a.y + b.y) / 2];
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const [c, d] = [...pointers.values()]; const d1 = Math.hypot(c.x - d.x, c.y - d.y), m1 = [(c.x + d.x) / 2, (c.y + d.y) / 2];
+    if (WALK.on) return;
     if (d0 > 0 && d1 > 0) zoomBy(d0 / d1);
     panBy(m1[0] - m0[0], m1[1] - m0[1]);
     return;
   }
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
-  if (panMode) panBy(dx, dy);
+  if (WALK.on) { WALK.yaw += dx * 0.004; WALK.pitch = clamp(WALK.pitch - dy * 0.004, -1.3, 1.3); }
+  else if (panMode) panBy(dx, dy);
   else { CAM.az -= dx * 0.006; CAM.el = clamp(CAM.el + dy * 0.005, 0.03, 1.5); }
   idleAt = performance.now();
 });
 const endPtr = e => { pointers.delete(e.pointerId); if (!pointers.size) canvas.classList.remove('dragging'); };
 canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
-canvas.addEventListener('wheel', e => { e.preventDefault(); CAM.fly = null; zoomBy(Math.exp(e.deltaY * 0.0012)); idleAt = performance.now(); }, { passive: false });
+canvas.addEventListener('wheel', e => { e.preventDefault(); if (WALK.on) return; CAM.fly = null; zoomBy(Math.exp(e.deltaY * 0.0012)); idleAt = performance.now(); }, { passive: false });
 function zoomBy(f) { CAM.dist = clamp(CAM.dist * f, 35, 400000); }
 let idleAt = -1e9;
 
@@ -1185,6 +1288,7 @@ function select(id, fly) {
   $('#i-chips').innerHTML = p.ops.map(o => `<span class="chip ${o}"><i></i>${OPN[o]}</span>`).join('');
   $('#i-name').textContent = p.name; $('#i-desc').textContent = p.desc;
   $('#i-spec').innerHTML = ''; for (const [k, v] of p.spec) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; $('#i-spec').append(dt, dd); }
+  const lk = $('#i-link'); lk.hidden = !p.link; if (p.link) { lk.href = p.link.href; lk.textContent = p.link.label; }
   $('#info').hidden = false;
   if (fly) goPlace(p, 1);
   try { history.replaceState(null, '', '#' + id); } catch (e) {}
@@ -1197,14 +1301,197 @@ PLACES.forEach(p => elevationAt(p.lat, p.lon).then(h => { groundH[p.id] = h; }).
 const groundAt = p => (groundH[p.id] || 0) + Math.min(40, p.lh * 0.25);
 $('#info-close').addEventListener('click', () => { $('#info').hidden = true; selId = null; PLACES.forEach(q => { q.el.classList.remove('sel'); if (q.item) q.item.setAttribute('aria-current', 'false'); }); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} });
 $('#i-near').addEventListener('click', () => { const p = PLACE[selId]; if (p) goPlace(p, 0.45); });
-$('#i-far').addEventListener('click', () => flyTo(28.55, -80.615, 0, { az: 2.75, el: 0.62, dist: 30000 }));
+$('#i-far').addEventListener('click', () => flyTo(CFG.home.lat, CFG.home.lon, 0, { az: CFG.home.az, el: CFG.home.el + 0.07, dist: CFG.home.dist }));
 function togglePlaces(open) { const pl = $('#places'); open = open ?? !pl.classList.contains('open'); pl.classList.toggle('open', open); $('#places-btn').setAttribute('aria-expanded', String(open)); }
 $('#places-btn').addEventListener('click', () => togglePlaces());
 const todSel = $('#tod');
 todSel.addEventListener('change', () => { todKey = todSel.value; applyTimeOfDay(); });
-addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#info').hidden) $('#info-close').click(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && !WALK.on && !$('#info').hidden) $('#info-close').click(); });
 const chipEl = $('#chip'); let chipUntil = 0;
 function setChip(txt, ms) { chipEl.textContent = txt; chipEl.classList.toggle('off', !txt); chipUntil = ms ? performance.now() + ms : 0; }
+
+
+// =====================================================================
+// 8b. Caminar en primera persona
+// =====================================================================
+const KMd = KM; // metros por grado de latitud
+const WALK = { on: false, lat: 0, lon: 0, yaw: 0, pitch: 0.04, h: 0, hT: 0, hAt: 0, v: 1.4, keys: new Set(), joy: { x: 0, y: 0 }, bob: 0 };
+const EYE = 1.7;
+// huellas de los edificios en una cuadrícula de 60 m, para no atravesar paredes
+const FOOT = { cell: 60, grid: new Map() };
+function footAdd(loc) {
+  const xs = loc.map(p => p[0]), zs = loc.map(p => p[2]);
+  const f = { xs, zs, x0: Math.min(...xs), x1: Math.max(...xs), z0: Math.min(...zs), z1: Math.max(...zs) };
+  for (let i = Math.floor(f.x0 / FOOT.cell); i <= Math.floor(f.x1 / FOOT.cell); i++) for (let j = Math.floor(f.z0 / FOOT.cell); j <= Math.floor(f.z1 / FOOT.cell); j++) {
+    const k = i + ',' + j; if (!FOOT.grid.has(k)) FOOT.grid.set(k, []); FOOT.grid.get(k).push(f);
+  }
+}
+function blocked(x, z) {
+  const arr = FOOT.grid.get(Math.floor(x / FOOT.cell) + ',' + Math.floor(z / FOOT.cell)); if (!arr) return false;
+  for (const f of arr) {
+    if (x < f.x0 - 0.3 || x > f.x1 + 0.3 || z < f.z0 - 0.3 || z > f.z1 + 0.3) continue;
+    let ins = false; const n = f.xs.length;
+    for (let i = 0, j = n - 1; i < n; j = i++) if ((f.zs[i] > z) !== (f.zs[j] > z) && x < (f.xs[j] - f.xs[i]) * (z - f.zs[i]) / (f.zs[j] - f.zs[i]) + f.xs[i]) ins = !ins;
+    if (ins) return true;
+  }
+  return false;
+}
+const _w = [0, 0, 0];
+const blockedLL = (la, lo) => { geoToLocalArr(la, lo, 0, _w); return blocked(_w[0], _w[2]); };
+function enterWalk(lat, lon, yawDeg) {
+  // si el punto cae dentro de un edificio, busca el lugar libre más cercano
+  if (blockedLL(lat, lon)) {
+    outer: for (let r = 5; r < 400; r += 5) for (let a = 0; a < 360; a += 20) {
+      const la = lat + r * Math.cos(a * DEG) / KMd, lo = lon + r * Math.sin(a * DEG) / (KMd * Math.cos(lat * DEG));
+      if (!blockedLL(la, lo)) { lat = la; lon = lo; break outer; }
+    }
+  }
+  Object.assign(WALK, { on: true, lat, lon, yaw: (yawDeg || 0) * DEG, pitch: 0.04, hAt: 0 });
+  elevationAt(lat, lon).then(h => { WALK.h = WALK.hT = h; }).catch(() => {});
+  CAM.fly = null; selId && $('#info-close').click(); $('#tour').hidden = true;
+  document.body.classList.add('walking'); $('#walkui').hidden = false; $('#walk-btn').setAttribute('aria-pressed', 'true');
+  setChip('Modo caminar · todo lo que ves está a escala real', 5000);
+}
+function exitWalk() {
+  if (!WALK.on) return;
+  WALK.on = false; document.body.classList.remove('walking'); $('#walkui').hidden = true; $('#walk-btn').setAttribute('aria-pressed', 'false'); $('#zone').textContent = '';
+  CAM.tgt.copy(geoToLocal(WALK.lat, WALK.lon, WALK.h)); CAM.dist = 260; CAM.el = 0.35; CAM.az = WALK.yaw + Math.PI;
+}
+function walkAt(p) {
+  // lugares públicos: punto de entrada propio; los demás: 160 m al sur, mirando hacia el lugar
+  if (p.walk) return enterWalk(p.walk[0], p.walk[1], p.walk[2]);
+  const [la, lo] = offset(p, -160, 0); enterWalk(la, lo, 0);
+}
+function stepWalk(dt, now) {
+  const K = WALK.keys, j = WALK.joy;
+  const fwd = (K.has('w') || K.has('arrowup') ? 1 : 0) - (K.has('s') || K.has('arrowdown') ? 1 : 0) + j.y;
+  const str = (K.has('d') ? 1 : 0) - (K.has('a') ? 1 : 0) + j.x;
+  WALK.yaw += ((K.has('arrowright') || K.has('e') ? 1 : 0) - (K.has('arrowleft') || K.has('q') ? 1 : 0)) * dt * 1.6;
+  const m = Math.min(1, Math.hypot(fwd, str));
+  if (m > 0.01) {
+    const v = WALK.v * (K.has('shift') ? 3 : 1) * m;
+    const c = Math.cos(WALK.yaw), s = Math.sin(WALK.yaw), n = Math.hypot(fwd, str) || 1;
+    const dN = (fwd * c - str * s) / n * v * dt, dE = (fwd * s + str * c) / n * v * dt;
+    const la = WALK.lat + dN / KMd, lo = WALK.lon + dE / (KMd * Math.cos(WALK.lat * DEG));
+    if (!blockedLL(la, lo)) { WALK.lat = la; WALK.lon = lo; }
+    else if (!blockedLL(la, WALK.lon)) WALK.lat = la;           // se desliza a lo largo de la pared
+    else if (!blockedLL(WALK.lat, lo)) WALK.lon = lo;
+    WALK.bob += dt * v * 1.9;
+  }
+  if (now - WALK.hAt > 220) { WALK.hAt = now; elevationAt(WALK.lat, WALK.lon).then(h => { WALK.hT = h; }).catch(() => {}); }
+  WALK.h += (WALK.hT - WALK.h) * Math.min(1, dt * 5);
+  // ¿zona pública o restringida? (según el lugar más cercano)
+  let best = null, bd = 1e9;
+  for (const p of PLACES) { const d = distM(WALK.lat, WALK.lon, p.lat, p.lon); if (d < bd) { bd = d; best = p; } }
+  const z = $('#zone'); let txt = '', cls = '';
+  if (best && bd < (best.ops.includes('pub') ? 900 : 1500)) {
+    if (best.ops.includes('pub')) { txt = 'Abierto al público · ' + (best.label || best.name); cls = 'p'; }
+    else { txt = 'Zona restringida en la vida real · ' + (best.label || best.name); cls = 'r'; }
+  }
+  if (z.textContent !== txt) { z.textContent = txt; z.className = cls; }
+}
+function walkCamera(cam) {
+  const h = WALK.h + EYE + (WALK.v < 3 ? Math.sin(WALK.bob) * 0.03 : 0);
+  const p = geoToLocal(WALK.lat, WALK.lon, h);
+  const up = geoToLocal(WALK.lat, WALK.lon, h + 1).sub(p).normalize();
+  const north = geoToLocal(WALK.lat + 1e-4, WALK.lon, h).sub(p).normalize();
+  const east = new THREE.Vector3().crossVectors(north, up).normalize();
+  const cp = Math.cos(WALK.pitch), dir = north.clone().multiplyScalar(Math.cos(WALK.yaw) * cp).addScaledVector(east, Math.sin(WALK.yaw) * cp).addScaledVector(up, Math.sin(WALK.pitch));
+  cam.position.copy(p); cam.up.copy(up); cam.lookAt(p.clone().add(dir));
+  cam.fov = 62; cam.near = 0.15; cam.far = 4e6; cam.updateProjectionMatrix();
+  CAM.tgt.copy(p); // las sombras y el terreno siguen al caminante
+}
+$('#walk-btn').addEventListener('click', () => {
+  if (WALK.on) return exitWalk();
+  // empieza en el punto que se está mirando
+  const g = localToGeoApprox(CAM.tgt); enterWalk(g[0], g[1], ((Math.PI - CAM.az) / DEG + 360) % 360);
+});
+$('#walk-exit').addEventListener('click', exitWalk);
+$('#i-walk').addEventListener('click', () => { const p = PLACE[selId]; if (p) walkAt(p); });
+document.querySelectorAll('#walkui .seg button').forEach(b => b.addEventListener('click', () => {
+  WALK.v = +b.dataset.v; document.querySelectorAll('#walkui .seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+}));
+// posición local → latitud/longitud (aproximada, suficiente cerca del centro de la escena)
+function localToGeoApprox(v) {
+  let la = SITE.lat - v.z / KMd, lo = SITE.lon + v.x / (KMd * Math.cos(SITE.lat * DEG));
+  for (let i = 0; i < 3; i++) { geoToLocalArr(la, lo, 0, _w); la -= (v.z - _w[2]) / KMd; lo += (v.x - _w[0]) / (KMd * Math.cos(la * DEG)); }
+  return [la, lo];
+}
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('select,input')) return;
+  const k = e.key.toLowerCase();
+  if (k === 'c' && !e.ctrlKey && !e.metaKey) { WALK.on ? exitWalk() : $('#walk-btn').click(); return; }
+  if (!WALK.on) return;
+  if (['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'].includes(k)) { WALK.keys.add(k); e.preventDefault(); }
+  if (k === 'escape') exitWalk();
+});
+addEventListener('keyup', e => WALK.keys.delete(e.key.toLowerCase()));
+addEventListener('blur', () => WALK.keys.clear());
+{ // joystick táctil
+  const joy = $('#joy'), knob = $('#knob'); let id = null;
+  const set = e => { const r = joy.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 2 - 1, y = (e.clientY - r.top) / r.height * 2 - 1, m = Math.max(1, Math.hypot(x, y));
+    WALK.joy.x = x / m; WALK.joy.y = -y / m; knob.style.transform = `translate(${WALK.joy.x * 36}px,${-WALK.joy.y * 36}px)`; };
+  joy.addEventListener('pointerdown', e => { id = e.pointerId; joy.setPointerCapture(id); set(e); });
+  joy.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); });
+  const end = e => { if (e.pointerId !== id) return; id = null; WALK.joy.x = WALK.joy.y = 0; knob.style.transform = ''; };
+  joy.addEventListener('pointerup', end); joy.addEventListener('pointercancel', end);
+}
+
+// =====================================================================
+// 8c. Recorridos guiados («cómo funciona»)
+// =====================================================================
+const TOUR = { cur: null, i: 0 };
+function showTours() {
+  exitWalk(); $('#info').hidden = true;
+  $('#tour-kind').textContent = 'Recorridos guiados'; $('#tour-title').textContent = 'Cómo funciona ' + CFG.short;
+  $('#tour-body').innerHTML = '<div class="tlist">' + CFG.tours.map(x => `<button type="button" data-t="${x.id}">${x.title}<span>${x.steps.length} pasos</span></button>`).join('') + '</div>';
+  $('#tour-body').querySelectorAll('button').forEach(b => b.addEventListener('click', () => tourGo(b.dataset.t, 0)));
+  $('#tour').hidden = false;
+}
+function tourGo(id, i) {
+  const tr = CFG.tours.find(x => x.id === id); if (!tr) return;
+  TOUR.cur = tr; TOUR.i = clamp(i, 0, tr.steps.length - 1);
+  const st = tr.steps[TOUR.i], p = PLACE[st.p];
+  $('#tour-kind').textContent = `Cómo funciona · paso ${TOUR.i + 1} de ${tr.steps.length}`;
+  $('#tour-title').textContent = tr.title;
+  $('#tour-body').innerHTML = `<div class="dots">${tr.steps.map((_, k) => `<i class="${k <= TOUR.i ? 'on' : ''}"></i>`).join('')}</div><p></p>
+    <div class="irow"><button class="tbtn" type="button" id="tr-prev" ${TOUR.i ? '' : 'disabled'}>← Anterior</button>${TOUR.i < tr.steps.length - 1 ? '<button class="tbtn" type="button" id="tr-next">Siguiente →</button>' : '<button class="tbtn" type="button" id="tr-end">Terminar</button>'}<button class="tbtn" type="button" id="tr-walk">Caminar aquí</button></div>`;
+  $('#tour-body p').textContent = st.t;
+  if (st.cabin && CFG.cabin) $('#tour-body .irow').insertAdjacentHTML('beforeend', `<a class="tbtn" href="${CFG.cabin.href}">${CFG.cabin.label}</a>`);
+  $('#tr-prev').onclick = () => tourGo(id, TOUR.i - 1);
+  if ($('#tr-next')) $('#tr-next').onclick = () => tourGo(id, TOUR.i + 1);
+  if ($('#tr-end')) $('#tr-end').onclick = showTours;
+  $('#tr-walk').onclick = () => walkAt(p);
+  $('#tour').hidden = false;
+  if (p) { selId = p.id; PLACES.forEach(q => q.el.classList.toggle('sel', q.id === p.id)); goPlace(p, 1); }
+}
+$('#tour-btn').addEventListener('click', showTours);
+$('#tour-close').addEventListener('click', () => { $('#tour').hidden = true; TOUR.cur = null; });
+
+// =====================================================================
+// 8d. Puntos de interés de OpenStreetMap (museos, monumentos, miradores)
+// =====================================================================
+const POIS = [];
+async function loadPOIs() {
+  if (QS.get('osm') === 'local') return;
+  for (const url of OVERPASS) {
+    try {
+      const r = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(POI_Q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      if (!r.ok) continue;
+      const d = await r.json();
+      for (const e of d.elements || []) {
+        const name = e.tags && (e.tags['name:es'] || e.tags.name || e.tags['name:en']); if (!name || e.lat == null) continue;
+        if (EXCL_RE.test(name) || EXCL.some(([a, b, rr]) => distM(e.lat, e.lon, a, b) < rr)) continue;
+        if (PLACES.some(p => distM(e.lat, e.lon, p.lat, p.lon) < 120)) continue;
+        const el = document.createElement('div'); el.className = 'lbl poi'; el.innerHTML = '<i></i><span></span>'; el.lastChild.textContent = name; el.title = name;
+        labelsEl.appendChild(el);
+        const poi = { el, lat: e.lat, lon: e.lon, pos: geoToLocal(e.lat, e.lon, 12), w: 0 }; POIS.push(poi);
+        elevationAt(e.lat, e.lon).then(h => { poi.pos = geoToLocal(e.lat, e.lon, h + 12); }).catch(() => {});
+      }
+      return;
+    } catch (e) {}
+  }
+}
 
 // =====================================================================
 // 9. Bucle
@@ -1221,19 +1508,22 @@ let last = performance.now(), frame = 0;
 function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now; frame++;
   stepFly(now);
-  if (!CAM.fly && !pointers.size && now - idleAt > 12000 && !selId) CAM.az += dt * 0.02;
+  if (!WALK.on && !CAM.fly && !pointers.size && now - idleAt > 12000 && !selId && !TOUR.cur) CAM.az += dt * 0.02;
   const cam = L.cam;
-  camPos(CAM, cam.position);
-  const minY = CAM.tgt.y + 6; if (cam.position.y < minY) cam.position.y = minY;
-  cam.up.set(0, 1, 0); cam.lookAt(CAM.tgt);
-  cam.fov = 50; cam.near = clamp(CAM.dist * 0.002, 0.5, 50); cam.far = 4e6; cam.updateProjectionMatrix();
+  if (WALK.on) { stepWalk(dt, now); walkCamera(cam); }
+  else {
+    camPos(CAM, cam.position);
+    const minY = CAM.tgt.y + 6; if (cam.position.y < minY) cam.position.y = minY;
+    cam.up.set(0, 1, 0); cam.lookAt(CAM.tgt);
+    cam.fov = 50; cam.near = clamp(CAM.dist * 0.002, 0.5, 50); cam.far = 4e6; cam.updateProjectionMatrix();
+  }
   const camY = cam.position.y;
   L.sky.position.copy(cam.position); L.stars.position.copy(cam.position);
   L.sky.material.uniforms.uAlt.value = camY;
   L.stars.material.uniforms.uOp.value = (1 - DAY * 0.97) * (0.35 + 0.65 * smooth(3000, 30000, camY)) + smooth(30000, 70000, camY) * DAY;
   L.scene.fog.density = (1.8e-5 * (1 - smooth(1500, 30000, camY)) + 1.2e-6) * (0.75 + 0.25 * DAY);
   // sol y sombras: siguen al punto que se mira; el área de sombras crece con la distancia
-  const sh = clamp(CAM.dist * 0.7, 150, 2500), sc = L.sun.shadow.camera;
+  const sh = WALK.on ? 160 : clamp(CAM.dist * 0.7, 150, 2500), sc = L.sun.shadow.camera;
   if (sc.right !== sh) { sc.left = -sh; sc.right = sh; sc.top = sh; sc.bottom = -sh; sc.far = 6000; sc.updateProjectionMatrix(); }
   L.sun.shadow.normalBias = 0.6 * sh / 130;
   L.sun.target.position.copy(CAM.tgt); L.sun.position.copy(CAM.tgt).addScaledVector(SUN_LOCAL, 3000);
@@ -1255,15 +1545,16 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 applyTimeOfDay();
+loadPOIs();
 loadBuildings().catch(e => { console.warn('Edificios OSM:', e); BLD.err = String(e); setChip('No se pudieron descargar los edificios de OpenStreetMap; las plataformas sí se ven', 9000); });
 requestAnimationFrame(t => { last = t; $('#loading').classList.add('done'); loop(t); });
 // lugar inicial: el del enlace (#39a, #slc40…) o vista general
 {
   const id = (location.hash || '').slice(1) || QS.get('lugar');
   if (PLACE[id]) setTimeout(() => select(id, true), 600);
-  else setTimeout(() => flyTo(28.57, -80.615, 0, { az: 2.75, el: 0.55, dist: 30000 }, 2600), 300);
+  else setTimeout(() => flyTo(CFG.home.lat, CFG.home.lon, 0, CFG.home, 2600), 300);
 }
-window.__cape = { PLACES, select, flyTo, CAM, TER, BLD, NET, MODELS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); } };
+window.__site = window.__cape = { WALK, enterWalk, exitWalk, tourGo, POIS, FOOT, blockedLL, PLACES, select, flyTo, CAM, TER, BLD, NET, MODELS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); } };
 </script>
 </body>
 </html>
