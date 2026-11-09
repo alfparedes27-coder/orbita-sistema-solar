@@ -1958,6 +1958,9 @@ function showMoonIntro(){
   $('sm-hint').hidden = false; $('sm-hint').innerHTML = 'Toca un <b style="color:var(--sol)">punto que parpadea</b> en el mapa';
   $('sm-list').innerHTML = `<h4>La cara que siempre vemos</h4><p>Los "mares" son llanuras de lava oscura que rellenaron enormes cráteres hace 3.000 a 3.900 millones de años. Los puntos son los lugares reales donde llegaron naves de la Tierra.</p>
     <p>${Object.values(MG).map(([c,t])=>`<span style="white-space:nowrap;margin-right:10px"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};margin-right:5px"></i>${t}</span>`).join('')}</p>
+    <a class="vtile" href="${SIM_LOCAL ? '' : SIM_SITE}simulaciones/luna/apollo/" target="${SIM_TARGET}" rel="noopener">
+      <span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2.5 4.5 6 4.5 10.5L12 17l-4.5-4.5C7.5 8 9 4.5 12 2z"/><circle cx="12" cy="9" r="1.6"/></svg></span>
+      <span class="vtxt"><span class="vk">Simulación · reloj real o acelerado</span><b>Apollo 8 y Apollo 11: la misión completa</b><span>Saturn V desde Cabo Cañaveral, viaje, vueltas a la Luna, alunizaje y amerizaje</span></span></a>
     <a class="sall" href="${SIM_LOCAL ? '' : SIM_SITE}simulaciones/luna/" target="${SIM_TARGET}" rel="noopener">Abrir la Luna en 3D con el catálogo completo ↗</a>`;
 }
 function pickMoon(id){
@@ -1969,6 +1972,7 @@ function pickMoon(id){
       <span class="vtxt"><span class="vk">${k}</span><b>${t}</b><span>${d}</span></span></a>`;
   $('sm-list').innerHTML = `<p>Llegó el <b style="color:var(--ink)">${s.date}</b> · ${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${Math.abs(s.lon).toFixed(2)}° ${s.lon>=0?'E':'O'}</p>` +
     tile(base, s.full ? 'Modelo 3D · ficha' : 'Ficha', s.full ? 'Cómo funciona e historia' : 'Qué fue y qué hizo', s.full ? 'El módulo lunar en 3D, la tripulación, el cohete y lo que encontraron' : 'Fecha, lugar, cohete y lo más importante de la misión') +
+    (s.id==='a11' ? tile((SIM_LOCAL ? '' : SIM_SITE) + 'simulaciones/luna/apollo/#a11', 'Simulación · misión completa', 'Del despegue al amerizaje', 'Saturn V desde LC‑39A, viaje de 3 días, 30 vueltas a la Luna y regreso') : '') +
     (s.full ? tile(base + '/alunizaje', 'Animación · ×1 a ×50', 'Animación del alunizaje', 'Los 12 minutos del descenso, desde 15 km de altura hasta el contacto') : `<div class="sempty">El modelo 3D y la animación de ${s.name} llegarán en una próxima tanda.</div>`) +
     `<button class="btn" type="button" id="sm-back">← Volver al mapa de la Luna</button>`;
   $('sm-back').onclick = () => { animViewBox([0,0,600,600]); $('sm-svg').setAttribute('class',''); showMoonIntro(); };

@@ -101,6 +101,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 <aside class="cat panel" aria-label="Catálogo de misiones">
   <h2>Todo lo que llegó a la Luna</h2>
   <p class="sub">Cara visible, desde 1959, en 3 grupos y de 3 en 3 por fecha. Toca una misión para verla en el mapa. Abajo, los mares.</p>
+  <a class="go" href="apollo/" style="margin:0 0 8px">Misiones Apollo completas: Apollo 8 (10 vueltas a la Luna) y Apollo 11 →</a>
   <div class="scroll" id="cat"></div>
 </aside>
 
@@ -242,6 +243,7 @@ function openCard(s){
   buildLM(s.id==='a17'); setPose(1e9,I.prof);
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
     <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>
+    ${s.id==='a11'?'<a class="go alt" href="apollo/#a11">Ver la misión completa: Saturn V, viaje, 30 vueltas y regreso →</a>':''}
     <p style="font-size:11.5px;color:var(--faint)">Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.</p>`;
   $('cbody').innerHTML=h; $('cbody').scrollTop=0;
   if($('play')) $('play').onclick=()=>startAnim(I.prof);

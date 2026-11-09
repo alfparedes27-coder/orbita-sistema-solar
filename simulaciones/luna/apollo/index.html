@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Apollo a la Luna</title>
+<meta name="description" content="Las misiones Apollo 8 y Apollo 11 completas: despegue del Saturn V desde Cabo Cañaveral, viaje a la Luna, vueltas en órbita lunar, alunizaje, regreso y amerizaje, con reloj real y aceleración del tiempo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Diseño: lienzo 3D a pantalla completa con HUD flotante (paleta oscura del proyecto Órbita Sistema Solar 3D, acento marciano). */
+:root{
+  --void:#05060b; --panel:rgba(10,12,20,.86); --line:#232a3d; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9a9fb3; --faint:#646b82;
+  --mars:#9fd0ff; --mars-ink:#04121f; --craft:#6fd3ff; --ok:#7ee2a8; --warn:#ffcf6b;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  --gl:max(16px, env(safe-area-inset-left,0px)); --gr:max(16px, env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px;white-space:nowrap}
+.back:hover{color:var(--ink)}
+.title{padding:8px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--mars)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.missions{display:flex;gap:6px;flex-wrap:wrap;padding:6px}
+.mis{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 9px;text-align:left;line-height:1.15}
+.mis b{display:block;font:600 13px var(--f-display)}
+.mis span{font-size:11px;color:var(--dim)}
+.mis[aria-pressed=true]{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
+.mis[aria-pressed=true] span{color:#4a2410}
+.clock{position:fixed;left:var(--gl);top:calc(118px + var(--top));padding:10px 12px;z-index:4;min-width:250px}
+.phase{font:600 11px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--craft)}
+.big{font:500 22px/1.25 var(--f-data);font-variant-numeric:tabular-nums}
+.utc{font:400 12px var(--f-data);color:var(--dim)}
+.tele{position:fixed;right:var(--gr);top:calc(118px + var(--top));padding:10px 12px;z-index:4;width:265px}
+.tele h3,.log h3{margin:0 0 6px;font:600 11px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid rgba(255,255,255,.05);font-size:12.5px}
+.row:first-of-type{border-top:0}
+.row span{color:var(--dim)} .row b{font:500 12.5px var(--f-data);text-align:right}
+.note{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.35}
+.event{margin-top:8px;padding:7px 9px;border-left:3px solid var(--mars);background:rgba(255,138,76,.08);border-radius:4px;font-size:13px;line-height:1.35}
+.bottom{position:fixed;left:var(--gl);right:var(--gr);bottom:calc(10px + var(--bot));display:flex;flex-direction:column;gap:8px;align-items:center;z-index:5;pointer-events:none}
+.bottom>*{pointer-events:auto}
+.bar{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;padding:6px}
+.bar button{background:transparent;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font:500 12.5px var(--f-data)}
+.bar button:hover{border-color:var(--line2)}
+.bar button[aria-pressed=true]{background:var(--craft);color:#03131b;border-color:var(--craft)}
+.bar .lab{font:600 10.5px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);align-self:center;padding:0 4px}
+.views button[aria-pressed=true]{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
+.log{position:fixed;left:var(--gl);top:calc(232px + var(--top));bottom:calc(150px + var(--bot));width:265px;padding:10px 6px 10px 12px;z-index:3;display:flex;flex-direction:column}
+.log ol{list-style:none;margin:0;padding:0 6px 0 0;overflow:auto;flex:1}
+.log li{font-size:12px;line-height:1.3;padding:4px 6px;border-radius:5px;cursor:pointer;color:var(--dim)}
+.log li:hover{background:rgba(255,255,255,.05)}
+.log li.past{color:var(--ink)} .log li.now{background:rgba(255,138,76,.16);color:var(--ink)}
+.log li i{font-style:normal;font:500 11px var(--f-data);color:var(--faint);display:block}
+.toast{position:fixed;left:50%;top:calc(120px + var(--top));transform:translateX(-50%);padding:9px 14px;z-index:6;font-size:13px;max-width:min(520px,calc(100vw - 32px));text-align:center;transition:opacity .4s}
+.info{font-size:12.5px;line-height:1.45;color:var(--ink)}
+.info p{margin:6px 0}
+.src{position:fixed;right:var(--gr);bottom:calc(150px + var(--bot));z-index:3;font-size:11px;padding:6px 10px;max-width:265px}
+.src summary{cursor:pointer;color:var(--dim)} .src p{margin:6px 0;color:var(--dim);line-height:1.4}
+.lbl{position:fixed;left:0;top:0;pointer-events:none;font:600 11px var(--f-display);letter-spacing:.06em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;transform:translate(-50%,-140%);z-index:2}
+.lbl.sel{color:var(--mars)}
+@media (max-width:820px){
+  .log{display:none}
+  .clock{top:auto;bottom:calc(158px + var(--bot));min-width:0}
+  .tele{top:auto;bottom:calc(158px + var(--bot));width:200px}
+  .tele .note,.tele .event{display:none}
+  .src{display:none}
+  .big{font-size:17px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="Simulación 3D de la misión"></canvas>
+
+<div class="top">
+  <a class="back panel" href="../">← La Luna</a>
+  <div class="title panel"><div class="kick" id="kick">Cabo Cañaveral → Luna</div><h1>Apollo a la Luna</h1></div>
+  <div class="missions panel" id="missions" role="group" aria-label="Misión"></div>
+</div>
+
+<div class="clock panel">
+  <div class="phase" id="phase">—</div>
+  <div class="big" id="met">T−00:00:30</div>
+  <div class="utc" id="utc">—</div>
+</div>
+
+<div class="log panel"><h3>Cronología (clic para saltar)</h3><ol id="log"></ol></div>
+
+<div class="tele panel" aria-live="off">
+  <h3 id="teleH">Telemetría</h3>
+  <div id="rows"></div>
+  <div class="event" id="event" hidden></div>
+  <div class="note" id="tnote"></div>
+</div>
+
+<details class="src panel">
+  <summary>De dónde salen los datos</summary>
+  <p>Horas de cada evento: registros oficiales de vuelo de la NASA (Apollo Flight Journal), en tiempo desde el despegue.</p>
+  <p>Ascenso del Saturn V: tiempos reales de separación de etapas; altura y velocidad interpoladas entre eventos.</p>
+  <p>Viaje: calculado con física real (problema de Lambert) entre el fin de la TLI y la llegada a la Luna, y entre la salida de la Luna y la entrada a la atmósfera, con las posiciones reales de la Tierra y la Luna (Astronomy Engine). La gravedad de la Luna se aproxima. Órbita lunar circular de 111 km.</p>
+</details>
+
+<div class="toast panel" id="toast" hidden></div>
+
+<div class="bottom">
+  <div class="bar panel views" id="views">
+    <span class="lab">Vista</span>
+    <button data-v="launch">Despegue</button><button data-v="space">Tierra‑Luna</button><button data-v="moon">Órbita lunar</button><button data-v="earth">Regreso</button>
+    <button id="auto" aria-pressed="true">Auto</button>
+  </div>
+  <div class="bar panel" id="speeds"><span class="lab">Velocidad</span></div>
+  <div class="bar panel" id="jumps"><span class="lab">Ir a</span></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const AE = window.Astronomy;
+const $ = id => document.getElementById(id);
+const H=3600, G=(h,m,s=0)=>h*H+m*60+s; // tiempo transcurrido desde el despegue (GET), en segundos
+
+/* ================= MISIONES (tiempos de los registros oficiales de la NASA) ================= */
+const MISSIONS=[
+ { id:'a8', name:'Apollo 8', year:1968, crew:'Frank Borman, Jim Lovell y Bill Anders', csm:'Apollo 8 (sin módulo lunar)', launch:'1968-12-21T12:51:00Z', revs:10,
+   tliA:G(2,50,37), tliB:G(2,55,55), loi:G(69,8,20), tei:G(89,19,16), ei:G(146,46,13), spl:G(147,0,42), slat:8.13, slon:-165.02, ship:'USS Yorktown',
+   ins:G(0,11,35), sIC:G(0,2,33), sII:G(0,8,44),
+   ev:[[G(3,20,59),'La nave Apollo se separa de la tercera etapa S‑IVB'],[G(10,59,59),'Primera corrección de rumbo (2,4 s de motor)'],[G(55,38,0),'Entran en la zona donde manda la gravedad de la Luna'],
+     [G(68,58,45),'Pasan detrás de la Luna: se pierde el contacto por radio'],[G(69,8,20),'Encendido de 4 min 7 s para frenar: primera órbita de humanos alrededor de la Luna'],[G(69,33,52),'Reaparecen detrás de la Luna: "Houston, aquí Apollo 8"'],
+     [G(73,35,7),'Segundo encendido: órbita circular a unos 111 km'],[G(75,49,7),'Anders toma la foto "Salida de la Tierra" (Earthrise)'],[G(85,43,0),'Nochebuena: leen el Génesis en directo para la Tierra'],
+     [G(89,19,16),'Encendido detrás de la Luna para regresar (TEI)'],[G(89,34,0),'"Les informamos que hay un Santa Claus": recuperan el contacto'],[G(104,0,0),'Corrección de rumbo de regreso'],
+     [G(146,28,48),'Se separa el módulo de servicio'],[G(146,46,13),'Entrada en la atmósfera a casi 40.000 km/h'],[G(146,54,0),'Se abren los paracaídas de frenado'],[G(147,0,42),'Amerizaje en el Pacífico, antes del amanecer']],
+   slow:[G(69,5,0),G(146,44,0)],
+   jumps:[['Despegue',-30],['Inyección a la Luna',G(2,50,20)],['Mitad del viaje',G(36,0,0)],['Detrás de la Luna',G(68,57,0)],['Salida de la Tierra',G(75,47,0)],['Regreso',G(89,17,0)],['Entrada y amerizaje',G(146,44,0)]] },
+ { id:'a11', name:'Apollo 11', year:1969, crew:'Neil Armstrong, Buzz Aldrin y Michael Collins', csm:'Columbia (mando) y Eagle (módulo lunar)', launch:'1969-07-16T13:32:00Z', revs:30,
+   tliA:G(2,44,16), tliB:G(2,50,3), loi:G(75,49,50), tei:G(135,23,42), ei:G(195,3,6), spl:G(195,18,35), slat:13.32, slon:-169.15, ship:'USS Hornet',
+   ins:G(0,11,49), sIC:G(0,2,42), sII:G(0,9,8),
+   und:G(100,12,0), pdi:G(102,33,5), land:G(102,45,40), lift:G(124,22,0), dock:G(128,3,0), jet:G(130,9,31), site:[0.674,23.473],
+   ev:[[G(3,17,5),'Columbia se separa de la tercera etapa'],[G(3,24,3),'Columbia gira y se acopla al Eagle'],[G(4,16,59),'Sacan al Eagle de la tercera etapa'],[G(26,44,58),'Corrección de rumbo'],
+     [G(61,40,0),'Entran en la zona donde manda la gravedad de la Luna'],[G(75,41,0),'Pasan detrás de la Luna: sin contacto'],[G(75,49,50),'Encendido de 5 min 57 s para entrar en órbita lunar'],[G(80,11,36),'Segundo encendido: órbita casi circular'],
+     [G(100,12,0),'El Eagle se separa de Columbia: "El Águila tiene alas"'],[G(101,36,14),'El Eagle baja su órbita a 15 km (DOI)'],[G(102,33,5),'Inicio del descenso propulsado'],[G(102,38,22),'Alarma 1202'],[G(102,45,40),'"El Águila ha alunizado"'],
+     [G(109,24,15),'Armstrong pisa la Luna: "Es un pequeño paso para un hombre…"'],[G(109,43,0),'Aldrin baja a la superficie'],[G(111,39,13),'Vuelven al Eagle: 2 h 31 min afuera, 21,5 kg de muestras'],
+     [G(124,22,0),'Despegue del Eagle desde la Luna; la etapa de descenso queda allí'],[G(128,3,0),'El Eagle se acopla con Columbia'],[G(130,9,31),'Sueltan al Eagle en órbita lunar'],
+     [G(135,23,42),'Encendido detrás de la Luna para regresar (TEI)'],[G(150,29,57),'Corrección de rumbo de regreso'],[G(194,49,12),'Se separa el módulo de servicio'],[G(195,3,6),'Entrada en la atmósfera a casi 40.000 km/h'],
+     [G(195,12,6),'Se abren los paracaídas de frenado'],[G(195,18,35),'Amerizaje en el Pacífico']],
+   slow:[G(75,46,0),G(102,32,0),G(109,22,0),G(124,21,0),G(195,1,0)],
+   jumps:[['Despegue',-30],['Inyección a la Luna',G(2,44,0)],['Mitad del viaje',G(38,0,0)],['Órbita lunar',G(75,48,0)],['Alunizaje',G(102,32,0)],['Primer paso',G(109,23,0)],['Despegue lunar',G(124,21,0)],['Regreso',G(135,22,0)],['Amerizaje',G(195,1,0)]] },
+];
+function ascent(m){ return [
+  [0,0,0,'Despegue: 5 motores F‑1, 3.400 toneladas de empuje'],[12,0.14,0.01,'Libra la torre: el control pasa a Houston'],[66,8,0.33,'Supera la velocidad del sonido'],
+  [83,13.5,0.5,'Máxima presión aerodinámica'],[m.sIC-27,44,2.0,'Se apaga el motor central de la primera etapa'],[m.sIC,67,2.75,'Se separa la primera etapa S‑IC (cae al Atlántico)'],
+  [m.sIC+3,68,2.76,'Encienden los 5 motores J‑2 de la segunda etapa'],[m.sIC+35,90,2.9,'Se suelta la torre de escape'],[m.sII,185,6.8,'Se separa la segunda etapa S‑II'],
+  [m.sII+4,186,6.82,'Enciende la tercera etapa S‑IVB'],[m.ins,190,7.79,'Órbita de espera alrededor de la Tierra a 190 km'],
+  [m.tliA,190,7.79,'Reencendido de la S‑IVB: inyección translunar (TLI)'],[m.tliB,334,10.84,'Fin de la TLI: rumbo a la Luna a 39.000 km/h']]; }
+const REENTRY=[[0,122,11.03],[60,75,10.8],[150,58,7.5],[230,50,4],[330,42,2],[480,15,0.4],[540,7.3,0.12],[590,3,0.05]];
+
+/* ================= MECÁNICA ORBITAL (Tierra) ================= */
+const MU=398600.4418, AUK=149597870.7, RE=6371, RM=1737.4, RORB=RM+111;
+function stC(z){ if(z>1e-8){const s=Math.sqrt(z);return (1-Math.cos(s))/z;} if(z<-1e-8){const s=Math.sqrt(-z);return (Math.cosh(s)-1)/(-z);} return 1/2-z/24; }
+function stS(z){ if(z>1e-8){const s=Math.sqrt(z);return (s-Math.sin(s))/(s*s*s);} if(z<-1e-8){const s=Math.sqrt(-z);return (Math.sinh(s)-s)/(s*s*s);} return 1/6-z/120; }
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+function lambert(r1,r2,dt){ const R1=r1.length(),R2=r2.length(); let th=r1.angleTo(r2); if(new THREE.Vector3().crossVectors(r1,r2).dot(NORM)<0) th=2*Math.PI-th;
+  const A=Math.sin(th)*Math.sqrt(R1*R2/(1-Math.cos(th))), y=z=>R1+R2+A*(z*stS(z)-1)/Math.sqrt(stC(z));
+  const F=z=>{const Y=y(z);return Math.pow(Y/stC(z),1.5)*stS(z)+A*Math.sqrt(Y)-Math.sqrt(MU)*dt;};
+  let lo=-4*Math.PI*Math.PI,hi=4*Math.PI*Math.PI*0.999; while(y(lo)<0) lo+=0.1; for(let i=0;i<200;i++){const m=(lo+hi)/2; if(F(m)>0) hi=m; else lo=m;}
+  const z=(lo+hi)/2,Y=y(z),f=1-Y/R1,g=A*Math.sqrt(Y/MU),gd=1-Y/R2; return { v1:r2.clone().addScaledVector(r1,-f).multiplyScalar(1/g), v2:r2.clone().multiplyScalar(gd).sub(r1).multiplyScalar(1/g) }; }
+function kepler(r0,v0,dt){ const R0=r0.length(),V0=v0.length(),vr0=r0.dot(v0)/R0,al=2/R0-V0*V0/MU,sm=Math.sqrt(MU);
+  const Fx=x=>{const z=al*x*x;return R0*vr0/sm*x*x*stC(z)+(1-al*R0)*x*x*x*stS(z)+R0*x-sm*dt;};
+  // bisección en la variable universal (robusta para órbitas muy alargadas)
+  let lo=0, hi=al>0?2*Math.PI/Math.sqrt(al)*0.999999:1; if(al<=0) while(Fx(hi)<0) hi*=2;
+  for(let i=0;i<80;i++){ const mid=(lo+hi)/2; if(Fx(mid)>0) hi=mid; else lo=mid; } let x=(lo+hi)/2;
+  const z=al*x*x,f=1-x*x/R0*stC(z),g=dt-x*x*x/sm*stS(z),r=r0.clone().multiplyScalar(f).addScaledVector(v0,g),R=r.length(),fd=sm/(R*R0)*(al*x*x*x*stS(z)-x),gd=1-x*x/R*stC(z);
+  return { r, v:r0.clone().multiplyScalar(fd).addScaledVector(v0,gd) }; }
+// marco ecuatorial J2000 → escena: (x, z, −y) para que el polo norte quede hacia arriba
+const toS=v=>V(v.x,v.z,-v.y);
+function moonAt(t){ const v=AE.GeoMoon(new Date(t)); return toS({x:v.x*AUK,y:v.y*AUK,z:v.z*AUK}); }
+function moonVel(t){ return moonAt(t+30e3).sub(moonAt(t-30e3)).multiplyScalar(1/60); }
+function gst(t){ return AE.SiderealTime(new Date(t))*15*Math.PI/180; }
+function llE(lat,lon,r){const f=lat*Math.PI/180,l=lon*Math.PI/180;return V(r*Math.cos(f)*Math.cos(l),r*Math.sin(f),-r*Math.cos(f)*Math.sin(l));}
+const rotAx=(v,ax,a)=>v.clone().applyAxisAngle(ax,a);
+let NORM=V(0,1,0);
+// orientación de la Luna: su cara visible mira a la Tierra
+function moonBasis(t){ const p=moonAt(t), x=p.clone().negate().normalize(), z=NORM.clone(), y=new THREE.Vector3().crossVectors(z,x).normalize(); z.crossVectors(x,y); return {x,y,z,p}; }
+function onMoon(t,lat,lon,r){ const B=moonBasis(t),f=lat*Math.PI/180,l=lon*Math.PI/180;
+  return B.p.clone().addScaledVector(B.x,r*Math.cos(f)*Math.cos(l)).addScaledVector(B.y,r*Math.cos(f)*Math.sin(l)).addScaledVector(B.z,r*Math.sin(f)); }
+
+/* ================= PREPARACIÓN ================= */
+function interp(tab,t,col){ if(t<=tab[0][0]) return tab[0][col]; const n=tab.length; if(t>=tab[n-1][0]) return tab[n-1][col];
+  let i=0; while(tab[i+1][0]<t) i++; const a=tab[i],b=tab[i+1],u=(t-a[0])/(b[0]-a[0]); return a[col]+(b[col]-a[col])*u; }
+function prep(m){
+  m.tL=Date.parse(m.launch); const T=g=>m.tL+g*1000;
+  m.asc=ascent(m);
+  const pitch=t=>t<12?0:Math.PI/2*Math.min(1,Math.pow((t-12)/(m.ins-12),0.5)); m.pitch=pitch;
+  m.dr=[]; let dr=0; for(let t=0;t<=m.tliB+1;t++){ dr+=interp(m.asc,t,2)*Math.sin(pitch(t)); m.dr.push(dr); }
+  // plano de la órbita lunar y trayectoria de ida (Lambert entre el fin de la TLI y la llegada detrás de la Luna)
+  const rm=moonAt(T(m.loi)); NORM=new THREE.Vector3().crossVectors(rm,moonVel(T(m.loi))).normalize(); m.norm=NORM.clone();
+  const rh=rm.clone().normalize(), r2=rm.clone().addScaledVector(rh,RORB), r1=rotAx(rh,m.norm,-170*Math.PI/180).multiplyScalar(RE+334);
+  const L=lambert(r1,r2,m.loi-m.tliB); m.r1=r1; m.v1=L.v1; m.vtli=L.v1.length();
+  const vrel=L.v2.clone().sub(moonVel(T(m.loi))); m.vArr=vrel.length();
+  m.loiPhase=0; m.P=(m.tei-m.loi)/m.revs;
+  // regreso: Lambert desde la órbita lunar hasta la entrada a la atmósfera sobre el sitio de amerizaje
+  const sp=splashAt(m,T(m.ei)), eiP=rotAx(sp.clone().normalize(),m.norm,-20*Math.PI/180).multiplyScalar(RE+122);
+  m.teiR=lunarOrbit(m,T(m.tei)); const L2=lambert(m.teiR,eiP,m.ei-m.tei); m.v2=L2.v1; m.vEI=L2.v2.length(); m.eiP=eiP;
+  m.events=[...m.asc.map(a=>({g:a[0],txt:a[3]})),...m.ev.map(e=>({g:e[0],txt:e[1]}))].sort((a,b)=>a.g-b.g);
+  m.events.forEach(e=>e.t=T(e.g));
+}
+function splashAt(m,t){ const p=llE(m.slat,m.slon,RE); return p.applyAxisAngle(V(0,1,0),gst(t)); }
+function lunarOrbit(m,t){ // posición en la órbita circular de 111 km (sentido directo, como la Luna)
+  const B=moonBasis(m.tL+m.loi*1000), r0=B.p.clone().negate().normalize().negate(); // el punto de llegada (detrás de la Luna)
+  const a=2*Math.PI*((t-(m.tL+m.loi*1000))/1000)/m.P, u=rotAx(r0,m.norm,a);
+  return moonAt(t).addScaledVector(u,RORB); }
+MISSIONS.forEach(prep);
+
+/* ================= ESTADO DE LA NAVE ================= */
+function craft(m,t){ const g=(t-m.tL)/1000;
+  if(g<m.tliB) return null;
+  if(g<m.loi) return {ph:'ida',p:kepler(m.r1,m.v1,g-m.tliB).r};
+  if(g<m.tei) return {ph:'orbita',p:lunarOrbit(m,t)};
+  if(g<m.ei) return {ph:'regreso',p:kepler(m.teiR,m.v2,g-m.tei).r};
+  const k=Math.min(1,(g-m.ei)/(m.spl-m.ei)), alt=interp(REENTRY,g-m.ei,1), sp=splashAt(m,t);
+  const p=m.eiP.clone().normalize().lerp(sp.clone().normalize(),Math.pow(k,0.35)).normalize().multiplyScalar(RE+Math.max(0,g>=m.spl?0:alt)+0.01);
+  return {ph:g>=m.spl?'mar':'entrada',p,alt}; }
+function lmPos(m,t){ if(!m.und) return null; const g=(t-m.tL)/1000; if(g<m.und||g>m.jet+3600) return null;
+  const site=onMoon(t,m.site[0],m.site[1],RM+0.01);
+  if(g<m.pdi){ const lag=(g-m.und)/(m.pdi-m.und)*0.05; return lunarOrbit(m,t-lag*m.P*1000); }
+  if(g<m.land){ const k=(g-m.pdi)/(m.land-m.pdi), o=lunarOrbit(m,t); return o.lerp(site,k*k*(3-2*k)); }
+  if(g<m.lift) return site;
+  if(g<m.dock){ const k=Math.min(1,(g-m.lift)/(m.dock-m.lift)), o=lunarOrbit(m,t+(1-k)*0.03*m.P*1000); return site.lerp(o,Math.min(1,k*6)); }
+  if(g<m.jet) return lunarOrbit(m,t);
+  return lunarOrbit(m,t+(g-m.jet)*0.02*1000); }
+
+/* ================= RENDER ================= */
+const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true,logarithmicDepthBuffer:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
+const texL=new THREE.TextureLoader();
+const earthTex=texL.load('../../cabo-canaveral/marte/tex/tierra.jpg'); earthTex.colorSpace=THREE.SRGBColorSpace; earthTex.anisotropy=8;
+const moonTex=texL.load('../tex/luna.jpg'); moonTex.colorSpace=THREE.SRGBColorSpace; moonTex.anisotropy=8;
+function glowTex(stops){ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'), g=x.createRadialGradient(64,64,0,64,64,64);
+  stops.forEach(s=>g.addColorStop(s[0],s[1])); x.fillStyle=g; x.fillRect(0,0,128,128); return new THREE.CanvasTexture(c); }
+const GLOW=glowTex([[0,'rgba(255,255,255,1)'],[0.25,'rgba(255,220,160,.8)'],[1,'rgba(255,140,40,0)']]);
+const sprite=(s,col)=>{const m=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:col,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,sizeAttenuation:false}));m.scale.set(s,s,1);return m;};
+const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:0.55,metalness:0.15,...o});
+const cyl=(r1,r2,h,mat,seg=24)=>new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),mat);
+function stars(n,R){ const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<n;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(R);p.push(v.x,v.y,v.z);}
+  g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); return new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:1.4,sizeAttenuation:false})); }
+function atmoShell(r,col){ return new THREE.Mesh(new THREE.SphereGeometry(r,96,64),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{c:{value:new THREE.Color(col)}},
+  vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vP=p.xyz;gl_Position=projectionMatrix*p;}',
+  fragmentShader:'uniform vec3 c;varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(-vP),vN)),3.0);gl_FragColor=vec4(c,1.0)*f*1.4;}'})); }
+
+/* ---- Saturn V (metros) ---- */
+function saturnV(){
+  const g=new THREE.Group(), P={s1:[],s2:[],s3:[],les:[],sla:[],csm:[]};
+  const W=M(0xf3f3ef), K=M(0x1d1d1f), alu=M(0xc9ccd0,{metalness:0.6,roughness:0.35});
+  const s1=cyl(5.05,5.05,42,W); s1.position.y=21+1; g.add(s1); P.s1.push(s1);
+  for(let i=0;i<4;i++){ const b=new THREE.Mesh(new THREE.CylinderGeometry(5.07,5.07,6,24,1,true,i*Math.PI/2,Math.PI/4),K); b.position.y=4; g.add(b); P.s1.push(b);
+    const fin=new THREE.Mesh(new THREE.BoxGeometry(0.3,5,2.4),K); const a=i*Math.PI/2+Math.PI/4; fin.position.set(Math.cos(a)*6.2,3,Math.sin(a)*6.2); fin.rotation.y=-a; g.add(fin); P.s1.push(fin);
+    const sh=new THREE.Mesh(new THREE.ConeGeometry(1.0,5,12),W); sh.position.set(Math.cos(a)*4.9,3.5,Math.sin(a)*4.9); g.add(sh); P.s1.push(sh); }
+  for(const [x,z] of [[0,0],[2.4,2.4],[-2.4,2.4],[2.4,-2.4],[-2.4,-2.4]]){ const n=cyl(0.8,1.85,3.5,K); n.position.set(x*0.8,-0.6,z*0.8); g.add(n); P.s1.push(n); }
+  const s2=cyl(5.05,5.05,24.9,W); s2.position.y=43+12.45; g.add(s2); P.s2.push(s2);
+  const ring=cyl(5.06,5.06,1.2,K); ring.position.y=44; g.add(ring); P.s2.push(ring);
+  const ic=cyl(3.3,5.05,5.5,W); ic.position.y=67.9+2.75; g.add(ic); P.s2.push(ic);
+  const s3=cyl(3.3,3.3,17.8,W); s3.position.y=73.4+8.9-5.5; g.add(s3); P.s3.push(s3);
+  const s3b=new THREE.Mesh(new THREE.CylinderGeometry(3.31,3.31,4,24,1,true,0,Math.PI/2),K); s3b.position.y=78; g.add(s3b); P.s3.push(s3b);
+  const iu=cyl(3.31,3.31,0.9,M(0x8c8c8c)); iu.position.y=86.1; g.add(iu); P.s3.push(iu);
+  const sla=cyl(1.95,3.3,8.5,W); sla.position.y=86.6+4.25; g.add(sla); P.sla.push(sla);
+  const sm=cyl(1.95,1.95,7.5,alu); sm.position.y=95.1+3.75-3.0; g.add(sm); P.csm.push(sm);
+  const cm=new THREE.Mesh(new THREE.ConeGeometry(1.95,3.2,32),alu); cm.position.y=99.3; g.add(cm); P.csm.push(cm);
+  const bpc=new THREE.Mesh(new THREE.ConeGeometry(2.0,3.4,32),W); bpc.position.y=99.35; g.add(bpc); P.les.push(bpc);
+  const tw=cyl(0.25,0.6,8,M(0xb83a2a)); tw.position.y=104.9; g.add(tw); P.les.push(tw);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(0.35,1.6,12),M(0xb83a2a)); tip.position.y=109.7; g.add(tip); P.les.push(tip);
+  const pl=new THREE.Group(); const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0xffc070,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true})); fl.scale.set(30,30,1); fl.position.y=-8; pl.add(fl);
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(6,45,16,1,true),new THREE.MeshBasicMaterial({color:0xffb35a,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending,depthWrite:false}));
+  cone.rotation.x=Math.PI; cone.position.y=-24; pl.add(cone); g.add(pl); P.plume=pl;
+  g.userData.P=P; return g; }
+
+/* ================= ESCENA 1: DESPEGUE ================= */
+const S1=new THREE.Scene(), C1=new THREE.PerspectiveCamera(50,1,0.002,4e6);
+const earth1=new THREE.Mesh(new THREE.SphereGeometry(RE,384,192),new THREE.MeshPhongMaterial({map:earthTex,shininess:8,specular:0x222222})); S1.add(earth1);
+S1.add(atmoShell(RE*1.015,0x5a99ff)); S1.add(stars(3000,3e6));
+const sun1=new THREE.DirectionalLight(0xffffff,2.6); S1.add(sun1); S1.add(new THREE.AmbientLight(0x404858,1.2)); S1.add(new THREE.HemisphereLight(0xbfd8ff,0x2a3020,0.8));
+const padG=new THREE.Group(); S1.add(padG);
+const ctl1=new OrbitControls(C1,canvas); ctl1.enableDamping=true; ctl1.minDistance=0.03; let userZoom=false;
+canvas.addEventListener('wheel',()=>userZoom=true,{passive:true});
+let R1=null, LF=null; const PAD=[28.6082,-80.6041];
+function buildLaunch(m){
+  if(R1) S1.remove(R1); padG.clear();
+  const up=llE(PAD[0],PAD[1],1).normalize(), e=llE(PAD[0],PAD[1]+0.01,1).sub(llE(PAD[0],PAD[1],1)).normalize(), n=new THREE.Vector3().crossVectors(up,e).normalize();
+  const az=72*Math.PI/180; LF={up,e,n,dir:e.clone().multiplyScalar(Math.sin(az)).add(n.clone().multiplyScalar(Math.cos(az))).normalize()};
+  const P=up.clone().multiplyScalar(RE), q=new THREE.Quaternion().setFromUnitVectors(V(0,1,0),up);
+  const loc=new THREE.Group(); loc.position.copy(P); loc.quaternion.copy(q); padG.add(loc);
+  const yaw=new THREE.Group(); loc.add(yaw); const eL=e.clone().applyQuaternion(q.clone().invert()); yaw.rotation.y=Math.atan2(-eL.z,eL.x);
+  const gT=(()=>{const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.fillStyle='#4f6b3a';x.fillRect(0,0,512,512);
+    for(let i=0;i<2500;i++){x.fillStyle=`rgba(${60+Math.random()*40|0},${80+Math.random()*50|0},${40+Math.random()*30|0},.5)`;x.fillRect(Math.random()*512,Math.random()*512,3+Math.random()*8,3+Math.random()*8);}
+    x.fillStyle='#d8cfb4';x.fillRect(330,0,30,512); x.fillStyle='#1f4f6e';x.fillRect(360,0,152,512); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;})();
+  const gr=new THREE.Mesh(new THREE.CircleGeometry(6,64),new THREE.MeshStandardMaterial({map:gT,roughness:1})); gr.rotation.x=-Math.PI/2; gr.position.y=0.0005; yaw.add(gr);
+  const pad=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.22,0.008,8),M(0x9a9a96,{roughness:1})); pad.position.y=0.004; yaw.add(pad);
+  const lut=new THREE.Mesh(new THREE.BoxGeometry(0.012,0.12,0.012),M(0xb8402e,{roughness:0.8})); lut.position.set(-0.016,0.06,0); yaw.add(lut);
+  R1=saturnV(); R1.scale.setScalar(0.001); R1.position.copy(P); R1.quaternion.copy(q); S1.add(R1);
+  const d=new Date(m.tL), eq=AE.Equator(AE.Body.Sun,d,new AE.Observer(0,0,0),true,true), gs=AE.SiderealTime(d);
+  sun1.position.copy(llE(eq.dec,((eq.ra-gs)*15+540)%360-180,1e5));
+  C1.position.copy(P).addScaledVector(up,0.04).addScaledVector(n,-0.16).addScaledVector(e,0.12); ctl1.target.copy(P).addScaledVector(up,0.05); C1.up.copy(up); ctl1.update(); }
+function updateLaunch(m,g){
+  const t=Math.max(0,g), last=m.tliB, P=R1.userData.P;
+  let alt,v,dr; if(t<=last){ alt=interp(m.asc,t,1); v=interp(m.asc,t,2); dr=m.dr[Math.floor(t)]; } else { const k=t-last; alt=334+k*3; v=10.84; dr=m.dr[m.dr.length-1]+k*10; }
+  const th=dr/RE, pos=LF.up.clone().multiplyScalar(Math.cos(th)).addScaledVector(LF.dir,Math.sin(th)).multiplyScalar(RE+alt);
+  const prev=R1.position.clone(); R1.position.copy(pos);
+  const ru=pos.clone().normalize(), tg=LF.dir.clone().multiplyScalar(Math.cos(th)).addScaledVector(LF.up,-Math.sin(th)).normalize(), pt=m.pitch(Math.min(t,m.ins));
+  R1.quaternion.slerp(new THREE.Quaternion().setFromUnitVectors(V(0,1,0),ru.multiplyScalar(Math.cos(pt)).addScaledVector(tg,Math.sin(pt)).normalize()),g<1?1:0.15);
+  P.s1.forEach(s=>s.visible=g<m.sIC); P.s2.forEach(s=>s.visible=g<m.sII); P.les.forEach(s=>s.visible=g<m.sIC+35);
+  const burn=g>=0&&(g<m.sIC||(g>m.sIC+3&&g<m.ins)||(g>m.tliA&&g<m.tliB)); P.plume.visible=burn; P.plume.position.y=g<m.sIC?0:g<m.sII?43:59; P.plume.scale.setScalar(g<m.sIC?1:g<m.sII?0.7:0.4);
+  const d=R1.position.clone().sub(prev); C1.position.add(d); ctl1.target.copy(R1.position);
+  const want=Math.min(3000,Math.max(0.2,alt*0.05+0.2)), cur=C1.position.distanceTo(ctl1.target);
+  if(!userZoom) C1.position.sub(ctl1.target).multiplyScalar(THREE.MathUtils.lerp(cur,want,0.05)/cur).add(ctl1.target);
+  C1.up.copy(R1.position).normalize(); R1.scale.setScalar(0.001*Math.max(1,C1.position.distanceTo(R1.position)/0.35));
+  const sky=Math.max(0,1-alt/70); renderer.setClearColor(new THREE.Color(0).lerp(new THREE.Color(0x6f9fd8),sky*sky)); padG.visible=alt<200;
+  return {alt,v,dr}; }
+
+/* ================= ESCENA 2: TIERRA–LUNA (1 unidad = 1 km) ================= */
+const S2=new THREE.Scene(), C2=new THREE.PerspectiveCamera(45,1,1,5e7);
+S2.add(stars(5000,3e7)); S2.add(new THREE.AmbientLight(0x30343c,0.9)); const sun2=new THREE.DirectionalLight(0xffffff,2.6); S2.add(sun2);
+const earth2=new THREE.Mesh(new THREE.SphereGeometry(RE,96,64),new THREE.MeshPhongMaterial({map:earthTex,shininess:8})); S2.add(earth2); S2.add(atmoShell(RE*1.02,0x5a99ff));
+const moon2=new THREE.Mesh(new THREE.SphereGeometry(RM,128,96),new THREE.MeshStandardMaterial({map:moonTex,roughness:1})); moon2.matrixAutoUpdate=false; S2.add(moon2);
+const moonOrbit=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x8899aa,transparent:true,opacity:0.35})); S2.add(moonOrbit);
+const pathOut=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x6fd3ff})); S2.add(pathOut);
+const pathBack=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xffb05a})); S2.add(pathBack);
+const trail=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x9fe6ff,transparent:true,opacity:0.8})); S2.add(trail);
+const parkOrbit=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x6fd3ff,transparent:true,opacity:0.5})); S2.add(parkOrbit);
+const csmDot=sprite(0.035,0x9fe6ff), lmDot=sprite(0.03,0xffd27a), splashDot=sprite(0.03,0xff8a4c); S2.add(csmDot); S2.add(lmDot); earth2.add(splashDot);
+const siteDot=sprite(0.025,0xffd27a); S2.add(siteDot);
+const ctl2=new OrbitControls(C2,canvas); ctl2.enableDamping=true; ctl2.minDistance=50; ctl2.maxDistance=3e6;
+const LBL=['Tierra','Luna','nave','Eagle','amerizaje','Base Tranquilidad'].map(t=>{const d=document.createElement('div');d.className='lbl';d.textContent=t;d.hidden=true;document.body.appendChild(d);return d;});
+function buildSpace(m){
+  NORM=m.norm.clone();
+  const T=g=>m.tL+g*1000, out=[], back=[], orb=[];
+  for(let i=0;i<=400;i++) out.push(kepler(m.r1,m.v1,(m.loi-m.tliB)*i/400).r);
+  for(let i=0;i<=400;i++) back.push(kepler(m.teiR,m.v2,(m.ei-m.tei)*i/400).r);
+  for(let i=0;i<=200;i++) orb.push(moonAt(T(m.loi)+(i/200-0.5)*27.3*864e5));
+  pathOut.geometry.setFromPoints(out); pathBack.geometry.setFromPoints(back); moonOrbit.geometry.setFromPoints(orb);
+  const pk=[]; for(let i=0;i<=128;i++) pk.push(rotAx(m.r1.clone().normalize(),m.norm,i/128*Math.PI*2).multiplyScalar(RE+190)); parkOrbit.geometry.setFromPoints(pk);
+  splashDot.position.copy(llE(m.slat,m.slon,RE*1.002)); LBL[4].textContent='Amerizaje · '+m.ship; LBL[3].hidden=true;
+  siteDot.visible=!!m.site; }
+function updateSpace(m,t){
+  const g=(t-m.tL)/1000, B=moonBasis(t);
+  earth2.rotation.y=gst(t);
+  const mm=new THREE.Matrix4().makeBasis(B.x,B.z,B.y.clone().negate()); mm.setPosition(B.p); moon2.matrix.copy(mm); moon2.matrixWorldNeedsUpdate=true;
+  const d=new Date(t), sv=AE.GeoVector(AE.Body.Sun,d,true); sun2.position.copy(toS(sv)).normalize().multiplyScalar(1e6);
+  const c=craft(m,t); csmDot.visible=!!c; if(c) csmDot.position.copy(c.p);
+  const lp=lmPos(m,t); lmDot.visible=!!lp; if(lp) lmDot.position.copy(lp);
+  if(m.site){ siteDot.position.copy(onMoon(t,m.site[0],m.site[1],RM+1)); siteDot.visible=g>m.land; }
+  parkOrbit.visible=g<m.tliB+3600;
+  // estela de la órbita lunar
+  if(c && c.ph==='orbita'){ const pts=[]; const k0=Math.max(m.loi,g-m.P); for(let s=k0;s<=g;s+=(g-k0)/80||1) pts.push(lunarOrbit(m,m.tL+s*1000)); trail.geometry.setFromPoints(pts); trail.visible=true; } else trail.visible=false;
+  return {c,lp,B}; }
+
+/* ================= ESTADO Y CONTROLES ================= */
+let mis=MISSIONS[1], simT=0, speed=1, paused=false, view='', auto=true;
+const SPEEDS=[[0,'⏸'],[1,'×1'],[10,'×10'],[20,'×20'],[50,'×50'],[100,'×100'],[1000,'×1.000'],[1e4,'×10.000']];
+SPEEDS.forEach(([v,l])=>{ const b=document.createElement('button'); b.textContent=l; b.dataset.s=v; b.onclick=()=>setSpeed(v); $('speeds').appendChild(b); });
+function setSpeed(v){ if(v===0) paused=!paused; else { speed=v; paused=false; } [...$('speeds').querySelectorAll('button')].forEach(b=>b.setAttribute('aria-pressed',(+b.dataset.s===0?paused:(!paused&&+b.dataset.s===speed))+'')); }
+$('views').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{ auto=false; $('auto').setAttribute('aria-pressed','false'); setView(b.dataset.v); });
+$('auto').onclick=()=>{ auto=!auto; $('auto').setAttribute('aria-pressed',auto+''); };
+let follow='craft';
+function setView(v){ if(v===view) return; view=v; $('views').querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v===v)+''));
+  ctl1.enabled=v==='launch'; ctl2.enabled=v!=='launch'; userZoom=false;
+  if(v!=='launch'){ follow=v==='moon'?'moon':v==='earth'?'craft':'mid'; camInit=true; } }
+let camInit=true;
+MISSIONS.forEach(m=>{ const b=document.createElement('button'); b.className='mis'; b.innerHTML=`<b>${m.name}</b><span>${m.year} · ${m.id==='a8'?'10 vueltas a la Luna':'alunizaje'}</span>`; b.onclick=()=>select(m); m.btn=b; $('missions').appendChild(b); });
+function select(m){ mis=m; MISSIONS.forEach(x=>x.btn.setAttribute('aria-pressed',(x===m)+'')); buildLaunch(m); buildSpace(m); buildLog(m); buildJumps(m); jump(m.tL-30e3); setSpeed(1); view=''; setView('launch');
+  try{ history.replaceState(null,'','#'+m.id); }catch(e){} }
+function buildJumps(m){ const J=$('jumps'); J.querySelectorAll('button').forEach(b=>b.remove());
+  m.jumps.forEach(([l,g])=>{ const b=document.createElement('button'); b.textContent=l; b.onclick=()=>{ jump(m.tL+g*1000); setSpeed(l==='Mitad del viaje'?1e4:l==='Despegue'?1:10); }; J.appendChild(b); }); }
+function jump(t){ simT=t; auto=true; $('auto').setAttribute('aria-pressed','true'); camInit=true; userZoom=false; slowDone=new Set(mis.slow.filter(s=>mis.tL+s*1000<t)); }
+function buildLog(m){ const ol=$('log'); ol.innerHTML=''; m.events.forEach(ev=>{ const li=document.createElement('li'); li.innerHTML=`<i>T+${get(ev.g)}</i>${ev.txt}`; li.onclick=()=>{ jump(ev.t-10e3); setSpeed(10); }; ev.li=li; ol.appendChild(li); }); }
+const p2=n=>String(Math.floor(n)).padStart(2,'0');
+const get=g=>{ const s=Math.abs(g); return `${p2(s/3600)}:${p2(s/60%60)}:${p2(s%60)}`; };
+const fmt=(x,d=0)=>x.toLocaleString('es-EC',{maximumFractionDigits:d,minimumFractionDigits:d});
+function rows(a){ $('rows').innerHTML=a.map(([k,v])=>`<div class="row"><span>${k}</span><b>${v}</b></div>`).join(''); }
+let toastT=0; function toast(t){ const el=$('toast'); el.textContent=t; el.hidden=false; el.style.opacity=1; clearTimeout(toastT); toastT=setTimeout(()=>{el.style.opacity=0;setTimeout(()=>el.hidden=true,450);},4200); }
+let slowDone=new Set();
+function phaseView(m,g){ if(g<m.tliB+240) return 'launch'; if(g<m.loi-1800) return 'space'; if(g<m.tei+3600) return 'moon'; if(g<m.ei-1200) return 'space'; return 'earth'; }
+
+/* ================= BUCLE ================= */
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); [C1,C2].forEach(c=>{c.aspect=w/h;c.updateProjectionMatrix();}); }
+addEventListener('resize',resize); resize();
+let last=performance.now(), lastEv=null;
+function place(l,obj,cam,show){ if(!show){ l.hidden=true; return; } const p=obj.clone().project(cam); if(p.z>1){ l.hidden=true; return; } l.hidden=false; l.style.left=((p.x+1)/2*innerWidth)+'px'; l.style.top=((1-p.y)/2*innerHeight)+'px'; }
+function loop(now){
+  requestAnimationFrame(loop); const dt=Math.min(0.1,(now-last)/1000); last=now; const m=mis;
+  if(!paused) simT+=dt*1000*speed; simT=Math.max(m.tL-120e3,Math.min(simT,m.tL+(m.spl+3600)*1000));
+  const g=(simT-m.tL)/1000;
+  for(const s of m.slow){ if(!slowDone.has(s) && g>=s && g<s+600){ slowDone.add(s); if(speed>20){ setSpeed(10); toast('Momento clave: velocidad reducida a ×10.'); } } }
+  if(auto) setView(phaseView(m,g));
+  $('met').textContent='T'+(g<0?'−':'+')+get(g); $('utc').textContent=new Date(simT).toISOString().replace('T',' ').slice(0,19)+' UTC';
+  let cur=null; for(const ev of m.events){ if(ev.t<=simT) cur=ev; else break; }
+  m.events.forEach(ev=>ev.li.className=ev===cur?'now':(ev.t<=simT?'past':'')); if(cur!==lastEv){ lastEv=cur; cur&&cur.li.scrollIntoView({block:'nearest'}); }
+  const evEl=$('event'); if(cur&&simT-cur.t<Math.max(40e3,speed*8e3)){ evEl.hidden=false; evEl.textContent=cur.txt; } else evEl.hidden=true;
+  let scene,cam;
+  const sp=updateSpace(m,simT);
+  if(view==='launch'){ const st=updateLaunch(m,g); scene=S1; cam=C1; ctl1.update();
+    $('phase').textContent=g<m.ins?'Despegue · LC‑39A, Cabo Cañaveral':g<m.tliA?'Órbita de espera alrededor de la Tierra':'Inyección translunar';
+    $('teleH').textContent='Saturn V · '+m.name;
+    rows([['Altitud',fmt(st.alt,st.alt<10?2:0)+' km'],['Velocidad',fmt(st.v*3600)+' km/h'],['Recorrido',fmt(st.dr)+' km'],['Etapa',g<m.sIC?'S‑IC (primera)':g<m.sII?'S‑II (segunda)':'S‑IVB (tercera)']]);
+    $('tnote').textContent='Tiempos de los registros de vuelo de la NASA; altura y velocidad interpoladas entre eventos.';
+    LBL.forEach(l=>l.hidden=true);
+  } else { scene=S2; cam=C2; renderer.setClearColor(0);
+    const c=sp.c, target = follow==='moon'?sp.B.p.clone():follow==='mid'?sp.B.p.clone().multiplyScalar(0.5):(c?c.p.clone():V(0,0,0));
+    if(camInit){ camInit=false; const dist=follow==='moon'?16000:follow==='craft'?40000:620000;
+      ctl2.target.copy(target); C2.position.copy(target).add(V(0.35,0.55,1).normalize().multiplyScalar(dist)); }
+    else { const d=target.clone().sub(ctl2.target); ctl2.target.add(d); C2.position.add(d); }
+    ctl2.update();
+    const dE=c?c.p.length():0, dM=c?c.p.distanceTo(sp.B.p):0;
+    const behind = c && c.ph==='orbita' && c.p.clone().sub(sp.B.p).dot(sp.B.p.clone().negate())<0;
+    const rev = Math.min(m.revs,Math.floor((g-m.loi)/m.P)+1);
+    $('phase').textContent={ida:'Viaje a la Luna',orbita:`Órbita lunar · vuelta ${rev} de ${m.revs}`,regreso:'Regreso a la Tierra',entrada:'Entrada en la atmósfera',mar:'En el océano Pacífico'}[c?.ph]||'—';
+    $('teleH').textContent=m.name+' · '+m.csm;
+    let speedKm=0; if(c){ const c2=craft(m,simT+1000); if(c2) speedKm=c2.p.distanceTo(c.p); if(c.ph==='orbita') speedKm=2*Math.PI*RORB/m.P; }
+    const R=[['Distancia a la Tierra',fmt(Math.max(0,dE-RE))+' km'],['Distancia a la Luna',fmt(Math.max(0,dM-RM))+' km'],['Velocidad',fmt(speedKm*3600)+' km/h']];
+    if(c?.ph==='orbita'){ R.unshift(['Vuelta',`${rev} de ${m.revs} (unas 2 h cada una)`]); R.push(['Radio con la Tierra',behind?'Sin señal: detrás de la Luna':'Con señal']); }
+    if(c?.ph==='entrada') R.unshift(['Altitud',fmt(c.alt,1)+' km']);
+    const lp=sp.lp; if(lp && m.site){ const gg=g; R.push(['Eagle',gg<m.pdi?'En órbita, separado':gg<m.land?'Descendiendo':gg<m.lift?'En la Base Tranquilidad':gg<m.dock?'Subiendo a la órbita':gg<m.jet?'Acoplado':'Abandonado en órbita']); }
+    R.push(['Retraso de la señal',fmt(dE/299792.458,2)+' s']); rows(R);
+    $('tnote').textContent=`Trayectoria calculada con física real entre los tiempos oficiales: con las posiciones reales de la Tierra y la Luna da ${fmt(m.vtli,2)} km/s al terminar la TLI (real: 10,8) y ${fmt(m.vEI,2)} km/s al entrar en la atmósfera (real: 11,0). No es la telemetría cruda.`;
+    place(LBL[0],earth2.position,C2,true); place(LBL[1],sp.B.p,C2,true); LBL[2].textContent=m.id==='a11'?'Columbia':'Apollo 8'; place(LBL[2],csmDot.position,C2,csmDot.visible);
+    LBL[3].textContent='Eagle'; place(LBL[3],lmDot.position,C2,lmDot.visible && view==='moon');
+    place(LBL[4],splashDot.getWorldPosition(new THREE.Vector3()),C2,view==='earth'); place(LBL[5],siteDot.position,C2,siteDot.visible&&view==='moon'&&!lmDot.visible);
+  }
+  renderer.render(scene,cam);
+}
+const start=MISSIONS.find(m=>'#'+m.id===location.hash)||MISSIONS[1];
+select(start); requestAnimationFrame(loop);
+window.__ap={MISSIONS,get mis(){return mis;},jump,setSpeed,setView,select};
+</script>
+</body>
+</html>
