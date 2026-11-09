@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Robots en Marte</title>
+<meta name="description" content="Mapa interactivo de Marte con todos los lugares donde llegaron naves de la Tierra, los robots en 3D, cómo funcionan y su historia, y el catálogo de todas las misiones a Marte.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Diseño: globo de Marte a pantalla completa, catálogo a la izquierda, ficha del robot a la derecha (paleta oscura del proyecto, acento marciano). */
+:root{
+  --void:#05060b; --panel:rgba(10,12,20,.88); --line:#232a3d; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9a9fb3; --faint:#646b82;
+  --mars:#ff8a4c; --mars-ink:#1c0b03; --ok:#7ee2a8; --end:#ffcf6b; --bad:#ff7a6b;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  --gl:max(16px, env(safe-area-inset-left,0px)); --gr:max(16px, env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none;cursor:grab}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px}
+.title{padding:8px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--mars)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.legend{display:flex;gap:12px;padding:9px 12px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.cat{position:fixed;left:var(--gl);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:300px;z-index:4;display:flex;flex-direction:column;padding:10px 6px 10px 12px}
+.cat h2{margin:0 0 2px;font:600 13px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.cat .sub{font-size:11.5px;color:var(--faint);margin:0 0 8px}
+.cat .scroll{overflow:auto;flex:1;padding-right:6px}
+details.g{border-top:1px solid var(--line);padding:6px 0}
+details.g summary{cursor:pointer;font:600 13px var(--f-display);list-style:none;display:flex;justify-content:space-between;gap:8px}
+details.g summary::-webkit-details-marker{display:none}
+details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
+.trio{margin:8px 0 2px;padding:6px 0 0;border-top:1px dashed rgba(255,255,255,.06)}
+.trio i{display:block;font:500 10.5px var(--f-data);color:var(--faint);font-style:normal;margin-bottom:2px}
+.ms{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:6px;padding:4px 6px;font-size:12.5px;line-height:1.3;color:var(--ink)}
+.ms small{display:block;color:var(--dim);font-size:11px}
+.ms.click:hover{background:rgba(255,255,255,.06)}
+.ms:not(.click){cursor:default}
+.ms[aria-current=true]{background:rgba(255,138,76,.18)}
+.card{position:fixed;right:var(--gr);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:390px;z-index:4;display:flex;flex-direction:column;overflow:hidden}
+.card .head{padding:12px 14px 8px}
+.card h3{margin:2px 0 0;font:600 20px/1.15 var(--f-display)}
+.st{font:600 10.5px var(--f-display);letter-spacing:.14em;text-transform:uppercase}
+.close{float:right;background:transparent;border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--dim)}
+#robo{width:100%;height:230px;display:block;background:#160b06;cursor:grab;touch-action:none}
+.tabs{display:flex;gap:4px;padding:8px 10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12.5px}
+.tabs button[aria-pressed=true]{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
+.body{padding:8px 14px 14px;overflow:auto;flex:1;font-size:13px;line-height:1.5}
+.body p{margin:6px 0}
+.body ul{margin:6px 0;padding-left:18px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;margin:6px 0}
+.kv span{color:var(--dim)} .kv b{font-weight:500}
+.go{display:block;margin:10px 0 0;padding:9px 12px;border-radius:8px;background:var(--mars);color:var(--mars-ink);text-decoration:none;font:600 13px var(--f-display);text-align:center}
+.go.alt{background:transparent;border:1px solid var(--line2);color:var(--ink)}
+.soon{color:var(--dim);font-size:12.5px;border:1px dashed var(--line2);border-radius:8px;padding:8px 10px;margin-top:8px}
+.lbl{position:fixed;left:0;top:0;font:600 11px var(--f-display);letter-spacing:.04em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;transform:translate(-50%,-160%);z-index:2;cursor:pointer;padding:2px 4px}
+.lbl.sel{color:var(--mars)}
+.hint{position:fixed;left:50%;bottom:calc(16px + var(--bot));transform:translateX(-50%);padding:7px 12px;font-size:12px;color:var(--dim);z-index:3}
+@media (max-width:900px){
+  .cat{width:auto;right:var(--gr);top:auto;height:34vh}
+  .card{width:auto;left:var(--gl);top:calc(70px + var(--top));bottom:calc(34vh + 26px + var(--bot))}
+  #robo{height:170px}
+  .legend{display:none}
+  .hint{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="Globo 3D de Marte con los sitios de aterrizaje"></canvas>
+<div class="top">
+  <a class="back panel" href="../">← Simulaciones</a>
+  <div class="title panel"><div class="kick">Mapa interactivo</div><h1>Robots en Marte</h1></div>
+  <div class="legend panel">
+    <span><i class="dot" style="background:var(--ok)"></i>Funcionando</span>
+    <span><i class="dot" style="background:var(--end)"></i>Misión terminada</span>
+    <span><i class="dot" style="background:var(--bad)"></i>Se estrelló o se perdió</span>
+  </div>
+</div>
+
+<aside class="cat panel" aria-label="Catálogo de misiones">
+  <h2>Todas las misiones a Marte</h2>
+  <p class="sub">Desde 1960, en 3 grupos. Dentro de cada grupo, de 3 en 3 por fecha. Toca las que llegaron al suelo para verlas en el mapa.</p>
+  <div class="scroll" id="cat"></div>
+</aside>
+
+<section class="card panel" id="card" hidden aria-live="polite">
+  <div class="head"><button class="close" id="close" aria-label="Cerrar">✕</button><div class="st" id="cst"></div><h3 id="cname"></h3></div>
+  <canvas id="robo" aria-label="Modelo 3D del robot (arrastra para girarlo)"></canvas>
+  <div class="tabs" id="tabs"></div>
+  <div class="body" id="cbody"></div>
+</section>
+<div class="hint panel" id="hint">Arrastra para girar Marte · toca un punto para ver su robot</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const $=id=>document.getElementById(id);
+const SIM='../cabo-canaveral/marte/';
+
+/* ============ SITIOS EN LA SUPERFICIE (coordenadas: latitud, longitud este) ============ */
+// st: ok = funcionando, end = terminada, bad = se estrelló / se perdió. full = ficha completa ya preparada.
+const SITES=[
+ {id:'m2020',name:'Perseverance',sub:'+ helicóptero Ingenuity',st:'ok',lat:18.4446,lon:77.4509,place:'Cráter Jezero',date:'18 feb 2021',full:true,model:'perse'},
+ {id:'msl',name:'Curiosity',st:'ok',lat:-4.5895,lon:137.4417,place:'Cráter Gale',date:'6 ago 2012',full:true,model:'curio'},
+ {id:'mera',name:'Spirit',st:'end',lat:-14.5684,lon:175.4726,place:'Cráter Gusev',date:'4 ene 2004'},
+ {id:'merb',name:'Opportunity',st:'end',lat:-1.9462,lon:354.4734,place:'Meridiani Planum',date:'25 ene 2004'},
+ {id:'phx',name:'Phoenix',st:'end',lat:68.2188,lon:234.2508,place:'Vastitas Borealis',date:'25 may 2008'},
+ {id:'insight',name:'InSight',st:'end',lat:4.502,lon:135.623,place:'Elysium Planitia',date:'26 nov 2018'},
+ {id:'vk1',name:'Viking 1',st:'end',lat:22.27,lon:312.05,place:'Chryse Planitia',date:'20 jul 1976'},
+ {id:'vk2',name:'Viking 2',st:'end',lat:47.64,lon:134.29,place:'Utopia Planitia',date:'3 sep 1976'},
+ {id:'mpf',name:'Mars Pathfinder',sub:'+ rover Sojourner',st:'end',lat:19.13,lon:326.78,place:'Ares Vallis',date:'4 jul 1997'},
+ {id:'zhurong',name:'Zhurong',st:'end',lat:25.066,lon:109.925,place:'Utopia Planitia',date:'14 may 2021'},
+ {id:'mars3',name:'Mars 3',st:'end',lat:-44.9,lon:199.9,place:'Cerca del cráter Ptolemaeus',date:'2 dic 1971'},
+ {id:'beagle',name:'Beagle 2',st:'bad',lat:11.53,lon:90.43,place:'Isidis Planitia',date:'25 dic 2003'},
+ {id:'mars2',name:'Mars 2',st:'bad',lat:-45,lon:313,place:'Hellas (aprox.)',date:'27 nov 1971'},
+ {id:'mars6',name:'Mars 6',st:'bad',lat:-23.9,lon:340.6,place:'Margaritifer Terra',date:'12 mar 1974'},
+ {id:'mpl',name:'Mars Polar Lander',st:'bad',lat:-76.57,lon:165.2,place:'Cerca del polo sur (zona prevista)',date:'3 dic 1999'},
+ {id:'schia',name:'Schiaparelli',st:'bad',lat:-2.05,lon:353.79,place:'Meridiani Planum',date:'19 oct 2016'},
+];
+const COL={ok:0x7ee2a8,end:0xffcf6b,bad:0xff7a6b}, STX={ok:'Funcionando',end:'Misión terminada',bad:'Se estrelló o se perdió'};
+
+/* ============ FICHAS COMPLETAS ============ */
+const INFO={
+ m2020:{
+  launch:[['Cohete','Atlas V 541 (United Launch Alliance)'],['Plataforma','SLC‑41, Cabo Cañaveral (Florida)'],['Despegue','30 de julio de 2020, 11:50 UTC'],['Viaje','203 días'],['Sonda que lo llevó','Mars 2020: etapa de crucero + cápsula de 4,5 m'],['Aterrizaje','Grúa aérea con navegación por terreno'],['Masa del rover','1.025 kg · 3 m de largo']],
+  how:`<p>Es un laboratorio de geología con ruedas, del tamaño de un auto pequeño.</p><ul>
+   <li><b>Energía:</b> una batería nuclear (MMRTG): el calor del plutonio‑238 se convierte en unos 110 W de electricidad, de día y de noche.</li>
+   <li><b>Ruedas:</b> 6 ruedas de aluminio con suspensión "rocker‑bogie" que sube piedras sin volcarse. Avanza unos 150 m por hora como máximo.</li>
+   <li><b>Brazo de 2,1 m:</b> con un taladro que saca núcleos de roca del tamaño de una tiza y los sella en tubos.</li>
+   <li><b>Instrumentos:</b> SuperCam dispara un láser y analiza la luz de la roca vaporizada; PIXL y SHERLOC buscan química y moléculas orgánicas; RIMFAX es un radar que ve capas bajo el suelo; MOXIE fabricó oxígeno con el CO₂ del aire.</li>
+   <li><b>23 cámaras</b> y 2 micrófonos: grabó el primer sonido de Marte.</li>
+   <li><b>Ingenuity:</b> helicóptero de 1,8 kg con rotores de 1,2 m que giran a unas 2.400 rpm, porque el aire de Marte es 100 veces menos denso.</li></ul>`,
+  story:`<p>Aterrizó en el cráter Jezero, donde hace unos 3.500 millones de años había un lago con un delta de río. Es el mejor lugar para buscar rastros de vida microbiana antigua.</p>
+   <p>El 19 de abril de 2021 Ingenuity hizo el primer vuelo propulsado en otro planeta. Debía volar 5 veces y voló 72, hasta romper una pala en enero de 2024.</p>
+   <p>Perseverance ha recorrido unos 45 km (agosto de 2026) y llenó la mayoría de sus tubos con roca del delta y del borde del cráter. Algún día otra misión podría traerlos a la Tierra.</p>`},
+ msl:{
+  launch:[['Cohete','Atlas V 541 (United Launch Alliance)'],['Plataforma','SLC‑41, Cabo Cañaveral (Florida)'],['Despegue','26 de noviembre de 2011, 15:02 UTC'],['Viaje','254 días'],['Sonda que lo llevó','Mars Science Laboratory: etapa de crucero + cápsula de 4,5 m'],['Aterrizaje','Primera grúa aérea de la historia'],['Masa del rover','899 kg · 2,9 m de largo']],
+  how:`<p>Es el "hermano mayor" de Perseverance: casi el mismo chasis, pero con un laboratorio químico completo adentro.</p><ul>
+   <li><b>Energía:</b> batería nuclear MMRTG, igual que Perseverance.</li>
+   <li><b>ChemCam:</b> un láser en el mástil vaporiza puntos de roca a 7 m y lee su composición por la luz.</li>
+   <li><b>Brazo de 2,2 m:</b> con taladro de percusión que hace polvo de roca; el polvo entra a dos laboratorios dentro del rover.</li>
+   <li><b>SAM</b> calienta las muestras y busca moléculas orgánicas y gases; <b>CheMin</b> usa rayos X para identificar los minerales.</li>
+   <li><b>RAD</b> mide la radiación que recibiría un astronauta; <b>REMS</b> es su estación meteorológica.</li>
+   <li><b>17 cámaras</b>, incluida una lupa (MAHLI) para ver granos de arena.</li></ul>`,
+  story:`<p>Aterrizó en el cráter Gale, junto al monte Sharp, una montaña de 5 km hecha de capas de sedimento: cada capa es una página de la historia del clima de Marte.</p>
+   <p>En sus primeros meses encontró cantos rodados de un antiguo río y, en la bahía Yellowknife, barro de un lago de agua dulce con los ingredientes químicos para la vida microbiana. Después detectó moléculas orgánicas y cambios de metano según la estación.</p>
+   <p>Su misión era de 2 años. Sigue trabajando después de casi 14, subiendo el monte Sharp; ha recorrido unos 37 km.</p>`},
+};
+
+/* ============ CATÁLOGO: todas las misiones, en 3 grupos ============ */
+// [año de despegue, nombre, país/agencia, qué era, resultado, sitio en el mapa (id) o '']
+const CAT=[
+ {g:'Llegaron al suelo',d:'Aterrizaron o tocaron la superficie (aunque fallaran).',m:[
+  ['1971','Mars 2','URSS','Orbitador + módulo','El módulo se estrelló: primer objeto humano en Marte','mars2'],
+  ['1971','Mars 3','URSS','Orbitador + módulo','Primer aterrizaje suave; transmitió solo 20 segundos','mars3'],
+  ['1973','Mars 6','URSS','Módulo de descenso','Envió datos al bajar; se perdió al tocar el suelo','mars6'],
+  ['1975','Viking 1','NASA','Orbitador + módulo','Primer aterrizaje exitoso; funcionó 6 años','vk1'],
+  ['1975','Viking 2','NASA','Orbitador + módulo','Funcionó 3,5 años en Utopia Planitia','vk2'],
+  ['1996','Mars Pathfinder','NASA','Módulo + rover Sojourner','Primer rover en Marte','mpf'],
+  ['1999','Mars Polar Lander','NASA','Módulo','Se perdió al aterrizar (motores apagados antes de tiempo)','mpl'],
+  ['2003','Beagle 2','Reino Unido / ESA','Módulo','Aterrizó pero no abrió sus paneles; hallado en 2015','beagle'],
+  ['2003','Spirit','NASA','Rover','Trabajó 6 años; recorrió 7,7 km','mera'],
+  ['2003','Opportunity','NASA','Rover','Trabajó casi 15 años; recorrió 45 km','merb'],
+  ['2007','Phoenix','NASA','Módulo polar','Tocó hielo de agua; 5 meses','phx'],
+  ['2011','Curiosity','NASA','Rover','Funcionando','msl'],
+  ['2016','Schiaparelli','ESA / Rusia','Módulo de prueba','Se estrelló por un error del sensor de giro','schia'],
+  ['2018','InSight','NASA','Módulo sismógrafo','Midió más de 1.300 sismos; terminó en 2022','insight'],
+  ['2020','Perseverance + Ingenuity','NASA','Rover + helicóptero','Funcionando; Ingenuity voló 72 veces','m2020'],
+  ['2020','Zhurong (Tianwen‑1)','China','Rover','Recorrió 1,9 km; dormido desde 2022','zhurong']]},
+ {g:'Orbitadores y sobrevuelos',d:'Estudiaron Marte desde el espacio y cumplieron su misión.',m:[
+  ['1964','Mariner 4','NASA','Sobrevuelo','Primeras fotos de cerca: un Marte con cráteres'],
+  ['1969','Mariner 6','NASA','Sobrevuelo','Fotos del ecuador y del polo sur'],
+  ['1969','Mariner 7','NASA','Sobrevuelo','Fotos del polo sur'],
+  ['1971','Mariner 9','NASA','Orbitador','Primer orbitador de otro planeta; descubrió el Valles Marineris'],
+  ['1971','Mars 2 y Mars 3 (orbitadores)','URSS','Orbitadores','Funcionaron parcialmente durante una tormenta de polvo'],
+  ['1973','Mars 5','URSS','Orbitador','Unas 60 fotos antes de fallar a las pocas semanas'],
+  ['1975','Viking 1 y 2 (orbitadores)','NASA','Orbitadores','Mapearon todo el planeta hasta 1980'],
+  ['1988','Phobos 2','URSS','Orbitador','Fotos de la luna Fobos; se perdió antes de bajar a ella'],
+  ['1996','Mars Global Surveyor','NASA','Orbitador','Mapa del relieve con láser; 9 años'],
+  ['2001','Mars Odyssey','NASA','Orbitador','Funcionando: encontró hielo bajo el suelo'],
+  ['2003','Mars Express','ESA','Orbitador','Funcionando: fotos en 3D y radar de los polos'],
+  ['2005','Mars Reconnaissance Orbiter','NASA','Orbitador','Funcionando: fotos de hasta 30 cm por punto'],
+  ['2013','Mangalyaan (MOM)','India','Orbitador','Primera misión de Asia en llegar; funcionó hasta 2022'],
+  ['2013','MAVEN','NASA','Orbitador','Estudia cómo Marte perdió su atmósfera'],
+  ['2016','ExoMars TGO','ESA / Rusia','Orbitador','Funcionando: gases de la atmósfera y relevo de radio'],
+  ['2018','MarCO A y B','NASA','Satélites mini (CubeSat)','Transmitieron en vivo el aterrizaje de InSight'],
+  ['2020','Hope (Al Amal)','Emiratos Árabes Unidos','Orbitador','Funcionando: clima de todo el planeta'],
+  ['2020','Tianwen‑1 (orbitador)','China','Orbitador','Funcionando: llevó a Zhurong'],
+  ['2025','ESCAPADE','NASA','2 orbitadores pequeños','En camino; llegada prevista en 2027']]},
+ {g:'Fallidas antes de llegar',d:'Fallaron en el despegue, en el viaje o al intentar entrar en órbita.',m:[
+  ['1960','Marsnik 1 y 2','URSS','Sobrevuelos','Fallas del cohete'],
+  ['1962','Sputnik 22 y 24','URSS','Sobrevuelo / módulo','Quedaron en órbita de la Tierra'],
+  ['1962','Mars 1','URSS','Sobrevuelo','Se perdió el contacto en el camino'],
+  ['1964','Mariner 3','NASA','Sobrevuelo','La cofia no se abrió'],
+  ['1964','Zond 2','URSS','Sobrevuelo','Se perdió el contacto'],
+  ['1969','Mars 1969A y 1969B','URSS','Orbitadores','Fallas del cohete Protón'],
+  ['1971','Mariner 8','NASA','Orbitador','Falla de la etapa Centaur'],
+  ['1971','Kosmos 419','URSS','Orbitador','Quedó en órbita de la Tierra'],
+  ['1973','Mars 4','URSS','Orbitador','No frenó; pasó de largo'],
+  ['1973','Mars 7','URSS','Módulo','El módulo erró el planeta'],
+  ['1988','Phobos 1','URSS','Orbitador','Un comando erróneo lo apagó en el viaje'],
+  ['1992','Mars Observer','NASA','Orbitador','Se perdió 3 días antes de llegar'],
+  ['1996','Mars 96','Rusia','Orbitador + módulos','Falla del cohete'],
+  ['1998','Nozomi','Japón','Orbitador','No logró entrar en órbita'],
+  ['1998','Mars Climate Orbiter','NASA','Orbitador','Error de unidades (libras vs. newtons): se quemó'],
+  ['1999','Deep Space 2','NASA','2 penetradores','Se perdieron con Mars Polar Lander'],
+  ['2011','Fobos‑Grunt + Yinghuo‑1','Rusia / China','Orbitador + muestra de Fobos','Quedó en órbita de la Tierra']]},
+];
+
+/* ============ GLOBO DE MARTE ============ */
+const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(40,1,0.01,1000);
+const R=1, tex=new THREE.TextureLoader().load(SIM+'tex/marte.jpg'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+const mars=new THREE.Mesh(new THREE.SphereGeometry(R,128,96),new THREE.MeshStandardMaterial({map:tex,roughness:1})); scene.add(mars);
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(R*1.025,64,48),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vP=p.xyz;gl_Position=projectionMatrix*p;}',
+  fragmentShader:'varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(-vP),vN)),3.0);gl_FragColor=vec4(1.0,0.6,0.38,1.0)*f;}'})));
+{ const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<3000;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(300);p.push(v.x,v.y,v.z);} g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.3,sizeAttenuation:false}))); }
+const sunL=new THREE.DirectionalLight(0xfff1e0,2.2); scene.add(sunL); scene.add(new THREE.AmbientLight(0x6a5040,1.1));
+// mapa equirectangular con 0° E en el borde izquierdo
+const ll=(lat,lon,r)=>{const f=lat*Math.PI/180,l=lon*Math.PI/180;return new THREE.Vector3(-r*Math.cos(f)*Math.cos(l),r*Math.sin(f),r*Math.cos(f)*Math.sin(l));};
+const ctl=new OrbitControls(cam,canvas); ctl.enableDamping=true; ctl.minDistance=1.35; ctl.maxDistance=8; ctl.enablePan=false; ctl.rotateSpeed=0.5;
+cam.position.copy(ll(10,100,3.6)); ctl.update();
+const dotTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle='#fff';x.beginPath();x.arc(32,32,20,0,7);x.fill();x.lineWidth=5;x.strokeStyle='rgba(0,0,0,.6)';x.stroke();return new THREE.CanvasTexture(c);})();
+const markers=SITES.map(s=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:dotTex,color:COL[s.st],depthTest:true})); sp.position.copy(ll(s.lat,s.lon,R*1.004)); sp.scale.setScalar(0.035); sp.userData.s=s; scene.add(sp);
+  const l=document.createElement('div'); l.className='lbl'; l.textContent=s.name; l.onclick=()=>select(s); document.body.appendChild(l); s.lbl=l; s.sp=sp; return sp; });
+let sel=null, fly=null;
+function select(s){
+  sel=s; SITES.forEach(x=>x.lbl.classList.toggle('sel',x===s));
+  document.querySelectorAll('.ms[data-id]').forEach(b=>b.setAttribute('aria-current',(b.dataset.id===s.id)+''));
+  const from=cam.position.clone(), to=ll(s.lat,s.lon,2.4); fly={from,to,t:0};
+  openCard(s); $('hint').hidden=true;
+}
+const ray=new THREE.Raycaster(); let down=null;
+canvas.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
+canvas.addEventListener('pointerup',e=>{ if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5) return;
+  ray.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1),cam); ray.params.Sprite={threshold:0};
+  const h=ray.intersectObjects(markers)[0]; if(h) select(h.object.userData.s); });
+
+/* ============ CATÁLOGO ============ */
+{ const box=$('cat'); CAT.forEach((G,gi)=>{ const d=document.createElement('details'); d.className='g'; d.open=gi===0;
+  d.innerHTML=`<summary>${gi+1}. ${G.g}<span>${G.m.length}</span></summary><div class="note" style="font-size:11.5px;color:var(--faint);margin:4px 0">${G.d}</div>`;
+  for(let i=0;i<G.m.length;i+=3){ const t=document.createElement('div'); t.className='trio'; t.innerHTML=`<i>${G.m[i][0]} – ${G.m[Math.min(i+2,G.m.length-1)][0]}</i>`;
+    G.m.slice(i,i+3).forEach(r=>{ const b=document.createElement('button'); b.className='ms'+(r[5]?' click':''); if(r[5]) b.dataset.id=r[5];
+      b.innerHTML=`${r[1]} <small>${r[0]} · ${r[2]} · ${r[3]} — ${r[4]}</small>`; if(r[5]) b.onclick=()=>select(SITES.find(s=>s.id===r[5])); t.appendChild(b); });
+    d.appendChild(t); }
+  box.appendChild(d); }); }
+
+/* ============ FICHA DEL ROBOT ============ */
+let tab='how';
+function openCard(s){
+  $('card').hidden=false; $('cst').textContent=STX[s.st]+' · '+s.place; $('cst').style.color='#'+COL[s.st].toString(16); $('cname').textContent=s.name+(s.sub?' '+s.sub:'');
+  const I=INFO[s.id], tabs=I?[['how','Cómo funciona'],['story','Historia'],['launch','Despegue y llegada']]:[];
+  $('tabs').innerHTML=tabs.map(([k,l])=>`<button data-k="${k}" aria-pressed="${k===tab}">${l}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.k;openCard(s);});
+  $('robo').hidden=!I;
+  if(!I){ $('cbody').innerHTML=`<div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${fc(s)}</b></div>
+    <div class="soon">La ficha completa de ${s.name} (modelo 3D, cómo funciona, historia y animación del aterrizaje) se agregará en las próximas tandas.</div>`; return; }
+  buildRobot(s.model);
+  let h='';
+  if(tab==='how') h=I.how;
+  if(tab==='story') h=I.story;
+  if(tab==='launch') h=`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${fc(s)}</b></div>
+    <a class="go" href="${SIM}#${s.id}/llegada">Ver la animación del aterrizaje →</a><a class="go alt" href="${SIM}#${s.id}">Ver todo desde el despegue en Cabo Cañaveral →</a>`;
+  $('cbody').innerHTML=h; $('cbody').scrollTop=0;
+}
+const fc=s=>`${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${s.lon.toFixed(2)}° E`;
+$('close').onclick=()=>{ $('card').hidden=true; sel=null; SITES.forEach(x=>x.lbl.classList.remove('sel')); };
+
+/* ---- visor 3D del robot ---- */
+const rc=$('robo'), rr=new THREE.WebGLRenderer({canvas:rc,antialias:true}); rr.setPixelRatio(Math.min(2,devicePixelRatio)); rr.outputColorSpace=THREE.SRGBColorSpace;
+const rs=new THREE.Scene(); rs.background=new THREE.Color(0xc79a74); rs.fog=new THREE.Fog(0xc79a74,9,22);
+const rcam=new THREE.PerspectiveCamera(35,1,0.05,100); rcam.position.set(5.2,2.6,5.2);
+const rctl=new OrbitControls(rcam,rc); rctl.enableDamping=true; rctl.target.set(0,0.9,0); rctl.autoRotate=true; rctl.autoRotateSpeed=1.2; rctl.minDistance=2.5; rctl.maxDistance=12; rctl.maxPolarAngle=1.5;
+rs.add(new THREE.HemisphereLight(0xffe6cc,0x6b3a22,1.3)); const rl=new THREE.DirectionalLight(0xfff0dd,2.4); rl.position.set(4,7,3); rs.add(rl);
+{ const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d'); x.fillStyle='#a8673f'; x.fillRect(0,0,256,256);
+  for(let i=0;i<3000;i++){const r=Math.random();x.fillStyle=`rgba(${110+r*80|0},${55+r*45|0},${30+r*30|0},.4)`;x.fillRect(Math.random()*256,Math.random()*256,2+Math.random()*5,2+Math.random()*5);}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(8,8); t.colorSpace=THREE.SRGBColorSpace;
+  const gnd=new THREE.Mesh(new THREE.CircleGeometry(30,64),new THREE.MeshStandardMaterial({map:t,roughness:1})); gnd.rotation.x=-Math.PI/2; rs.add(gnd);
+  const rk=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.12,0),new THREE.MeshStandardMaterial({color:0x6e3f26,roughness:1}),120), m=new THREE.Matrix4();
+  for(let i=0;i<120;i++){const a=Math.random()*7,d=2.2+Math.random()*10,s=0.3+Math.random()*1.5; m.compose(new THREE.Vector3(Math.cos(a)*d,0.03,Math.sin(a)*d),new THREE.Quaternion().random(),new THREE.Vector3(s,s*0.6,s)); rk.setMatrixAt(i,m);} rs.add(rk); }
+const robot=new THREE.Group(); rs.add(robot);
+const Mt=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:0.55,metalness:0.25,...o});
+const box=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m), cy=(r1,r2,h,m,s=20)=>new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,s),m);
+function rodBetween(a,b,r,m){ const d=b.clone().sub(a), c=cy(r,r,d.length(),m,8); c.position.copy(a).add(b).multiplyScalar(0.5); c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); return c; }
+function buildRobot(kind){
+  robot.clear(); robot.userData.rot=null; const P=kind==='perse';
+  const body=Mt(P?0xe9e4d8:0xd9d2c0), alu=Mt(0xb9bcc2,{metalness:0.7,roughness:0.35}), dark=Mt(0x2a2a2c), gold=Mt(0xc9a34a,{metalness:0.8,roughness:0.3});
+  // chasis (caja "WEB")
+  const ch=box(1.9,0.5,2.6,body); ch.position.y=1.0; robot.add(ch);
+  const deck=box(1.95,0.04,2.65,alu); deck.position.y=1.27; robot.add(deck);
+  // ruedas + rocker‑bogie
+  const wr=0.26, wz=[-1.1,0.05,1.15];
+  for(const sx of [-1,1]){ wz.forEach((z,i)=>{ const w=new THREE.Group(); const t=cy(wr,wr,0.4,alu,24); t.rotation.z=Math.PI/2; w.add(t);
+      for(let k=0;k<12;k++){ const g=box(0.42,0.025,0.05,dark); const a=k/12*Math.PI*2; g.position.set(0,Math.cos(a)*wr,Math.sin(a)*wr); g.rotation.x=-a; w.add(g); }
+      w.position.set(sx*1.25,wr,z); robot.add(w);
+      robot.add(rodBetween(new THREE.Vector3(sx*1.25,wr,z),new THREE.Vector3(sx*1.25,wr+0.42,z),0.04,alu)); });
+    const piv=new THREE.Vector3(sx*1.15,0.95,-0.35), bog=new THREE.Vector3(sx*1.2,0.68,0.6);
+    robot.add(rodBetween(new THREE.Vector3(sx*1.25,wr+0.42,-1.1),piv,0.05,alu)); robot.add(rodBetween(piv,bog,0.05,alu));
+    robot.add(rodBetween(bog,new THREE.Vector3(sx*1.25,wr+0.42,0.05),0.045,alu)); robot.add(rodBetween(bog,new THREE.Vector3(sx*1.25,wr+0.42,1.15),0.045,alu)); }
+  // mástil y cabeza (cámaras + láser)
+  const mz=-1.0; robot.add(rodBetween(new THREE.Vector3(0.55,1.27,mz),new THREE.Vector3(0.55,2.15,mz),0.06,body));
+  const head=box(0.55,0.28,0.32,body); head.position.set(0.55,2.25,mz); robot.add(head);
+  const laser=cy(0.09,0.09,0.12,dark,16); laser.rotation.x=Math.PI/2; laser.position.set(0.55,2.33,mz-0.2); robot.add(laser);
+  for(const x of [-0.17,0.17]){ const c=cy(0.045,0.045,0.08,dark,12); c.rotation.x=Math.PI/2; c.position.set(0.55+x,2.19,mz-0.19); robot.add(c); }
+  // antenas
+  const hga=box(0.55,0.06,0.55,alu); hga.position.set(-0.5,1.55,-0.1); hga.rotation.z=0.4; robot.add(hga);
+  robot.add(rodBetween(new THREE.Vector3(-0.5,1.27,-0.1),new THREE.Vector3(-0.5,1.52,-0.1),0.04,alu));
+  const uhf=cy(0.12,0.12,0.18,alu,12); uhf.position.set(-0.6,1.36,0.6); robot.add(uhf);
+  // generador nuclear (MMRTG) atrás, con aletas
+  const rtg=new THREE.Group(); const core=cy(0.22,0.22,0.8,Mt(0x3a3a3a,{metalness:0.4}),16); rtg.add(core);
+  for(let k=0;k<8;k++){ const f=box(0.02,0.8,0.36,Mt(0x2e2e2e)); const a=k/8*Math.PI*2; f.position.set(Math.cos(a)*0.24,0,Math.sin(a)*0.24); f.rotation.y=-a; rtg.add(f); }
+  rtg.rotation.x=-0.9; rtg.position.set(0,1.45,1.55); robot.add(rtg);
+  // brazo robótico con torreta
+  const sh=new THREE.Vector3(0.6,1.05,-1.35), el=new THREE.Vector3(0.45,1.5,-2.2), wr2=new THREE.Vector3(0.1,0.85,-2.55);
+  robot.add(rodBetween(sh,el,0.06,alu)); robot.add(rodBetween(el,wr2,0.055,alu));
+  const tur=new THREE.Group(); tur.position.copy(wr2); robot.add(tur);
+  const hub=cy(0.18,0.18,0.18,alu,10); tur.add(hub);
+  const drill=cy(0.05,0.02,P?0.45:0.32,gold,12); drill.position.y=-0.3; tur.add(drill);
+  for(let k=0;k<4;k++){ const t=box(0.12,0.12,0.14,P?body:dark); const a=k/4*Math.PI*2; t.position.set(Math.cos(a)*0.22,-0.05,Math.sin(a)*0.22); tur.add(t); }
+  if(P){ // carcasa de muestras y helicóptero Ingenuity al lado
+    const sc=box(0.8,0.2,0.5,body); sc.position.set(0,0.72,-1.25); robot.add(sc);
+    const ing=new THREE.Group(); const fus=box(0.14,0.14,0.14,Mt(0x8a7f6e)); fus.position.y=0.3; ing.add(fus);
+    const sp=box(0.5,0.008,0.34,Mt(0x1c2d63,{metalness:0.4})); sp.position.y=0.92; ing.add(sp);
+    const mast=cy(0.012,0.012,0.6,alu,8); mast.position.y=0.62; ing.add(mast);
+    const rot=[]; for(const y of [0.55,0.7]){ const r=box(1.2,0.008,0.08,Mt(0x33302c)); r.position.y=y; ing.add(r); rot.push(r); }
+    for(let k=0;k<4;k++){ const a=k/4*Math.PI*2+0.78; ing.add(rodBetween(new THREE.Vector3(0,0.25,0),new THREE.Vector3(Math.cos(a)*0.3,0,Math.sin(a)*0.3),0.008,Mt(0xdddddd))); }
+    ing.position.set(2.4,0,-0.6); robot.add(ing); robot.userData.rot=rot;
+  } else { // ChemCam y estación meteorológica
+    const rems=rodBetween(new THREE.Vector3(0.55,1.6,mz),new THREE.Vector3(0.85,1.6,mz),0.02,alu); robot.add(rems);
+  }
+}
+
+/* ============ BUCLE ============ */
+function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize();
+const tmp=new THREE.Vector3();
+function loop(t){
+  requestAnimationFrame(loop);
+  if(fly){ fly.t=Math.min(1,fly.t+0.02); const u=fly.t*fly.t*(3-2*fly.t); const len=THREE.MathUtils.lerp(fly.from.length(),fly.to.length(),u);
+    cam.position.copy(fly.from).normalize().lerp(fly.to.clone().normalize(),u).normalize().multiplyScalar(len); if(fly.t>=1) fly=null; }
+  ctl.update(); sunL.position.copy(cam.position).applyAxisAngle(new THREE.Vector3(0,1,0),0.6).multiplyScalar(10);
+  SITES.forEach(s=>{ tmp.copy(s.sp.position); const vis=tmp.clone().normalize().dot(cam.position.clone().sub(tmp).normalize())>0.08; s.sp.visible=vis;
+    const k=s===sel?1.4+0.3*Math.sin(t/250):1; s.sp.scale.setScalar(0.035*k*cam.position.length()/3.6);
+    if(!vis){ s.lbl.hidden=true; return; } tmp.project(cam); s.lbl.hidden=false; s.lbl.style.left=((tmp.x+1)/2*innerWidth)+'px'; s.lbl.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
+  renderer.render(scene,cam);
+  if(!$('card').hidden && !rc.hidden){ const w=rc.clientWidth,h=rc.clientHeight; if(rc.width!==Math.floor(w*rr.getPixelRatio())){ rr.setSize(w,h,false); rcam.aspect=w/h; rcam.updateProjectionMatrix(); }
+    if(robot.userData.rot) robot.userData.rot.forEach((r,i)=>r.rotation.y+=i?0.3:-0.3);
+    rctl.update(); rr.render(rs,rcam); }
+}
+requestAnimationFrame(loop);
+const start=SITES.find(s=>'#'+s.id===location.hash); if(start) select(start);
+window.__mm={select,SITES};
+</script>
+</body>
+</html>

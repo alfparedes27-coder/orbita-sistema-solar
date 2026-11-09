@@ -673,7 +673,7 @@ function setView(v){ if(v===view && curScene) return; view=v; $('views').querySe
 MISSIONS.forEach(m=>{ const b=document.createElement('button'); b.className='mis'; b.innerHTML=`<b>${m.name}</b><span>${m.year} · ${m.rocketName}</span>`; b.onclick=()=>selectMission(m); m.btn=b; $('missions').appendChild(b); });
 function selectMission(m){ mis=m; MISSIONS.forEach(x=>x.btn.setAttribute('aria-pressed',(x===m)+''));
   buildLaunch(m); buildCruise(m); buildMars(m); buildLog(m); jump(m.tL-30e3); setSpeed(1); view=''; setView('launch');
-  try{ history.replaceState(null,'','#'+m.id); }catch(e){} }
+  try{ if(location.hash.slice(1).split('/')[0]!==m.id) history.replaceState(null,'','#'+m.id); }catch(e){} }
 function buildLog(m){ const ol=$('log'); ol.innerHTML=''; m.events.forEach(ev=>{ const li=document.createElement('li'); li.innerHTML=`<i>${relLabel(m,ev.t)}</i>${ev.txt}`; li.onclick=()=>{ jump(ev.t-(ev.ph==='cruise'?0:8e3)); setSpeed(ev.ph==='cruise'?1e5:1); }; ev.li=li; ol.appendChild(li); }); }
 const pad2=n=>String(Math.floor(n)).padStart(2,'0');
 function hms(s){ s=Math.abs(s); const d=Math.floor(s/86400); s-=d*86400; return (d?d+' d ':'')+pad2(s/3600)+':'+pad2(s/60%60)+':'+pad2(s%60); }
@@ -745,8 +745,8 @@ function loop(now){
   renderer.render(scene,cam);
 }
 canvas.addEventListener('dblclick',()=>{ if(view==='cruise'){ follow2=!follow2; toast(follow2?'Siguiendo a la nave (doble clic para soltar).':'Vista libre del sistema solar.'); } });
-const start=MISSIONS.find(m=>'#'+m.id===location.hash)||MISSIONS[0];
-selectMission(start);
+const [hId,hPart]=location.hash.slice(1).split('/'); const start=MISSIONS.find(m=>m.id===hId)||MISSIONS[0];
+selectMission(start); if(hPart==='llegada'){ jump(start.tEntry-600e3); setSpeed(10); }
 requestAnimationFrame(loop);
 window.__mars={MISSIONS,get mis(){return mis;},jump,setSpeed,setView,get simT(){return simT;}};
 </script>
