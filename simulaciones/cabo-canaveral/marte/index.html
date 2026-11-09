@@ -88,7 +88,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 <div class="top">
   <a class="back panel" href="../../">← Simulaciones</a>
-  <div class="title panel"><div class="kick">Cabo Cañaveral → Marte</div><h1>Rumbo a Marte</h1></div>
+  <div class="title panel"><div class="kick" id="kick">Cabo Cañaveral → Marte</div><h1>Rumbo a Marte</h1></div>
   <div class="missions panel" id="missions" role="group" aria-label="Misión"></div>
 </div>
 
@@ -163,14 +163,19 @@ const MISSIONS = [
    site:'Cráter Gusev', slat:-14.5684, slon:175.4726, mass:'185 kg', chute:15, aero:2.65,
    status:'Iba a durar 90 soles y trabajó más de 6 años. Quedó atascada en arena en 2009; último contacto el 22 de marzo de 2010. Recorrió 7,73 km.',
    find:'Con una rueda rota que arrastraba, desenterró sílice casi pura: señal de aguas termales o vapor en el pasado de Marte.' },
+ { id:'insight', name:'InSight', full:'InSight (+ CubeSats MarCO)', year:2018, rocket:'atlas', srbs:0, rocketName:'Atlas V 401', pad:'SLC‑3E', base:'Vandenberg (California)', lat:34.6402, lon:-120.5895, az:158,
+   launch:'2018-05-05T11:05:01Z', sep:93*60, land:'2018-11-26T19:52:59Z', landKind:'ERT', edl:'retro', vEntry:5.5,
+   site:'Elysium Planitia', slat:4.502, slon:135.623, mass:'358 kg', chute:11.8, aero:2.65,
+   status:'Terminada. Midió más de 1.300 sismos; el polvo cubrió sus paneles y el último contacto fue el 15 de diciembre de 2022.',
+   find:'Escuchó el interior de Marte con un sismógrafo: midió el grosor de la corteza y descubrió que el núcleo es líquido y más grande de lo esperado. Es la única de esta lista que no despegó de Cabo Cañaveral.' },
 ];
 
 /* ---- Perfiles de ascenso (aprox.) [s, alt km, vel km/s, texto] ---- */
 function ascent(m){
   const s=m.sep, mi=60;
   if(m.rocket==='atlas') return [
-   [0,0,0,'Despegue: motor RD‑180 y 4 cohetes sólidos'],[8,0.12,0.03,'Libra la torre'],[50,8,0.33,'Supera la velocidad del sonido (Mach 1)'],
-   [62,12,0.45,'Máxima presión aerodinámica (Max‑Q)'],[109,46,1.45,'Se separan los 4 cohetes sólidos'],[208,116,2.9,'Se abre la cofia: la sonda queda al descubierto'],
+   [0,0,0,m.srbs===0?'Despegue: solo el motor RD‑180 (sin cohetes sólidos)':'Despegue: motor RD‑180 y 4 cohetes sólidos'],[8,0.12,0.03,'Libra la torre'],[50,8,0.33,'Supera la velocidad del sonido (Mach 1)'],
+   [62,12,0.45,'Máxima presión aerodinámica (Max‑Q)'],[109,46,1.45,m.srbs===0?'El Atlas sigue acelerando (esta versión no lleva sólidos)':'Se separan los 4 cohetes sólidos'],[208,116,2.9,'Se abre la cofia: la sonda queda al descubierto'],
    [261,150,4.6,'Se apaga el Atlas (BECO)'],[267,153,4.62,'Se separa el Atlas; queda la etapa Centaur'],[277,156,4.65,'Primer encendido del Centaur (RL‑10)'],
    [700,185,7.8,'Se apaga el Centaur: órbita de estacionamiento'],[s-11*mi,185,7.8,'Segundo encendido del Centaur: inyección hacia Marte'],
    [s-3*mi,260,11.4,'Se apaga el Centaur: la sonda ya escapa de la Tierra'],[s,1050,10.6,'Separación de la sonda: empieza el viaje']];
@@ -200,10 +205,10 @@ function edlProfile(m){
   if(m.edl==='retro') return { td:431, ev:[
    [-420,950,5.0,'Se separa la etapa de crucero','cruiseSep'],[0,125,v,'Interfaz de entrada: toca la atmósfera','entry'],
    [85,40,v*0.8,'Calentamiento máximo'],[100,32,v*0.55,'Frenado máximo: unos 9 g'],
-   [220,12.9,0.42,'Se abre el paracaídas (7 s más tarde de lo previsto)','chute'],[235,12,0.24,'Se suelta el escudo térmico','shield'],
+   [220,12.9,0.42,m.id==='phx'?'Se abre el paracaídas (7 s más tarde de lo previsto)':'Se abre el paracaídas','chute'],[235,12,0.24,'Se suelta el escudo térmico','shield'],
    [245,11.5,0.2,'Se despliegan las 3 patas'],[300,7,0.1,'El radar detecta el suelo'],
    [388,0.94,0.056,'Se suelta del paracaídas; encienden 12 retrocohetes','backshell'],[426,0.012,0.0024,'Baja a velocidad constante: 2,4 m/s'],
-   [431,0,0,'¡Contacto! Tres patas sobre el suelo helado','touch']]};
+   [431,0,0,m.id==='phx'?'¡Contacto! Tres patas sobre el suelo helado':'¡Contacto! Tres patas sobre la llanura de Elysium','touch']]};
   return { td:360, ev:[
    [-900,1900,4.8,'Se separa la etapa de crucero','cruiseSep'],[0,128,v,'Interfaz de entrada: toca la atmósfera','entry'],
    [80,42,v*0.8,'Calentamiento máximo'],[95,33,v*0.55,'Frenado máximo: unos 6 g'],
@@ -324,7 +329,7 @@ function rocket(m){
   if(m.rocket==='atlas'){
     const b=cyl(1.905,1.905,32.5,orange); b.position.y=16.25+1; g.add(b); parts.stage1.push(b);
     const n=cyl(1.2,1.6,1.2,dark); n.position.y=0.6; g.add(n); parts.stage1.push(n);
-    for(let i=0;i<4;i++){ const a=(i*90+45)*Math.PI/180, s=new THREE.Group();
+    for(let i=0;i<(m.srbs??4);i++){ const a=(i*90+45)*Math.PI/180, s=new THREE.Group();
       const c=cyl(0.79,0.79,17.5,white); c.position.y=9.5; s.add(c); const nc=new THREE.Mesh(new THREE.ConeGeometry(0.79,2.4,20),white); nc.position.y=19.45; s.add(nc);
       const nz=cyl(0.45,0.7,1.2,dark); nz.position.y=0.4; s.add(nz); s.position.set(Math.cos(a)*2.72,0.5,Math.sin(a)*2.72); g.add(s); parts.srb.push(s); }
     const bt=cyl(2.7,1.905,1.6,white); bt.position.y=34.3; g.add(bt); parts.stage1.push(bt);
@@ -381,7 +386,7 @@ function buildLaunch(m){
   const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),up);
   const loc=new THREE.Group(); loc.position.copy(P); loc.quaternion.copy(q); padG.add(loc);
   const yawFix=new THREE.Group(); loc.add(yawFix);
-  const eLoc=e.clone().applyQuaternion(q.clone().invert()); yawFix.rotation.y=Math.atan2(-eLoc.z,eLoc.x); // +x local = este
+  const eLoc=e.clone().applyQuaternion(q.clone().invert()); yawFix.rotation.y=Math.atan2(-eLoc.z,eLoc.x)+(m.lon<-100?Math.PI:0); // +x local = este (en California el mar queda al oeste)
   const gTex=(()=>{const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.fillStyle='#4f6b3a';x.fillRect(0,0,512,512);
     for(let i=0;i<2500;i++){x.fillStyle=`rgba(${60+Math.random()*40|0},${80+Math.random()*50|0},${40+Math.random()*30|0},.5)`;x.fillRect(Math.random()*512,Math.random()*512,3+Math.random()*8,3+Math.random()*8);}
     x.fillStyle='#d8cfb4';x.fillRect(330,0,30,512); x.fillStyle='#1f4f6e';x.fillRect(360,0,152,512); return new THREE.CanvasTexture(c);})();
@@ -671,7 +676,7 @@ function setView(v){ if(v===view && curScene) return; view=v; $('views').querySe
   if(v==='mars') setMarsCamera(false); if(v==='edl') edlCamInit=false; if(v==='cruise'){ follow2=false; C2.position.set(0,300,220); ctl2.target.set(0,0,0); }
   [ctl1,ctl2,ctl3].forEach(c=>c.enabled=false); ({launch:ctl1,cruise:ctl2,edl:ctl3,mars:ctl3})[v].enabled=true; curScene=v; }
 MISSIONS.forEach(m=>{ const b=document.createElement('button'); b.className='mis'; b.innerHTML=`<b>${m.name}</b><span>${m.year} · ${m.rocketName}</span>`; b.onclick=()=>selectMission(m); m.btn=b; $('missions').appendChild(b); });
-function selectMission(m){ mis=m; MISSIONS.forEach(x=>x.btn.setAttribute('aria-pressed',(x===m)+''));
+function selectMission(m){ mis=m; $('kick').textContent=(m.base?'Vandenberg':'Cabo Cañaveral')+' → Marte'; MISSIONS.forEach(x=>x.btn.setAttribute('aria-pressed',(x===m)+''));
   buildLaunch(m); buildCruise(m); buildMars(m); buildLog(m); jump(m.tL-30e3); setSpeed(1); view=''; setView('launch');
   try{ if(location.hash.slice(1).split('/')[0]!==m.id) history.replaceState(null,'','#'+m.id); }catch(e){} }
 function buildLog(m){ const ol=$('log'); ol.innerHTML=''; m.events.forEach(ev=>{ const li=document.createElement('li'); li.innerHTML=`<i>${relLabel(m,ev.t)}</i>${ev.txt}`; li.onclick=()=>{ jump(ev.t-(ev.ph==='cruise'?0:8e3)); setSpeed(ev.ph==='cruise'?1e5:1); }; ev.li=li; ol.appendChild(li); }); }
@@ -712,7 +717,7 @@ function loop(now){
   let scene,cam,ctl;
   if(view==='launch'){ const st=updateLaunch(m,tS); scene=S1; cam=C1; ctl=ctl1;
     $('teleH').textContent='Telemetría del cohete · '+m.rocketName;
-    rows([['Altitud',fmt(st.alt,st.alt<10?2:0)+' km'],['Velocidad',fmt(st.v*3600)+' km/h'],['Recorrido sobre la Tierra',fmt(st.dr)+' km'],['Plataforma',m.pad+', Cabo Cañaveral']]);
+    rows([['Altitud',fmt(st.alt,st.alt<10?2:0)+' km'],['Velocidad',fmt(st.v*3600)+' km/h'],['Recorrido sobre la Tierra',fmt(st.dr)+' km'],['Plataforma',m.pad+', '+(m.base||'Cabo Cañaveral')]]);
     $('tnote').textContent='Perfil de ascenso nominal aproximado (interpolado entre eventos publicados).';
   } else if(view==='cruise'){ const st=updateCruise(m,Math.max(simT,m.tSep)); scene=S2; cam=C2; ctl=ctl2;
     $('teleH').textContent='Viaje · '+m.full;

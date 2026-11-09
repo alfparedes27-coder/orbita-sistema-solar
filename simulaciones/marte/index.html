@@ -120,8 +120,8 @@ const SITES=[
  {id:'msl',name:'Curiosity',st:'ok',lat:-4.5895,lon:137.4417,place:'Cráter Gale',date:'6 ago 2012',full:true,model:'curio'},
  {id:'mera',name:'Spirit',st:'end',lat:-14.5684,lon:175.4726,place:'Cráter Gusev',date:'4 ene 2004',full:true,model:'mer'},
  {id:'merb',name:'Opportunity',st:'end',lat:-1.9462,lon:354.4734,place:'Meridiani Planum',date:'25 ene 2004',full:true,model:'mer'},
- {id:'phx',name:'Phoenix',st:'end',lat:68.2188,lon:234.2508,place:'Vastitas Borealis',date:'25 may 2008'},
- {id:'insight',name:'InSight',st:'end',lat:4.502,lon:135.623,place:'Elysium Planitia',date:'26 nov 2018'},
+ {id:'phx',name:'Phoenix',st:'end',lat:68.2188,lon:234.2508,place:'Vastitas Borealis',date:'25 may 2008',full:true,model:'phx'},
+ {id:'insight',name:'InSight',st:'end',lat:4.502,lon:135.623,place:'Elysium Planitia',date:'26 nov 2018',full:true,model:'insight'},
  {id:'vk1',name:'Viking 1',st:'end',lat:22.27,lon:312.05,place:'Chryse Planitia',date:'20 jul 1976'},
  {id:'vk2',name:'Viking 2',st:'end',lat:47.64,lon:134.29,place:'Utopia Planitia',date:'3 sep 1976'},
  {id:'mpf',name:'Mars Pathfinder',sub:'+ rover Sojourner',st:'end',lat:19.13,lon:326.78,place:'Ares Vallis',date:'4 jul 1997'},
@@ -144,6 +144,29 @@ const MERHOW=`<p>Spirit y Opportunity eran gemelos idénticos: geólogos robot d
    <li><b>Brazo:</b> con una lupa (Microscopic Imager), dos espectrómetros (Mössbauer y APXS) y el <b>RAT</b>, una lija de piedra que raspaba la capa de polvo de las rocas.</li>
    <li><b>Cerebro:</b> una computadora de 20 MHz, miles de veces más lenta que un celular actual.</li></ul>`;
 const INFO={
+ phx:{
+  launch:[['Cohete','Delta II 7925 (Boeing)'],['Plataforma','SLC‑17A, Cabo Cañaveral (Florida)'],['Despegue','4 de agosto de 2007, 09:26 UTC'],['Viaje','295 días'],['Sonda que lo llevó','Phoenix: etapa de crucero + cápsula de 2,65 m'],['Aterrizaje','Paracaídas y 12 retrocohetes, sobre 3 patas'],['Masa del módulo','350 kg · 5,5 m con los paneles abiertos']],
+  how:`<p>No es un rover: es un laboratorio fijo que se quedó donde aterrizó, cerca del polo norte, para excavar y analizar el suelo helado.</p><ul>
+   <li><b>Energía solar:</b> dos paneles redondos de 10 lados, de 1,8 m cada uno, que se abren como abanicos.</li>
+   <li><b>Brazo de 2,35 m:</b> con una pala y una raspadora para cavar zanjas y llevar tierra y hielo a los instrumentos. Una cámara en el brazo veía de cerca lo que recogía.</li>
+   <li><b>TEGA:</b> 8 hornitos que calentaban las muestras hasta 1.000 °C y un espectrómetro que olía los gases que salían.</li>
+   <li><b>MECA:</b> un laboratorio de química húmeda que mezclaba la tierra con agua llevada desde la Tierra, y microscopios.</li>
+   <li><b>Estación del tiempo canadiense</b> con un láser (lidar) que apuntaba al cielo y vio nieve cayendo de las nubes.</li></ul>`,
+  story:`<p>Su nombre viene del ave fénix que renace: se armó con piezas de un módulo de 2001 que se canceló después de la pérdida de Mars Polar Lander.</p>
+   <p>Aterrizó el 25 de mayo de 2008 en la llanura polar Vastitas Borealis. Los retrocohetes soplaron el polvo y dejaron ver hielo bajo el módulo.</p>
+   <p>En la zanja "Dodo‑Goldilocks" unos terrones blancos desaparecieron en 4 días: era hielo de agua que se evaporaba. TEGA lo confirmó. También halló percloratos, sales que hoy importan para futuros astronautas.</p>
+   <p>Funcionó 157 soles, 2 más de lo previsto. Con el invierno se quedó sin sol; en 2010 una foto desde la órbita mostró sus paneles rotos por el peso del hielo.</p>`},
+ insight:{
+  launch:[['Cohete','Atlas V 401 (sin cohetes sólidos)'],['Plataforma','SLC‑3E, Base Vandenberg (California)'],['Despegue','5 de mayo de 2018, 11:05 UTC'],['Viaje','205 días'],['Sonda que lo llevó','InSight: etapa de crucero + cápsula de 2,65 m; viajaron al lado los CubeSats MarCO A y B'],['Aterrizaje','Paracaídas y 12 retrocohetes, como Phoenix'],['Masa del módulo','358 kg · 6 m con los paneles abiertos']],
+  how:`<p>Fue el primer "médico" de Marte: en vez de mirar la superficie, escuchó y midió el interior del planeta.</p><ul>
+   <li><b>SEIS (Francia):</b> un sismógrafo tan sensible que detectaba movimientos más chicos que un átomo. El brazo lo bajó al suelo y lo tapó con una cúpula contra el viento y el frío.</li>
+   <li><b>HP³, "el topo" (Alemania):</b> un clavo que se martillaba solo para enterrarse 5 m y medir el calor interno. El suelo resultó demasiado compacto y solo logró enterrarse unos centímetros.</li>
+   <li><b>RISE:</b> con la radio medía cómo se bambolea Marte al girar, y de eso se deduce el tamaño del núcleo.</li>
+   <li><b>Brazo de 2,4 m</b> con pala y cámara, y dos paneles solares de 2,2 m.</li></ul>`,
+  story:`<p>Fue la primera misión a otro planeta lanzada desde la costa oeste de Estados Unidos, por eso no salió de Cabo Cañaveral. Los dos CubeSats MarCO volaron junto a ella y transmitieron el aterrizaje casi en vivo: los primeros satélites miniatura en llegar a otro planeta.</p>
+   <p>Aterrizó el 26 de noviembre de 2018 en Elysium Planitia, una llanura elegida por ser plana y aburrida: lo interesante estaba abajo.</p>
+   <p>Detectó más de 1.300 sismos ("martemotos"). El mayor, de magnitud 4,7 en mayo de 2022. Con ellos se midió el grosor de la corteza y se supo que el núcleo de Marte es líquido y más grande de lo esperado. También "escuchó" el golpe de meteoritos al caer.</p>
+   <p>El polvo fue cubriendo los paneles hasta dejarlo sin energía. El último contacto fue el 15 de diciembre de 2022.</p>`},
  mera:{
   launch:[['Cohete','Delta II 7925 (Boeing)'],['Plataforma','SLC‑17A, Cabo Cañaveral (Florida)'],['Despegue','10 de junio de 2003, 17:58 UTC'],['Viaje','208 días'],['Sonda que lo llevó','Mars Exploration Rover A: etapa de crucero + cápsula de 2,65 m'],['Aterrizaje','Paracaídas, retrocohetes y bolsas de aire: unos 28 rebotes'],['Masa del rover','185 kg · 1,6 m de largo']],
   how:MERHOW,
@@ -323,6 +346,7 @@ const box=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m), cy=(r1,r2,h
 function rodBetween(a,b,r,m){ const d=b.clone().sub(a), c=cy(r,r,d.length(),m,8); c.position.copy(a).add(b).multiplyScalar(0.5); c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); return c; }
 function buildRobot(kind){
   robot.clear(); robot.userData.rot=null; robot.scale.setScalar(1); const P=kind==='perse', MER=kind==='mer';
+  if(kind==='phx'||kind==='insight'){ buildLander(kind==='insight'); return; }
   const body=Mt(P?0xe9e4d8:0xd9d2c0), alu=Mt(0xb9bcc2,{metalness:0.7,roughness:0.35}), dark=Mt(0x2a2a2c), gold=Mt(0xc9a34a,{metalness:0.8,roughness:0.3});
   // chasis (caja "WEB")
   const ch=box(1.9,0.5,2.6,body); ch.position.y=1.0; robot.add(ch);
@@ -379,6 +403,29 @@ function buildRobot(kind){
   }
 }
 
+function buildLander(ins){ // módulo fijo tipo Phoenix / InSight
+  const body=Mt(ins?0xd9b98a:0xd6c9a8,{metalness:0.4,roughness:0.4}), alu=Mt(0xbfc2c8,{metalness:0.7,roughness:0.35}), sol=Mt(0x1a2a5c,{metalness:0.5,roughness:0.25});
+  const deck=cy(0.75,0.75,0.42,body,10); deck.position.y=1.0; robot.add(deck);
+  const top=cy(0.76,0.76,0.03,alu,10); top.position.y=1.22; robot.add(top);
+  for(let i=0;i<3;i++){ const a=i/3*Math.PI*2+0.5, f=new THREE.Vector3(Math.cos(a)*1.15,0.06,Math.sin(a)*1.15);
+    robot.add(rodBetween(new THREE.Vector3(Math.cos(a)*0.6,0.85,Math.sin(a)*0.6),f,0.045,alu));
+    const foot=cy(0.15,0.17,0.06,alu,12); foot.position.copy(f); robot.add(foot); }
+  for(const sx of [-1,1]){ const r=ins?1.1:0.9, p=cy(r,r,0.03,sol,10); p.position.set(sx*(0.75+r),1.18,0); robot.add(p);
+    for(let k=0;k<10;k++){ const a=k/10*Math.PI*2; robot.add(rodBetween(new THREE.Vector3(sx*0.75+sx*0.05,1.2,0),new THREE.Vector3(sx*(0.75+r)+Math.cos(a)*r,1.2,Math.sin(a)*r),0.008,alu)); } }
+  // brazo con pala
+  const s0=new THREE.Vector3(0.2,1.25,-0.6), e0=new THREE.Vector3(0.3,1.9,-1.4), w0=new THREE.Vector3(0.3,0.5,-2.0);
+  robot.add(rodBetween(s0,e0,0.05,alu)); robot.add(rodBetween(e0,w0,0.045,alu)); const sc=box(0.22,0.14,0.28,alu); sc.position.copy(w0); robot.add(sc);
+  // mástil de cámara
+  robot.add(rodBetween(new THREE.Vector3(-0.35,1.22,-0.3),new THREE.Vector3(-0.35,(ins?1.5:2.1),-0.3),0.035,alu));
+  const cam=box(0.22,0.14,0.16,body); cam.position.set(-0.35,ins?1.55:2.15,-0.3); robot.add(cam);
+  if(ins){ // cúpula del sismógrafo y el "topo" en el suelo
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(0.36,24,12,0,Math.PI*2,0,Math.PI/2),Mt(0xe8e2d4,{metalness:0.6,roughness:0.3})); dome.position.set(-0.4,0,-1.9); robot.add(dome);
+    const skirt=cy(0.45,0.45,0.03,Mt(0xc8b48a),24); skirt.position.set(-0.4,0.015,-1.9); robot.add(skirt);
+    const mole=box(0.32,0.28,0.25,Mt(0x8f8f8f)); mole.position.set(0.7,0.14,-1.8); robot.add(mole);
+  } else { // zanja excavada
+    const tr=box(0.6,0.02,0.35,Mt(0x5e3420,{roughness:1})); tr.position.set(0.3,0.012,-2.1); robot.add(tr);
+    const ice=box(0.15,0.025,0.1,Mt(0xf2f2f2)); ice.position.set(0.25,0.02,-2.05); robot.add(ice); }
+}
 /* ============ BUCLE ============ */
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
