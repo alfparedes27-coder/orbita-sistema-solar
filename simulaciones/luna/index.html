@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Misiones en la Luna</title>
+<meta name="description" content="Mapa interactivo de la cara visible de la Luna: sus mares y todos los lugares donde llegaron naves, con las misiones en 3D, su historia y la animación del alunizaje.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Diseño: globo de Marte a pantalla completa, catálogo a la izquierda, ficha del robot a la derecha (paleta oscura del proyecto, acento marciano). */
+:root{
+  --void:#05060b; --panel:rgba(10,12,20,.88); --line:#232a3d; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9a9fb3; --faint:#646b82;
+  --mars:#9fd0ff; --mars-ink:#04121f; --ok:#7ee2a8; --end:#ffcf6b; --bad:#ff7a6b;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  --gl:max(16px, env(safe-area-inset-left,0px)); --gr:max(16px, env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none;cursor:grab}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px}
+.title{padding:8px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--mars)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.legend{display:flex;gap:12px;padding:9px 12px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.cat{position:fixed;left:var(--gl);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:300px;z-index:4;display:flex;flex-direction:column;padding:10px 6px 10px 12px}
+.cat h2{margin:0 0 2px;font:600 13px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.cat .sub{font-size:11.5px;color:var(--faint);margin:0 0 8px}
+.cat .scroll{overflow:auto;flex:1;padding-right:6px}
+details.g{border-top:1px solid var(--line);padding:6px 0}
+details.g summary{cursor:pointer;font:600 13px var(--f-display);list-style:none;display:flex;justify-content:space-between;gap:8px}
+details.g summary::-webkit-details-marker{display:none}
+details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
+.trio{margin:8px 0 2px;padding:6px 0 0;border-top:1px dashed rgba(255,255,255,.06)}
+.trio i{display:block;font:500 10.5px var(--f-data);color:var(--faint);font-style:normal;margin-bottom:2px}
+.ms{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:6px;padding:4px 6px;font-size:12.5px;line-height:1.3;color:var(--ink)}
+.ms small{display:block;color:var(--dim);font-size:11px}
+.ms.click:hover{background:rgba(255,255,255,.06)}
+.ms:not(.click){cursor:default}
+.ms[aria-current=true]{background:rgba(255,138,76,.18)}
+.card{position:fixed;right:var(--gr);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:390px;z-index:4;display:flex;flex-direction:column;overflow:hidden}
+.card .head{padding:12px 14px 8px}
+.card h3{margin:2px 0 0;font:600 20px/1.15 var(--f-display)}
+.st{font:600 10.5px var(--f-display);letter-spacing:.14em;text-transform:uppercase}
+.close{float:right;background:transparent;border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--dim)}
+#robo{width:100%;height:230px;display:block;background:#0b0c10;cursor:grab;touch-action:none}
+.tabs{display:flex;gap:4px;padding:8px 10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12.5px}
+.tabs button[aria-pressed=true]{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
+.body{padding:8px 14px 14px;overflow:auto;flex:1;font-size:13px;line-height:1.5}
+.body p{margin:6px 0}
+.body ul{margin:6px 0;padding-left:18px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;margin:6px 0}
+.kv span{color:var(--dim)} .kv b{font-weight:500}
+.go{display:block;margin:10px 0 0;padding:9px 12px;border-radius:8px;background:var(--mars);color:var(--mars-ink);text-decoration:none;font:600 13px var(--f-display);text-align:center}
+.go.alt{background:transparent;border:1px solid var(--line2);color:var(--ink)}
+.soon{color:var(--dim);font-size:12.5px;border:1px dashed var(--line2);border-radius:8px;padding:8px 10px;margin-top:8px}
+.lbl{position:fixed;left:0;top:0;font:600 11px var(--f-display);letter-spacing:.04em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;transform:translate(-50%,-160%);z-index:2;cursor:pointer;padding:2px 4px}
+.lbl.sel{color:var(--mars)}
+.mare{position:fixed;left:0;top:0;pointer-events:none;font:italic 500 11px var(--f-body);color:rgba(220,230,255,.75);text-shadow:0 1px 3px #000;white-space:nowrap;transform:translate(-50%,-50%);z-index:1}
+.hud{position:absolute;left:8px;top:8px;font:500 11.5px var(--f-data);background:rgba(0,0,0,.55);padding:5px 7px;border-radius:6px;line-height:1.45;pointer-events:none}
+.rwrap{position:relative}
+.anim{display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px 0}
+.anim button{background:transparent;border:1px solid var(--line);border-radius:6px;padding:3px 8px;font:500 12px var(--f-data)}
+.anim button[aria-pressed=true]{background:var(--mars);color:var(--mars-ink);border-color:var(--mars)}
+.hint{position:fixed;left:50%;bottom:calc(16px + var(--bot));transform:translateX(-50%);padding:7px 12px;font-size:12px;color:var(--dim);z-index:3}
+@media (max-width:900px){
+  .cat{width:auto;right:var(--gr);top:auto;height:34vh}
+  .card{width:auto;left:var(--gl);top:calc(70px + var(--top));bottom:calc(34vh + 26px + var(--bot))}
+  #robo{height:170px}
+  .legend{display:none}
+  .hint{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="Globo 3D de la Luna con los sitios de alunizaje"></canvas>
+<div class="top">
+  <a class="back panel" href="../">← Simulaciones</a>
+  <div class="title panel"><div class="kick">Mapa interactivo · cara visible</div><h1>Misiones en la Luna</h1></div>
+  <div class="legend panel">
+    <span><i class="dot" style="background:#6fd3ff"></i>Con astronautas</span>
+    <span><i class="dot" style="background:var(--end)"></i>Robots que alunizaron</span>
+    <span><i class="dot" style="background:var(--bad)"></i>Impactos y choques</span>
+  </div>
+</div>
+
+<aside class="cat panel" aria-label="Catálogo de misiones">
+  <h2>Todo lo que llegó a la Luna</h2>
+  <p class="sub">Cara visible, desde 1959, en 3 grupos y de 3 en 3 por fecha. Toca una misión para verla en el mapa. Abajo, los mares.</p>
+  <div class="scroll" id="cat"></div>
+</aside>
+
+<section class="card panel" id="card" hidden aria-live="polite">
+  <div class="head"><button class="close" id="close" aria-label="Cerrar">✕</button><div class="st" id="cst"></div><h3 id="cname"></h3></div>
+  <div class="rwrap"><canvas id="robo" aria-label="Modelo 3D de la nave (arrastra para girarlo)"></canvas><div class="hud" id="hud" hidden></div></div><div class="anim" id="anim" hidden></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="body" id="cbody"></div>
+</section>
+<div class="hint panel" id="hint">Arrastra para girar la Luna · toca un punto para ver la misión</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const $=id=>document.getElementById(id);
+
+/* ============ LUGARES EN LA SUPERFICIE (cara visible; latitud, longitud este) ============ */
+// g: crew = con astronautas, robot = alunizaje robótico, hit = impacto o choque. below: etiqueta debajo (sitios muy cercanos).
+const S=(id,name,g,lat,lon,date,place,who,o={})=>({id,name,g,lat,lon,date,place,who,...o});
+const SITES=[
+ S('a11','Apollo 11','crew',0.674,23.473,'20 jul 1969','Mar de la Tranquilidad','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
+ S('a12','Apollo 12','crew',-3.012,-23.422,'19 nov 1969','Océano de las Tormentas','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
+ S('a14','Apollo 14','crew',-3.645,-17.471,'5 feb 1971','Fra Mauro','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
+ S('a15','Apollo 15','crew',26.132,3.634,'30 jul 1971','Hadley‑Apeninos','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
+ S('a16','Apollo 16','crew',-8.973,15.5,'21 abr 1972','Altiplanicie Descartes','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
+ S('a17','Apollo 17','crew',20.191,30.772,'11 dic 1972','Valle Taurus‑Littrow','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
+ S('luna9','Luna 9','robot',7.08,-64.37,'3 feb 1966','Océano de las Tormentas','URSS · Molniya desde Baikonur'),
+ S('surv1','Surveyor 1','robot',-2.47,-43.34,'2 jun 1966','Cerca del cráter Flamsteed','NASA · Atlas‑Centaur desde Cabo Cañaveral'),
+ S('luna13','Luna 13','robot',18.87,-62.05,'24 dic 1966','Océano de las Tormentas','URSS · Molniya desde Baikonur'),
+ S('surv3','Surveyor 3','robot',-3.02,-23.42,'20 abr 1967','Océano de las Tormentas','NASA · Atlas‑Centaur desde Cabo Cañaveral',{below:true}),
+ S('surv5','Surveyor 5','robot',1.46,23.2,'11 sep 1967','Mar de la Tranquilidad','NASA · Atlas‑Centaur desde Cabo Cañaveral',{below:true}),
+ S('surv6','Surveyor 6','robot',0.47,-1.43,'10 nov 1967','Sinus Medii (centro de la cara visible)','NASA · Atlas‑Centaur desde Cabo Cañaveral'),
+ S('surv7','Surveyor 7','robot',-40.98,-11.51,'10 ene 1968','Borde del cráter Tycho','NASA · Atlas‑Centaur desde Cabo Cañaveral'),
+ S('luna16','Luna 16','robot',-0.68,56.3,'20 sep 1970','Mar de la Fecundidad','URSS · Protón desde Baikonur'),
+ S('luna17','Luna 17 + Lunojod 1','robot',38.28,-35.0,'17 nov 1970','Mar de las Lluvias','URSS · Protón desde Baikonur'),
+ S('luna20','Luna 20','robot',3.79,56.62,'21 feb 1972','Montañas junto al Mar de la Fecundidad','URSS · Protón desde Baikonur',{below:true}),
+ S('luna21','Luna 21 + Lunojod 2','robot',25.85,30.45,'15 ene 1973','Cráter Le Monnier','URSS · Protón desde Baikonur',{below:true}),
+ S('luna24','Luna 24','robot',12.71,62.21,'18 ago 1976','Mar de las Crisis','URSS · Protón desde Baikonur'),
+ S('ce3','Chang\'e 3 + Yutu','robot',44.12,-19.51,'14 dic 2013','Mar de las Lluvias','China · Larga Marcha 3B desde Xichang'),
+ S('ce5','Chang\'e 5','robot',43.06,-51.92,'1 dic 2020','Mons Rümker','China · Larga Marcha 5 desde Wenchang'),
+ S('ch3','Chandrayaan‑3','robot',-69.37,32.32,'23 ago 2023','Cerca del polo sur','India · LVM3 desde Sriharikota'),
+ S('slim','SLIM','robot',-13.32,25.25,'19 ene 2024','Cráter Shioli','Japón · H‑IIA desde Tanegashima'),
+ S('im1','Odysseus (IM‑1)','robot',-80.13,1.44,'22 feb 2024','Cráter Malapert A, cerca del polo sur','Intuitive Machines · Falcon 9 desde LC‑39A, Cabo Cañaveral'),
+ S('bg1','Blue Ghost 1','robot',18.56,61.81,'2 mar 2025','Mar de las Crisis','Firefly Aerospace · Falcon 9 desde LC‑39A, Cabo Cañaveral',{below:true}),
+ S('im2','Athena (IM‑2)','robot',-84.8,29.2,'6 mar 2025','Cerca del polo sur (aprox.)','Intuitive Machines · Falcon 9 desde LC‑39A, Cabo Cañaveral',{below:true}),
+ S('luna2','Luna 2','hit',29.1,0.0,'13 sep 1959','Entre los mares de la Lluvia y la Serenidad','URSS · Luna desde Baikonur'),
+ S('ranger7','Ranger 7','hit',-10.63,-20.68,'31 jul 1964','Mar Conocido','NASA · Atlas‑Agena desde Cabo Cañaveral'),
+ S('ranger8','Ranger 8','hit',2.64,24.79,'20 feb 1965','Mar de la Tranquilidad','NASA · Atlas‑Agena desde Cabo Cañaveral'),
+ S('ranger9','Ranger 9','hit',-12.83,-2.39,'24 mar 1965','Cráter Alphonsus','NASA · Atlas‑Agena desde Cabo Cañaveral'),
+ S('lcross','LCROSS','hit',-84.7,-49.4,'9 oct 2009','Cráter Cabeus, polo sur','NASA · Atlas V desde Cabo Cañaveral (con LRO)'),
+ S('beresheet','Beresheet','hit',32.59,19.35,'11 abr 2019','Mar de la Serenidad','Israel (SpaceIL) · Falcon 9 desde SLC‑40, Cabo Cañaveral'),
+ S('vikram2','Vikram (Chandrayaan‑2)','hit',-70.88,22.78,'6 sep 2019','Cerca del polo sur','India · GSLV Mk III desde Sriharikota'),
+ S('hakuto','Hakuto‑R M1','hit',47.58,44.09,'25 abr 2023','Cráter Atlas','ispace (Japón) · Falcon 9 desde SLC‑40, Cabo Cañaveral'),
+ S('luna25','Luna 25','hit',-57.86,61.36,'19 ago 2023','Cerca del cráter Pontécoulant','Rusia · Soyuz desde Vostochni'),
+];
+const GROUP={crew:[0x6fd3ff,'Con astronautas'],robot:[0xffcf6b,'Alunizaje robótico'],hit:[0xff7a6b,'Impacto o choque']};
+const NOTE={a11:'Primer alunizaje tripulado: Neil Armstrong y Buzz Aldrin.',a12:'Alunizaje de precisión a 180 m de la sonda Surveyor 3; trajeron piezas de ella.',a14:'Alan Shepard golpeó dos pelotas de golf.',a15:'Primer vehículo lunar (LRV) y la "roca del Génesis".',a16:'Única misión a las tierras altas del centro.',a17:'La última vez que hubo personas en la Luna.',
+ luna9:'Primer alunizaje suave y primeras fotos desde el suelo.',surv1:'Primer alunizaje suave de EE. UU.',luna13:'Midió la dureza del suelo con un brazo.',surv3:'Su cámara la llevaron a la Tierra los astronautas del Apollo 12.',surv5:'Analizó el suelo: basalto, como la lava de la Tierra.',surv6:'Primer "salto": encendió motores y se movió 2,5 m.',surv7:'Única en las tierras altas brillantes junto a Tycho.',
+ luna16:'Primera muestra traída por un robot: 101 g.',luna17:'Primer rover en otro mundo: recorrió 10,5 km.',luna20:'Trajo 55 g de las tierras altas.',luna21:'Recorrió 39 km: récord hasta 2014.',luna24:'Trajo 170 g, con una perforación de 2 m.',ce3:'Primer alunizaje en 37 años; Yutu recorrió 114 m.',ce5:'Trajo 1,73 kg de roca volcánica joven.',ch3:'India llega cerca del polo sur; el rover Pragyan recorrió 100 m.',slim:'Aterrizó a menos de 100 m del objetivo, pero quedó de cabeza.',im1:'Primera nave privada en alunizar; quedó inclinada.',bg1:'Primer alunizaje privado totalmente exitoso; funcionó 14 días.',im2:'Quedó de costado dentro de un cráter.',
+ luna2:'Primer objeto humano que tocó otro mundo.',ranger7:'Envió 4.300 fotos antes de chocar; ese mar se bautizó "Conocido".',ranger8:'Fotografió la zona del futuro Apollo 11.',ranger9:'Sus fotos se transmitieron en vivo por TV.',lcross:'Chocó a propósito y encontró hielo de agua en la sombra eterna.',beresheet:'Primera nave privada en llegar; falló un giroscopio.',vikram2:'Perdió el control a 2 km de altura.',hakuto:'Se quedó sin combustible por un error de altura.',luna25:'Primera misión rusa en 47 años; falló una maniobra.'};
+const MARIA=[['Océano de las Tormentas',18,-57,'El más grande: unos 4 millones de km². Aquí alunizaron Luna 9, Surveyor 1 y 3 y el Apollo 12.'],['Mar de las Lluvias (Imbrium)',33,-16,'Una cuenca de impacto de 1.100 km, formada hace unos 3.900 millones de años y rellenada después por lava.'],['Mar de la Serenidad',28,17,'Casi redondo, de unos 700 km. Junto a su borde aterrizó el Apollo 17.'],['Mar de la Tranquilidad',8.5,31,'Lava rica en titanio, por eso es azulado en fotos con color. Aquí llegó el Apollo 11.'],['Mar de las Crisis',17,59,'Aislado y de 550 km; se ve como un óvalo en el borde. Aquí trajo muestras Luna 24.'],['Mar de la Fecundidad',-8,51,'Aquí Luna 16 tomó la primera muestra robótica.'],['Mar del Néctar',-15,35,'Una de las cuencas más antiguas de la cara visible.'],['Mar de las Nubes',-21,-17,'Junto a él está la Rupes Recta, un acantilado recto de 110 km.'],['Mar de los Humores',-24,-39,'Cuenca de 400 km con grietas en sus bordes.'],['Mar del Frío',56,0,'Una franja larga al norte.'],['Mar de los Vapores',13,4,'Pequeño mar central junto a los montes Apeninos.'],['Mar Conocido',-10,-23,'Bautizado así en 1964 porque Ranger 7 lo fotografió de cerca.'],['Cráter Tycho',-43,-11,'Joven (unos 108 millones de años): sus rayos brillantes cruzan media Luna.'],['Cráter Copérnico',9.6,-20,'De 93 km, con montañas en el centro.']];
+
+/* ============ FICHAS COMPLETAS ============ */
+const LMHOW=`<p>El <b>Módulo Lunar (LM)</b> fue la primera nave hecha solo para volar en el vacío: no tenía forma aerodinámica y sus paredes eran tan delgadas como unas hojas de aluminio.</p><ul>
+ <li><b>Dos etapas:</b> la de descenso (dorada, con 4 patas) frenaba y bajaba hasta el suelo; la de ascenso (gris, arriba) era la cabina, y al despegar usaba la de descenso como plataforma de lanzamiento.</li>
+ <li><b>Motor de descenso regulable:</b> podía bajar su empuje del 100 % hasta casi el 10 %: el primer motor de cohete grande que se podía "acelerar" como un auto.</li>
+ <li><b>Computadora de guía (AGC):</b> con unos 4 KB de memoria de trabajo calculaba la trayectoria; los astronautas le hablaban con números de verbos y sustantivos.</li>
+ <li><b>Radar de aterrizaje:</b> medía altura y velocidad durante los últimos kilómetros.</li>
+ <li><b>Sin asientos:</b> los dos astronautas iban de pie, sujetos con arneses, mirando por ventanas triangulares.</li></ul>`;
+const INFO={
+ a11:{ launch:[['Cohete','Saturn V (SA‑506), 110 m de alto'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','16 de julio de 1969, 13:32 UTC'],['Viaje','4 días hasta la órbita lunar'],['Nave','Columbia (módulo de mando) y Eagle (módulo lunar)'],['Tripulación','Neil Armstrong, Buzz Aldrin y Michael Collins (en órbita)'],['Alunizaje','20 de julio de 1969, 20:17 UTC']],
+  how:LMHOW+`<p>En el suelo dejaron un sismógrafo y un <b>retrorreflector láser</b>: aún hoy los observatorios disparan láseres a ese espejo y miden la distancia a la Luna con precisión de milímetros. Así sabemos que se aleja 3,8 cm por año.</p>`,
+  story:`<p>Durante el descenso sonaron las alarmas 1202 y 1201: la computadora estaba sobrecargada, pero estaba diseñada para descartar tareas secundarias. Desde Houston, un ingeniero de 26 años dijo que podían seguir.</p>
+   <p>El piloto automático los llevaba a un cráter lleno de rocas. Armstrong tomó el control manual y voló el Eagle más lejos hasta encontrar un lugar plano. Alunizaron con unos 45 segundos de combustible antes del límite (en ese momento se creyó que eran 25).</p>
+   <p>"Houston, aquí Base Tranquilidad. El Águila ha alunizado." Seis horas y media después, Armstrong bajó la escalera: "Es un pequeño paso para un hombre, un gran salto para la humanidad". Caminaron 2 horas y 31 minutos y trajeron 21,5 kg de roca y suelo.</p>`,
+  prof:{name:'Eagle',td:756,ev:[[0,15200,1690,0,'Inicio del descenso propulsado (PDI), a 15 km de altura'],[317,10200,1150,-25,'Alarma 1202: la computadora está sobrecargada; Houston dice que sigan'],[507,2300,150,-35,'"High gate": el Eagle se endereza y por fin ven el suelo'],[605,150,15,-6,'Armstrong toma el control manual para evitar un cráter con rocas'],[700,30,2,-0.8,'El motor levanta polvo'],[745,3,0.5,-0.5,'"Luz de contacto": las sondas de las patas tocan el suelo'],[756,0,0,0,'"El Águila ha alunizado"']]}},
+ a17:{ launch:[['Cohete','Saturn V (SA‑512)'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','7 de diciembre de 1972, 05:33 UTC: el único despegue nocturno de un Saturn V'],['Viaje','4 días hasta la órbita lunar'],['Nave','America (módulo de mando) y Challenger (módulo lunar)'],['Tripulación','Eugene Cernan, Harrison Schmitt (geólogo) y Ronald Evans (en órbita)'],['Alunizaje','11 de diciembre de 1972, 19:54 UTC']],
+  how:LMHOW+`<p>El Apollo 17 llevaba el <b>vehículo lunar (LRV)</b>: un auto eléctrico plegable con ruedas de malla de acero, que recorrió 35,9 km. Con él llegaron a 7,6 km del módulo.</p>`,
+  story:`<p>Fue la última misión Apollo y la primera con un científico de verdad: el geólogo Harrison Schmitt. Aterrizaron en un valle profundo entre montañas de más de 2 km, para tomar rocas de las tierras altas y de lava volcánica.</p>
+   <p>Pasaron 3 días en la superficie y 22 horas fuera del módulo. Schmitt encontró un "suelo naranja": bolitas de vidrio de una erupción volcánica de hace 3.600 millones de años.</p>
+   <p>Trajeron 110,5 kg de muestras, el récord del programa. Cernan fue el último en subir: "Nos vamos como vinimos y, si Dios quiere, volveremos". Desde diciembre de 1972 nadie ha vuelto a pisar la Luna.</p>`,
+  prof:{name:'Challenger',td:720,ev:[[0,15200,1690,0,'Inicio del descenso propulsado (PDI)'],[500,2300,150,-35,'"High gate": el Challenger se endereza; Cernan ve el valle'],[600,150,12,-5,'Cernan pilota las fases finales en modo manual'],[690,30,1.5,-0.9,'El motor levanta polvo'],[712,3,0.3,-0.6,'Luz de contacto'],[720,0,0,0,'Alunizaje en Taurus‑Littrow']]}},
+};
+
+/* ============ CATÁLOGO EN 3 GRUPOS ============ */
+const CAT=[['crew','Con astronautas (Apollo)','Las 6 misiones que llevaron a 12 personas a caminar en la Luna, de 1969 a 1972.'],['robot','Robots que alunizaron','Módulos, rovers y misiones que trajeron muestras.'],['hit','Impactos y choques','Sondas que chocaron a propósito para tomar fotos o datos, y alunizajes que fallaron.']];
+
+/* ============ GLOBO ============ */
+const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(40,1,0.01,1000);
+const tex=new THREE.TextureLoader().load('tex/luna.jpg'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+const moon=new THREE.Mesh(new THREE.SphereGeometry(1,128,96),new THREE.MeshStandardMaterial({map:tex,roughness:1})); scene.add(moon);
+{ const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<3000;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(300);p.push(v.x,v.y,v.z);} g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.3,sizeAttenuation:false}))); }
+const sunL=new THREE.DirectionalLight(0xffffff,2.0); scene.add(sunL); scene.add(new THREE.AmbientLight(0x8a90a0,1.4));
+// mapa equirectangular con −180° en el borde izquierdo (cara visible al centro)
+const ll=(lat,lon,r)=>{const f=lat*Math.PI/180,l=lon*Math.PI/180;return new THREE.Vector3(r*Math.cos(f)*Math.sin(l),r*Math.sin(f),r*Math.cos(f)*Math.cos(l));};
+moon.rotation.y=-Math.PI/2; // alinea la textura: longitud 0 mirando hacia +z
+const ctl=new OrbitControls(cam,canvas); ctl.enableDamping=true; ctl.minDistance=1.3; ctl.maxDistance=8; ctl.enablePan=false; ctl.rotateSpeed=0.5;
+cam.position.copy(ll(5,0,3.6)); ctl.update();
+const dotTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle='#fff';x.beginPath();x.arc(32,32,20,0,7);x.fill();x.lineWidth=5;x.strokeStyle='rgba(0,0,0,.6)';x.stroke();return new THREE.CanvasTexture(c);})();
+const markers=SITES.map(s=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:dotTex,color:GROUP[s.g][0]})); sp.position.copy(ll(s.lat,s.lon,1.004)); sp.userData.s=s; scene.add(sp);
+  const l=document.createElement('div'); l.className='lbl'; l.textContent=s.name; if(s.below) l.style.transform='translate(-50%,60%)'; l.onclick=()=>select(s); document.body.appendChild(l); s.lbl=l; s.sp=sp; return sp; });
+const mareEls=MARIA.map(m=>{ const d=document.createElement('div'); d.className='mare'; d.textContent=m[0].replace(/ \(.*\)/,''); document.body.appendChild(d); return {el:d,p:ll(m[1],m[2],1.0)}; });
+let sel=null, fly=null;
+function select(s){ sel=s; SITES.forEach(x=>x.lbl.classList.toggle('sel',x===s)); document.querySelectorAll('.ms[data-id]').forEach(b=>b.setAttribute('aria-current',(b.dataset.id===s.id)+''));
+  fly={from:cam.position.clone(),to:ll(s.lat,s.lon,2.3),t:0}; openCard(s); $('hint').hidden=true; }
+const ray=new THREE.Raycaster(); let down=null;
+canvas.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
+canvas.addEventListener('pointerup',e=>{ if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5) return;
+  ray.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1),cam); const h=ray.intersectObjects(markers)[0]; if(h) select(h.object.userData.s); });
+
+/* ---- catálogo ---- */
+{ const box=$('cat');
+  CAT.forEach(([g,t,d],gi)=>{ const list=SITES.filter(s=>s.g===g).sort((a,b)=>yr(a)-yr(b)); const el=document.createElement('details'); el.className='g'; el.open=gi===0;
+    el.innerHTML=`<summary>${gi+1}. ${t}<span>${list.length}</span></summary><div style="font-size:11.5px;color:var(--faint);margin:4px 0">${d}</div>`;
+    for(let i=0;i<list.length;i+=3){ const tr=document.createElement('div'); tr.className='trio'; tr.innerHTML=`<i>${yr(list[i])} – ${yr(list[Math.min(i+2,list.length-1)])}</i>`;
+      list.slice(i,i+3).forEach(s=>{ const b=document.createElement('button'); b.className='ms click'; b.dataset.id=s.id; b.innerHTML=`${s.name}${s.full?' ★':''} <small>${s.date} · ${NOTE[s.id]||''}</small>`; b.onclick=()=>select(s); tr.appendChild(b); });
+      el.appendChild(tr); }
+    box.appendChild(el); });
+  const fm=document.createElement('details'); fm.className='g'; fm.innerHTML=`<summary>Los mares y cráteres<span>${MARIA.length}</span></summary>`+MARIA.map(m=>`<div class="ms" style="cursor:default">${m[0]} <small>${m[3]}</small></div>`).join('')+
+   `<p style="font-size:11.5px;color:var(--faint)">Los "mares" no tienen agua: son llanuras de lava basáltica oscura que rellenó grandes cráteres de impacto hace 3.000 a 3.900 millones de años. En la cara oculta casi no hay mares porque allí la corteza es más gruesa; solo Chang'e 4 (2019) y Chang'e 6 (2024) alunizaron en ese lado.</p>`;
+  box.appendChild(fm); }
+function yr(s){ return +s.date.slice(-4); }
+
+/* ============ FICHA ============ */
+let tab='how';
+function openCard(s){
+  stopAnim();
+  $('card').hidden=false; const c='#'+GROUP[s.g][0].toString(16); $('cst').textContent=GROUP[s.g][1]+' · '+s.place; $('cst').style.color=c; $('cname').textContent=s.name;
+  const I=INFO[s.id], tabs=I?[['how','Cómo funciona'],['story','Historia'],['launch','Despegue y alunizaje']]:[];
+  $('tabs').innerHTML=tabs.map(([k,l])=>`<button data-k="${k}" aria-pressed="${k===tab}">${l}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.k;openCard(s);});
+  $('robo').hidden=!I; $('anim').hidden=true;
+  const coords=`${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${Math.abs(s.lon).toFixed(2)}° ${s.lon>=0?'E':'O'}`;
+  if(!I){ $('cbody').innerHTML=`<p>${NOTE[s.id]||''}</p><div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${coords}</b><span>Quién y cómo</span><b>${s.who}</b></div>
+    <div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`; return; }
+  buildLM(s.id==='a17'); setPose(1e9,I.prof);
+  let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
+    <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>
+    <p style="font-size:11.5px;color:var(--faint)">Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.</p>`;
+  $('cbody').innerHTML=h; $('cbody').scrollTop=0;
+  if($('play')) $('play').onclick=()=>startAnim(I.prof);
+}
+$('close').onclick=()=>{ stopAnim(); $('card').hidden=true; sel=null; SITES.forEach(x=>x.lbl.classList.remove('sel')); };
+
+/* ---- visor 3D: módulo lunar sobre el suelo ---- */
+const rc=$('robo'), rr=new THREE.WebGLRenderer({canvas:rc,antialias:true}); rr.setPixelRatio(Math.min(2,devicePixelRatio)); rr.outputColorSpace=THREE.SRGBColorSpace;
+const rs=new THREE.Scene(); rs.background=new THREE.Color(0x000000);
+const rcam=new THREE.PerspectiveCamera(35,1,0.05,60000); rcam.position.set(9,4,9);
+const rctl=new OrbitControls(rcam,rc); rctl.enableDamping=true; rctl.target.set(0,2,0); rctl.autoRotate=true; rctl.autoRotateSpeed=1.0; rctl.minDistance=4; rctl.maxDistance=40; rctl.maxPolarAngle=1.5;
+rs.add(new THREE.AmbientLight(0x404650,1.0)); const rl=new THREE.DirectionalLight(0xffffff,3.2); rl.position.set(-8,5,3); rs.add(rl);
+{ const c=document.createElement('canvas'); c.width=c.height=512; const x=c.getContext('2d'); x.fillStyle='#8d8b86'; x.fillRect(0,0,512,512);
+  for(let i=0;i<5000;i++){const r=Math.random();x.fillStyle=`rgba(${110+r*80|0},${108+r*78|0},${104+r*74|0},.35)`;x.fillRect(Math.random()*512,Math.random()*512,1+Math.random()*4,1+Math.random()*4);}
+  for(let i=0;i<60;i++){const cx=Math.random()*512,cy=Math.random()*512,r=3+Math.pow(Math.random(),3)*60,g=x.createRadialGradient(cx,cy,r*.2,cx,cy,r);g.addColorStop(0,'rgba(60,60,60,.35)');g.addColorStop(.85,'rgba(80,80,80,.15)');g.addColorStop(.95,'rgba(190,190,185,.4)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.beginPath();x.arc(cx,cy,r,0,7);x.fill();}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(400,400); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8;
+  const gnd=new THREE.Mesh(new THREE.PlaneGeometry(40000,40000),new THREE.MeshStandardMaterial({map:t,roughness:1})); gnd.rotation.x=-Math.PI/2; rs.add(gnd);
+  const rk=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.2,0),new THREE.MeshStandardMaterial({color:0x6f6d68,roughness:1}),300), m=new THREE.Matrix4();
+  for(let i=0;i<300;i++){const a=Math.random()*7,d=5+Math.random()*60,s=0.3+Math.pow(Math.random(),3)*5; m.compose(new THREE.Vector3(Math.cos(a)*d,0.02,Math.sin(a)*d),new THREE.Quaternion().random(),new THREE.Vector3(s,s*0.5,s)); rk.setMatrixAt(i,m);} rs.add(rk);
+  const sg=new THREE.BufferGeometry(),sp=[]; for(let i=0;i<1500;i++){const v=new THREE.Vector3().randomDirection(); v.y=Math.abs(v.y); v.multiplyScalar(30000); sp.push(v.x,v.y,v.z);} sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3)); rs.add(new THREE.Points(sg,new THREE.PointsMaterial({size:1.2,sizeAttenuation:false})));
+  const earth=new THREE.Mesh(new THREE.SphereGeometry(900,32,24),new THREE.MeshStandardMaterial({color:0x3b6fb6,emissive:0x1a3a70,emissiveIntensity:0.6})); earth.position.set(4000,9000,-20000); rs.add(earth); }
+const lm=new THREE.Group(), stay=new THREE.Group(); rs.add(lm); rs.add(stay);
+const Mt=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:0.5,metalness:0.3,...o});
+const box=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m), cy=(r1,r2,h,m,s=20)=>new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,s),m);
+function rod(a,b,r,m){ const d=b.clone().sub(a), c=cy(r,r,d.length(),m,8); c.position.copy(a).add(b).multiplyScalar(0.5); c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); return c; }
+let plume=null;
+function buildLM(lrv){
+  lm.clear(); stay.clear();
+  const gold=Mt(0xc9a03a,{metalness:0.85,roughness:0.35}), blk=Mt(0x2a2a2a), gray=Mt(0xb8b8b2,{metalness:0.5}), alu=Mt(0xcfd2d6,{metalness:0.8,roughness:0.3});
+  const ds=cy(2.1,2.1,1.6,gold,8); ds.rotation.y=Math.PI/8; ds.position.y=2.0; lm.add(ds);
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, f=new THREE.Vector3(Math.cos(a)*4.1,0.1,Math.sin(a)*4.1);
+    lm.add(rod(new THREE.Vector3(Math.cos(a)*1.9,2.6,Math.sin(a)*1.9),f,0.09,alu)); lm.add(rod(new THREE.Vector3(Math.cos(a)*1.9,1.4,Math.sin(a)*1.9),f.clone().multiplyScalar(0.75).setY(0.9),0.05,alu));
+    const pad=cy(0.47,0.5,0.15,alu,16); pad.position.copy(f); lm.add(pad); }
+  const bell=cy(0.4,0.75,1.0,blk,16); bell.position.y=0.9; lm.add(bell);
+  const asc=new THREE.Group(); asc.position.y=2.8; lm.add(asc);
+  const cab=cy(1.2,1.2,1.9,gray,16); cab.rotation.z=Math.PI/2; cab.position.set(0,1.2,0.3); asc.add(cab);
+  const aft=box(2.6,1.7,1.6,gray); aft.position.set(0,1.1,-1.0); asc.add(aft);
+  const hatch=box(0.9,0.9,0.12,blk); hatch.position.set(0,0.75,1.5); asc.add(hatch);
+  for(const sx of [-1,1]){ const w=new THREE.Mesh(new THREE.ConeGeometry(0.35,0.45,3),blk); w.rotation.x=Math.PI/2; w.position.set(sx*0.55,1.65,1.45); asc.add(w);
+    const q=box(0.25,0.25,0.25,blk); q.position.set(sx*1.6,1.9,1.2); asc.add(q); }
+  const dish=new THREE.Mesh(new THREE.SphereGeometry(0.45,16,8,0,Math.PI*2,0,1.2),alu); dish.position.set(1.0,2.8,-0.4); dish.rotation.z=-0.6; asc.add(dish);
+  asc.add(rod(new THREE.Vector3(0.6,2.2,-0.4),new THREE.Vector3(1.0,2.75,-0.4),0.03,alu));
+  const ladder=rod(new THREE.Vector3(0,2.3,2.1),new THREE.Vector3(0,0.3,3.6),0.05,alu); lm.add(ladder);
+  plume=new THREE.Mesh(new THREE.ConeGeometry(0.9,4,16,1,true),new THREE.MeshBasicMaterial({color:0xbfd6ff,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,depthWrite:false})); plume.rotation.x=Math.PI; plume.position.y=-1.6; plume.visible=false; lm.add(plume);
+  // en el suelo: bandera y, en el Apollo 17, el vehículo lunar
+  const pole=cy(0.03,0.03,2.4,alu,6); pole.position.set(-5,1.2,4); stay.add(pole);
+  const flag=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.9),new THREE.MeshStandardMaterial({color:0xeeeeee,side:THREE.DoubleSide,emissive:0x222222})); flag.position.set(-4.25,2.0,4); stay.add(flag);
+  const stripe=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.1),new THREE.MeshBasicMaterial({color:0xb22234,side:THREE.DoubleSide})); stripe.position.set(-4.25,1.8,4.005); stay.add(stripe);
+  const canton=new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.45),new THREE.MeshBasicMaterial({color:0x3c3b6e,side:THREE.DoubleSide})); canton.position.set(-4.7,2.22,4.01); stay.add(canton);
+  if(lrv){ const car=new THREE.Group(); const ch=box(1.8,0.12,3.0,alu); ch.position.y=0.75; car.add(ch);
+    for(const x of [-0.95,0.95]) for(const z of [-1.1,1.1]){ const w=cy(0.41,0.41,0.23,Mt(0x5a5a5a,{wireframe:true}),18); w.rotation.z=Math.PI/2; w.position.set(x,0.41,z); car.add(w);
+      const fe=box(0.35,0.06,0.9,gray); fe.position.set(x,0.9,z); car.add(fe); }
+    for(const x of [-0.45,0.45]){ const st=box(0.6,0.5,0.08,Mt(0x3a5a8a)); st.position.set(x,1.05,0.1); car.add(st); }
+    const um=new THREE.Mesh(new THREE.SphereGeometry(0.5,16,8,0,Math.PI*2,0,1.0),alu); um.position.set(0,2.0,-1.2); car.add(um); car.add(rod(new THREE.Vector3(0,0.8,-1.2),new THREE.Vector3(0,1.6,-1.2),0.03,alu));
+    car.position.set(6,0,-2); car.rotation.y=0.7; stay.add(car); }
+}
+/* ---- animación del alunizaje ---- */
+let anim=null, aSpeed=1;
+const ANS=[1,10,20,50];
+function profAt(P,t){ const E=P.ev; if(t<=0) return E[0]; if(t>=P.td) return E[E.length-1];
+  let i=0; while(E[i+1][0]<t) i++; const a=E[i],b=E[i+1],u=(t-a[0])/(b[0]-a[0]); return [t,a[1]+(b[1]-a[1])*u,a[2]+(b[2]-a[2])*u,a[3]+(b[3]-a[3])*u,a[4]]; }
+function rangeLeft(P,t){ let s=0; for(let k=t;k<P.td;k+=2) s+=profAt(P,k)[2]*2; return s; }
+function setPose(t,P){ const p=profAt(P,t), x=rangeLeft(P,t);
+  lm.position.set(-x,p[1],0);
+  const pitch = t<P.ev.find(e=>e[1]<=2300)[0] ? 1.25 : THREE.MathUtils.lerp(0.45,0,THREE.MathUtils.clamp((t-(P.td-150))/120,0,1));
+  lm.rotation.z = t>=P.td?0:-pitch; if(plume) plume.visible=t<P.td; stay.visible=t>=P.td+5;
+  return p; }
+function startAnim(P){ anim={P,t:0}; aSpeed=10; rctl.autoRotate=false; $('hud').hidden=false; $('anim').hidden=false;
+  $('anim').innerHTML=ANS.map(v=>`<button data-s="${v}">×${v}</button>`).join('')+`<button data-s="0">■ Detener</button>`;
+  $('anim').querySelectorAll('button').forEach(b=>b.onclick=()=>{ const v=+b.dataset.s; if(!v){ stopAnim(); setPose(1e9,P); return; } aSpeed=v; markSpeed(); }); markSpeed(); }
+function markSpeed(){ $('anim').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',(+b.dataset.s===aSpeed)+'')); }
+function stopAnim(){ anim=null; $('hud').hidden=true; $('anim').hidden=true; rctl.autoRotate=true; rctl.target.set(0,2,0); rcam.position.set(9,4,9); }
+
+/* ============ BUCLE ============ */
+function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize();
+const tmp=new THREE.Vector3(); let last=performance.now();
+function vis(p){ return p.clone().normalize().dot(cam.position.clone().sub(p).normalize())>0.08; }
+function loop(t){
+  requestAnimationFrame(loop); const dt=Math.min(0.1,(t-last)/1000); last=t;
+  if(fly){ fly.t=Math.min(1,fly.t+0.02); const u=fly.t*fly.t*(3-2*fly.t), len=THREE.MathUtils.lerp(fly.from.length(),fly.to.length(),u);
+    cam.position.copy(fly.from).normalize().lerp(fly.to.clone().normalize(),u).normalize().multiplyScalar(len); if(fly.t>=1) fly=null; }
+  ctl.update(); sunL.position.copy(cam.position).applyAxisAngle(new THREE.Vector3(0,1,0),0.7).multiplyScalar(10);
+  const far=cam.position.length()>2.0;
+  SITES.forEach(s=>{ tmp.copy(s.sp.position); const v=vis(tmp); s.sp.visible=v; const k=s===sel?1.4+0.3*Math.sin(t/250):1; s.sp.scale.setScalar(0.028*k*cam.position.length()/3.6);
+    if(!v){ s.lbl.hidden=true; return; } tmp.project(cam); s.lbl.hidden=far && s!==sel && s.g!=='crew'; s.lbl.style.left=((tmp.x+1)/2*innerWidth)+'px'; s.lbl.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
+  mareEls.forEach(m=>{ if(!vis(m.p)){ m.el.hidden=true; return; } tmp.copy(m.p).project(cam); m.el.hidden=false; m.el.style.left=((tmp.x+1)/2*innerWidth)+'px'; m.el.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
+  renderer.render(scene,cam);
+  if(!$('card').hidden && !rc.hidden){ const w=rc.clientWidth,h=rc.clientHeight; if(rc.width!==Math.floor(w*rr.getPixelRatio())){ rr.setSize(w,h,false); rcam.aspect=w/h; rcam.updateProjectionMatrix(); }
+    if(anim){ const prevX=lm.position.clone(); anim.t=Math.min(anim.P.td+20,anim.t+dt*aSpeed); const p=setPose(anim.t,anim.P);
+      const d=lm.position.clone().sub(prevX); rctl.target.add(d); rcam.position.add(d);
+      const want=new THREE.Vector3(lm.position.x+14,lm.position.y+16,lm.position.z+26); if(anim.t<1) { rcam.position.copy(want); rctl.target.copy(lm.position); }
+      const mm=Math.floor(Math.max(0,anim.t)/60), ss=Math.floor(Math.max(0,anim.t)%60);
+      $('hud').innerHTML=`${anim.P.name} · ${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')} desde el inicio<br>Altura: ${p[1]>=1000?(p[1]/1000).toFixed(1)+' km':Math.round(p[1])+' m'}<br>Velocidad: ${Math.round(Math.hypot(p[2],p[3])*3.6)} km/h<br><span style="color:var(--mars)">${p[4]}</span>`;
+      if(anim.t>=anim.P.td+20){ anim=null; rctl.autoRotate=true; } }
+    rctl.update(); rr.render(rs,rcam); }
+}
+requestAnimationFrame(loop);
+const [hId,hPart]=location.hash.slice(1).split('/'); const start=SITES.find(s=>s.id===hId);
+if(start){ select(start); if(hPart==='alunizaje' && INFO[start.id]){ tab='launch'; openCard(start); startAnim(INFO[start.id].prof); } }
+window.__ml={select,SITES,startAnim:()=>startAnim(INFO.a11.prof)};
+</script>
+</body>
+</html>
