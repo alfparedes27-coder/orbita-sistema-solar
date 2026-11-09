@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Apollo a la Luna</title>
-<meta name="description" content="Las misiones Apollo 8, 11, 12 y 13 completas: despegue del Saturn V desde Cabo Cañaveral, viaje a la Luna, vueltas en órbita lunar, alunizaje, regreso y amerizaje, con reloj real y aceleración del tiempo.">
+<meta name="description" content="Las misiones Apollo 8, 11, 12, 13, 14 y 15 completas: despegue del Saturn V desde Cabo Cañaveral, viaje a la Luna, vueltas en órbita lunar, alunizaje, regreso y amerizaje, con reloj real y aceleración del tiempo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -185,6 +185,32 @@ const MISSIONS=[
      [G(141,30,0),'Sueltan al Aquarius, el bote salvavidas'],[G(142,40,46),'Entrada en la atmósfera; el apagón de radio dura más de lo normal'],[G(142,54,41),'Amerizaje: los 3 a salvo']],
    slow:[G(55,53,0),G(77,0,0),G(142,38,0)],
    jumps:[['Despegue',-30],['Inyección a la Luna',G(2,35,0)],['La explosión',G(55,54,0)],['Detrás de la Luna',G(77,0,0)],['Regreso de emergencia',G(80,0,0)],['Amerizaje',G(142,38,0)]] },
+ { id:'a14', name:'Apollo 14', year:1971, crew:'Alan Shepard, Edgar Mitchell y Stuart Roosa', csm:'Kitty Hawk (mando) y Antares (módulo lunar)', lmName:'Antares', launch:'1971-01-31T21:03:02Z', revs:34,
+   tliA:G(2,28,32), tliB:G(2,34,22), loi:G(81,56,40), tei:G(148,36,2), ei:G(215,47,45), spl:G(216,1,58), slat:-27.02, slon:-172.67, ship:'USS New Orleans',
+   ins:G(0,11,49), sIC:G(0,2,44), sII:G(0,9,20),
+   und:G(103,47,42), pdi:G(108,2,27), land:G(108,15,9), lift:G(141,45,40), dock:G(143,32,51), jet:G(145,44,58), site:[-3.645,-17.471], siteName:'Fra Mauro',
+   ev:[[-2400,'El despegue se retrasa 40 minutos por nubes de lluvia'],[G(3,2,0),'Kitty Hawk intenta acoplarse al Antares y falla: 5 intentos fallidos'],[G(4,56,56),'Al sexto intento se acoplan'],
+     [G(81,56,40),'Encendido para entrar en órbita lunar'],[G(86,10,53),'Por primera vez la nave de mando baja la órbita con los dos módulos juntos'],[G(103,47,42),'El Antares se separa'],
+     [G(105,30,0),'Una soldadura suelta activa sola la señal de "abortar"; desde la Tierra escriben un parche y Mitchell lo teclea en la computadora'],
+     [G(108,2,27),'Inicio del descenso propulsado'],[G(108,5,30),'El radar de aterrizaje no encuentra el suelo; al reiniciar el interruptor funciona'],[G(108,15,9),'Alunizaje en Fra Mauro, a pocos metros del punto previsto'],
+     [G(113,39,11),'Primera caminata: Shepard, el primer estadounidense en el espacio, pisa la Luna a los 47 años'],[G(131,8,13),'Segunda caminata: buscan el borde del cráter Cone con un carrito de mano y quedan a unos 20 m sin saberlo'],
+     [G(135,8,0),'Shepard golpea dos pelotas de golf con un palo improvisado (aprox.)'],[G(141,45,40),'Despegue del Antares'],[G(143,32,51),'Acoplamiento'],[G(147,42,23),'El Antares choca a propósito contra la Luna'],
+     [G(148,36,2),'Encendido para regresar (TEI)'],[G(215,47,45),'Entrada en la atmósfera'],[G(216,1,58),'Amerizaje en el Pacífico Sur']],
+   slow:[G(3,0,0),G(81,55,0),G(108,1,0),G(215,46,0)],
+   jumps:[['Despegue',-30],['Problema de acoplamiento',G(3,0,0)],['Órbita lunar',G(81,55,0)],['Alunizaje',G(108,1,0)],['Golf en la Luna',G(135,7,0)],['Despegue lunar',G(141,44,0)],['Regreso',G(148,35,0)],['Amerizaje',G(215,46,0)]] },
+ { id:'a15', name:'Apollo 15', year:1971, crew:'David Scott, James Irwin y Alfred Worden', csm:'Endeavour (mando) y Falcon (módulo lunar)', lmName:'Falcon', launch:'1971-07-26T13:34:00Z', revs:74,
+   tliA:G(2,50,2), tliB:G(2,55,53), loi:G(78,31,47), tei:G(223,48,45), ei:G(294,58,54), spl:G(295,11,53), slat:26.13, slon:-158.13, ship:'USS Okinawa',
+   ins:G(0,11,44), sIC:G(0,2,39), sII:G(0,9,9),
+   und:G(100,39,16), pdi:G(104,30,9), land:G(104,42,29), lift:G(171,37,23), dock:G(173,36,26), jet:G(179,30,14), site:[26.132,3.634], siteName:'Hadley‑Apeninos',
+   ev:[[G(78,31,47),'Encendido para entrar en órbita lunar'],[G(100,39,16),'El Falcon se separa'],[G(104,30,9),'Inicio del descenso propulsado, más empinado que nunca para pasar sobre los montes Apeninos'],
+     [G(104,42,29),'Alunizaje junto a la grieta Hadley; el Falcon queda inclinado 11°'],[G(106,42,0),'Scott saca la cabeza por la escotilla para mirar el terreno'],[G(119,39,17),'Primera caminata: estrenan el vehículo lunar (LRV)'],
+     [G(142,14,48),'Segunda caminata: encuentran la "roca del Génesis", un trozo de la corteza original de la Luna de unos 4.000 millones de años'],
+     [G(163,18,14),'Tercera caminata, hasta el borde de la grieta Hadley'],[G(167,43,0),'Scott deja caer un martillo y una pluma: llegan al suelo al mismo tiempo, como predijo Galileo'],
+     [G(171,37,23),'Despegue del Falcon, transmitido en vivo por la cámara del vehículo lunar'],[G(173,36,26),'Acoplamiento'],[G(179,30,14),'Sueltan al Falcon'],
+     [G(222,39,29),'Dejan en órbita un pequeño satélite científico'],[G(223,48,45),'Encendido para regresar (TEI)'],[G(241,57,12),'Worden sale a caminar al espacio profundo para recuperar películas: la primera caminata lejos de la Tierra'],
+     [G(294,58,54),'Entrada en la atmósfera'],[G(295,6,0),'Uno de los 3 paracaídas principales falla; bajan con 2 sin problema'],[G(295,11,53),'Amerizaje en el Pacífico']],
+   slow:[G(78,30,0),G(104,29,0),G(167,42,0),G(294,57,0)],
+   jumps:[['Despegue',-30],['Inyección a la Luna',G(2,49,0)],['Órbita lunar',G(78,30,0)],['Alunizaje',G(104,29,0)],['Roca del Génesis',G(142,14,0)],['Martillo y pluma',G(167,42,0)],['Despegue lunar',G(171,36,0)],['Caminata espacial',G(241,56,0)],['Amerizaje',G(294,57,0)]] },
 ];
 function ascent(m){ return [
   [0,0,0,'Despegue: 5 motores F‑1, 3.400 toneladas de empuje'],[12,0.14,0.01,'Libra la torre: el control pasa a Houston'],[66,8,0.33,'Supera la velocidad del sonido'],
@@ -406,13 +432,13 @@ function setView(v){ if(v===view) return; view=v; $('views').querySelectorAll('[
   ctl1.enabled=v==='launch'; ctl2.enabled=v!=='launch'; userZoom=false;
   if(v!=='launch'){ follow=v==='moon'?'moon':v==='earth'?'craft':'mid'; camInit=true; } }
 let camInit=true;
-MISSIONS.forEach(m=>{ const b=document.createElement('button'); b.className='mis'; b.innerHTML=`<b>${m.name}</b><span>${m.year} · ${{a8:'10 vueltas a la Luna',a11:'primer alunizaje',a12:'rayos y Surveyor 3',a13:'¡emergencia!'}[m.id]}</span>`; b.onclick=()=>select(m); m.btn=b; $('missions').appendChild(b); });
+MISSIONS.forEach(m=>{ const b=document.createElement('button'); b.className='mis'; b.innerHTML=`<b>${m.name}</b><span>${m.year} · ${{a8:'10 vueltas a la Luna',a11:'primer alunizaje',a12:'rayos y Surveyor 3',a13:'¡emergencia!',a14:'golf en la Luna',a15:'primer vehículo lunar'}[m.id]}</span>`; b.onclick=()=>select(m); m.btn=b; $('missions').appendChild(b); });
 function select(m){ mis=m; MISSIONS.forEach(x=>x.btn.setAttribute('aria-pressed',(x===m)+'')); buildLaunch(m); buildSpace(m); buildLog(m); buildJumps(m); jump(m.tL-30e3); setSpeed(1); view=''; setView('launch');
   try{ history.replaceState(null,'','#'+m.id); }catch(e){} }
 function buildJumps(m){ const J=$('jumps'); J.querySelectorAll('button').forEach(b=>b.remove());
   m.jumps.forEach(([l,g])=>{ const b=document.createElement('button'); b.textContent=l; b.onclick=()=>{ jump(m.tL+g*1000); setSpeed(l==='Mitad del viaje'?1e4:l==='Despegue'?1:10); }; J.appendChild(b); }); }
 function jump(t){ simT=t; auto=true; $('auto').setAttribute('aria-pressed','true'); camInit=true; userZoom=false; slowDone=new Set(mis.slow.filter(s=>mis.tL+s*1000<t)); }
-function buildLog(m){ const ol=$('log'); ol.innerHTML=''; m.events.forEach(ev=>{ const li=document.createElement('li'); li.innerHTML=`<i>T+${get(ev.g)}</i>${ev.txt}`; li.onclick=()=>{ jump(ev.t-10e3); setSpeed(10); }; ev.li=li; ol.appendChild(li); }); }
+function buildLog(m){ const ol=$('log'); ol.innerHTML=''; m.events.forEach(ev=>{ const li=document.createElement('li'); li.innerHTML=`<i>T${ev.g<0?'−':'+'}${get(ev.g)}</i>${ev.txt}`; li.onclick=()=>{ jump(ev.t-10e3); setSpeed(10); }; ev.li=li; ol.appendChild(li); }); }
 const p2=n=>String(Math.floor(n)).padStart(2,'0');
 const get=g=>{ const s=Math.abs(g); return `${p2(s/3600)}:${p2(s/60%60)}:${p2(s%60)}`; };
 const fmt=(x,d=0)=>x.toLocaleString('es-EC',{maximumFractionDigits:d,minimumFractionDigits:d});
@@ -460,10 +486,10 @@ function loop(now){
     if(c?.ph==='orbita'){ R.unshift(['Vuelta',`${rev} de ${m.revs} (unas 2 h cada una)`]); R.push(['Radio con la Tierra',behind?'Sin señal: detrás de la Luna':'Con señal']); }
     if(c?.ph==='entrada') R.unshift(['Altitud',fmt(c.alt,1)+' km']);
     if(m.boom&&g>m.boom&&g<m.spl) R.push(['Oxígeno del módulo de servicio','Perdido: viven del Aquarius']);
-    const lp=sp.lp; if(lp && m.site){ const gg=g; R.push([m.lmName,gg<m.pdi?'En órbita, separado':gg<m.land?'Descendiendo':gg<m.lift?'En la Base Tranquilidad':gg<m.dock?'Subiendo a la órbita':gg<m.jet?'Acoplado':'Abandonado en órbita']); }
+    const lp=sp.lp; if(lp && m.site){ const gg=g; R.push([m.lmName,gg<m.pdi?'En órbita, separado':gg<m.land?'Descendiendo':gg<m.lift?'En '+m.siteName:gg<m.dock?'Subiendo a la órbita':gg<m.jet?'Acoplado':'Abandonado en órbita']); }
     R.push(['Retraso de la señal',fmt(dE/299792.458,2)+' s']); rows(R);
     $('tnote').textContent=`Trayectoria calculada con física real entre los tiempos oficiales: con las posiciones reales de la Tierra y la Luna da ${fmt(m.vtli,2)} km/s al terminar la TLI (real: 10,8) y ${fmt(m.vEI,2)} km/s al entrar en la atmósfera (real: 11,0). No es la telemetría cruda.`;
-    place(LBL[0],earth2.position,C2,true); place(LBL[1],sp.B.p,C2,true); LBL[2].textContent={a8:'Apollo 8',a11:'Columbia',a12:'Yankee Clipper',a13:'Odyssey + Aquarius'}[m.id]; place(LBL[2],csmDot.position,C2,csmDot.visible);
+    place(LBL[0],earth2.position,C2,true); place(LBL[1],sp.B.p,C2,true); LBL[2].textContent={a8:'Apollo 8',a11:'Columbia',a12:'Yankee Clipper',a13:'Odyssey + Aquarius',a14:'Kitty Hawk',a15:'Endeavour'}[m.id]; place(LBL[2],csmDot.position,C2,csmDot.visible);
     LBL[3].textContent=m.lmName||''; place(LBL[3],lmDot.position,C2,lmDot.visible && view==='moon');
     place(LBL[4],splashDot.getWorldPosition(new THREE.Vector3()),C2,view==='earth'); LBL[5].textContent=m.siteName||''; place(LBL[5],siteDot.position,C2,siteDot.visible&&view==='moon'&&!lmDot.visible);
   }

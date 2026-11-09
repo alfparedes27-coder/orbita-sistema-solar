@@ -101,7 +101,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 <aside class="cat panel" aria-label="Catálogo de misiones">
   <h2>Todo lo que llegó a la Luna</h2>
   <p class="sub">Cara visible, desde 1959, en 3 grupos y de 3 en 3 por fecha. Toca una misión para verla en el mapa. Abajo, los mares.</p>
-  <a class="go" href="apollo/" style="margin:0 0 8px">Misiones Apollo completas: 8, 11, 12 y 13 →</a>
+  <a class="go" href="apollo/" style="margin:0 0 8px">Misiones Apollo completas: 8, 11, 12, 13, 14 y 15 →</a>
   <div class="scroll" id="cat"></div>
 </aside>
 
@@ -125,8 +125,8 @@ const S=(id,name,g,lat,lon,date,place,who,o={})=>({id,name,g,lat,lon,date,place,
 const SITES=[
  S('a11','Apollo 11','crew',0.674,23.473,'20 jul 1969','Mar de la Tranquilidad','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
  S('a12','Apollo 12','crew',-3.012,-23.422,'19 nov 1969','Océano de las Tormentas','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
- S('a14','Apollo 14','crew',-3.645,-17.471,'5 feb 1971','Fra Mauro','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
- S('a15','Apollo 15','crew',26.132,3.634,'30 jul 1971','Hadley‑Apeninos','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
+ S('a14','Apollo 14','crew',-3.645,-17.471,'5 feb 1971','Fra Mauro','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
+ S('a15','Apollo 15','crew',26.132,3.634,'30 jul 1971','Hadley‑Apeninos','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
  S('a16','Apollo 16','crew',-8.973,15.5,'21 abr 1972','Altiplanicie Descartes','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),
  S('a17','Apollo 17','crew',20.191,30.772,'11 dic 1972','Valle Taurus‑Littrow','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
  S('luna9','Luna 9','robot',7.08,-64.37,'3 feb 1966','Océano de las Tormentas','URSS · Molniya desde Baikonur'),
@@ -185,6 +185,18 @@ const INFO={
    <p>Conrad pilotó el Intrepid hasta el borde del "cráter Surveyor". Hicieron 2 caminatas de casi 4 horas cada una, llegaron caminando hasta la sonda y le cortaron la cámara y otras piezas para estudiar en la Tierra cómo les afectaron 2,5 años en la Luna.</p>
    <p>Al terminar, soltaron al Intrepid y lo hicieron chocar contra la Luna: los sismógrafos registraron vibraciones durante casi una hora, como si la Luna "sonara como una campana".</p>`,
   prof:{name:'Intrepid',td:718,ev:[[0,15200,1690,0,'Inicio del descenso propulsado (PDI)'],[500,2300,150,-35,'"High gate": el Intrepid se endereza; Conrad ve el "cráter Muñeco de nieve"'],[630,120,10,-4,'Conrad toma el control manual para bajar junto a la Surveyor 3'],[680,30,1.5,-1,'Mucho polvo: alunizan casi a ciegas'],[712,3,0.3,-0.6,'Luz de contacto'],[718,0,0,0,'Alunizaje junto a la Surveyor 3']]}},
+ a14:{ launch:[['Cohete','Saturn V (SA‑509)'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','31 de enero de 1971, 21:03 UTC (40 minutos de retraso por lluvia)'],['Viaje','3,4 días hasta la órbita lunar; 34 vueltas'],['Nave','Kitty Hawk (módulo de mando) y Antares (módulo lunar)'],['Tripulación','Alan Shepard, Edgar Mitchell y Stuart Roosa (en órbita)'],['Alunizaje','5 de febrero de 1971, 09:18 UTC']],
+  how:LMHOW+`<p>El Apollo 14 llevó el <b>MET</b>, un carrito de mano con dos ruedas para cargar herramientas y muestras: el abuelo del vehículo lunar.</p>`,
+  story:`<p>Fue la misión que debía hacer el Apollo 13. Alan Shepard, el primer estadounidense en el espacio en 1961, había estado 10 años sin volar por un problema del oído; lo operaron y volvió a los 47 años para pisar la Luna.</p>
+   <p>Nada fue fácil: la nave de mando no lograba acoplarse al módulo lunar y lo consiguió al sexto intento. Ya en órbita lunar, una gota suelta de soldadura activaba sola la señal de "abortar". Un ingeniero en la Tierra escribió un parche para la computadora y Mitchell lo tecleó a mano. Luego el radar de aterrizaje no encontraba el suelo, hasta que reiniciaron un interruptor.</p>
+   <p>Aun así alunizaron con mucha precisión en Fra Mauro. En la segunda caminata buscaron el borde del cráter Cone y, sin saberlo, quedaron a unos 20 m. Al final, Shepard golpeó dos pelotas de golf con la cabeza de un palo unida a una herramienta. Trajeron 42 kg de rocas.</p>`,
+  prof:{name:'Antares',td:762,ev:[[0,15200,1690,0,'Inicio del descenso propulsado (PDI)'],[180,12500,1350,-20,'El radar de aterrizaje no encuentra el suelo'],[250,10000,1150,-25,'Reinician el interruptor del radar: ¡funciona!'],[505,2300,150,-35,'"High gate": el Antares se endereza'],[640,140,10,-4,'Shepard toma el control manual'],[740,25,1,-0.8,'Polvo'],[756,3,0.3,-0.6,'Luz de contacto'],[762,0,0,0,'Alunizaje en Fra Mauro']]}},
+ a15:{ launch:[['Cohete','Saturn V (SA‑510), más potente y cargado que los anteriores'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','26 de julio de 1971, 13:34 UTC'],['Viaje','3,3 días hasta la órbita lunar; 74 vueltas'],['Nave','Endeavour (módulo de mando) y Falcon (módulo lunar)'],['Tripulación','David Scott, James Irwin y Alfred Worden (en órbita)'],['Alunizaje','30 de julio de 1971, 22:16 UTC']],
+  how:LMHOW+`<p>El Apollo 15 fue la primera "misión J": un módulo lunar más grande para quedarse 3 días, y el <b>vehículo lunar (LRV)</b>, un auto eléctrico plegable de 210 kg con ruedas de malla de acero que recorrió 27,8 km. En órbita, la nave Endeavour llevaba cámaras y sensores para mapear la Luna desde arriba.</p>`,
+  story:`<p>Alunizaron en el valle de Hadley, rodeados por los montes Apeninos de casi 5 km y junto a una grieta sinuosa de 1,5 km de ancho. Para pasar sobre las montañas, el descenso fue más empinado que en cualquier misión anterior, y el Falcon quedó inclinado 11° en el borde de un cráter.</p>
+   <p>Con el vehículo lunar exploraron mucho más lejos. Encontraron la "roca del Génesis", un trozo de la corteza original de la Luna de unos 4.000 millones de años. Antes de irse, Scott dejó caer un martillo y una pluma de halcón al mismo tiempo: sin aire, llegaron juntos al suelo, como predijo Galileo.</p>
+   <p>En el regreso, Al Worden hizo la primera caminata espacial lejos de la Tierra para recuperar películas. En el amerizaje, uno de los 3 paracaídas falló, pero la cápsula estaba diseñada para bajar con dos.</p>`,
+  prof:{name:'Falcon',td:740,ev:[[0,15200,1690,0,'Inicio del descenso propulsado (PDI)'],[500,2300,150,-40,'"High gate": descenso empinado (25°) sobre los montes Apeninos'],[640,140,10,-4,'Scott toma el control manual'],[700,30,1.5,-1,'Mucho polvo: alunizan sin ver el suelo'],[734,3,0.3,-0.6,'Luz de contacto'],[740,0,0,0,'Alunizaje junto a la grieta Hadley']]}},
  a17:{ launch:[['Cohete','Saturn V (SA‑512)'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','7 de diciembre de 1972, 05:33 UTC: el único despegue nocturno de un Saturn V'],['Viaje','4 días hasta la órbita lunar'],['Nave','America (módulo de mando) y Challenger (módulo lunar)'],['Tripulación','Eugene Cernan, Harrison Schmitt (geólogo) y Ronald Evans (en órbita)'],['Alunizaje','11 de diciembre de 1972, 19:54 UTC']],
   how:LMHOW+`<p>El Apollo 17 llevaba el <b>vehículo lunar (LRV)</b>: un auto eléctrico plegable con ruedas de malla de acero, que recorrió 35,9 km. Con él llegaron a 7,6 km del módulo.</p>`,
   story:`<p>Fue la última misión Apollo y la primera con un científico de verdad: el geólogo Harrison Schmitt. Aterrizaron en un valle profundo entre montañas de más de 2 km, para tomar rocas de las tierras altas y de lava volcánica.</p>
@@ -235,7 +247,7 @@ canvas.addEventListener('pointerup',e=>{ if(!down||Math.hypot(e.clientX-down[0],
 function yr(s){ return +s.date.slice(-4); }
 
 /* ============ FICHA ============ */
-let tab='how';
+let tab='how'; const REVS={a11:30,a12:45,a14:34,a15:74};
 function openCard(s){
   stopAnim();
   $('card').hidden=false; const c='#'+GROUP[s.g][0].toString(16); $('cst').textContent=GROUP[s.g][1]+' · '+s.place; $('cst').style.color=c; $('cname').textContent=s.name;
@@ -246,10 +258,10 @@ function openCard(s){
   const coords=`${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${Math.abs(s.lon).toFixed(2)}° ${s.lon>=0?'E':'O'}`;
   if(!I){ $('cbody').innerHTML=`<p>${NOTE[s.id]||''}</p><div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${coords}</b><span>Quién y cómo</span><b>${s.who}</b></div>
     <div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`; return; }
-  buildLM(s.id==='a17', s.id==='a12'); setPose(1e9,I.prof);
+  buildLM(s.id==='a17'||s.id==='a15', s.id==='a12'); setPose(1e9,I.prof);
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
     <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>
-    ${s.id==='a11'||s.id==='a12'?`<a class="go alt" href="apollo/#${s.id}">Ver la misión completa: Saturn V, viaje, ${s.id==='a11'?30:45} vueltas y regreso →</a>`:''}
+    ${REVS[s.id]?`<a class="go alt" href="apollo/#${s.id}">Ver la misión completa: Saturn V, viaje, ${REVS[s.id]} vueltas y regreso →</a>`:''}
     <p style="font-size:11.5px;color:var(--faint)">Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.</p>`;
   $('cbody').innerHTML=h; $('cbody').scrollTop=0;
   if($('play')) $('play').onclick=()=>startAnim(I.prof);
