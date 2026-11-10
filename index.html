@@ -1571,6 +1571,9 @@ function select(b){
   if (b.id==='luna') acts.push(`<button type="button" class="vtile" id="c-lsims" style="margin:6px 0 0">
       <span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9" r="2"/><circle cx="15" cy="15" r="1.4"/></svg></span>
       <span class="vtxt"><span class="vk">Mapa interactivo · cara visible</span><b>Mares y misiones en la Luna</b><span>${MOON_SITES.length} lugares donde llegaron naves · alunizajes del Apollo animados</span></span></button>`);
+  if (['jupiter','io','europa','ganimedes'].includes(b.id)) acts.push(`<a class="vtile" href="${SIM_LOCAL ? '' : SIM_SITE}simulaciones/jupiter/" target="${SIM_TARGET}" rel="noopener" style="margin:6px 0 0;text-decoration:none;color:inherit">
+      <span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.5" opacity=".6"/><circle cx="12" cy="12" r="10" opacity=".35"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></svg></span>
+      <span class="vtxt"><span class="vk">Simulación · posiciones reales</span><b>El baile 1:2:4 de las lunas</b><span>Resonancia de Ío, Europa y Ganímedes, y las mareas que calientan los volcanes de Ío</span></span></a>`);
   $('c-acts').innerHTML = acts.join('');
   if ($('c-sims')) $('c-sims').onclick = () => openSims();
   if ($('c-msims')) $('c-msims').onclick = () => openMarsSims();

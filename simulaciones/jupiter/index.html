@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>El baile 1:2:4 · Lunas de Júpiter</title>
+<meta name="description" content="Ío, Europa y Ganímedes en sus posiciones reales: la resonancia de Laplace 1:2:4, las conjunciones y las mareas que calientan los volcanes de Ío.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Diseño: Júpiter y sus lunas a pantalla completa, "reloj de lunas" a la izquierda, explicación y Ío de cerca a la derecha. */
+:root{
+  --void:#04060c; --panel:rgba(10,12,20,.88); --line:#232a3d; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9a9fb3; --faint:#646b82;
+  --jup:#e8b98a; --jup-ink:#1d1006;
+  --io:#f2cf4a; --eu:#b9d4ff; --ga:#c7a98a; --ca:#8f8679; --conj1:#ffb547; --conj2:#7fc8ff; --ok:#7ee2a8;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  --gl:max(16px, env(safe-area-inset-left,0px)); --gr:max(16px, env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none;cursor:grab}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px}
+.back:hover{color:var(--ink)}
+.title{padding:8px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--jup)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.views{display:flex;gap:4px;padding:5px}
+.chip{background:transparent;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:12.5px;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--jup);border-color:var(--jup);color:var(--jup-ink)}
+.chip:hover{border-color:var(--line2)}
+/* reloj */
+.clock{position:fixed;left:var(--gl);top:calc(80px + var(--top));width:300px;z-index:4;padding:12px}
+.clock h2{margin:0 0 2px;font:600 13px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.date{font:500 13px var(--f-data);color:var(--ink);margin:2px 0 8px}
+.rings{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.ring svg{width:100%;height:auto;display:block}
+.ring b{display:block;font:600 13px var(--f-display);margin-top:2px}
+.ring span{display:block;font:500 11.5px var(--f-data);color:var(--dim)}
+.ratio{margin:10px 0 0;padding:8px 10px;border-radius:8px;border:1px dashed var(--line2);font-size:12.5px;line-height:1.45;color:var(--dim)}
+.ratio b{color:var(--ink);font-weight:600}
+.phi{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;font-size:12.5px;color:var(--dim)}
+.phi output{font:500 14px var(--f-data);color:var(--ok)}
+.speed{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.speed .chip{padding:4px 8px;font-size:12px}
+.row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+/* tarjeta */
+.card{position:fixed;right:var(--gr);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:390px;z-index:4;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;gap:4px;padding:10px 10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12.5px}
+.tabs button[aria-pressed=true]{background:var(--jup);border-color:var(--jup);color:var(--jup-ink)}
+.say{margin-left:auto}
+.body{padding:8px 14px 14px;overflow:auto;flex:1;font-size:13px;line-height:1.55}
+.body h3{margin:6px 0 4px;font:600 18px/1.2 var(--f-display)}
+.body h4{margin:12px 0 2px;font:600 13.5px var(--f-display);color:var(--jup)}
+.body p{margin:6px 0}
+.body ul{margin:6px 0;padding-left:18px}
+.body li{margin:2px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;margin:6px 0}
+.kv span{color:var(--dim)} .kv b{font-weight:500;font-family:var(--f-data);font-size:12px}
+table{border-collapse:collapse;width:100%;font-size:12px;margin:6px 0}
+th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:500}
+td.n{font-family:var(--f-data);text-align:right}
+.src a{color:var(--eu)}
+.note{color:var(--dim);font-size:12px;border:1px dashed var(--line2);border-radius:8px;padding:7px 10px;margin:8px 0}
+.sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+/* Ío de cerca */
+#ioc{width:100%;height:220px;display:block;background:#07080d;border-radius:8px;border:1px solid var(--line)}
+.gauge{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:8px 0 0;font-size:12px;color:var(--dim)}
+.bar{height:8px;border-radius:99px;background:#141a2a;position:relative;overflow:hidden}
+.bar i{position:absolute;top:0;bottom:0;left:50%;background:var(--io);border-radius:99px}
+.gauge output{font:500 12.5px var(--f-data);color:var(--ink);min-width:64px;text-align:right}
+/* etiquetas y avisos */
+.lbl{position:fixed;left:0;top:0;font:600 11.5px var(--f-display);letter-spacing:.03em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;transform:translate(-50%,-170%);z-index:2;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:calc(18px + var(--bot));transform:translateX(-50%);padding:9px 14px;font-size:13px;z-index:6;max-width:min(560px,calc(100vw - 32px));text-align:center;transition:opacity .4s}
+.toast b{color:var(--conj1)}
+.toast.eg b{color:var(--conj2)}
+@media (max-width:980px){
+  .clock{width:auto;right:var(--gr);top:calc(64px + var(--top));padding:8px 10px}
+  .rings{grid-template-columns:repeat(3,64px);justify-content:start;gap:10px}
+  .clock .ratio{display:none}
+  .card{width:auto;left:var(--gl);top:auto;height:40vh}
+  #ioc{height:170px}
+  .views{display:none}
+  .toast{bottom:calc(40vh + 26px + var(--bot))}
+}
+@media (max-width:980px){
+  .clock h2{display:none}
+  .date{margin:0 0 6px;font-size:12px}
+  .clock{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center}
+  .clock .date{grid-column:1 / -1}
+  .rings{grid-template-columns:repeat(3,46px);gap:8px}
+  .ring b{font-size:11px} .ring span{display:none}
+  .clock .phi{display:none}
+  .ctrl{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .speed,.row{margin:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .speed .chip,.row .chip{flex:none;padding:4px 7px;font-size:11.5px}
+  .card{height:38vh}
+  .toast{bottom:calc(38vh + 26px + var(--bot))}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="Júpiter con Ío, Europa y Ganímedes en sus posiciones reales"></canvas>
+
+<div class="top">
+  <a class="back panel" href="../">← Simulaciones</a>
+  <div class="title panel"><div class="kick">Júpiter · física real</div><h1>El baile 1:2:4 de las lunas</h1></div>
+  <div class="views panel" role="group" aria-label="Vista">
+    <button class="chip" data-view="top" aria-pressed="true">Desde arriba</button>
+    <button class="chip" data-view="tilt" aria-pressed="false">Inclinada</button>
+    <button class="chip" data-view="io" aria-pressed="false">Seguir a Ío</button>
+  </div>
+</div>
+
+<section class="clock panel" aria-label="Reloj de las lunas">
+  <h2>Reloj de las lunas</h2>
+  <div class="date" id="date">—</div>
+  <div class="rings">
+    <div class="ring"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="32" fill="none" stroke="#1c2233" stroke-width="8"/><circle id="r-io" cx="40" cy="40" r="32" fill="none" stroke="var(--io)" stroke-width="8" stroke-linecap="round" transform="rotate(-90 40 40)" pathLength="100" stroke-dasharray="0 100"/><text id="t-io" x="40" y="46" text-anchor="middle" fill="#fff" font-family="IBM Plex Mono,monospace" font-size="17">0</text></svg><b style="color:var(--io)">Ío</b><span>1,77 días</span></div>
+    <div class="ring"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="32" fill="none" stroke="#1c2233" stroke-width="8"/><circle id="r-eu" cx="40" cy="40" r="32" fill="none" stroke="var(--eu)" stroke-width="8" stroke-linecap="round" transform="rotate(-90 40 40)" pathLength="100" stroke-dasharray="0 100"/><text id="t-eu" x="40" y="46" text-anchor="middle" fill="#fff" font-family="IBM Plex Mono,monospace" font-size="17">0</text></svg><b style="color:var(--eu)">Europa</b><span>3,55 días</span></div>
+    <div class="ring"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="32" fill="none" stroke="#1c2233" stroke-width="8"/><circle id="r-ga" cx="40" cy="40" r="32" fill="none" stroke="var(--ga)" stroke-width="8" stroke-linecap="round" transform="rotate(-90 40 40)" pathLength="100" stroke-dasharray="0 100"/><text id="t-ga" x="40" y="46" text-anchor="middle" fill="#fff" font-family="IBM Plex Mono,monospace" font-size="17">0</text></svg><b style="color:var(--ga)">Ganímedes</b><span>7,15 días</span></div>
+  </div>
+  <div class="ratio" id="ratio">Vueltas completas desde que empezaste a mirar. Mientras Ganímedes da <b>1</b>, Europa da <b>2</b> e Ío da <b>4</b>.</div>
+  <div class="phi" title="Ángulo de Laplace: λÍo − 3·λEuropa + 2·λGanímedes"><span>Ángulo de Laplace (λ₁ − 3λ₂ + 2λ₃)</span><output id="phi">180,0°</output></div>
+  <div class="ctrl">
+  <div class="speed" role="group" aria-label="Velocidad del tiempo">
+    <button class="chip" data-spd="0" aria-pressed="false">Pausa</button>
+    <button class="chip" data-spd="1" aria-pressed="false">1 h/s</button>
+    <button class="chip" data-spd="6" aria-pressed="true">6 h/s</button>
+    <button class="chip" data-spd="24" aria-pressed="false">1 día/s</button>
+    <button class="chip" data-spd="96" aria-pressed="false">4 días/s</button>
+  </div>
+  <div class="row">
+    <button class="chip" id="now">Volver a hoy</button>
+    <button class="chip" id="cal" aria-pressed="false">Mostrar Calisto</button>
+    <button class="chip" id="big" aria-pressed="true">Lunas agrandadas ×10</button>
+  </div>
+  </div>
+</section>
+
+<aside class="card panel" aria-label="Explicación">
+  <div class="tabs" role="tablist">
+    <button data-tab="baile" aria-pressed="true">El baile</button>
+    <button data-tab="mareas" aria-pressed="false">Mareas de Ío</button>
+    <button data-tab="datos" aria-pressed="false">Datos y fuentes</button>
+    <button class="say" id="say" aria-pressed="false" hidden>Escuchar</button>
+  </div>
+  <div class="body" id="body"></div>
+</aside>
+
+<div class="toast panel" id="toast" style="opacity:0" aria-live="polite"></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = id => document.getElementById(id);
+const D2R = Math.PI/180, RJ = 71492;                     // radio ecuatorial de Júpiter (km)
+
+/* ---------- Datos reales ----------
+   Longitudes medias: teoría E5 de Lieske, en la forma de Meeus (Astronomical Algorithms, cap. 44):
+   λ = L0 + n·d, con d = JD − 2443000,5 (días). Son las mismas que usa el sistema solar del sitio.
+   Semiejes y radios: JPL Solar System Dynamics. Excentricidades (forzadas por la resonancia): JPL SSD. */
+const MOONS = [
+  { id:'io',  name:'Ío',        a:421700,  R:1821.6, e:0.0041, L0:106.07719, n:203.488955790, P:1.769138,  col:'#f2cf4a' },
+  { id:'eu',  name:'Europa',    a:671034,  R:1560.8, e:0.0094, L0:175.73161, n:101.374724735, P:3.551181,  col:'#b9d4ff' },
+  { id:'ga',  name:'Ganímedes', a:1070412, R:2634.1, e:0.0013, L0:120.55883, n:50.317609207,  P:7.154553,  col:'#c7a98a' },
+  { id:'ca',  name:'Calisto',   a:1882709, R:2410.3, e:0.0074, L0:84.44459,  n:21.571071177,  P:16.689017, col:'#8f8679' },
+];
+const [IO, EU, GA, CA] = MOONS;
+const wrap = x => ((x % 360) + 360) % 360;
+const wrap180 = x => { x = wrap(x); return x > 180 ? x - 360 : x; };
+const jdOf = ms => ms/86400000 + 2440587.5;
+const lam = (m, jd) => wrap(m.L0 + m.n*(jd - 2443000.5));
+
+/* Resonancia 2:1 Ío–Europa: las conjunciones ocurren en el perijove de Ío y en el apojove de Europa,
+   así que la anomalía media de Ío es M₁ = 2(λ₁ − λ₂) y la de Europa M₂ = 2(λ₂ − λ₃). */
+function state(jd){
+  const l1 = lam(IO,jd), l2 = lam(EU,jd), l3 = lam(GA,jd), l4 = lam(CA,jd);
+  return { l1, l2, l3, l4, M1: wrap(2*(l1-l2)), M2: wrap(2*(l2-l3)), phi: wrap(l1 - 3*l2 + 2*l3) };
+}
+
+/* ---------- Escena ---------- */
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 2000);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.minDistance = 2; controls.maxDistance = 400;
+
+// estrellas de fondo
+{ const g = new THREE.BufferGeometry(), N = 2500, p = new Float32Array(N*3);
+  for (let i=0;i<N;i++){ const u = Math.random()*2-1, t = Math.random()*Math.PI*2, r = 600, s = Math.sqrt(1-u*u);
+    p[i*3]=r*s*Math.cos(t); p[i*3+1]=r*u; p[i*3+2]=r*s*Math.sin(t); }
+  g.setAttribute('position', new THREE.BufferAttribute(p,3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color:0x9aa6c8, size:1.2, sizeAttenuation:false }))); }
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.12));
+const sun = new THREE.DirectionalLight(0xfff4e6, 2.6); scene.add(sun);
+
+// texturas hechas a mano (nada se descarga)
+function rnd(seed){ let s = seed; return () => (s = (s*16807) % 2147483647) / 2147483647; }
+function jupiterTex(){
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512; const x = c.getContext('2d');
+  const bands = [ [0,'#c9b6a0'],[.08,'#a99580'],[.16,'#d9c7ad'],[.25,'#b0815c'],[.31,'#e9dcc6'],[.38,'#c48f63'],[.45,'#efe4d2'],
+    [.53,'#ead9bf'],[.58,'#b97d52'],[.66,'#e6d6bd'],[.73,'#a8775a'],[.82,'#cdbaa1'],[.9,'#a69380'],[1,'#c4b3a0'] ];
+  const gr = x.createLinearGradient(0,0,0,512); bands.forEach(([o,cl]) => gr.addColorStop(o,cl));
+  x.fillStyle = gr; x.fillRect(0,0,1024,512);
+  const r = rnd(7); x.globalAlpha = .08;
+  for (let i=0;i<900;i++){ const y = r()*512, w = 40 + r()*260, h = 1 + r()*3;
+    x.fillStyle = r() > .5 ? '#fff6e8' : '#6d4a32'; x.beginPath(); x.ellipse(r()*1024, y, w, h, 0, 0, Math.PI*2); x.fill(); }
+  x.globalAlpha = 1;
+  // Gran Mancha Roja (~22° S)
+  const gy = 256 + 22/90*256, gx = 640;
+  const sp = x.createRadialGradient(gx,gy,2,gx,gy,40); sp.addColorStop(0,'#b5502e'); sp.addColorStop(.7,'#c46a42'); sp.addColorStop(1,'rgba(220,170,130,0)');
+  x.fillStyle = sp; x.beginPath(); x.ellipse(gx,gy,44,22,0,0,Math.PI*2); x.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function moonTex(kind){
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const x = c.getContext('2d'), r = rnd(kind.length*31+3);
+  const base = { io:'#e3c650', eu:'#e9e2d4', ga:'#8f8474', ca:'#4f483f' }[kind];
+  x.fillStyle = base; x.fillRect(0,0,512,256);
+  if (kind==='io'){
+    for (let i=0;i<120;i++){ x.fillStyle = ['#b8892c','#f6e7a0','#8a5a22','#d9a53a'][i%4]; x.globalAlpha = .5; x.beginPath(); x.arc(r()*512, r()*256, 3+r()*18, 0, 7); x.fill(); }
+    x.globalAlpha = 1;
+    for (let i=0;i<40;i++){ const px=r()*512, py=30+r()*196; x.fillStyle = '#2a1a10'; x.beginPath(); x.arc(px,py,1.5+r()*3,0,7); x.fill();
+      if (i%6===0){ x.strokeStyle='rgba(190,70,40,.6)'; x.lineWidth=3; x.beginPath(); x.arc(px,py,10+r()*10,0,7); x.stroke(); } }
+  } else if (kind==='eu'){
+    x.strokeStyle = 'rgba(140,85,55,.55)'; x.lineWidth = 1.3;
+    for (let i=0;i<70;i++){ x.beginPath(); let px=r()*512, py=r()*256; x.moveTo(px,py);
+      for (let k=0;k<5;k++){ px += (r()-.5)*160; py += (r()-.5)*70; x.lineTo(px,py); } x.stroke(); }
+  } else {
+    for (let i=0;i<260;i++){ x.fillStyle = r() > .4 ? 'rgba(230,225,215,.35)' : 'rgba(30,25,20,.35)'; x.beginPath(); x.arc(r()*512, r()*256, 1+r()*(kind==='ga'?14:5), 0, 7); x.fill(); }
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+// Júpiter: radio 1 = 71 492 km, achatamiento 0,06487, rota en 9 h 55 min 30 s
+const jup = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), new THREE.MeshStandardMaterial({ map:jupiterTex(), roughness:1, metalness:0 }));
+jup.scale.set(1, 1-0.06487, 1); scene.add(jup);
+const JUP_ROT_H = 9.925;
+
+// órbitas (en radios de Júpiter, distancias reales)
+function ringLine(rad, col, op){ const pts = []; for (let i=0;i<=256;i++){ const t=i/256*Math.PI*2; pts.push(new THREE.Vector3(rad*Math.cos(t),0,-rad*Math.sin(t))); }
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:col, transparent:true, opacity:op })); }
+MOONS.forEach(m => {
+  m.orbit = ringLine(m.a/RJ, m.col, .28); scene.add(m.orbit);
+  m.mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshStandardMaterial({ map:moonTex(m.id), roughness:1, metalness:0, emissive: m.id==='io' ? 0x3a1a00 : 0x000000 }));
+  scene.add(m.mesh);
+  m.lbl = document.createElement('div'); m.lbl.className = 'lbl'; m.lbl.textContent = m.name; m.lbl.style.color = m.col; document.body.appendChild(m.lbl);
+});
+
+// marcas de conjunción (dónde se alcanzaron dos lunas)
+const ticks = [];
+function addTick(rad, lonDeg, col){
+  const a = lonDeg*D2R, u = new THREE.Vector3(Math.cos(a),0,-Math.sin(a));
+  const g = new THREE.BufferGeometry().setFromPoints([u.clone().multiplyScalar(rad-0.7), u.clone().multiplyScalar(rad+0.7)]);
+  const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color:col, transparent:true, opacity:1 })); scene.add(l);
+  ticks.push({ l, born: simJD }); while (ticks.length > 60){ const t = ticks.shift(); scene.remove(t.l); t.l.geometry.dispose(); }
+}
+// rayo de alineación
+const beam = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color:0xffb547, transparent:true, opacity:0 }));
+scene.add(beam); let beamT = 0;
+
+/* ---------- Tiempo ---------- */
+let simJD = jdOf(Date.now()), startJD = simJD, hoursPerSec = 6, showCal = false, bigMoons = true;
+let prev = null, lastToast = 0;
+const EXAG = 1;                                     // las órbitas se dibujan con su excentricidad real (casi círculos)
+
+function moonPos(m, s){
+  let l, M = 0;
+  if (m===IO){ l = s.l1; M = s.M1; } else if (m===EU){ l = s.l2; M = s.M2; } else if (m===GA) l = s.l3; else l = s.l4;
+  const e = (m===IO || m===EU) ? m.e*EXAG : 0;
+  const r = m.a*(1 - e*Math.cos(M*D2R))/RJ, th = (l + 2*e*Math.sin(M*D2R)/D2R)*D2R;
+  return new THREE.Vector3(r*Math.cos(th), 0, -r*Math.sin(th));
+}
+function sunDir(jd){ // dirección aproximada del Sol vista desde Júpiter (longitud media de Júpiter + 180°)
+  const L = (34.40438 + 0.0830853*(jd - 2451545) + 180)*D2R; return new THREE.Vector3(Math.cos(L), 0.05, -Math.sin(L)).normalize(); }
+
+/* ---------- Avisos de conjunción ---------- */
+let toastTimer = 0;
+function toast(html, cls){ const t = $('toast'); t.className = 'toast panel' + (cls ? ' '+cls : ''); t.innerHTML = html; t.style.opacity = 1;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.opacity = 0, 4200); }
+function checkConj(s){
+  if (!prev) { prev = s; return; }
+  const d1a = wrap180(prev.l1 - prev.l2), d1b = wrap180(s.l1 - s.l2);
+  const d2a = wrap180(prev.l2 - prev.l3), d2b = wrap180(s.l2 - s.l3);
+  if (d1a < 0 && d1b >= 0 && d1b - d1a < 90){
+    addTick(EU.a/RJ, s.l2, 0xffb547); flash(IO, 0xffb547);
+    if (performance.now() - lastToast > 2500 && hoursPerSec <= 24){ lastToast = performance.now();
+      toast(`<b>Ío alcanza a Europa.</b> Justo ahora Ío pasa por su punto más cercano a Júpiter y Ganímedes está a 90°: las tres nunca se juntan del mismo lado.`); }
+  }
+  if (d2a < 0 && d2b >= 0 && d2b - d2a < 90){
+    addTick(GA.a/RJ, s.l3, 0x7fc8ff); flash(EU, 0x7fc8ff);
+    if (performance.now() - lastToast > 2500 && hoursPerSec <= 24){ lastToast = performance.now();
+      toast(`<b>Europa alcanza a Ganímedes.</b> Ío está justo del otro lado de Júpiter, a 180°.`, 'eg'); }
+  }
+  prev = s;
+}
+let beamFrom = null;
+function flash(m, col){ beam.material.color.setHex(col); beamT = 1; beamFrom = m; }
+
+/* ---------- Cámara ---------- */
+let view = 'top';
+// encuadre: el sistema se centra en el hueco libre entre los paneles
+function freeRect(){
+  const W = innerWidth, H = innerHeight, c = document.querySelector('.clock').getBoundingClientRect(), k = document.querySelector('.card').getBoundingClientRect();
+  return W > 980 ? { x0:c.right + 8, x1:k.left - 8, y0:70, y1:H - 10 } : { x0:0, x1:W, y0:c.bottom + 4, y1:k.top - 4 };
+}
+let fitDist = 50;
+function fitView(){
+  const W = innerWidth, H = innerHeight, r = freeRect(), cx = (r.x0 + r.x1)/2, cy = (r.y0 + r.y1)/2;
+  camera.setViewOffset(W, H, W/2 - cx, H/2 - cy, W, H);
+  const need = (showCal ? CA.a : GA.a)/RJ + 1.2, px = Math.max(80, Math.min(r.x1 - r.x0, r.y1 - r.y0))/(2*need);
+  fitDist = (H/2)/(px*Math.tan(camera.fov/2*D2R));
+}
+function setView(v){
+  view = v; document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view===v));
+  fitView(); const far = fitDist;
+  if (v==='top'){ camera.position.set(0, far, 0.001); controls.target.set(0,0,0); }
+  if (v==='tilt'){ camera.position.set(0, far*.45, far*.8); controls.target.set(0,0,0); }
+  controls.update();
+}
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
+
+/* ---------- Controles ---------- */
+document.querySelectorAll('[data-spd]').forEach(b => b.onclick = () => {
+  hoursPerSec = +b.dataset.spd; document.querySelectorAll('[data-spd]').forEach(x => x.setAttribute('aria-pressed', x===b)); });
+$('now').onclick = () => { simJD = jdOf(Date.now()); startJD = simJD; prev = null; ticks.forEach(t => scene.remove(t.l)); ticks.length = 0; };
+$('cal').onclick = () => { showCal = !showCal; $('cal').setAttribute('aria-pressed', showCal); if (view!=='io') setView(view); };
+$('big').onclick = () => { bigMoons = !bigMoons; $('big').setAttribute('aria-pressed', bigMoons); $('big').textContent = bigMoons ? 'Lunas agrandadas ×10' : 'Tamaño real'; };
+
+/* ---------- Textos ---------- */
+const TABS = {
+  baile: () => `
+    <h3>Tres lunas que se empujan a tiempo</h3>
+    <p>Mira el reloj de la izquierda: mientras <b style="color:var(--ga)">Ganímedes</b> da <b>una</b> vuelta a Júpiter, <b style="color:var(--eu)">Europa</b> da <b>dos</b> e <b style="color:var(--io)">Ío</b> da <b>cuatro</b>. Es como un reloj de engranajes en el espacio. Los astrónomos lo llaman <b>resonancia de Laplace</b>, por Pierre-Simon Laplace, que la explicó a finales del siglo XVIII.</p>
+    <h4>Las rayas en las órbitas</h4>
+    <p><span class="sw" style="background:var(--conj1)"></span>Una raya naranja aparece cada vez que Ío alcanza a Europa (cada 3,53 días). <span class="sw" style="background:var(--conj2)"></span>Una raya azul, cada vez que Europa alcanza a Ganímedes (cada 7,05 días).</p>
+    <p>Pon la velocidad en <b>4 días/s</b>: las rayas no caen en cualquier parte, sino casi siempre en el mismo sitio y se van corriendo despacito, unos <b>0,74° por día</b> hacia atrás.</p>
+    <h4>Las tres nunca se juntan</h4>
+    <p>Cuando Ío alcanza a Europa, Ganímedes está siempre a un cuarto de vuelta (90°). Cuando Europa alcanza a Ganímedes, Ío está del otro lado de Júpiter (180°). Por eso nunca se ponen las tres en fila del mismo lado. El número verde del reloj, el <b>ángulo de Laplace</b>, se queda en <b>180°</b>: eso es la resonancia.</p>
+    <h4>¿Y para qué sirve?</h4>
+    <p>Cada vez que Europa pasa al lado, le da a Ío un pequeño tirón, siempre en el mismo punto de su vuelta, como cuando empujas un columpio siempre en el mismo momento. Así la órbita de Ío no puede volverse un círculo perfecto, y eso calienta su interior. Mira la pestaña <b>Mareas de Ío</b>.</p>
+    <p class="note">Calisto (botón «Mostrar Calisto») tarda 16,7 días y no está en la resonancia.</p>`,
+  mareas: () => `
+    <h3>Ío se estira y se encoge</h3>
+    <canvas id="ioc" aria-label="Ío visto de cerca, estirado por la marea de Júpiter"></canvas>
+    <div class="gauge"><span>Marea</span><div class="bar"><i id="gbar"></i></div><output id="gval">0 m</output></div>
+    <div class="kv" style="margin-top:8px"><span>Distancia a Júpiter</span><b id="iodist">—</b><span>Lugar en su órbita</span><b id="iopos">—</b></div>
+    <p>La órbita de Ío es casi un círculo, pero no del todo: a veces está a unos <b>419 970 km</b> de Júpiter y a veces a <b>423 430 km</b>. Cuando se acerca, la enorme gravedad de Júpiter lo estira un poco más. Cuando se aleja, lo estira un poco menos.</p>
+    <p>Su superficie de roca sube y baja hasta unos <b>100 metros</b> en cada vuelta, la altura de un edificio de 30 pisos. Es como doblar un clip de metal muchas veces: se calienta. Por eso por dentro Ío tiene roca derretida, y en su superficie hay <b>cientos de volcanes activos</b>, más que en ningún otro lugar del sistema solar.</p>
+    <p>Fíjate: Ío pasa por su punto más cercano a Júpiter <b>justo cuando alcanza a Europa</b>. Los tirones de Europa y Ganímedes no dejan que su órbita se vuelva redonda.</p>
+    <p class="note">En el dibujo el estiramiento está exagerado muchísimo para que se vea. Júpiter queda a la izquierda. Los puntos que brillan son volcanes reales (Loki, Tvashtar, Amirani y Zamama), en posiciones aproximadas vistos desde el polo norte de Ío.</p>`,
+  datos: () => `
+    <h3>Datos reales</h3>
+    <table><thead><tr><th>Luna</th><th>Una vuelta</th><th>Distancia</th><th>Diámetro</th></tr></thead><tbody>
+    ${MOONS.map(m => `<tr><td style="color:${m.col}">${m.name}</td><td class="n">${m.P.toFixed(3).replace('.',',')} d</td><td class="n">${m.a.toLocaleString('es')} km</td><td class="n">${Math.round(2*m.R).toLocaleString('es')} km</td></tr>`).join('')}
+    </tbody></table>
+    <div class="kv">
+      <span>Ganímedes / Europa</span><b>${(GA.P/EU.P).toFixed(4).replace('.',',')}</b>
+      <span>Europa / Ío</span><b>${(EU.P/IO.P).toFixed(4).replace('.',',')}</b>
+      <span>n₁ − 3n₂ + 2n₃</span><b>${(IO.n - 3*EU.n + 2*GA.n).toExponential(1).replace('.',',')} °/día</b>
+      <span>Excentricidad de Ío</span><b>0,0041</b>
+      <span>Excentricidad de Europa</span><b>0,0094</b>
+    </div>
+    <p>Las vueltas no son exactamente 1:2:4 (Europa/Ío da 2,007). Lo que es exacto es la combinación de Laplace: sus velocidades cumplen n₁ − 3n₂ + 2n₃ = 0, y el ángulo λ₁ − 3λ₂ + 2λ₃ oscila apenas alrededor de 180°.</p>
+    <h4>Cómo se calcula</h4>
+    <ul>
+      <li>Posiciones: longitudes medias de la teoría E5 de Lieske (Meeus, <i>Astronomical Algorithms</i>, cap. 44), las mismas del sistema solar 3D del sitio. Precisión de pocos grados.</li>
+      <li>La forma ovalada: las conjunciones Ío–Europa ocurren en el perijove de Ío, así que su anomalía media es M₁ = 2(λ₁ − λ₂). Con eso salen su distancia y su marea.</li>
+      <li>Las distancias entre lunas están a escala real. Los tamaños de las lunas están agrandados ×10, salvo que elijas «Tamaño real».</li>
+      <li>La luz del Sol viene de una dirección aproximada.</li>
+    </ul>
+    <h4>Fuentes</h4>
+    <ul class="src">
+      <li><a href="https://science.nasa.gov/jupiter/jupiter-moons/io/facts/" target="_blank" rel="noopener">NASA · Io: Facts</a>: mareas de hasta 100 m y cientos de volcanes.</li>
+      <li><a href="https://ssd.jpl.nasa.gov/sats/elem/" target="_blank" rel="noopener">JPL SSD · Elementos orbitales de los satélites</a></li>
+      <li><a href="https://planetary.org/space-images/orbital-resonances-of-galilean-moons" target="_blank" rel="noopener">The Planetary Society · Orbital resonances of the Galilean moons</a></li>
+      <li><a href="https://www.jpl.nasa.gov/news/nasa-juno-mission-spots-most-powerful-volcanic-activity-on-io-to-date/" target="_blank" rel="noopener">NASA/JPL · Juno y los volcanes de Ío</a></li>
+    </ul>`,
+};
+let tab = 'baile';
+function setTab(t){ tab = t; document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab===t)); $('body').innerHTML = TABS[t](); $('body').scrollTop = 0; stopSpeak(); sizeIoc(); }
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+
+// narración
+const VOICE = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+let speaking = false;
+function stopSpeak(){ if (VOICE) try { speechSynthesis.cancel(); } catch(e){} speaking = false; $('say').setAttribute('aria-pressed', false); $('say').textContent = 'Escuchar'; }
+if (VOICE){ $('say').hidden = false; $('say').onclick = () => {
+  if (speaking) return stopSpeak();
+  const txt = [...$('body').querySelectorAll('h3,h4,p:not(.note)')].map(e => e.textContent).join('. ');
+  const u = new SpeechSynthesisUtterance(txt), v = speechSynthesis.getVoices().find(v => /^es/i.test(v.lang)); u.lang = 'es-ES'; if (v) u.voice = v; u.rate = .98;
+  u.onend = stopSpeak; speechSynthesis.speak(u); speaking = true; $('say').setAttribute('aria-pressed', true); $('say').textContent = 'Detener'; }; }
+
+/* ---------- Ío de cerca (2D) ---------- */
+const VOLC = [ ['Loki',13,309], ['Tvashtar',63,124], ['Amirani',24,115], ['Zamama',18,173] ]; // lat N, long. O (USGS, aprox.)
+let ioc = null, iox = null;
+function sizeIoc(){ ioc = $('ioc'); if (!ioc) return; const r = ioc.getBoundingClientRect(), d = Math.min(devicePixelRatio,2);
+  ioc.width = Math.max(1, r.width*d); ioc.height = Math.max(1, r.height*d); iox = ioc.getContext('2d'); iox.setTransform(d,0,0,d,0,0); }
+addEventListener('resize', sizeIoc);
+function drawIo(s, t){
+  if (!ioc || !iox || !ioc.isConnected) return;
+  const W = ioc.clientWidth, H = ioc.clientHeight, x = iox; x.clearRect(0,0,W,H);
+  const cM = Math.cos(s.M1*D2R), sM = Math.sin(s.M1*D2R);
+  // Júpiter a la izquierda
+  const jg = x.createRadialGradient(-H*1.1, H/2, H*.2, -H*1.1, H/2, H*1.45); jg.addColorStop(0,'#e8c9a2'); jg.addColorStop(.92,'#a77a55'); jg.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle = jg; x.beginPath(); x.arc(-H*1.1, H/2, H*1.45, 0, 7); x.fill();
+  x.fillStyle = '#e8b98a'; x.font = '600 11px Jost, sans-serif'; x.fillText('JÚPITER', 8, 16);
+  // Ío: abultamiento fijo + parte que cambia con la distancia (exagerado), y un leve balanceo (libración 2e·sen M)
+  const cx = W*.62, cy = H/2, R = Math.min(H*.36, W*.22);
+  const stretch = 1 + 0.10 + 0.08*cM, rock = -2*IO.e*sM*60;          // exageración visual
+  x.save(); x.translate(cx, cy); x.rotate(rock);
+  x.strokeStyle = 'rgba(232,185,138,.35)'; x.setLineDash([3,4]); x.beginPath(); x.moveTo(-R*1.6,0); x.lineTo(R*1.6,0); x.stroke(); x.setLineDash([]);
+  x.scale(stretch, 1/Math.sqrt(stretch));
+  const ig = x.createRadialGradient(-R*.35, -R*.35, R*.1, 0, 0, R); ig.addColorStop(0,'#fbe88a'); ig.addColorStop(.6,'#e0b843'); ig.addColorStop(1,'#8a5a1e');
+  x.fillStyle = ig; x.beginPath(); x.arc(0,0,R,0,7); x.fill();
+  x.fillStyle = 'rgba(120,70,30,.35)'; for (let i=0;i<9;i++){ const a = i*2.3, rr = R*(.25 + (i%3)*.22); x.beginPath(); x.arc(Math.cos(a)*rr, Math.sin(a)*rr, R*.08, 0, 7); x.fill(); }
+  // volcanes: vista desde el polo norte, 0° O apunta a Júpiter, 90° O hacia adelante (arriba)
+  VOLC.forEach(([n,la,lo], i) => { const rr = R*Math.cos(la*D2R), a = (180 - lo)*D2R, px = rr*Math.cos(a), py = -rr*Math.sin(a);
+    const pulse = .55 + .45*Math.sin(t*2.2 + i*1.7), gl = x.createRadialGradient(px,py,0,px,py,R*.22);
+    gl.addColorStop(0, `rgba(255,${120+60*pulse|0},40,${.95})`); gl.addColorStop(1,'rgba(255,80,20,0)');
+    x.fillStyle = gl; x.beginPath(); x.arc(px,py,R*.22,0,7); x.fill(); });
+  x.restore();
+  x.fillStyle = '#ffd9a0'; x.font = '500 10.5px "IBM Plex Sans", sans-serif';
+  VOLC.forEach(([n,la,lo]) => { const rr = R*Math.cos(la*D2R)*stretch, a = (180 - lo)*D2R + rock; x.fillText(n, cx + rr*Math.cos(a) + 6, cy - rr*Math.sin(a) - 6); });
+  x.fillStyle = '#f2cf4a'; x.font = '600 11px Jost, sans-serif'; x.fillText('ÍO (estiramiento exagerado)', W - 172, H - 10);
+  // indicadores
+  const h = 50*cM;                                     // ± 50 m alrededor del promedio: hasta ~100 m de subida y bajada
+  const bar = $('gbar'); if (bar){ const f = Math.abs(h)/50*50; bar.style.left = (h >= 0 ? 50 : 50 - f) + '%'; bar.style.width = f + '%'; }
+  if ($('gval')) $('gval').textContent = (h >= 0 ? '+' : '−') + Math.abs(h).toFixed(0) + ' m';
+  const r = IO.a*(1 - IO.e*cM);
+  if ($('iodist')) $('iodist').textContent = (Math.round(r/10)*10).toLocaleString('es') + ' km';
+  if ($('iopos')) $('iopos').textContent = cM > .92 ? 'cerca del perijove (más cerca)' : cM < -.92 ? 'cerca del apojove (más lejos)' : (sM > 0 ? 'alejándose de Júpiter' : 'acercándose a Júpiter');
+}
+
+/* ---------- Bucle ---------- */
+function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; fitView(); camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+const fmt = new Intl.DateTimeFormat('es-EC', { dateStyle:'medium', timeStyle:'short', timeZone:'America/Guayaquil' });
+const v3 = new THREE.Vector3();
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(.1, (now - last)/1000); last = now;
+  simJD += dt*hoursPerSec/24;
+  const s = state(simJD);
+  checkConj(s);
+  sun.position.copy(sunDir(simJD)).multiplyScalar(50);
+  jup.rotation.y = ((simJD % (JUP_ROT_H/24)) / (JUP_ROT_H/24)) * Math.PI*2;
+  MOONS.forEach(m => {
+    const vis = m!==CA || showCal; m.mesh.visible = m.orbit.visible = vis; m.lbl.hidden = !vis;
+    if (!vis) return;
+    const p = moonPos(m, s); m.mesh.position.copy(p); m.mesh.scale.setScalar(m.R/RJ*(bigMoons ? 10 : 1));
+    m.mesh.rotation.y = Math.atan2(-p.z, p.x) + Math.PI;           // rotación sincrónica: siempre la misma cara hacia Júpiter
+    v3.copy(p); v3.y += m.R/RJ*(bigMoons?10:1); v3.project(camera);
+    const ok = v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1;
+    m.lbl.style.display = ok ? '' : 'none';
+    if (ok) m.lbl.style.transform = `translate(${(v3.x*.5+.5)*innerWidth}px, ${(-v3.y*.5+.5)*innerHeight}px) translate(-50%,-140%)`;
+  });
+  if (view==='io'){ const p = IO.mesh.position; controls.target.lerp(p, .2); camera.position.lerp(v3.set(p.x*1.25, 6, p.z*1.25 + 0.001), .08); }
+  if (beamT > 0 && beamFrom){ beamT = Math.max(0, beamT - dt*.8); const outer = beamFrom===IO ? EU : GA;
+    const u = outer.mesh.position.clone().normalize().multiplyScalar(outer.a/RJ + 1.5);
+    beam.geometry.setFromPoints([new THREE.Vector3(), u]); beam.material.opacity = beamT; }
+  ticks.forEach(t => { t.l.material.opacity = Math.max(.25, 1 - (simJD - t.born)/90); });
+  // reloj
+  const d = simJD - startJD;
+  [['io',IO],['eu',EU],['ga',GA]].forEach(([k,m]) => { const laps = m.n*d/360, f = laps - Math.floor(laps);
+    $('r-'+k).setAttribute('stroke-dasharray', `${(f*100).toFixed(2)} 100`); $('t-'+k).textContent = Math.floor(laps); });
+  const g = GA.n*d/360;
+  if (g >= .2) $('ratio').innerHTML = `Por cada vuelta de Ganímedes: Europa da <b>${(EU.n/GA.n).toFixed(2).replace('.',',')}</b> e Ío <b>${(IO.n/GA.n).toFixed(2).replace('.',',')}</b>. Casi 2 y 4, pero no exacto: por eso las rayas se corren despacito.`;
+  $('phi').textContent = s.phi.toFixed(1).replace('.',',') + '°';
+  $('date').textContent = fmt.format(new Date((simJD - 2440587.5)*86400000)) + ' · Ecuador';
+  if (tab==='mareas') drawIo(s, now/1000);
+  controls.update(); renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+setView('top'); setTab('baile');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
