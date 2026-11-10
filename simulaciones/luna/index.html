@@ -127,10 +127,10 @@ const SITES=[
  S('a12','Apollo 12','crew',-3.012,-23.422,'19 nov 1969','Océano de las Tormentas','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
  S('a14','Apollo 14','crew',-3.645,-17.471,'5 feb 1971','Fra Mauro','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
  S('a15','Apollo 15','crew',26.132,3.634,'30 jul 1971','Hadley‑Apeninos','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
- S('a16','Apollo 16','crew',-8.973,15.5,'21 abr 1972','Altiplanicie Descartes','NASA · Saturn V desde LC‑39A, Cabo Cañaveral'),{full:true}),
+ S('a16','Apollo 16','crew',-8.973,15.5,'21 abr 1972','Altiplanicie Descartes','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
  S('a17','Apollo 17','crew',20.191,30.772,'11 dic 1972','Valle Taurus‑Littrow','NASA · Saturn V desde LC‑39A, Cabo Cañaveral',{full:true}),
- S('luna9','Luna 9','robot',7.08,-64.37,'3 feb 1966','Océano de las Tormentas','URSS · Molniya desde Baikonur'),
- S('surv1','Surveyor 1','robot',-2.47,-43.34,'2 jun 1966','Cerca del cráter Flamsteed','NASA · Atlas‑Centaur desde Cabo Cañaveral'),
+ S('luna9','Luna 9','robot',7.08,-64.37,'3 feb 1966','Océano de las Tormentas','URSS · Molniya desde Baikonur',{full:true}),
+ S('surv1','Surveyor 1','robot',-2.47,-43.34,'2 jun 1966','Cerca del cráter Flamsteed','NASA · Atlas‑Centaur desde Cabo Cañaveral',{full:true}),
  S('luna13','Luna 13','robot',18.87,-62.05,'24 dic 1966','Océano de las Tormentas','URSS · Molniya desde Baikonur'),
  S('surv3','Surveyor 3','robot',-3.02,-23.42,'20 abr 1967','Océano de las Tormentas','NASA · Atlas‑Centaur desde Cabo Cañaveral',{below:true}),
  S('surv5','Surveyor 5','robot',1.46,23.2,'11 sep 1967','Mar de la Tranquilidad','NASA · Atlas‑Centaur desde Cabo Cañaveral',{below:true}),
@@ -173,6 +173,27 @@ const LMHOW=`<p>El <b>Módulo Lunar (LM)</b> fue la primera nave hecha solo para
  <li><b>Radar de aterrizaje:</b> medía altura y velocidad durante los últimos kilómetros.</li>
  <li><b>Sin asientos:</b> los dos astronautas iban de pie, sujetos con arneses, mirando por ventanas triangulares.</li></ul>`;
 const INFO={
+ luna9:{ kind:'luna9', launch:[['Cohete','Molniya‑M (8K78M), de 4 etapas'],['Plataforma','Sitio 31, cosmódromo de Baikonur (Kazajistán)'],['Despegue','31 de enero de 1966, 11:41 UTC'],['Viaje','3,3 días'],['Sonda','Ye‑6M n.º 13: 1.538 kg al salir; la cápsula que alunizó pesaba 99 kg'],['Alunizaje','3 de febrero de 1966, 18:45 UTC'],['Tipo','Cápsula con bolsas de aire, sin tripulación']],
+  how:`<p>Fue la primera nave de la Tierra que se posó suavemente en otro mundo y envió fotos desde el suelo.</p><ul>
+   <li><b>Frenado:</b> a 75 km de altura un radar encendió el retrocohete. La nave bajaba vertical, con el motor apuntando hacia la Luna.</li>
+   <li><b>Bolsas de aire:</b> antes de llegar se inflaron dos bolsas alrededor de una cápsula esférica de 58 cm. A unos 5 m del suelo una varilla tocó la superficie, se apagó el motor y la cápsula salió disparada.</li>
+   <li><b>Pétalos:</b> la cápsula rebotó, soltó las bolsas y abrió 4 pétalos que la enderezaron, como una flor. Luego desplegó 4 antenas.</li>
+   <li><b>Cámara:</b> un espejo giratorio hacía panoramas de 360° línea por línea, a 1,7 m sobre el suelo.</li>
+   <li><b>Energía:</b> solo baterías: duró unos 3 días.</li></ul>`,
+  story:`<p>Hasta 1966 algunos científicos creían que el suelo de la Luna podía ser polvo tan profundo que una nave se hundiría. Luna 9 lo descartó: se quedó encima del suelo y sus fotos mostraron piedras y pequeños cráteres nítidos.</p>
+   <p>La Unión Soviética lo logró después de 11 intentos fallidos. Las primeras fotos las publicó antes un observatorio británico (Jodrell Bank), que captó la señal y vio que tenía el formato de los aparatos de fax de los periódicos.</p>
+   <p>Envió 9 imágenes, incluidas 5 panoramas, hasta que se agotaron sus baterías el 6 de febrero de 1966.</p>`,
+  prof:{name:'Luna 9',kind:'luna9',td:50,ev:[[0,75000,0,-2600,'A 75 km el radar enciende el retrocohete; se sueltan los compartimentos laterales'],[40,1500,0,-200,'El retrocohete frena con fuerza'],[46,250,0,-30,'Último tramo, casi en caída'],[49,5,0,-6,'Una varilla toca el suelo: se apaga el motor y sale disparada la cápsula'],[50,0,0,0,'La cápsula rebota envuelta en bolsas de aire']]}},
+ surv1:{ kind:'surv', launch:[['Cohete','Atlas‑Centaur (AC‑10)'],['Plataforma','LC‑36A, Cabo Cañaveral (Florida)'],['Despegue','30 de mayo de 1966, 14:41 UTC'],['Viaje','63 horas, en trayectoria directa sin órbita de espera'],['Sonda','Surveyor 1: 995 kg al despegar, 294 kg al alunizar'],['Alunizaje','2 de junio de 1966, 06:17 UTC'],['Tipo','Módulo de 3 patas con retrocohetes']],
+  how:`<p>Las Surveyor fueron las "exploradoras" del programa Apollo: debían comprobar que el suelo aguantaba una nave y estudiar dónde podían bajar los astronautas.</p><ul>
+   <li><b>Retrocohete sólido:</b> un motor de combustible sólido, como una gran bengala, frenaba de 9.400 a 400 km/h en 40 segundos y luego se soltaba.</li>
+   <li><b>3 motores vernier:</b> motores pequeños y regulables, guiados por radar, bajaban suavemente los últimos 11 km.</li>
+   <li><b>Caída final:</b> a 4 m de altura se apagaban y la nave caía a unos 3 m/s sobre 3 patas con amortiguadores.</li>
+   <li><b>Cámara de TV</b> en un mástil, con espejo giratorio y zoom, alimentada por un panel solar.</li></ul>`,
+  story:`<p>Fue el primer alunizaje suave de Estados Unidos, 4 meses después de Luna 9, y salió perfecto al primer intento, cuando nadie lo esperaba.</p>
+   <p>Envió 11.237 fotos: rocas, sus propias patas hundidas apenas unos centímetros y el horizonte. Sobrevivió a la noche lunar, de unos 14 días a −150 °C, y siguió respondiendo hasta enero de 1967.</p>
+   <p>Gracias a las Surveyor, la NASA supo que el módulo lunar del Apollo no se hundiría.</p>`,
+  prof:{name:'Surveyor 1',kind:'surv',td:202,ev:[[0,75000,0,-2600,'A 75 km se enciende el retrocohete sólido principal'],[40,11000,0,-110,'Se apaga y se suelta el retrocohete; siguen 3 motores vernier'],[150,1500,0,-25,'El radar guía el descenso'],[198,4,0,-1.5,'A 4 m se apagan los motores'],[202,0,0,0,'Contacto a 3 m/s: primer alunizaje suave de EE. UU.']]}},
  a11:{ launch:[['Cohete','Saturn V (SA‑506), 110 m de alto'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','16 de julio de 1969, 13:32 UTC'],['Viaje','4 días hasta la órbita lunar'],['Nave','Columbia (módulo de mando) y Eagle (módulo lunar)'],['Tripulación','Neil Armstrong, Buzz Aldrin y Michael Collins (en órbita)'],['Alunizaje','20 de julio de 1969, 20:17 UTC']],
   how:LMHOW+`<p>En el suelo dejaron un sismógrafo y un <b>retrorreflector láser</b>: aún hoy los observatorios disparan láseres a ese espejo y miden la distancia a la Luna con precisión de milímetros. Así sabemos que se aleja 3,8 cm por año.</p>`,
   story:`<p>Durante el descenso sonaron las alarmas 1202 y 1201: la computadora estaba sobrecargada, pero estaba diseñada para descartar tareas secundarias. Desde Houston, un ingeniero de 26 años dijo que podían seguir.</p>
@@ -264,7 +285,7 @@ function openCard(s){
   const coords=`${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${Math.abs(s.lon).toFixed(2)}° ${s.lon>=0?'E':'O'}`;
   if(!I){ $('cbody').innerHTML=`<p>${NOTE[s.id]||''}</p><div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${coords}</b><span>Quién y cómo</span><b>${s.who}</b></div>
     <div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`; return; }
-  buildLM(['a15','a16','a17'].includes(s.id), s.id==='a12'); setPose(1e9,I.prof);
+  if(I.kind) buildProbe(I.kind); else buildLM(['a15','a16','a17'].includes(s.id), s.id==='a12'); setPose(1e9,I.prof);
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
     <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>
     ${REVS[s.id]?`<a class="go alt" href="apollo/#${s.id}">Ver la misión completa: Saturn V, viaje, ${REVS[s.id]} vueltas y regreso →</a>`:''}
@@ -294,7 +315,35 @@ const Mt=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:0.5,metalne
 const box=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m), cy=(r1,r2,h,m,s=20)=>new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,s),m);
 function rod(a,b,r,m){ const d=b.clone().sub(a), c=cy(r,r,d.length(),m,8); c.position.copy(a).add(b).multiplyScalar(0.5); c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); return c; }
 let plume=null;
-function buildLM(lrv,sv){
+function buildProbe(kind){
+  lm.clear(); stay.clear(); lm.visible=true; const alu=Mt(0xcfd2d6,{metalness:0.8,roughness:0.3}), wht=Mt(0xe6e4dc,{metalness:0.4}), dk=Mt(0x2a2a2a), gold=Mt(0xc9a03a,{metalness:0.85,roughness:0.35});
+  plume=new THREE.Mesh(new THREE.ConeGeometry(0.7,4,16,1,true),new THREE.MeshBasicMaterial({color:0xffc78a,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending,depthWrite:false})); plume.rotation.x=Math.PI;
+  if(kind==='luna9'){ // nave de descenso: tanque esférico, motor abajo, compartimentos laterales y la cápsula arriba
+    const tank=new THREE.Mesh(new THREE.SphereGeometry(0.9,24,16),alu); tank.position.y=1.6; lm.add(tank);
+    const nz=cy(0.25,0.5,0.8,dk,16); nz.position.y=0.5; lm.add(nz); plume.position.y=-1.6; lm.add(plume);
+    for(const sx of [-1,1]){ const b=box(0.5,1.2,0.6,wht); b.position.set(sx*1.15,1.7,0); lm.add(b); }
+    const c0=new THREE.Mesh(new THREE.SphereGeometry(0.3,20,14),alu); c0.position.y=2.75; lm.add(c0);
+    // la cápsula de 58 cm con bolsas, pétalos y antenas
+    const cap=new THREE.Group(); const ball=new THREE.Mesh(new THREE.SphereGeometry(0.3,24,16),alu); cap.add(ball);
+    const camT=cy(0.06,0.06,0.25,dk,12); camT.position.y=0.38; cap.add(camT);
+    const bags=new THREE.Group(); for(const sy of [-1,1]){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.55,20,14,0,Math.PI*2,sy>0?0:Math.PI/2,Math.PI/2),Mt(0xe8e0cc,{roughness:0.95,side:THREE.DoubleSide})); bags.add(b); } cap.add(bags);
+    const pet=[]; for(let i=0;i<4;i++){ const a=i*Math.PI/2, piv=new THREE.Group(); piv.rotation.y=a; const q=new THREE.Group(); q.position.set(0,-0.1,0.28); const pl=box(0.32,0.5,0.02,wht); pl.position.y=0.25; q.add(pl); piv.add(q); cap.add(piv); pet.push(q); }
+    const ant=new THREE.Group(); for(let i=0;i<4;i++){ const a=i*Math.PI/2+0.78; ant.add(rod(new THREE.Vector3(0,0.2,0),new THREE.Vector3(Math.cos(a)*0.5,0.95,Math.sin(a)*0.5),0.008,alu)); } cap.add(ant);
+    cap.userData={bags,pet,ant}; cap.scale.setScalar(3); stay.add(cap); stay.userData.cap=cap;
+  } else { // Surveyor: estructura triangular, 3 patas, mástil con panel solar, antena plana y cámara
+    const fr=cy(0.9,0.9,0.15,alu,3); fr.position.y=1.3; lm.add(fr);
+    for(let i=0;i<3;i++){ const a=i/3*Math.PI*2+Math.PI/6, f=new THREE.Vector3(Math.cos(a)*2.1,0.08,Math.sin(a)*2.1);
+      lm.add(rod(new THREE.Vector3(Math.cos(a)*0.8,1.3,Math.sin(a)*0.8),f,0.05,alu)); const pd=cy(0.2,0.22,0.1,alu,12); pd.position.copy(f); lm.add(pd);
+      const vn=cy(0.06,0.12,0.25,dk,10); vn.position.set(Math.cos(a+1)*0.6,1.05,Math.sin(a+1)*0.6); lm.add(vn); }
+    lm.add(rod(new THREE.Vector3(0,1.35,0),new THREE.Vector3(0,3.2,0),0.04,alu));
+    const sol=box(0.9,0.03,0.85,Mt(0x1a2a5c,{metalness:0.5})); sol.position.set(0,3.25,0.3); sol.rotation.x=0.7; lm.add(sol);
+    const hga=box(0.8,0.03,0.8,alu); hga.position.set(0,3.25,-0.35); hga.rotation.x=-0.7; lm.add(hga);
+    const cam=cy(0.09,0.09,0.45,wht,12); cam.position.set(0.5,1.75,0.3); cam.rotation.z=0.2; lm.add(cam);
+    for(const [x,z] of [[-0.45,0.2],[0.2,-0.5]]){ const bx=box(0.35,0.3,0.35,gold); bx.position.set(x,1.5,z); lm.add(bx); }
+    const retro=new THREE.Mesh(new THREE.SphereGeometry(0.45,20,14),Mt(0x9a9a9a)); retro.position.y=0.95; retro.name='retro'; lm.add(retro); plume.position.y=-1.2; lm.add(plume);
+  }
+}
+function buildLM(lrv,sv){ lm.visible=true;
   lm.clear(); stay.clear();
   const gold=Mt(0xc9a03a,{metalness:0.85,roughness:0.35}), blk=Mt(0x2a2a2a), gray=Mt(0xb8b8b2,{metalness:0.5}), alu=Mt(0xcfd2d6,{metalness:0.8,roughness:0.3});
   const ds=cy(2.1,2.1,1.6,gold,8); ds.rotation.y=Math.PI/8; ds.position.y=2.0; lm.add(ds);
@@ -338,6 +387,13 @@ function profAt(P,t){ const E=P.ev; if(t<=0) return E[0]; if(t>=P.td) return E[E
 function rangeLeft(P,t){ let s=0; for(let k=t;k<P.td;k+=2) s+=profAt(P,k)[2]*2; return s; }
 function setPose(t,P){ const p=profAt(P,t), x=rangeLeft(P,t);
   lm.position.set(-x,p[1],0);
+  if(P.kind){ lm.rotation.z=0; if(plume) plume.visible=t<P.td-(P.kind==='surv'?4:1); if(plume&&P.kind==='surv') plume.scale.setScalar(t<40?1.6:0.6); const rt=lm.getObjectByName('retro'); if(rt) rt.visible=t<40;
+    if(P.kind==='luna9'){ const k=t-P.td, cap=stay.userData.cap; lm.visible=t<P.td; stay.visible=true;
+      if(cap){ const B=Math.max(0,k), hb=k<0?0:8*Math.exp(-B/12)*Math.abs(Math.sin(B*0.9)), done=k>60;
+        cap.position.set(Math.min(B,60)*0.1-3.5, t<P.td? -50 : (done?0.9:0.9+hb), 1.5); cap.visible=t>=P.td-0.01;
+        cap.userData.bags.visible=t>=P.td && k<70; const open=THREE.MathUtils.clamp((k-200)/40,0,1); cap.userData.pet.forEach((q,i)=>q.rotation.x=-open*1.9); cap.userData.ant.visible=open>=1; if(!done) cap.rotation.z=-B*0.6; else cap.rotation.z=0; } }
+    else stay.visible=t>=P.td;
+    return p; }
   const pitch = t<P.ev.find(e=>e[1]<=2300)[0] ? 1.25 : THREE.MathUtils.lerp(0.45,0,THREE.MathUtils.clamp((t-(P.td-150))/120,0,1));
   lm.rotation.z = t>=P.td?0:-pitch; if(plume) plume.visible=t<P.td; stay.visible=t>=P.td+5;
   return p; }
@@ -363,12 +419,12 @@ function loop(t){
   mareEls.forEach(m=>{ if(!vis(m.p)){ m.el.hidden=true; return; } tmp.copy(m.p).project(cam); m.el.hidden=false; m.el.style.left=((tmp.x+1)/2*innerWidth)+'px'; m.el.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
   renderer.render(scene,cam);
   if(!$('card').hidden && !rc.hidden){ const w=rc.clientWidth,h=rc.clientHeight; if(rc.width!==Math.floor(w*rr.getPixelRatio())){ rr.setSize(w,h,false); rcam.aspect=w/h; rcam.updateProjectionMatrix(); }
-    if(anim){ const prevX=lm.position.clone(); anim.t=Math.min(anim.P.td+20,anim.t+dt*aSpeed); const p=setPose(anim.t,anim.P);
+    if(anim){ const prevX=lm.position.clone(); anim.t=Math.min(anim.P.td+(anim.P.kind==='luna9'?260:20),anim.t+dt*aSpeed); const p=setPose(anim.t,anim.P);
       const d=lm.position.clone().sub(prevX); rctl.target.add(d); rcam.position.add(d);
       const want=new THREE.Vector3(lm.position.x+14,lm.position.y+16,lm.position.z+26); if(anim.t<1) { rcam.position.copy(want); rctl.target.copy(lm.position); }
       const mm=Math.floor(Math.max(0,anim.t)/60), ss=Math.floor(Math.max(0,anim.t)%60);
-      $('hud').innerHTML=`${anim.P.name} · ${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')} desde el inicio<br>Altura: ${p[1]>=1000?(p[1]/1000).toFixed(1)+' km':Math.round(p[1])+' m'}<br>Velocidad: ${Math.round(Math.hypot(p[2],p[3])*3.6)} km/h<br><span style="color:var(--mars)">${p[4]}</span>`;
-      if(anim.t>=anim.P.td+20){ anim=null; rctl.autoRotate=true; } }
+      $('hud').innerHTML=`${anim.P.name} · ${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')} desde el inicio<br>Altura: ${p[1]>=1000?(p[1]/1000).toFixed(1)+' km':Math.round(p[1])+' m'}<br>Velocidad: ${Math.round(Math.hypot(p[2],p[3])*3.6)} km/h<br><span style="color:var(--mars)">${anim.P.kind==='luna9'&&anim.t>anim.P.td+200?'Se abren los 4 pétalos: ¡primer aterrizaje suave en otro mundo!':anim.P.kind==='luna9'&&anim.t>anim.P.td+60?'Se sueltan las bolsas de aire':p[4]}</span>`;
+      if(anim.t>=anim.P.td+(anim.P.kind==='luna9'?260:20)){ anim=null; rctl.autoRotate=true; } }
     rctl.update(); rr.render(rs,rcam); }
 }
 requestAnimationFrame(loop);
