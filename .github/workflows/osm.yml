@@ -1,0 +1,19 @@
+name: Copia de edificios de OpenStreetMap
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 1 * *'   # una vez al mes
+permissions:
+  contents: write
+jobs:
+  hornear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/hornear_osm.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add simulaciones/*/edificios-osm.json
+          git diff --cached --quiet || (git commit -m "Copia actualizada de los edificios de OpenStreetMap" && git push)
