@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
 <title>Apollo a la Luna</title>
 <meta name="description" content="Todas las misiones Apollo tripuladas a la Luna (8 y 11 a 17) completas: despegue del Saturn V desde Cabo Cañaveral, viaje a la Luna, vueltas en órbita lunar, alunizaje, regreso y amerizaje, con reloj real y aceleración del tiempo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -127,7 +128,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -267,7 +268,8 @@ function kepler(r0,v0,dt){ const R0=r0.length(),V0=v0.length(),vr0=r0.dot(v0)/R0
   return { r, v:r0.clone().multiplyScalar(fd).addScaledVector(v0,gd) }; }
 // marco ecuatorial J2000 → escena: (x, z, −y) para que el polo norte quede hacia arriba
 const toS=v=>V(v.x,v.z,-v.y);
-function moonAt(t){ const v=AE.GeoMoon(new Date(t)); return toS({x:v.x*AUK,y:v.y*AUK,z:v.z*AUK}); }
+let _mt=NaN, _mv=null; // la misma hora se pide muchas veces por cuadro: se guarda el último cálculo
+function moonAt(t){ if(t!==_mt){ const v=AE.GeoMoon(new Date(t)); _mv=toS({x:v.x*AUK,y:v.y*AUK,z:v.z*AUK}); _mt=t; } return _mv.clone(); }
 function moonVel(t){ return moonAt(t+30e3).sub(moonAt(t-30e3)).multiplyScalar(1/60); }
 function gst(t){ return AE.SiderealTime(new Date(t))*15*Math.PI/180; }
 function llE(lat,lon,r){const f=lat*Math.PI/180,l=lon*Math.PI/180;return V(r*Math.cos(f)*Math.cos(l),r*Math.sin(f),-r*Math.cos(f)*Math.sin(l));}
@@ -300,7 +302,7 @@ function prep(m){
 }
 function splashAt(m,t){ const p=llE(m.slat,m.slon,RE); return p.applyAxisAngle(V(0,1,0),gst(t)); }
 function lunarOrbit(m,t){ // posición en la órbita circular de 111 km (sentido directo, como la Luna)
-  const B=moonBasis(m.tL+m.loi*1000), r0=B.p.clone().negate().normalize().negate(); // el punto de llegada (detrás de la Luna)
+  const r0=m._r0||(m._r0=moonAt(m.tL+m.loi*1000).normalize()); // el punto de llegada (detrás de la Luna)
   const a=2*Math.PI*((t-(m.tL+m.loi*1000))/1000)/m.P, u=rotAx(r0,m.norm,a);
   return moonAt(t).addScaledVector(u,RORB); }
 MISSIONS.forEach(prep);
@@ -328,8 +330,8 @@ function lmPos(m,t){ if(!m.und) return null; const g=(t-m.tL)/1000; if(g<m.und||
 const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true,logarithmicDepthBuffer:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
 const texL=new THREE.TextureLoader();
-const earthTex=texL.load('../../cabo-canaveral/marte/tex/tierra.jpg'); earthTex.colorSpace=THREE.SRGBColorSpace; earthTex.anisotropy=8;
-const moonTex=texL.load('../tex/luna.jpg'); moonTex.colorSpace=THREE.SRGBColorSpace; moonTex.anisotropy=8;
+const earthTex=texL.load('../../tex/tierra-dia.webp'); earthTex.colorSpace=THREE.SRGBColorSpace; earthTex.anisotropy=8;
+const moonTex=texL.load('../../tex/luna.jpg'); moonTex.colorSpace=THREE.SRGBColorSpace; moonTex.anisotropy=8;
 function glowTex(stops){ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'), g=x.createRadialGradient(64,64,0,64,64,64);
   stops.forEach(s=>g.addColorStop(s[0],s[1])); x.fillStyle=g; x.fillRect(0,0,128,128); return new THREE.CanvasTexture(c); }
 const GLOW=glowTex([[0,'rgba(255,255,255,1)'],[0.25,'rgba(255,220,160,.8)'],[1,'rgba(255,140,40,0)']]);
@@ -445,7 +447,7 @@ function updateSpace(m,t){
   if(m.site){ siteDot.position.copy(onMoon(t,m.site[0],m.site[1],RM+1)); siteDot.visible=g>m.land; }
   parkOrbit.visible=g<m.tliB+3600;
   // estela de la órbita lunar
-  if(c && c.ph==='orbita'){ const pts=[]; const k0=Math.max(m.loi,g-m.P); for(let s=k0;s<=g;s+=(g-k0)/80||1) pts.push(lunarOrbit(m,m.tL+s*1000)); trail.geometry.setFromPoints(pts); trail.visible=true; } else trail.visible=false;
+  if(c && c.ph==='orbita'){ const pts=[], a1=2*Math.PI*(g-m.loi)/m.P, a0=Math.max(0,a1-2*Math.PI); for(let i=0;i<=80;i++) pts.push(rotAx(m._r0,m.norm,a0+(a1-a0)*i/80).multiplyScalar(RORB)); trail.geometry.setFromPoints(pts); trail.position.copy(B.p); trail.visible=true; } else trail.visible=false;
   return {c,lp,B}; }
 
 /* ================= ESTADO Y CONTROLES ================= */
@@ -469,8 +471,11 @@ function jump(t){ simT=t; auto=true; $('auto').setAttribute('aria-pressed','true
 function buildLog(m){ const ol=$('log'); ol.innerHTML=''; m.events.forEach(ev=>{ const li=document.createElement('li'); li.innerHTML=`<i>T${ev.g<0?'−':'+'}${get(ev.g)}</i>${ev.txt}`; li.onclick=()=>{ jump(ev.t-10e3); setSpeed(10); }; ev.li=li; ol.appendChild(li); }); }
 const p2=n=>String(Math.floor(n)).padStart(2,'0');
 const get=g=>{ const s=Math.abs(g); return `${p2(s/3600)}:${p2(s/60%60)}:${p2(s%60)}`; };
+const setT=(id,v)=>{ const e=$(id); if(e._v!==v){ e._v=v; e.textContent=v; } }; // solo toca la página si el texto cambió
 const fmt=(x,d=0)=>x.toLocaleString('es-EC',{maximumFractionDigits:d,minimumFractionDigits:d});
-function rows(a){ $('rows').innerHTML=a.map(([k,v])=>`<div class="row"><span>${k}</span><b>${v}</b></div>`).join(''); }
+let rowsT=0, rowsH='';
+function rows(a){ const now=performance.now(); if(now-rowsT<150) return; rowsT=now; // el panel se refresca ~7 veces por segundo, no en cada cuadro
+  const h=a.map(([k,v])=>`<div class="row"><span>${k}</span><b>${v}</b></div>`).join(''); if(h!==rowsH){ rowsH=h; $('rows').innerHTML=h; } }
 let toastT=0; function toast(t){ const el=$('toast'); el.textContent=t; el.hidden=false; el.style.opacity=1; clearTimeout(toastT); toastT=setTimeout(()=>{el.style.opacity=0;setTimeout(()=>el.hidden=true,450);},4200); }
 let slowDone=new Set();
 function phaseView(m,g){ if(g<m.tliB+240) return 'launch'; if(g<m.loi-1800) return 'space'; if(g<m.tei+3600) return 'moon'; if(g<m.ei-1200) return 'space'; return 'earth'; }
@@ -486,17 +491,17 @@ function loop(now){
   const g=(simT-m.tL)/1000;
   for(const s of m.slow){ if(!slowDone.has(s) && g>=s && g<s+600){ slowDone.add(s); if(speed>20){ setSpeed(10); toast('Momento clave: velocidad reducida a ×10.'); } } }
   if(auto) setView(phaseView(m,g));
-  $('met').textContent='T'+(g<0?'−':'+')+get(g); $('utc').textContent=new Date(simT).toISOString().replace('T',' ').slice(0,19)+' UTC';
+  setT('met','T'+(g<0?'−':'+')+get(g)); setT('utc',new Date(simT).toISOString().replace('T',' ').slice(0,19)+' UTC');
   let cur=null; for(const ev of m.events){ if(ev.t<=simT) cur=ev; else break; }
-  m.events.forEach(ev=>ev.li.className=ev===cur?'now':(ev.t<=simT?'past':'')); if(cur!==lastEv){ lastEv=cur; cur&&cur.li.scrollIntoView({block:'nearest'}); }
-  const evEl=$('event'); if(cur&&simT-cur.t<Math.max(40e3,speed*8e3)){ evEl.hidden=false; evEl.textContent=cur.txt; } else evEl.hidden=true;
+  if(cur!==lastEv){ lastEv=cur; m.events.forEach(ev=>ev.li.className=ev===cur?'now':(ev.t<=simT?'past':'')); cur&&cur.li.scrollIntoView({block:'nearest'}); }
+  const evEl=$('event'); if(cur&&simT-cur.t<Math.max(40e3,speed*8e3)){ evEl.hidden=false; if(evEl._v!==cur.txt){ evEl._v=cur.txt; evEl.textContent=cur.txt; } } else evEl.hidden=true;
   let scene,cam;
   const sp=updateSpace(m,simT);
   if(view==='launch'){ const st=updateLaunch(m,g); scene=S1; cam=C1; ctl1.update();
-    $('phase').textContent=g<m.ins?'Despegue · LC‑39A, Cabo Cañaveral':g<m.tliA?'Órbita de espera alrededor de la Tierra':'Inyección translunar';
-    $('teleH').textContent='Saturn V · '+m.name;
+    setT('phase',g<m.ins?'Despegue · LC‑39A, Cabo Cañaveral':g<m.tliA?'Órbita de espera alrededor de la Tierra':'Inyección translunar');
+    setT('teleH','Saturn V · '+m.name);
     rows([['Altitud',fmt(st.alt,st.alt<10?2:0)+' km'],['Velocidad',fmt(st.v*3600)+' km/h'],['Recorrido',fmt(st.dr)+' km'],['Etapa',g<m.sIC?'S‑IC (primera)':g<m.sII?'S‑II (segunda)':'S‑IVB (tercera)']]);
-    $('tnote').textContent='Tiempos de los registros de vuelo de la NASA; altura y velocidad interpoladas entre eventos.';
+    setT('tnote','Tiempos de los registros de vuelo de la NASA; altura y velocidad interpoladas entre eventos.');
     LBL.forEach(l=>l.hidden=true);
   } else { scene=S2; cam=C2; renderer.setClearColor(0);
     const c=sp.c, target = follow==='moon'?sp.B.p.clone():follow==='mid'?sp.B.p.clone().multiplyScalar(0.5):(c?c.p.clone():V(0,0,0));
@@ -507,8 +512,8 @@ function loop(now){
     const dE=c?c.p.length():0, dM=c?c.p.distanceTo(sp.B.p):0;
     const behind = c && c.ph==='orbita' && c.p.clone().sub(sp.B.p).dot(sp.B.p.clone().negate())<0;
     const rev = Math.min(m.revs,Math.floor((g-m.loi)/m.P)+1);
-    $('phase').textContent=(m.boom&&g>m.boom&&g<m.ei)?'Emergencia: el Aquarius como bote salvavidas':{ida:'Viaje a la Luna',orbita:`Órbita lunar · vuelta ${rev} de ${m.revs}`,regreso:'Regreso a la Tierra',entrada:'Entrada en la atmósfera',mar:'En el océano Pacífico'}[c?.ph]||'—';
-    $('teleH').textContent=m.name+' · '+m.csm;
+    setT('phase',(m.boom&&g>m.boom&&g<m.ei)?'Emergencia: el Aquarius como bote salvavidas':{ida:'Viaje a la Luna',orbita:`Órbita lunar · vuelta ${rev} de ${m.revs}`,regreso:'Regreso a la Tierra',entrada:'Entrada en la atmósfera',mar:'En el océano Pacífico'}[c?.ph]||'—');
+    setT('teleH',m.name+' · '+m.csm);
     let speedKm=0; if(c){ const c2=craft(m,simT+1000); if(c2) speedKm=c2.p.distanceTo(c.p); if(c.ph==='orbita') speedKm=2*Math.PI*RORB/m.P; }
     const R=[['Distancia a la Tierra',fmt(Math.max(0,dE-RE))+' km'],['Distancia a la Luna',fmt(Math.max(0,dM-RM))+' km'],['Velocidad',fmt(speedKm*3600)+' km/h']];
     if(c?.ph==='orbita'){ R.unshift(['Vuelta',`${rev} de ${m.revs} (unas 2 h cada una)`]); R.push(['Radio con la Tierra',behind?'Sin señal: detrás de la Luna':'Con señal']); }
@@ -516,7 +521,7 @@ function loop(now){
     if(m.boom&&g>m.boom&&g<m.spl) R.push(['Oxígeno del módulo de servicio','Perdido: viven del Aquarius']);
     const lp=sp.lp; if(lp && m.site){ const gg=g; R.push([m.lmName,gg<m.pdi?'En órbita, separado':gg<m.land?'Descendiendo':gg<m.lift?'En '+m.siteName:gg<m.dock?'Subiendo a la órbita':gg<m.jet?'Acoplado':'Abandonado en órbita']); }
     R.push(['Retraso de la señal',fmt(dE/299792.458,2)+' s']); rows(R);
-    $('tnote').textContent=`Trayectoria calculada con física real entre los tiempos oficiales: con las posiciones reales de la Tierra y la Luna da ${fmt(m.vtli,2)} km/s al terminar la TLI (real: 10,8) y ${fmt(m.vEI,2)} km/s al entrar en la atmósfera (real: 11,0). No es la telemetría cruda.`;
+    setT('tnote',`Trayectoria calculada con física real entre los tiempos oficiales: con las posiciones reales de la Tierra y la Luna da ${fmt(m.vtli,2)} km/s al terminar la TLI (real: 10,8) y ${fmt(m.vEI,2)} km/s al entrar en la atmósfera (real: 11,0). No es la telemetría cruda.`);
     place(LBL[0],earth2.position,C2,true); place(LBL[1],sp.B.p,C2,true); LBL[2].textContent={a8:'Apollo 8',a11:'Columbia',a12:'Yankee Clipper',a13:'Odyssey + Aquarius',a14:'Kitty Hawk',a15:'Endeavour',a16:'Casper',a17:'America'}[m.id]; place(LBL[2],csmDot.position,C2,csmDot.visible);
     LBL[3].textContent=m.lmName||''; place(LBL[3],lmDot.position,C2,lmDot.visible && view==='moon');
     place(LBL[4],splashDot.getWorldPosition(new THREE.Vector3()),C2,view==='earth'); LBL[5].textContent=m.siteName||''; place(LBL[5],siteDot.position,C2,siteDot.visible&&view==='moon'&&!lmDot.visible);

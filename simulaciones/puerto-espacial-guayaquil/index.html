@@ -1,5 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
 <title>Puerto Espacial Guayaquil</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -355,9 +356,9 @@ button{cursor:pointer}
 </div>
 
 <script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
-<script id="tex-earth" type="text/plain">tierra.jpg</script>
+<script id="tex-earth" type="text/plain">tierra.webp</script>
 <script>
 // ===== Física de la misión (SI). Plano inercial 2D: x hacia el sitio en T=0, y hacia el este =====
 const G0 = 9.80665;
@@ -2050,7 +2051,7 @@ const RE_KM = R_E / 1000, RM_KM = R_M / 1000;
   G.earth = new THREE.Group(); sc.add(G.earth);
   const loadTex = (id) => { const t = new THREE.TextureLoader().load(document.getElementById(id).textContent.trim()); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; return t; };
   // Tierra: Blue Marble de la NASA; en el lado nocturno se encienden las luces de las ciudades (Black Marble)
-  const earthMat = new THREE.MeshPhongMaterial({ map: loadTex('tex-earth'), specular: 0x2a3a50, shininess: 18, emissive: 0xffc890, emissiveMap: (() => { const t = new THREE.TextureLoader().load('tierra-noche.jpg'); t.colorSpace = THREE.SRGBColorSpace; return t; })(), emissiveIntensity: 1.6 });
+  const earthMat = new THREE.MeshPhongMaterial({ map: loadTex('tex-earth'), specular: 0x2a3a50, shininess: 18, emissive: 0xffc890, emissiveMap: (() => { const t = new THREE.TextureLoader().load('tierra-noche.webp'); t.colorSpace = THREE.SRGBColorSpace; return t; })(), emissiveIntensity: 1.6 });
   earthMat.onBeforeCompile = sh => {
     sh.uniforms.uSunW = { value: SUN3 };
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWN;').replace('#include <defaultnormal_vertex>', '#include <defaultnormal_vertex>\nvWN = normalize(mat3(modelMatrix) * objectNormal);');
@@ -2080,8 +2081,8 @@ const RE_KM = R_E / 1000, RM_KM = R_M / 1000;
   // Luna
   // Luna: mapa de color del orbitador LRO (NASA, CGI Moon Kit) con su relieve; la cara visible (longitud 0) mira a la Tierra
   const moonGeo = new THREE.SphereGeometry(RM_KM, 160, 120); moonGeo.rotateY(-Math.PI / 2);
-  const moonMap = new THREE.TextureLoader().load('luna.jpg'); moonMap.colorSpace = THREE.SRGBColorSpace; moonMap.anisotropy = maxAniso;
-  const moonBump = new THREE.TextureLoader().load('luna-relieve.jpg');
+  const moonMap = new THREE.TextureLoader().load('luna.webp'); moonMap.colorSpace = THREE.SRGBColorSpace; moonMap.anisotropy = maxAniso;
+  const moonBump = new THREE.TextureLoader().load('luna-relieve.webp');
   G.moon = new THREE.Mesh(moonGeo, new THREE.MeshPhongMaterial({ map: moonMap, bumpMap: moonBump, bumpScale: 3.5, shininess: 2, specular: 0x0a0a0a }));
   sc.add(G.moon);
   G.stars = makeStars(5e7, 5000, 1.5); sc.add(G.stars);

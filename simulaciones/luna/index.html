@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
 <title>Misiones en la Luna</title>
 <meta name="description" content="Mapa interactivo de la cara visible de la Luna: sus mares y todos los lugares donde llegaron naves, con las misiones en 3D, su historia y la animación del alunizaje.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -113,7 +114,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 </section>
 <div class="hint panel" id="hint">Arrastra para girar la Luna · toca un punto para ver la misión</div>
 
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -239,7 +240,7 @@ const CAT=[['crew','Con astronautas (Apollo)','Las 6 misiones que llevaron a 12 
 const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
 const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(40,1,0.01,1000);
-const tex=new THREE.TextureLoader().load('tex/luna.jpg'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+const tex=new THREE.TextureLoader().load('../tex/luna.jpg'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
 const moon=new THREE.Mesh(new THREE.SphereGeometry(1,128,96),new THREE.MeshStandardMaterial({map:tex,roughness:1})); scene.add(moon);
 { const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<3000;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(300);p.push(v.x,v.y,v.z);} g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.3,sizeAttenuation:false}))); }
 const sunL=new THREE.DirectionalLight(0xffffff,2.0); scene.add(sunL); scene.add(new THREE.AmbientLight(0x8a90a0,1.4));
@@ -406,7 +407,7 @@ function stopAnim(){ anim=null; $('hud').hidden=true; $('anim').hidden=true; rct
 /* ============ BUCLE ============ */
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
-const tmp=new THREE.Vector3(); let last=performance.now();
+const tmp=new THREE.Vector3(), camLast=new THREE.Vector3(); let last=performance.now(), selLast=null, sizeLast=0;
 function vis(p){ return p.clone().normalize().dot(cam.position.clone().sub(p).normalize())>0.08; }
 function loop(t){
   requestAnimationFrame(loop); const dt=Math.min(0.1,(t-last)/1000); last=t;
@@ -414,9 +415,11 @@ function loop(t){
     cam.position.copy(fly.from).normalize().lerp(fly.to.clone().normalize(),u).normalize().multiplyScalar(len); if(fly.t>=1) fly=null; }
   ctl.update(); sunL.position.copy(cam.position).applyAxisAngle(new THREE.Vector3(0,1,0),0.7).multiplyScalar(10);
   const far=cam.position.length()>2.0;
-  SITES.forEach(s=>{ tmp.copy(s.sp.position); const v=vis(tmp); s.sp.visible=v; const k=s===sel?1.4+0.3*Math.sin(t/250):1; s.sp.scale.setScalar(0.028*k*cam.position.length()/3.6);
+  const moved=!camLast.equals(cam.position)||selLast!==sel||sizeLast!==innerWidth*innerHeight; camLast.copy(cam.position); selLast=sel; sizeLast=innerWidth*innerHeight;
+  if(sel) sel.sp.scale.setScalar(0.028*(1.4+0.3*Math.sin(t/250))*cam.position.length()/3.6);
+  if(moved) SITES.forEach(s=>{ tmp.copy(s.sp.position); const v=vis(tmp); s.sp.visible=v; const k=s===sel?1.4+0.3*Math.sin(t/250):1; s.sp.scale.setScalar(0.028*k*cam.position.length()/3.6);
     if(!v){ s.lbl.hidden=true; return; } tmp.project(cam); s.lbl.hidden=far && s!==sel && s.g!=='crew'; s.lbl.style.left=((tmp.x+1)/2*innerWidth)+'px'; s.lbl.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
-  mareEls.forEach(m=>{ if(!vis(m.p)){ m.el.hidden=true; return; } tmp.copy(m.p).project(cam); m.el.hidden=false; m.el.style.left=((tmp.x+1)/2*innerWidth)+'px'; m.el.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
+  if(moved) mareEls.forEach(m=>{ if(!vis(m.p)){ m.el.hidden=true; return; } tmp.copy(m.p).project(cam); m.el.hidden=false; m.el.style.left=((tmp.x+1)/2*innerWidth)+'px'; m.el.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
   renderer.render(scene,cam);
   if(!$('card').hidden && !rc.hidden){ const w=rc.clientWidth,h=rc.clientHeight; if(rc.width!==Math.floor(w*rr.getPixelRatio())){ rr.setSize(w,h,false); rcam.aspect=w/h; rcam.updateProjectionMatrix(); }
     if(anim){ const prevX=lm.position.clone(); anim.t=Math.min(anim.P.td+(anim.P.kind==='luna9'?260:20),anim.t+dt*aSpeed); const p=setPose(anim.t,anim.P);

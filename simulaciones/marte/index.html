@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
 <title>Robots en Marte</title>
 <meta name="description" content="Mapa interactivo de Marte con todos los lugares donde llegaron naves de la Tierra, los robots en 3D, cómo funcionan y su historia, y el catálogo de todas las misiones a Marte.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -106,7 +107,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 </section>
 <div class="hint panel" id="hint">Arrastra para girar Marte · toca un punto para ver su robot</div>
 
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -271,7 +272,7 @@ const CAT=[
 const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
 const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(40,1,0.01,1000);
-const R=1, tex=new THREE.TextureLoader().load(SIM+'tex/marte.jpg'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+const R=1, tex=new THREE.TextureLoader().load('../tex/marte.webp'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
 const mars=new THREE.Mesh(new THREE.SphereGeometry(R,128,96),new THREE.MeshStandardMaterial({map:tex,roughness:1})); scene.add(mars);
 scene.add(new THREE.Mesh(new THREE.SphereGeometry(R*1.025,64,48),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending,
   vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vP=p.xyz;gl_Position=projectionMatrix*p;}',
@@ -429,13 +430,15 @@ function buildLander(ins){ // módulo fijo tipo Phoenix / InSight
 /* ============ BUCLE ============ */
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
-const tmp=new THREE.Vector3();
+const tmp=new THREE.Vector3(), camLast=new THREE.Vector3(); let selLast=null, sizeLast=0;
 function loop(t){
   requestAnimationFrame(loop);
   if(fly){ fly.t=Math.min(1,fly.t+0.02); const u=fly.t*fly.t*(3-2*fly.t); const len=THREE.MathUtils.lerp(fly.from.length(),fly.to.length(),u);
     cam.position.copy(fly.from).normalize().lerp(fly.to.clone().normalize(),u).normalize().multiplyScalar(len); if(fly.t>=1) fly=null; }
   ctl.update(); sunL.position.copy(cam.position).applyAxisAngle(new THREE.Vector3(0,1,0),0.6).multiplyScalar(10);
-  SITES.forEach(s=>{ tmp.copy(s.sp.position); const vis=tmp.clone().normalize().dot(cam.position.clone().sub(tmp).normalize())>0.08; s.sp.visible=vis;
+  const moved=!camLast.equals(cam.position)||selLast!==sel||sizeLast!==innerWidth*innerHeight; camLast.copy(cam.position); selLast=sel; sizeLast=innerWidth*innerHeight;
+  if(sel) sel.sp.scale.setScalar(0.035*(1.4+0.3*Math.sin(t/250))*cam.position.length()/3.6);
+  if(moved) SITES.forEach(s=>{ tmp.copy(s.sp.position); const vis=tmp.clone().normalize().dot(cam.position.clone().sub(tmp).normalize())>0.08; s.sp.visible=vis;
     const k=s===sel?1.4+0.3*Math.sin(t/250):1; s.sp.scale.setScalar(0.035*k*cam.position.length()/3.6);
     if(!vis){ s.lbl.hidden=true; return; } tmp.project(cam); s.lbl.hidden=false; s.lbl.style.left=((tmp.x+1)/2*innerWidth)+'px'; s.lbl.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
   renderer.render(scene,cam);

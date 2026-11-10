@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
 <title>Rumbo a Marte</title>
 <meta name="description" content="Las cinco últimas misiones que despegaron de Cabo Cañaveral y dejaron robots en Marte: despegue, viaje interplanetario, entrada y aterrizaje, con reloj real y aceleración del tiempo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -128,7 +129,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -293,8 +294,8 @@ const canvas=$('gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,logarithmicDepthBuffer:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
 const texL=new THREE.TextureLoader();
-const earthTex=texL.load('tex/tierra.jpg'); earthTex.colorSpace=THREE.SRGBColorSpace; earthTex.anisotropy=8;
-const marsTex=texL.load('tex/marte.jpg'); marsTex.colorSpace=THREE.SRGBColorSpace; marsTex.anisotropy=8;
+const earthTex=texL.load('../../tex/tierra-dia.webp'); earthTex.colorSpace=THREE.SRGBColorSpace; earthTex.anisotropy=8;
+const marsTex=texL.load('../../tex/marte.webp'); marsTex.colorSpace=THREE.SRGBColorSpace; marsTex.anisotropy=8;
 const RE=6371, RM=3389.5;
 // mapa equirectangular de la Tierra: borde izquierdo en −180°; de Marte: borde izquierdo en 0° E
 const llE=(lat,lon,r)=>{const f=lat*Math.PI/180,l=lon*Math.PI/180;return new THREE.Vector3(r*Math.cos(f)*Math.cos(l),r*Math.sin(f),-r*Math.cos(f)*Math.sin(l));};
@@ -684,8 +685,11 @@ const pad2=n=>String(Math.floor(n)).padStart(2,'0');
 function hms(s){ s=Math.abs(s); const d=Math.floor(s/86400); s-=d*86400; return (d?d+' d ':'')+pad2(s/3600)+':'+pad2(s/60%60)+':'+pad2(s%60); }
 function relLabel(m,t){ if(t<m.tSep+600e3) return 'T'+(t<m.tL?'−':'+')+hms((t-m.tL)/1000);
   if(t<m.tEDL) return 'Día '+Math.floor((t-m.tSep)/864e5)+' del viaje'; return 'E'+(t<m.tEntry?'−':'+')+hms((t-m.tEntry)/1000); }
+const setT=(id,v)=>{ const e=$(id); if(e._v!==v){ e._v=v; e.textContent=v; } }; // solo toca la página si el texto cambió
 const fmt=(x,d=0)=>x.toLocaleString('es-EC',{maximumFractionDigits:d,minimumFractionDigits:d});
-function rows(arr){ $('rows').innerHTML=arr.map(([a,b])=>`<div class="row"><span>${a}</span><b>${b}</b></div>`).join(''); }
+let rowsT=0, rowsH='';
+function rows(arr){ const now=performance.now(); if(now-rowsT<150) return; rowsT=now; // el panel se refresca ~7 veces por segundo, no en cada cuadro
+  const h=arr.map(([a,b])=>`<div class="row"><span>${a}</span><b>${b}</b></div>`).join(''); if(h!==rowsH){ rowsH=h; $('rows').innerHTML=h; } }
 let toastT=0; function toast(t){ const el=$('toast'); el.textContent=t; el.hidden=false; el.style.opacity=1; clearTimeout(toastT); toastT=setTimeout(()=>{el.style.opacity=0;setTimeout(()=>el.hidden=true,450);},4200); }
 let slowed=false, lastEv=null;
 
@@ -706,35 +710,34 @@ function loop(now){
   const tS=(simT-m.tL)/1000, tE=(simT-m.tEntry)/1000;
   // reloj
   const pName={launch:'Despegue · '+m.pad,cruise:'Viaje interplanetario',edl:'Entrada, descenso y aterrizaje',mars:'En la superficie de Marte'}[ph];
-  $('phase').textContent=pName; $('met').textContent=relLabel(m,simT);
-  $('utc').textContent=new Date(simT).toISOString().replace('T',' ').slice(0,19)+' UTC';
+  setT('phase',pName); setT('met',relLabel(m,simT));
+  setT('utc',new Date(simT).toISOString().replace('T',' ').slice(0,19)+' UTC');
   // evento actual
   let cur=null; for(const ev of m.events){ if(ev.t<=simT) cur=ev; else break; }
-  m.events.forEach(ev=>{ ev.li.className= ev===cur?'now':(ev.t<=simT?'past':''); });
-  if(cur!==lastEv){ lastEv=cur; if(cur && cur.li){ cur.li.scrollIntoView({block:'nearest'}); } }
-  const evEl=$('event'); if(cur && simT-cur.t<(ph==='cruise'?86400e3*3:40e3)*Math.max(1,speed/10)){ evEl.hidden=false; evEl.textContent=cur.txt; } else evEl.hidden=true;
+  if(cur!==lastEv){ lastEv=cur; m.events.forEach(ev=>{ ev.li.className= ev===cur?'now':(ev.t<=simT?'past':''); }); if(cur && cur.li){ cur.li.scrollIntoView({block:'nearest'}); } }
+  const evEl=$('event'); if(cur && simT-cur.t<(ph==='cruise'?86400e3*3:40e3)*Math.max(1,speed/10)){ evEl.hidden=false; if(evEl._v!==cur.txt){ evEl._v=cur.txt; evEl.textContent=cur.txt; } } else evEl.hidden=true;
   // escenas
   let scene,cam,ctl;
   if(view==='launch'){ const st=updateLaunch(m,tS); scene=S1; cam=C1; ctl=ctl1;
-    $('teleH').textContent='Telemetría del cohete · '+m.rocketName;
+    setT('teleH','Telemetría del cohete · '+m.rocketName);
     rows([['Altitud',fmt(st.alt,st.alt<10?2:0)+' km'],['Velocidad',fmt(st.v*3600)+' km/h'],['Recorrido sobre la Tierra',fmt(st.dr)+' km'],['Plataforma',m.pad+', '+(m.base||'Cabo Cañaveral')]]);
-    $('tnote').textContent='Perfil de ascenso nominal aproximado (interpolado entre eventos publicados).';
+    setT('tnote','Perfil de ascenso nominal aproximado (interpolado entre eventos publicados).');
   } else if(view==='cruise'){ const st=updateCruise(m,Math.max(simT,m.tSep)); scene=S2; cam=C2; ctl=ctl2;
-    $('teleH').textContent='Viaje · '+m.full;
+    setT('teleH','Viaje · '+m.full);
     rows([['Día del viaje',fmt(st.day,1)+' de '+fmt(m.cruiseDays,0)],['Distancia a la Tierra',fmt(st.dE)+' km'],['Distancia a Marte',fmt(st.dM)+' km'],['Distancia al Sol',fmt(st.dSun/AU_KM,3)+' UA'],
       ['Velocidad (respecto al Sol)',fmt(st.v*3600)+' km/h'],['Retraso de la señal',fmt(st.dE/C_KMS/60,1)+' min'],['Camino total',fmt(m.pathKm/1e6)+' millones de km']]);
-    $('tnote').textContent=`Trayectoria calculada (Lambert) con las posiciones reales de la Tierra y Marte. Energía de lanzamiento calculada C3 = ${fmt(m.c3,1)} km²/s².`;
+    setT('tnote',`Trayectoria calculada (Lambert) con las posiciones reales de la Tierra y Marte. Energía de lanzamiento calculada C3 = ${fmt(m.c3,1)} km²/s².`);
   } else { const tEe=view==='mars'?Math.max(tE,m.prof.td+4000):tE;
     if(view==='edl'){ const st=updateEDL(m,tE); scene=S3; cam=C3; ctl=ctl3;
-      $('teleH').textContent='Llegada · '+m.name+' → '+m.site;
+      setT('teleH','Llegada · '+m.name+' → '+m.site);
       rows([['Altitud',st.alt>=1?fmt(st.alt,1)+' km':fmt(st.alt*1000,0)+' m'],['Velocidad',fmt(st.v*3600)+' km/h'],['Tiempo desde la entrada',(tE<0?'−':'+')+hms(tE)],
         ['La Tierra lo ve',fmt(m.owlt/60,1)+' min después'],['Masa del '+(m.edl==='retro'?'módulo':'rover'),m.mass]]);
-      $('tnote').textContent='Valores nominales aproximados de los kits de prensa. Cuando la señal llegó a la Tierra, el vehículo ya estaba en el suelo: los "7 minutos de terror".';
+      setT('tnote','Valores nominales aproximados de los kits de prensa. Cuando la señal llegó a la Tierra, el vehículo ya estaba en el suelo: los "7 minutos de terror".');
     } else { V3.visible=false; scene=S3; cam=C3; ctl=ctl3; renderer.setClearColor(0x000000);
-      $('teleH').textContent=m.name+' · '+m.site;
+      setT('teleH',m.name+' · '+m.site);
       const sol=Math.max(0,(simT-m.tTouch)/88775244);
       rows([['Coordenadas',fmt(Math.abs(m.slat),2)+'° '+(m.slat>=0?'N':'S')+', '+fmt(m.slon,2)+'° E'],['Aterrizó',new Date(m.tTouch).toISOString().slice(0,16).replace('T',' ')+' UTC'],['Sol (día marciano)',fmt(sol,1)],['Viaje',fmt(m.cruiseDays,0)+' días']]);
-      $('tnote').innerHTML=`<div class="info"><p>${m.find}</p><p><b>Estado:</b> ${m.status}</p></div>`;
+      { const e=$('tnote'), h=`<div class="info"><p>${m.find}</p><p><b>Estado:</b> ${m.status}</p></div>`; if(e._v!==h){ e._v=h; e.innerHTML=h; } }
     }
     if(view==='mars'){ marsG.rotation.y=0; }
     V3.visible = view==='edl';
