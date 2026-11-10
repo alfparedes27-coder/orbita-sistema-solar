@@ -273,7 +273,7 @@ const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
 const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(40,1,0.01,1000);
 const R=1, tex=new THREE.TextureLoader().load('../tex/marte.webp'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
-const mars=new THREE.Mesh(new THREE.SphereGeometry(R,128,96),new THREE.MeshStandardMaterial({map:tex,roughness:1})); scene.add(mars);
+const mars=new THREE.Mesh(new THREE.SphereGeometry(R,128,96),new THREE.MeshStandardMaterial({map:tex,roughness:1,bumpMap:tex,bumpScale:2.5})); scene.add(mars);
 scene.add(new THREE.Mesh(new THREE.SphereGeometry(R*1.025,64,48),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending,
   vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vP=p.xyz;gl_Position=projectionMatrix*p;}',
   fragmentShader:'varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(-vP),vN)),3.0);gl_FragColor=vec4(1.0,0.6,0.38,1.0)*f;}'})));
@@ -318,7 +318,7 @@ function openCard(s){
   $('robo').hidden=!I;
   if(!I){ $('cbody').innerHTML=`<div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${fc(s)}</b></div>
     <div class="soon">La ficha completa de ${s.name} (modelo 3D, cómo funciona, historia y animación del aterrizaje) se agregará en las próximas tandas.</div>`; return; }
-  buildRobot(s.model);
+  buildRobot(s.model); castAll(robot);
   let h='';
   if(tab==='how') h=I.how;
   if(tab==='story') h=I.story;
@@ -331,14 +331,16 @@ $('close').onclick=()=>{ $('card').hidden=true; sel=null; SITES.forEach(x=>x.lbl
 
 /* ---- visor 3D del robot ---- */
 const rc=$('robo'), rr=new THREE.WebGLRenderer({canvas:rc,antialias:true}); rr.setPixelRatio(Math.min(2,devicePixelRatio)); rr.outputColorSpace=THREE.SRGBColorSpace;
+rr.shadowMap.enabled=true; rr.shadowMap.type=THREE.PCFSoftShadowMap;
+const castAll=g=>g.traverse(o=>{ if(o.isMesh && !(o.material.blending===THREE.AdditiveBlending)) o.castShadow=true; });
 const rs=new THREE.Scene(); rs.background=new THREE.Color(0xc79a74); rs.fog=new THREE.Fog(0xc79a74,9,22);
 const rcam=new THREE.PerspectiveCamera(35,1,0.05,100); rcam.position.set(5.2,2.6,5.2);
 const rctl=new OrbitControls(rcam,rc); rctl.enableDamping=true; rctl.target.set(0,0.9,0); rctl.autoRotate=true; rctl.autoRotateSpeed=1.2; rctl.minDistance=2.5; rctl.maxDistance=12; rctl.maxPolarAngle=1.5;
-rs.add(new THREE.HemisphereLight(0xffe6cc,0x6b3a22,1.3)); const rl=new THREE.DirectionalLight(0xfff0dd,2.4); rl.position.set(4,7,3); rs.add(rl);
+rs.add(new THREE.HemisphereLight(0xffe6cc,0x6b3a22,1.3)); const rl=new THREE.DirectionalLight(0xfff0dd,2.4); rl.position.set(4,7,3); rs.add(rl); rl.castShadow=true; rl.shadow.mapSize.set(1024,1024); rl.shadow.camera.left=rl.shadow.camera.bottom=-7; rl.shadow.camera.right=rl.shadow.camera.top=7; rl.shadow.camera.far=60; rl.shadow.bias=-0.0008; rl.shadow.normalBias=0.03;
 { const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d'); x.fillStyle='#a8673f'; x.fillRect(0,0,256,256);
   for(let i=0;i<3000;i++){const r=Math.random();x.fillStyle=`rgba(${110+r*80|0},${55+r*45|0},${30+r*30|0},.4)`;x.fillRect(Math.random()*256,Math.random()*256,2+Math.random()*5,2+Math.random()*5);}
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(8,8); t.colorSpace=THREE.SRGBColorSpace;
-  const gnd=new THREE.Mesh(new THREE.CircleGeometry(30,64),new THREE.MeshStandardMaterial({map:t,roughness:1})); gnd.rotation.x=-Math.PI/2; rs.add(gnd);
+  const gnd=new THREE.Mesh(new THREE.CircleGeometry(30,64),new THREE.MeshStandardMaterial({map:t,roughness:1})); gnd.rotation.x=-Math.PI/2; gnd.receiveShadow=true; rs.add(gnd);
   const rk=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.12,0),new THREE.MeshStandardMaterial({color:0x6e3f26,roughness:1}),120), m=new THREE.Matrix4();
   for(let i=0;i<120;i++){const a=Math.random()*7,d=2.2+Math.random()*10,s=0.3+Math.random()*1.5; m.compose(new THREE.Vector3(Math.cos(a)*d,0.03,Math.sin(a)*d),new THREE.Quaternion().random(),new THREE.Vector3(s,s*0.6,s)); rk.setMatrixAt(i,m);} rs.add(rk); }
 const robot=new THREE.Group(); rs.add(robot);

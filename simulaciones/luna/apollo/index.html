@@ -417,7 +417,7 @@ function updateLaunch(m,g){
 const S2=new THREE.Scene(), C2=new THREE.PerspectiveCamera(45,1,1,5e7);
 S2.add(stars(5000,3e7)); S2.add(new THREE.AmbientLight(0x30343c,0.9)); const sun2=new THREE.DirectionalLight(0xffffff,2.6); S2.add(sun2);
 const earth2=new THREE.Mesh(new THREE.SphereGeometry(RE,96,64),new THREE.MeshPhongMaterial({map:earthTex,shininess:8})); S2.add(earth2); S2.add(atmoShell(RE*1.02,0x5a99ff));
-const moon2=new THREE.Mesh(new THREE.SphereGeometry(RM,128,96),new THREE.MeshStandardMaterial({map:moonTex,roughness:1})); moon2.matrixAutoUpdate=false; S2.add(moon2);
+const moon2=new THREE.Mesh(new THREE.SphereGeometry(RM,128,96),new THREE.MeshStandardMaterial({map:moonTex,roughness:1,bumpMap:moonTex,bumpScale:4})); moon2.matrixAutoUpdate=false; S2.add(moon2);
 const moonOrbit=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x8899aa,transparent:true,opacity:0.35})); S2.add(moonOrbit);
 const pathOut=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x6fd3ff})); S2.add(pathOut);
 const pathBack=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xffb05a})); S2.add(pathBack);

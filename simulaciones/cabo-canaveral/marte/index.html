@@ -494,7 +494,7 @@ function updateCruise(m,t){
 
 /* ================= ESCENA 3: MARTE (llegada y superficie) ================= */
 const S3=new THREE.Scene(), C3=new THREE.PerspectiveCamera(50,1,0.0005,1e6);
-const marsG=new THREE.Mesh(new THREE.SphereGeometry(RM,320,200),new THREE.MeshStandardMaterial({map:marsTex,roughness:1,metalness:0})); S3.add(marsG);
+const marsG=new THREE.Mesh(new THREE.SphereGeometry(RM,320,200),new THREE.MeshStandardMaterial({map:marsTex,roughness:1,metalness:0,bumpMap:marsTex,bumpScale:3})); S3.add(marsG);
 const matmo=new THREE.Mesh(new THREE.SphereGeometry(RM*1.012,96,64),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending,
   vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vP=p.xyz;gl_Position=projectionMatrix*p;}',
   fragmentShader:'varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(-vP),vN)),3.0);gl_FragColor=vec4(1.0,0.62,0.4,1.0)*f*0.9;}'}));
