@@ -139,7 +139,9 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { $, A, BORE, D2R, DM, FD, FM, G, MG, MTrunk, MU_E, RE, UI, WATER_URI, applyQuality, atmo, beacon, black, bloom, buckle, buttons, cabin, callout, cam, camHome, canvas, canvasTex, capMeshes, clamp, clock, composer, coverMeshes, craftQ, cushMat, darkMetal, detached, duskCol, earth, earthMat, ecam, emit, engLight, envCabin, envSpace, ext, extModel, fabric, far, farRoot, fbm, fcam, fh, fmtClock, fmtNum, gLocal, gcam, glassMat, glowCol, grade, ground, hemiN, hemiSkyPad, hemiSkySpace, hullTex, img, lathe, lerp, metal, moon, ndc, near, normalTex, orbitE, panel, pick, plume, plush, ptrs, qTmp, quiltN, ray, renderer, resize, ringMesh, rpFar, rpGround, rpNear, scr, screenMeshes, setSunFrustum, setTag, shellMat, skyCol, skyLow, smoke, smooth, spaceCol, stage1, stars, steel, strapMat, sun, sunDir, sunDirL, sunLight, tmpV, toast, uM, upper, vent, winCenters, worldToCabin, wrapText } from '../../cabina/comun.js';
+import { $, A, BORE, D2R, DM, FD, FM, G, MG, MTrunk, MU_E, RE, UI, WATER_URI, applyQuality, atmo, beacon, black, bloom, buckle, buttons, cabin, callout, cam, camHome, canvas, canvasTex, capMeshes, clamp, clock, composer, coverMeshes, craftQ, cushMat, darkMetal, detached, duskCol, earth, earthMat, ecam, emit, engLight, envCabin, envSpace, ext, extModel, fabric, far, farRoot, fbm, fcam, fh, fmtClock, fmtNum, gLocal, gcam, glassMat, glowCol, grade, ground, hemiN, hemiSkyPad, hemiSkySpace, hullTex, img, lathe, lerp, metal, moon, ndc, near, normalTex, orbitE, panel, pick, plume, plush, ptrs, qTmp, quiltN, ray, renderer, resize, ringMesh, rpFar, rpGround, rpNear, scr, screenMeshes, setPadSky, setSunFrustum, setTag, shellMat, skyCol, skyLow, smoke, smooth, spaceCol, stage1, stars, steel, strapMat, sun, sunDir, sunDirL, sunLight, tmpV, toast, uM, upper, vent, winCenters, worldToCabin, wrapText } from '../../cabina/comun.js';
+setPadSky({elev:7,az:112,turbidity:2,rayleigh:1.0,sun:0xffd2a0,intensity:2.4,hemiSky:0x9db6e8,hemiGround:0x8f7c58,hemi:.4});   // Baikonur: amanecer frío y seco sobre la estepa, Sol bajo al este
+const PAD_EXPOSURE=0.3, PAD_BLOOM=0.3;   // exposición y resplandor de la escena de la plataforma (hay luz de día: menos que en el ocaso de Guayaquil)
 const T={IGN:-15,MAXQ:70,LES:113,BECO:116,BSEP:118,SIDESEP:118,FAIR:153,SES1:285,MECO:287,CSEP:287,STAGESEP:287,TAIL:295,SECO:526,SEP:529,SECO1:529,DOCK:11057,TLI:1e9,SECO2:1e9};
 T.FLYBY=T.DOCK;
 const ASC=[[0,0,0,0],[30,1.5,.1,.12],[60,8,1.5,.35],[90,20,6,.75],[118,40,15,1.6],[153,62,35,2.0],[200,95,80,2.6],[287,155,230,3.9],[350,180,380,4.8],[420,195,620,6.0],[480,205,900,7.0],[529,210,1150,7.83]];
@@ -350,92 +352,154 @@ const earthQ0=(()=>{const lat=45.96*D2R,lon=63.56*D2R,ph=lon+Math.PI;
   const q=new THREE.Quaternion().setFromUnitVectors(up,new THREE.Vector3(0,1,0));
   const e=east.applyQuaternion(q); const ang=Math.atan2(-e.z,e.x);
   return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),ang).multiply(q);})();
+// ===== Interior del módulo de descenso de la Soyuz MS =====
+// Referencias: fotos de cabina de las Soyuz MS (Roscosmos/NASA), consola Neptun‑ME, asientos Kazbek‑UM, periscopio VSK‑4 «Vzor».
+// Es un espacio en forma de campana de 2,2 m de diámetro: tres cosmonautas acostados con las rodillas dobladas, mirando
+// a una consola gris con dos pantallas, teclado y filas de interruptores; cables y bolsas de lona por todas partes.
 const IN_PROF=[[1.0,-.9],[1.08,-.62],[1.08,-.2],[1.0,.2],[.86,.6],[.68,.95],[.5,1.15],[.38,1.22],[.36,1.24],[.36,1.4]];
 function inR(y){for(let i=1;i<9;i++){if(y<=IN_PROF[i][1]){const a=IN_PROF[i-1],b=IN_PROF[i],u=(y-a[1])/(b[1]-a[1]);return lerp(a[0],b[0],u);}}return .5;}
 const WIN_U=[.25,.75], WIN_Y=.32;
 const vOf=(()=>{const j0=3,j1=4,u=(WIN_Y-IN_PROF[j0][1])/(IN_PROF[j1][1]-IN_PROF[j0][1]);return (j0+u)/(IN_PROF.length-1);})();
-const wallCol=canvasTex(256,256,(x,w,h)=>{const id=x.createImageData(w,h),d=id.data;for(let j=0;j<h;j++)for(let i=0;i<w;i++){const n=fbm(i/2.5,j/2.5,3),k=(j*w+i)*4,v=236+n*12;d[k]=v-12;d[k+1]=v-16;d[k+2]=v-44;d[k+3]=255;}x.putImageData(id,0,0);});
-wallCol.wrapS=wallCol.wrapT=THREE.RepeatWrapping;
-wallCol.repeat.set(12,4);
-const winAlpha=canvasTex(2048,1024,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#000';for(const u of WIN_U){x.beginPath();x.ellipse(u*w,(1-vOf)*h,30,24,0,0,7);x.fill();}},false);
-const wallMat=new THREE.MeshStandardMaterial({map:wallCol,normalMap:quiltN,normalScale:new THREE.Vector2(.45,.45),alphaMap:winAlpha,alphaTest:.5,side:THREE.BackSide,shadowSide:THREE.DoubleSide,roughness:.8,envMapIntensity:1.5});
-const wall=new THREE.Mesh(lathe(IN_PROF,128),wallMat);
-wall.castShadow=true;
-wall.receiveShadow=true;
-cabin.add(wall);
+// materiales propios de la Soyuz
+const M_SOY_WALL=(()=>{ // paneles acolchados verde grisáceo con costuras, un poco sucios
+  const col=canvasTex(512,512,(x,w,h)=>{const id=x.createImageData(w,h),d=id.data;for(let j=0;j<h;j++)for(let i=0;i<w;i++){const n=fbm(i/9,j/9,4),g=fbm(i/70,j/70,2),k=(j*w+i)*4;
+    d[k]=150+n*26-g*22;d[k+1]=158+n*26-g*18;d[k+2]=138+n*22-g*20;d[k+3]=255;}x.putImageData(id,0,0);
+    x.strokeStyle='rgba(60,70,55,.55)';x.lineWidth=3;for(let i=0;i<=4;i++){x.beginPath();x.moveTo(i*128,0);x.lineTo(i*128,h);x.stroke();}for(let j=0;j<=4;j++){x.beginPath();x.moveTo(0,j*128);x.lineTo(w,j*128);x.stroke();}});
+  col.wrapS=col.wrapT=THREE.RepeatWrapping; col.repeat.set(6,3);
+  const nm=normalTex(256,256,(x,y)=>{const t=128,lx=x%t,ly=y%t,de=Math.min(lx,t-lx,ly,t-ly);return smooth(0,14,de)*2.2+fbm(x/4,y/4,3)*.5;},1,[6,3]);
+  const winAlpha=canvasTex(2048,1024,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#000';for(const u of WIN_U){x.beginPath();x.ellipse(u*w,(1-vOf)*h,30,24,0,0,7);x.fill();}},false);
+  return new THREE.MeshStandardMaterial({map:col,normalMap:nm,normalScale:new THREE.Vector2(.6,.6),alphaMap:winAlpha,alphaTest:.5,side:THREE.BackSide,shadowSide:THREE.DoubleSide,roughness:.9,metalness:0,envMapIntensity:.6});
+})();
+const M_GREY=new THREE.MeshStandardMaterial({color:0x9aa39b,roughness:.55,metalness:.3});          // consola y cajas de equipo (gris verdoso soviético)
+const M_GREY_D=new THREE.MeshStandardMaterial({color:0x5c6660,roughness:.6,metalness:.35});
+const M_OLIVE=new THREE.MeshStandardMaterial({color:0x4f5a3f,roughness:.95,normalMap:normalTex(128,128,(x,y)=>fbm(x/2,y/2,3)*2,1,[3,3])}); // lona de bolsas y fundas
+const M_LINER=new THREE.MeshStandardMaterial({color:0x3a3f3a,roughness:.85,normalMap:normalTex(128,128,(x,y)=>fbm(x/2,y/2,3)*1.6,1,[2,2])}); // molde del asiento Kazbek
+const M_CABLE=new THREE.MeshStandardMaterial({color:0x1d1f22,roughness:.7});
+const M_CABLE_W=new THREE.MeshStandardMaterial({color:0xd9d6cc,roughness:.75});
+const M_ALU=new THREE.MeshStandardMaterial({color:0xb9bdbf,roughness:.4,metalness:.8});
+const wall=new THREE.Mesh(lathe(IN_PROF,128),M_SOY_WALL);
+wall.castShadow=true; wall.receiveShadow=true; cabin.add(wall);
 const topWin=new THREE.Vector3(0,1.38,0);
+// dos portillas pequeñas con tapa exterior
 for(const u of WIN_U){
   const phi=u*Math.PI*2, r=inR(WIN_Y), dr=(inR(WIN_Y+.01)-inR(WIN_Y-.01))/.02;
   const p=new THREE.Vector3(Math.sin(phi)*r,WIN_Y,Math.cos(phi)*r), nOut=new THREE.Vector3(Math.sin(phi),-dr,Math.cos(phi)).normalize();
   const g=new THREE.Group(); g.position.copy(p); g.lookAt(p.clone().sub(nOut)); g.scale.setScalar(.62); cabin.add(g); winCenters.push(p);
-  const frame=new THREE.Mesh(new THREE.TorusGeometry(.215,.04,16,48),metal); g.add(frame);
-  const bez=new THREE.Mesh(new THREE.RingGeometry(.2,.3,48),new THREE.MeshStandardMaterial({color:0x6f757d,roughness:.5,metalness:.6,side:THREE.DoubleSide}));bez.position.z=-.012;g.add(bez);
-  const tun=new THREE.Mesh(new THREE.CylinderGeometry(.2,.18,.16,40,1,true),new THREE.MeshStandardMaterial({color:0x50555c,roughness:.6,metalness:.5,side:THREE.DoubleSide}));tun.rotation.x=Math.PI/2;tun.position.z=-.09;g.add(tun);
-  const gl=new THREE.Mesh(new THREE.CircleGeometry(.19,40),glassMat);gl.position.z=-.06;g.add(gl);
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(.215,.045,16,48),M_ALU));
+  const bez=new THREE.Mesh(new THREE.RingGeometry(.2,.34,48),M_GREY);bez.position.z=-.012;g.add(bez);
+  for(let i=0;i<8;i++){const a=i/8*Math.PI*2;const bolt=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.01,8).rotateX(Math.PI/2),M_GREY_D);bolt.position.set(Math.cos(a)*.3,Math.sin(a)*.3,-.005);g.add(bolt);}
+  const tun=new THREE.Mesh(new THREE.CylinderGeometry(.2,.18,.2,40,1,true),new THREE.MeshStandardMaterial({color:0x3f4543,roughness:.6,metalness:.5,side:THREE.DoubleSide}));tun.rotation.x=Math.PI/2;tun.position.z=-.11;g.add(tun);
+  const gl=new THREE.Mesh(new THREE.CircleGeometry(.19,40),glassMat);gl.position.z=-.08;g.add(gl);
   g.traverse(o=>{if(o.isMesh&&o.material!==glassMat){o.castShadow=true;o.receiveShadow=true;}});
 }
-{ // mamparo de popa (piso), escotilla superior, escotilla lateral, pasamanos, luces LED
-  const floorTex=normalTex(256,256,(x,y)=>((x%64<2||y%64<2)?-.6:0)+fbm(x/6,y/6,2)*.3,1.5,[4,4]);
-  const fl=new THREE.Mesh(new THREE.CircleGeometry(1.0,64),new THREE.MeshStandardMaterial({color:0x9ea4ab,roughness:.55,metalness:.55,normalMap:floorTex}));fl.material.shadowSide=THREE.DoubleSide;fl.rotation.x=-Math.PI/2;fl.position.y=-.9;fl.receiveShadow=true;fl.castShadow=true;cabin.add(fl);
-  for(let i=0;i<5;i++){const a=-1.2+i*.6;const b=new THREE.Mesh(new RoundedBoxGeometry(.3,.2,.26,3,.05),fabric);b.position.set(Math.sin(a)*.8,-.79,Math.cos(a)*.8);b.rotation.y=a;b.castShadow=b.receiveShadow=true;cabin.add(b);
-    const strap=new THREE.Mesh(new THREE.BoxGeometry(.32,.03,.28),darkMetal);strap.position.copy(b.position);strap.position.y+=.05;strap.rotation.y=a;cabin.add(strap);}
-  const hr=new THREE.Mesh(new THREE.TorusGeometry(.34,.025,12,64),metal);hr.rotation.x=Math.PI/2;hr.position.y=1.23;cabin.add(hr);
-  const hwGlass=new THREE.Mesh(new THREE.CircleGeometry(.3,48),new THREE.MeshStandardMaterial({color:0x9aa0a6,roughness:.45,metalness:.6,side:THREE.DoubleSide}));hwGlass.rotation.x=Math.PI/2;hwGlass.position.y=1.38;cabin.add(hwGlass);
-  const hwf=new THREE.Mesh(new THREE.TorusGeometry(.31,.03,12,48),metal);hwf.rotation.x=Math.PI/2;hwf.position.y=1.38;cabin.add(hwf);
-  for(const s of[-1,1]){const rail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(s*.48,.78,.4),new THREE.Vector3(s*.66,.7,0),new THREE.Vector3(s*.48,.78,-.4)]),24,.018,8),metal);cabin.add(rail);}
-  // escotilla lateral (detrás de los asientos)
-  const hy=-.15, hr2=inR(hy)-.02, hp=new THREE.Vector3(0,hy,hr2);
-  const hg=new THREE.Group();hg.position.copy(hp);hg.lookAt(0,hy,0);hg.visible=false;cabin.add(hg);
-  hg.add(new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,.05,48).rotateX(Math.PI/2),new THREE.MeshStandardMaterial({color:0xcdd1d6,roughness:.5,metalness:.3})));
-  const hf=new THREE.Mesh(new THREE.TorusGeometry(.5,.035,12,64),metal);hg.add(hf);
-  const handle=new THREE.Mesh(new RoundedBoxGeometry(.36,.06,.06,2,.02),darkMetal);handle.position.z=.06;hg.add(handle);
-  const hw=new THREE.Mesh(new THREE.CircleGeometry(.11,32),new THREE.MeshPhysicalMaterial({color:0x0a0e16,roughness:.05,clearcoat:1}));hw.position.set(0,.22,.03);hg.add(hw);
-  // paneles de luz LED en el techo + luces de área (iluminación suave real)
-  for(const s of[-1,1]){const pos=new THREE.Vector3(s*.42,.86,.05);
-    const strip=new THREE.Mesh(new RoundedBoxGeometry(.5,.025,.12,2,.01),new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xf3f7ff,emissiveIntensity:3}));strip.position.copy(pos);strip.lookAt(0,-1.3,0);strip.rotateX(Math.PI/2);cabin.add(strip);
-    const al=new THREE.RectAreaLight(0xf2f6ff,12,.5,.12);al.position.copy(pos).add(new THREE.Vector3(0,-.02,0));al.lookAt(s*.1,-1.3,.2);cabin.add(al);}
-  const al2=new THREE.RectAreaLight(0xeaf0ff,8,.8,.1);al2.position.set(0,.62,.62);al2.lookAt(0,-.5,-.4);cabin.add(al2);
+{ // piso (mamparo del escudo térmico), escotilla al módulo orbital, asideros, cables, bolsas, lámparas
+  const fl=new THREE.Mesh(new THREE.CircleGeometry(1.0,64),new THREE.MeshStandardMaterial({color:0x6b7068,roughness:.8,metalness:.3,normalMap:normalTex(256,256,(x,y)=>((x%32<2||y%32<2)?-.5:0)+fbm(x/5,y/5,2)*.3,1.2,[4,4])}));
+  fl.material.shadowSide=THREE.DoubleSide; fl.rotation.x=-Math.PI/2; fl.position.y=-.9; fl.receiveShadow=true; cabin.add(fl);
+  // túnel y escotilla abierta hacia el módulo orbital (arriba)
+  const tube=new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,.5,48,1,true),new THREE.MeshStandardMaterial({color:0x8d948c,roughness:.7,metalness:.2,side:THREE.BackSide}));tube.position.y=1.5;cabin.add(tube);
+  const om=new THREE.Mesh(new THREE.CircleGeometry(.36,48),new THREE.MeshStandardMaterial({color:0x2a2e2a,roughness:1}));om.rotation.x=Math.PI/2;om.position.y=1.75;cabin.add(om);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.37,.035,12,64),M_ALU);ring.rotation.x=Math.PI/2;ring.position.y=1.25;cabin.add(ring);
+  const hatch=new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,.06,48),M_GREY);hatch.position.set(.25,1.3,-.38);hatch.rotation.set(-1.25,0,.4);hatch.castShadow=true;cabin.add(hatch); // tapa abierta, apoyada a un lado
+  for(let i=0;i<6;i++){const a=i/6*Math.PI*2;const h=new THREE.Mesh(new THREE.TorusGeometry(.05,.012,8,20,Math.PI),M_ALU);h.position.set(Math.cos(a)*.42,1.05,Math.sin(a)*.42);h.lookAt(0,1.05,0);h.rotateX(Math.PI/2);cabin.add(h);}
+  // asideros en las paredes
+  for(const [a,y] of [[-.9,.55],[.9,.55],[-2.3,.1],[2.3,.1],[Math.PI,.4]]){const r=inR(y)-.04;const g=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(Math.sin(a-.12)*r,y,Math.cos(a-.12)*r),new THREE.Vector3(Math.sin(a)*(r-.05),y,Math.cos(a)*(r-.05)),new THREE.Vector3(Math.sin(a+.12)*r,y,Math.cos(a+.12)*r)]),12,.014,8),M_ALU);g.castShadow=true;cabin.add(g);}
+  // mazos de cables que siguen la pared, sujetos con bridas
+  const cable=(pts,r,mat)=>{const m=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p))),40,r,7),mat);m.castShadow=true;cabin.add(m);return m;};
+  cable([[-.95,-.6,.3],[-1.0,-.1,.35],[-.9,.4,.4],[-.65,.9,.35],[-.4,1.1,.2]],.016,M_CABLE);
+  cable([[-.9,-.55,.42],[-.96,-.05,.46],[-.86,.45,.5],[-.6,.92,.45]],.011,M_CABLE_W);
+  cable([[.95,-.6,.3],[1.0,-.1,.35],[.9,.4,.4],[.66,.9,.35],[.4,1.1,.2]],.016,M_CABLE);
+  cable([[.9,-.55,-.42],[.96,-.05,-.46],[.86,.45,-.5]],.012,M_CABLE_W);
+  cable([[-.3,-.85,.9],[.3,-.85,.9],[.7,-.75,.7],[.95,-.5,.4]],.02,M_CABLE);
+  for(const [x,y,z] of [[-.92,-.3,.4],[-.8,.55,.45],[.92,-.3,.4],[.8,.55,.45]]){const t=new THREE.Mesh(new THREE.BoxGeometry(.06,.025,.08),M_GREY_D);t.position.set(x,y,z);t.lookAt(0,y,0);cabin.add(t);}
+  // bolsas de lona verde oliva (equipo, raciones, trajes) sujetas con correas
+  for(const [x,y,z,w,h,d,ry] of [[-.6,.1,.75,.42,.3,.22,-.7],[.6,.1,.75,.42,.3,.22,.7],[0,.05,.95,.5,.34,.2,0],[-.78,-.5,.5,.3,.22,.2,-1]]){
+    const b=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,.05),M_OLIVE);b.position.set(x,y,z);b.rotation.y=ry;b.castShadow=b.receiveShadow=true;cabin.add(b);
+    const st=new THREE.Mesh(new THREE.BoxGeometry(w+.02,.03,d+.02),strapMat);st.position.copy(b.position);st.rotation.y=ry;cabin.add(st);}
+  // cajas de equipo gris sobre el piso, a los lados de los asientos
+  for(const [x,z] of [[-.78,-.15],[.78,-.15]]){const c=new THREE.Mesh(new RoundedBoxGeometry(.26,.3,.34,2,.02),M_GREY);c.position.set(x,-.74,z);c.castShadow=c.receiveShadow=true;cabin.add(c);
+    for(let i=0;i<3;i++){const k=new THREE.Mesh(new THREE.BoxGeometry(.02,.02,.06),M_GREY_D);k.position.set(x+(x>0?-.14:.14),-.66+i*.07,z);cabin.add(k);}}
+  // lámparas: dos plafones cálidos pequeños y luz de área tenue (la Soyuz está en penumbra)
+  for(const s of[-1,1]){const pos=new THREE.Vector3(s*.42,.9,.1);
+    const lamp=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,.04,24),new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffe9c4,emissiveIntensity:2.4}));lamp.position.copy(pos);lamp.lookAt(0,-1,0);lamp.rotateX(Math.PI/2);cabin.add(lamp);
+    const cage=new THREE.Mesh(new THREE.TorusGeometry(.07,.006,6,20),M_ALU);cage.position.copy(pos).add(new THREE.Vector3(0,-.02,0));cage.rotation.x=Math.PI/2;cabin.add(cage);
+    const al=new THREE.RectAreaLight(0xffe4bd,7,.25,.25);al.position.copy(pos).add(new THREE.Vector3(0,-.03,0));al.lookAt(s*.1,-1,.1);cabin.add(al);}
+  const al2=new THREE.RectAreaLight(0xe8f0ff,3.5,.5,.1);al2.position.set(0,.62,.62);al2.lookAt(0,-.4,-.4);cabin.add(al2);
 }
 const PANEL_C=new THREE.Vector3(0,.24,-.5);
+// tres asientos Kazbek‑UM: moldes individuales reclinados, rodillas arriba, con amortiguadores debajo
 [-.58,0,.58].forEach((sx,i)=>{
-  const s=new THREE.Group(); s.position.set(sx,-.42,.14); s.scale.setScalar(.84); cabin.add(s); s.lookAt(PANEL_C.x,PANEL_C.y,PANEL_C.z);
+  const s=new THREE.Group(); s.position.set(sx,-.46,.16); s.scale.setScalar(.84); cabin.add(s); s.lookAt(PANEL_C.x,PANEL_C.y,PANEL_C.z);
   const add=(geo,mat,p,r)=>{const m=new THREE.Mesh(geo,mat);m.position.set(...p);if(r)m.rotation.set(...r);m.castShadow=m.receiveShadow=true;s.add(m);return m;};
-  add(new RoundedBoxGeometry(.56,1.0,.05,3,.022),shellMat,[0,0,-.04]);
-  for(const k of[-1,1]){add(new RoundedBoxGeometry(.05,.85,.2,3,.02),shellMat,[k*.28,-.02,.05]);add(new RoundedBoxGeometry(.05,.26,.2,3,.02),shellMat,[k*.17,.5,.07]);}
-  add(new RoundedBoxGeometry(.56,.05,.55,3,.02),shellMat,[0,-.52,.25]);
-  add(new RoundedBoxGeometry(.5,.05,.5,3,.02),shellMat,[0,-.62,.72],[-.5,0,0]);
-  add(new RoundedBoxGeometry(.46,.84,.06,4,.025),cushMat,[0,-.02,0]);
-  add(new RoundedBoxGeometry(.28,.22,.07,4,.03),cushMat,[0,.5,.01]);
-  add(new RoundedBoxGeometry(.46,.06,.46,4,.025),cushMat,[0,-.48,.26]);
-  for(const k of[-1,1]) add(new THREE.BoxGeometry(.05,.62,.012),strapMat,[k*.11,.06,.035],[0,0,k*.12]);
-  add(new RoundedBoxGeometry(.08,.08,.02,2,.008),buckle,[0,-.24,.04]);
+  // cuna metálica
+  add(new RoundedBoxGeometry(.5,.9,.06,3,.02),M_GREY,[0,.05,-.07],[.35,0,0]);
+  add(new RoundedBoxGeometry(.5,.06,.5,3,.02),M_GREY,[0,-.5,.22]);
+  add(new RoundedBoxGeometry(.46,.05,.4,3,.02),M_GREY,[0,-.4,.66],[-.9,0,0]);            // soporte de piernas levantado
+  // molde (liner) a medida del cosmonauta
+  add(new RoundedBoxGeometry(.42,.84,.07,4,.03),M_LINER,[0,.06,-.02],[.35,0,0]);
+  add(new RoundedBoxGeometry(.3,.2,.08,4,.03),M_LINER,[0,.5,-.1],[.35,0,0]);              // apoyo de cabeza (detrás de la cámara)
+  add(new RoundedBoxGeometry(.42,.07,.44,4,.03),M_LINER,[0,-.45,.24]);
+  add(new RoundedBoxGeometry(.4,.06,.36,4,.03),M_LINER,[0,-.36,.66],[-.9,0,0]);
+  for(const k of[-1,1]){ add(new RoundedBoxGeometry(.06,.5,.12,2,.02),M_GREY_D,[k*.24,-.1,.08]);                       // laterales del molde
+    add(new THREE.CylinderGeometry(.025,.025,.3,10),M_ALU,[k*.18,-.68,.1],[.3,0,0]); }                                 // amortiguadores (sistema Kazbek)
+  // arnés de cinco puntos, correas claras
+  for(const k of[-1,1]) add(new THREE.BoxGeometry(.05,.6,.012),M_CABLE_W,[k*.1,.1,.03],[.35,0,k*.1]);
+  add(new THREE.BoxGeometry(.4,.045,.012),M_CABLE_W,[0,-.3,.09],[-.2,0,0]);
+  add(new RoundedBoxGeometry(.09,.09,.025,2,.008),buckle,[0,-.22,.075]);
   if(i===1){ s.updateMatrixWorld(); camHome.set(0,.42,.32).applyMatrix4(s.matrixWorld); }
 });
 panel.position.copy(PANEL_C);
 panel.scale.setScalar(.64);
-const panelMat=new THREE.MeshStandardMaterial({color:0x56626c,roughness:.5,metalness:.35,normalMap:normalTex(128,128,(x,y)=>fbm(x/1.2,y/1.2,2)*.6,1,[6,3])});
-{ const body=new THREE.Mesh(new RoundedBoxGeometry(1.7,.64,.08,4,.025),panelMat); body.position.z=-.015; body.castShadow=body.receiveShadow=true; panel.add(body);
-  const lip=new THREE.Mesh(new RoundedBoxGeometry(1.62,.2,.02,3,.008),new THREE.MeshStandardMaterial({color:0x1b1d21,roughness:.6,metalness:.2}));lip.position.set(0,-.17,.03);panel.add(lip);
-  for(const sx of[-.55,.55]){const strut=new THREE.Mesh(new RoundedBoxGeometry(.07,.07,.75,2,.015),metal);strut.position.set(sx,.32,-.34);strut.rotation.x=.7;strut.castShadow=true;panel.add(strut);}
-  const cab=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.7,.25,-.05),new THREE.Vector3(.8,.45,-.3),new THREE.Vector3(.7,.7,-.55)]),20,.012,6),strapMat);panel.add(cab);
+// consola Neptun‑ME: caja gris con dos pantallas, teclado numérico, interruptores con guarda, reloj y periscopio en el centro
+const panelMat=new THREE.MeshStandardMaterial({color:0x8e978f,roughness:.6,metalness:.3,normalMap:normalTex(128,128,(x,y)=>fbm(x/1.2,y/1.2,2)*.5,1,[6,3])});
+{ const body=new THREE.Mesh(new RoundedBoxGeometry(1.74,.9,.1,3,.015),panelMat); body.position.set(0,-.02,-.03); body.castShadow=body.receiveShadow=true; panel.add(body);
+  // las dos pantallas principales van arriba, lado a lado; la tercera pantalla queda abajo a la derecha, más pequeña (pantalla auxiliar)
+  const place=(k,x,y,sc)=>{const m=screenMeshes.find(m=>m.userData.screen.name===k);m.position.set(x,y,.034);m.scale.setScalar(sc);
+    const bez=m.userData.bezel;bez.geometry=new RoundedBoxGeometry(.53*sc,.315*sc,.03,2,.004);bez.material=M_GREY_D;bez.position.set(x,y,.018);
+    for(const [bx,by] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const bolt=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.01,8).rotateX(Math.PI/2),M_ALU);bolt.position.set(x+bx*.25*sc,y+by*.145*sc,.034);panel.add(bolt);}};
+  place('left',-.46,.17,.86); place('center',.46,.17,.86); place('right',.5,-.2,.56);
+  // teclado numérico y de comandos bajo la pantalla izquierda
+  const keyMat=new THREE.MeshStandardMaterial({color:0xe6e4dc,roughness:.5}), keyMatD=new THREE.MeshStandardMaterial({color:0x2b2d2b,roughness:.5});
+  for(let r=0;r<4;r++)for(let c=0;c<6;c++){const k=new THREE.Mesh(new RoundedBoxGeometry(.05,.038,.02,2,.005),(c>3)?keyMatD:keyMat);k.position.set(-.73+c*.062,-.09-r*.052,.04);k.castShadow=true;panel.add(k);}
+  // reloj analógico de a bordo
+  const clk=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.025,32).rotateX(Math.PI/2),M_GREY_D);clk.position.set(-.2,-.19,.035);panel.add(clk);
+  const face=new THREE.Mesh(new THREE.CircleGeometry(.055,32),new THREE.MeshStandardMaterial({map:canvasTex(128,128,(x)=>{x.fillStyle='#e8e6dc';x.fillRect(0,0,128,128);x.fillStyle='#222';x.font='bold 14px sans-serif';x.textAlign='center';for(let i=1;i<=12;i++){const a=i/12*Math.PI*2;x.fillText(i,64+Math.sin(a)*48,70-Math.cos(a)*48);}x.strokeStyle='#222';x.lineWidth=3;x.beginPath();x.moveTo(64,64);x.lineTo(64,24);x.moveTo(64,64);x.lineTo(92,64);x.stroke();}),roughness:.3}));face.position.set(-.2,-.19,.049);panel.add(face);
+  // periscopio «Vzor»: tubo desde abajo y visor con capucha en el centro, frente al comandante
+  const tube=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.9,24),M_GREY);tube.position.set(0,-.55,-.1);tube.castShadow=true;panel.add(tube);
+  const hood=new THREE.Mesh(new RoundedBoxGeometry(.24,.2,.22,3,.02),M_GREY_D);hood.position.set(0,-.22,.06);hood.castShadow=true;panel.add(hood);
+  const eye=new THREE.Mesh(new THREE.CircleGeometry(.055,32),new THREE.MeshPhysicalMaterial({color:0x06080a,roughness:.05,clearcoat:1}));eye.position.set(0,-.2,.172);panel.add(eye);
+  const eyeRing=new THREE.Mesh(new THREE.TorusGeometry(.06,.012,10,32),M_ALU);eyeRing.position.set(0,-.2,.17);panel.add(eyeRing);
+  // dos palancas de mando (RUO: giro, RUD: traslación) a los lados del periscopio
+  for(const k of[-1,1]){const stick=new THREE.Mesh(new THREE.CylinderGeometry(.014,.02,.16,12),M_CABLE);stick.position.set(k*.3,-.3,.12);stick.rotation.x=-.5;panel.add(stick);
+    const grip=new THREE.Mesh(new RoundedBoxGeometry(.045,.1,.05,2,.012),M_LINER);grip.position.set(k*.3,-.22,.16);grip.rotation.x=-.5;panel.add(grip);
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.03,16),M_GREY_D);base.position.set(k*.3,-.37,.09);panel.add(base);}
+  // rótulos en cirílico impresos sobre la consola
+  const lbl=(txt,x,y,w)=>{const cw=txt.length>12?768:256;const t=canvasTex(cw,40,(c)=>{c.fillStyle='#8e978f';c.fillRect(0,0,cw,40);c.fillStyle='#1a1d1a';c.font=`bold 22px ${FM}`;c.textAlign='center';c.textBaseline='middle';c.fillText(txt,cw/2,21);});
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,w*40/cw),new THREE.MeshStandardMaterial({map:t,roughness:.6}));m.position.set(x,y,.0205);panel.add(m);};
+  lbl('ПУЛЬТ КОСМОНАВТОВ «НЕПТУН-МЭ»',0,.39,.9); lbl('КЛАВИАТУРА',-.58,-.03,.22); lbl('ВЗОР',0,-.08,.12); lbl('РУО',-.3,-.4,.08); lbl('РУД',.3,-.4,.08);
+  for(const sx of[-.6,.6]){const strut=new THREE.Mesh(new RoundedBoxGeometry(.06,.06,.8,2,.012),M_ALU);strut.position.set(sx,.3,-.38);strut.rotation.x=.75;strut.castShadow=true;panel.add(strut);}
+  const cab=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.8,.3,-.05),new THREE.Vector3(.9,.5,-.3),new THREE.Vector3(.75,.8,-.6)]),20,.014,6),M_CABLE);panel.add(cab);
 }
-const PHYS_LABEL={3:'DESCENSO',7:'INCENDIO',11:'PARACAÍDAS',15:'ALEJARSE ISS'};
-const PHYS_INFO={3:'DESCENSO: en una emergencia iniciaría el regreso a la Tierra. En este simulador está bloqueado.',7:'INCENDIO: activaría el sistema contra incendios de la cabina. No hay ningún incendio.',11:'PARACAÍDAS: solo se usa en el descenso final si la secuencia automática falla.',15:'ALEJARSE DE LA ISS: ordenaría una maniobra para alejarse de la estación en una emergencia.'};
-{ const capG=lathe([[0,0],[.0175,0],[.019,.003],[.019,.017],[.016,.02],[0,.02]],24); capG.rotateX(Math.PI/2);
-  const baseG=new RoundedBoxGeometry(.056,.056,.012,2,.004);
-  const coverG=new RoundedBoxGeometry(.06,.06,.034,2,.006); coverG.translate(0,-.03,.017);
-  const coverMat=new THREE.MeshPhysicalMaterial({color:0xffffff,transparent:true,opacity:.12,roughness:.03,metalness:0,clearcoat:1,envMapIntensity:.7,depthWrite:false});
+const PHYS_LABEL={3:'СПУСК',7:'ПОЖАР',11:'ПАРАШЮТ',15:'ОТХОД',19:'ВКЛ',23:'СВЕТ'};
+const PHYS_LABEL_ES={3:'DESCENSO',7:'INCENDIO',11:'PARACAÍDAS',15:'ALEJARSE ISS'};
+const PHYS_INFO={3:'СПУСК (DESCENSO): en una emergencia iniciaría el regreso a la Tierra. En este simulador está bloqueado.',7:'ПОЖАР (INCENDIO): activaría el sistema contra incendios de la cabina. No hay ningún incendio.',11:'ПАРАШЮТ (PARACAÍDAS): solo se usa en el descenso final si la secuencia automática falla.',15:'ОТХОД (ALEJARSE): retirada de emergencia de la Estación Espacial. No aplica en este vuelo.'};
+{ // interruptores de palanca con guarda, en dos filas sobre la consola, como en la Soyuz
+  const baseG=new RoundedBoxGeometry(.052,.052,.012,2,.004);
+  const capG=new THREE.CylinderGeometry(.006,.009,.034,10); capG.translate(0,.017,0); capG.rotateX(-Math.PI/2);
+  const coverG=new RoundedBoxGeometry(.058,.06,.04,2,.006); coverG.translate(0,-.03,.02);
+  const coverMat=new THREE.MeshStandardMaterial({color:0xc8372f,roughness:.5,metalness:.1});   // guardas rojas de los mandos de emergencia
+  const capMat=new THREE.MeshStandardMaterial({color:0xd8d9d4,roughness:.35,metalness:.6}), capMatD=new THREE.MeshStandardMaterial({color:0x222,roughness:.5});
   for(let r=0;r<2;r++) for(let i=0;i<19;i++){
-    const idx=r*19+i, x=-.738+i*.082, y=r===0?-.125:-.215;
-    const base=new THREE.Mesh(baseG,darkMetal); base.position.set(x,y,.03); panel.add(base);
+    const idx=r*19+i, x=-.738+i*.082, y=r===0?.0:-.33;
+    // los índices deben coincidir con buttons[idx]: los que no caben (periscopio, teclado, pantalla auxiliar) se crean ocultos
+    const hidden=(r===0&&i>=9&&i<=10)||(r===1&&(i>=3&&i<=8||i>=11));
+    const base=new THREE.Mesh(baseG,M_GREY_D); base.position.set(x,y,.026); base.visible=!hidden; panel.add(base);
     const lab=PHYS_LABEL[idx];
-    const cap=new THREE.Mesh(capG,new THREE.MeshStandardMaterial({color:lab?0xe2e5e9:0xa7adb5,roughness:.32,metalness:.1}));
-    cap.position.set(x,y,.035); cap.userData.btn=idx; cap.castShadow=true; panel.add(cap); capMeshes.push(cap);
-    const b={idx,cap,base,cover:null,open:false,openT:0,press:0,label:lab,z0:.035};
-    if(r===0){ const pv=new THREE.Group(); pv.position.set(x,y+.03,.036); panel.add(pv);
+    const cap=new THREE.Mesh(capG,lab?capMat:capMatD); cap.position.set(x,y,.032); cap.rotation.x=.35; cap.userData.btn=idx; cap.castShadow=true; cap.visible=!hidden; panel.add(cap); if(!hidden) capMeshes.push(cap);
+    const b={idx,cap,base,cover:null,open:false,openT:0,press:0,label:PHYS_LABEL_ES[idx]||lab,z0:.032};
+    if(r===0&&lab&&!hidden){ const pv=new THREE.Group(); pv.position.set(x,y+.03,.034); panel.add(pv);
       const cv=new THREE.Mesh(coverG,coverMat); cv.userData.cover=idx; pv.add(cv); coverMeshes.push(cv); b.cover=pv; }
-    if(lab){ const t=canvasTex(256,48,(c)=>{c.fillStyle='#16181c';c.fillRect(0,0,256,48);c.fillStyle='#e8ecf4';c.font=`600 24px ${FD}`;c.textAlign='center';c.textBaseline='middle';c.fillText(lab,128,25);});
-      const lp=new THREE.Mesh(new THREE.PlaneGeometry(.08,.015),new THREE.MeshStandardMaterial({map:t,roughness:.6})); lp.position.set(x,y+(r===0?.044:.037),.031); panel.add(lp); }
+    if(lab&&!hidden){ const t=canvasTex(256,48,(c)=>{c.fillStyle='#8e978f';c.fillRect(0,0,256,48);c.fillStyle='#15181a';c.font=`bold 26px ${FM}`;c.textAlign='center';c.textBaseline='middle';c.fillText(lab,128,25);});
+      const lp=new THREE.Mesh(new THREE.PlaneGeometry(.08,.015),new THREE.MeshStandardMaterial({map:t,roughness:.6})); lp.position.set(x,y+(b.cover?.046:.038),.021); panel.add(lp); }
     buttons.push(b);
   }
 }
@@ -472,17 +536,21 @@ iss.visible=false;
   for(const z of[-50,-38,38,50]) for(const s of[-1,1]) add(new THREE.BoxGeometry(11.6,.1,35),arr,cx+s*7.5,4.5,z+Math.sign(z)*0,0,0).scale.set(1,1,1);
   for(const z of[-22,22]) add(new THREE.BoxGeometry(3,.1,23),rad,cx,-6,z,0,0);
 }
+// Tema de las pantallas: estilo Neptun‑ME (fondo verde grisáceo oscuro, texto blanco y ámbar, cuadrículas, botones cuadrados)
+Object.assign(UI,{bg:'#0d1310',ink:'#eef2ea',dim:'#9db09a',faint:'#4f6250',line:'#2a3a2c',craft:'#ffc45c',ok:'#9be28a',warn:'#ffd36a',bad:'#ff7a6a',btn:'#17211a'});
 let NOW=0;
 function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
 function sp(c,v){if('letterSpacing' in c) c.letterSpacing=v;}
-function header(sc,title,right){const c=sc.x;c.fillStyle=UI.bg;c.fillRect(0,0,1024,576);c.fillStyle='#0a0f19';c.fillRect(0,0,1024,58);c.fillStyle=UI.line;c.fillRect(0,58,1024,2);
-  c.font=`600 24px ${FD}`;sp(c,'4px');c.fillStyle=UI.craft;c.textAlign='left';c.textBaseline='middle';c.fillText(title,28,30);
-  sp(c,'0px');c.font=`500 24px ${FM}`;c.fillStyle=UI.ink;c.textAlign='right';c.fillText(right,996,30);}
+function header(sc,title,right){const c=sc.x;c.fillStyle=UI.bg;c.fillRect(0,0,1024,576);c.fillStyle='#152019';c.fillRect(0,0,1024,58);c.fillStyle=UI.line;c.fillRect(0,58,1024,3);
+  c.strokeStyle=UI.line;c.lineWidth=2;c.strokeRect(6,6,1012,564);
+  c.font=`700 24px ${FM}`;c.fillStyle=UI.craft;c.textAlign='left';c.textBaseline='middle';c.fillText(title.toUpperCase(),28,30);
+  c.font=`500 24px ${FM}`;c.fillStyle=UI.ink;c.textAlign='right';c.fillText(right,996,30);}
 function uiBtn(sc,id,x,y,w,h,label,o={}){
   const c=sc.x, en=o.en!==false, tg=!!o.target, on=!!o.on, pulse=.5+.5*Math.sin(NOW*6);
-  rr(c,x,y,w,h,12); c.fillStyle= tg?`rgba(111,211,255,${.12+.14*pulse})`: on?'#123247':UI.btn; c.fill();
-  c.lineWidth= tg?3+3*pulse:2; c.strokeStyle=!en?'#1c2434':tg?UI.craft:on?'#4fb6e0':'#33415e'; c.stroke();
-  c.fillStyle=!en?'#465068':UI.ink; c.font=`600 ${o.size||28}px ${FD}`; sp(c,'2px'); c.textAlign='center'; c.textBaseline='middle'; c.fillText(label,x+w/2,y+h/2+1); sp(c,'0px');
+  c.fillStyle= tg?`rgba(255,196,92,${.14+.16*pulse})`: on?'#3a3418':UI.btn; c.fillRect(x,y,w,h);
+  c.lineWidth= tg?3+3*pulse:2; c.strokeStyle=!en?'#2a3a2c':tg?UI.craft:on?'#d9a640':'#5a6e5a'; c.strokeRect(x+1,y+1,w-2,h-2);
+  if(en){c.strokeStyle='rgba(255,255,255,.08)';c.lineWidth=1;c.strokeRect(x+5,y+5,w-10,h-10);}
+  c.fillStyle=!en?'#55665a':UI.ink; c.font=`700 ${o.size||26}px ${FM}`; c.textAlign='center'; c.textBaseline='middle'; c.fillText(label,x+w/2,y+h/2+1);
   sc.hit(id,x,y,w,h,en);
 }
 function kv(c,x,y,k,v,col=UI.ink,vs=40){c.textAlign='left';c.textBaseline='alphabetic';c.font=`500 18px ${FD}`;sp(c,'3px');c.fillStyle=UI.dim;c.fillText(k,x,y);sp(c,'0px');c.font=`500 ${vs}px ${FM}`;c.fillStyle=col;c.fillText(v,x,y+vs+6);}
@@ -945,8 +1013,8 @@ function frame(){
     tag.hidden=p.z>1; tag.style.left=((p.x+1)/2*innerWidth)+'px'; tag.style.top=((1-p.y)/2*innerHeight)+'px';}
   rpGround.enabled=useGround; rpFar.enabled=rpNear.enabled=!useGround;
   if(!useGround){ const c=S.view==='cabin'?cam:ecam; rpNear.camera=c; near.updateMatrixWorld(); c.updateMatrixWorld(); c.getWorldPosition(fcam.position); c.getWorldQuaternion(fcam.quaternion); fcam.fov=c.fov; fcam.aspect=innerWidth/innerHeight; fcam.updateProjectionMatrix(); }
-  renderer.toneMappingExposure= useGround ? .5 : (S.view==='cabin' ? 1.2 : .85);
-  bloom.strength= useGround ? .5 : (S.view==='cabin' ? .12 : .4); bloom.threshold= S.view==='cabin'&&!useGround ? 1.2 : .92;
+  renderer.toneMappingExposure= useGround ? PAD_EXPOSURE : (S.view==='cabin' ? 1.2 : .85);
+  bloom.strength= useGround ? PAD_BLOOM : (S.view==='cabin' ? .12 : .4); bloom.threshold= S.view==='cabin'&&!useGround ? 1.2 : .92;
   grade.uniforms.time.value=NOW;
   composer.render(dt);
   requestAnimationFrame(frame);

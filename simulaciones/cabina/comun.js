@@ -113,12 +113,23 @@ function buildDragon(){
 }
 function buildTrunk(){const t=new THREE.Mesh(new THREE.CylinderGeometry(1.98,1.98,2.8,72),MTrunk);t.position.y=-2.42-1.4;return t;}
 const gSun=new THREE.Vector3().setFromSphericalCoords(1,THREE.MathUtils.degToRad(90-3.2),THREE.MathUtils.degToRad(-104));
-function makeSky(scale){const s=new Sky();s.scale.setScalar(scale);const u=s.material.uniforms;u.turbidity.value=4.5;u.rayleigh.value=2.8;u.mieCoefficient.value=.006;u.mieDirectionalG.value=.84;u.sunPosition.value.copy(gSun);return s;}
-ground.add(makeSky(3e5));
+const SKY={turbidity:4.5,rayleigh:2.8,mie:.006,mieG:.84};
+function makeSky(scale){const s=new Sky();s.scale.setScalar(scale);const u=s.material.uniforms;u.turbidity.value=SKY.turbidity;u.rayleigh.value=SKY.rayleigh;u.mieCoefficient.value=SKY.mie;u.mieDirectionalG.value=SKY.mieG;u.sunPosition.value.copy(gSun);return s;}
+const skyG=makeSky(3e5);
+ground.add(skyG);
 { const es=new THREE.Scene(); es.add(makeSky(1000)); ground.environment=pmrem.fromScene(es,0,.1,3000).texture; }
 const hemiG=new THREE.HemisphereLight(0x8aa2d4,0x2a2218,.35);
 ground.add(hemiG);
 const sunG=new THREE.DirectionalLight(0xffb07a,2.4);
+// Cada sitio fija su hora y su atmósfera: elevación y acimut del Sol, turbidez (humedad), color e intensidad de la luz, cielo y suelo del hemisferio.
+function setPadSky({elev=3.2,az=-104,turbidity=4.5,rayleigh=2.8,mie=.006,sun=0xffb07a,intensity=2.4,hemiSky=0x8aa2d4,hemiGround=0x2a2218,hemi=.35}={}){
+  gSun.setFromSphericalCoords(1,THREE.MathUtils.degToRad(90-elev),THREE.MathUtils.degToRad(az));
+  Object.assign(SKY,{turbidity,rayleigh,mie});
+  const u=skyG.material.uniforms;u.turbidity.value=turbidity;u.rayleigh.value=rayleigh;u.mieCoefficient.value=mie;u.sunPosition.value.copy(gSun);
+  const es=new THREE.Scene(); es.add(makeSky(1000)); if(ground.environment) ground.environment.dispose(); ground.environment=pmrem.fromScene(es,0,.1,3000).texture;
+  sunG.color.set(sun); sunG.intensity=intensity; sunG.position.copy(gSun).multiplyScalar(600);
+  hemiG.color.set(hemiSky); hemiG.groundColor.set(hemiGround); hemiG.intensity=hemi;
+}
 sunG.position.copy(gSun).multiplyScalar(600);
 sunG.target.position.set(0,0,0);
 ground.add(sunG,sunG.target);
@@ -261,7 +272,7 @@ const screenMeshes=[];
 [['left',-.53],['center',0],['right',.53]].forEach(([k,x])=>{
   const m=new THREE.Mesh(new THREE.PlaneGeometry(.5,.28125),new THREE.MeshStandardMaterial({color:0x000000,emissive:0xffffff,emissiveMap:scr[k].tex,emissiveIntensity:1.15,roughness:.06,metalness:0,envMapIntensity:.9}));
   m.position.set(x,.09,.034); m.userData.screen=scr[k]; panel.add(m); screenMeshes.push(m);
-  const bez=new THREE.Mesh(new RoundedBoxGeometry(.528,.31,.03,3,.01),new THREE.MeshStandardMaterial({color:0x0b0c0f,roughness:.25,metalness:.3}));bez.position.set(x,.09,.017);panel.add(bez);
+  const bez=new THREE.Mesh(new RoundedBoxGeometry(.528,.31,.03,3,.01),new THREE.MeshStandardMaterial({color:0x0b0c0f,roughness:.25,metalness:.3}));bez.position.set(x,.09,.017);panel.add(bez);m.userData.bezel=bez;
 });
 const capMeshes=[], coverMeshes=[], buttons=[];
 const ringMesh=new THREE.Mesh(new THREE.RingGeometry(.038,.047,32),new THREE.MeshBasicMaterial({color:new THREE.Color(.6,1.6,2.4),transparent:true,depthWrite:false}));
@@ -322,4 +333,4 @@ function applyQuality(){
 $('#bQual').addEventListener('click',()=>{Q.high=!Q.high;applyQuality();});
 const clock=new THREE.Clock();
 
-export { EARTH_DAY, EARTH_NIGHT, EARTH_SPEC, EARTH_CLOUDS, MOON_URI, WATER_URI, $, clamp, lerp, smooth, D2R, FD, FM, RE, RM, DM, MU_E, MU_M, TAGTXT, canvas, MOBILE, Q, renderer, pmrem, ground, far, near, gcam, cam, ecam, fcam, composer, rpGround, rpFar, rpNear, bloom, outPass, grade, texLoader, img, canvasTex, hash, vnoise, fbm, normalTex, glowTex, puffTex, hullTex, MW, MWdragon, carbonCol, MK, MG, MTi, solarTex, MTrunk, lathe, CAP_PROF, capR, buildDragon, buildTrunk, gSun, makeSky, hemiG, sunG, steel, beacon, armPivot, pick, fh, stage1, upper, plumeMat, plume, engLight, puffSystem, smoke, vent, emit, sunDir, uM, farRoot, sunDirL, earthMat, earth, atmo, moon, sun, sunHalo, stars, craft, envCabin, envSpace, hemiN, sunLight, setSunFrustum, cabin, quiltH, quiltN, metal, darkMetal, fabric, glassMat, winCenters, camHome, shellMat, cushMat, strapMat, buckle, panel, Screen, scr, screenMeshes, capMeshes, coverMeshes, buttons, ringMesh, plush, extModel, ext, UI, fmtClock, fmtNum, wrapText, G, orbitE, qTmp, vTmp, BORE, worldToCabin, cardEl, setTag, calloutTimer, toastTimer, callout, toast, A, ptrs, ray, ndc, detached, glowCol, skyLow, black, skyCol, duskCol, spaceCol, hemiSkyPad, hemiSkySpace, craftQ, gLocal, tmpV, resize, applyQuality, clock };
+export { setPadSky, EARTH_DAY, EARTH_NIGHT, EARTH_SPEC, EARTH_CLOUDS, MOON_URI, WATER_URI, $, clamp, lerp, smooth, D2R, FD, FM, RE, RM, DM, MU_E, MU_M, TAGTXT, canvas, MOBILE, Q, renderer, pmrem, ground, far, near, gcam, cam, ecam, fcam, composer, rpGround, rpFar, rpNear, bloom, outPass, grade, texLoader, img, canvasTex, hash, vnoise, fbm, normalTex, glowTex, puffTex, hullTex, MW, MWdragon, carbonCol, MK, MG, MTi, solarTex, MTrunk, lathe, CAP_PROF, capR, buildDragon, buildTrunk, gSun, makeSky, hemiG, sunG, steel, beacon, armPivot, pick, fh, stage1, upper, plumeMat, plume, engLight, puffSystem, smoke, vent, emit, sunDir, uM, farRoot, sunDirL, earthMat, earth, atmo, moon, sun, sunHalo, stars, craft, envCabin, envSpace, hemiN, sunLight, setSunFrustum, cabin, quiltH, quiltN, metal, darkMetal, fabric, glassMat, winCenters, camHome, shellMat, cushMat, strapMat, buckle, panel, Screen, scr, screenMeshes, capMeshes, coverMeshes, buttons, ringMesh, plush, extModel, ext, UI, fmtClock, fmtNum, wrapText, G, orbitE, qTmp, vTmp, BORE, worldToCabin, cardEl, setTag, calloutTimer, toastTimer, callout, toast, A, ptrs, ray, ndc, detached, glowCol, skyLow, black, skyCol, duskCol, spaceCol, hemiSkyPad, hemiSkySpace, craftQ, gLocal, tmpV, resize, applyQuality, clock };
