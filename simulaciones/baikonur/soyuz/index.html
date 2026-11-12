@@ -139,27 +139,9 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-
-const EARTH_DAY='../../tex/tierra-dia.webp', EARTH_NIGHT='../../tex/tierra-noche.webp', EARTH_SPEC='../../tex/tierra-brillo.webp', EARTH_CLOUDS='../../tex/nubes.webp', MOON_URI='../../tex/luna.jpg', WATER_URI='../../tex/agua.webp';
-
-const $=s=>document.querySelector(s);
-const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
-const lerp=(a,b,t)=>a+(b-a)*t;
-const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
-const D2R=Math.PI/180;
-const FD='"Jost","Futura","Century Gothic",sans-serif';
-const FM='"IBM Plex Mono",ui-monospace,Menlo,monospace';
-
-/* =========================================================
-   1. FÍSICA Y CRONOLOGÍA DE LA MISIÓN
-   ========================================================= */
-const RE=6371, RM=1737.4, DM=384400, MU_E=398600.4418, MU_M=4902.8;
-// Tiempos (s desde T-0). Ascenso del Soyuz‑2.1a según la cronología publicada de las misiones Soyuz MS
-// (torre de escape 1:53, laterales 1:58, cofia 2:33, núcleo 4:47, falda 4:55, apagado 8:46, separación 8:49).
-// Acoplamiento: Soyuz MS‑29 (14 jul. 2026) se acopló 3 h 04 min después del despegue.
+import { $, A, BORE, D2R, DM, FD, FM, G, MG, MTrunk, MU_E, RE, UI, WATER_URI, applyQuality, atmo, beacon, black, bloom, buckle, buttons, cabin, callout, cam, camHome, canvas, canvasTex, capMeshes, clamp, clock, composer, coverMeshes, craftQ, cushMat, darkMetal, detached, duskCol, earth, earthMat, ecam, emit, engLight, envCabin, envSpace, ext, extModel, fabric, far, farRoot, fbm, fcam, fh, fmtClock, fmtNum, gLocal, gcam, glassMat, glowCol, grade, ground, hemiN, hemiSkyPad, hemiSkySpace, hullTex, img, lathe, lerp, metal, moon, ndc, near, normalTex, orbitE, panel, pick, plume, plush, ptrs, qTmp, quiltN, ray, renderer, resize, ringMesh, rpFar, rpGround, rpNear, scr, screenMeshes, setSunFrustum, setTag, shellMat, skyCol, skyLow, smoke, smooth, spaceCol, stage1, stars, steel, strapMat, sun, sunDir, sunDirL, sunLight, tmpV, toast, uM, upper, vent, winCenters, worldToCabin, wrapText } from '../../cabina/comun.js';
 const T={IGN:-15,MAXQ:70,LES:113,BECO:116,BSEP:118,SIDESEP:118,FAIR:153,SES1:285,MECO:287,CSEP:287,STAGESEP:287,TAIL:295,SECO:526,SEP:529,SECO1:529,DOCK:11057,TLI:1e9,SECO2:1e9};
 T.FLYBY=T.DOCK;
-// [t s, altitud km, distancia recorrida km, velocidad km/s] — perfil aproximado
 const ASC=[[0,0,0,0],[30,1.5,.1,.12],[60,8,1.5,.35],[90,20,6,.75],[118,40,15,1.6],[153,62,35,2.0],[200,95,80,2.6],[287,155,230,3.9],[350,180,380,4.8],[420,195,620,6.0],[480,205,900,7.0],[529,210,1150,7.83]];
 function ascAt(t){
   t=clamp(t,0,529);
@@ -168,7 +150,6 @@ function ascAt(t){
   }
   const l=ASC[ASC.length-1];return [l[1],l[2],l[3]];
 }
-// Distancia a la Estación Espacial (km) durante el encuentro rápido de unas dos vueltas (modelo simplificado)
 const RNG=[[T.SEP,9000],[T.DOCK-5400,300],[T.DOCK-1800,15],[T.DOCK-900,1.0],[T.DOCK-420,.2],[T.DOCK-300,.2],[T.DOCK-60,.01],[T.DOCK,0]];
 function rangeAt(t){
   if(t<=T.SEP) return RNG[0][1]; if(t>=T.DOCK) return 0;
@@ -198,12 +179,6 @@ function mstate(t){
   return s;
 }
 const PHASE={pre:'Prelanzamiento',asc:'Ascenso',orb:'Órbita · encuentro',prox:'Aproximación a la ISS',dock:'Acoplada a la ISS'};
-
-/* =========================================================
-   2. PASOS DEL TUTORIAL
-   k: info | act (tocar un control) | event (automático) | slew | game
-   tag: real = confirmado públicamente · simp = simplificado · hipo = hipotético
-   ========================================================= */
 const STEPS=[
  {k:'info',tag:'real',title:'Bienvenido a bordo de la Soyuz MS',
   text:'Estás en el asiento del comandante, el del medio, dentro de la cápsula de descenso: un espacio de unos 4 m³ para tres personas. Delante tienes la consola con sus pantallas y botones. Arrastra para mirar alrededor; usa la rueda o pellizca para acercar.',
@@ -281,123 +256,9 @@ const STEPS=[
   text:'Llegaste a la Estación Espacial Internacional, a unos 415 km de altura. La Soyuz se queda acoplada unos seis meses y también es el bote salvavidas de la tripulación.',
   fact:'Datos: cronología de lanzamiento de las Soyuz MS (Everyday Astronaut, misión MS‑22), Wikipedia (Soyuz MS, Soyuz MS‑29). La trayectoria del encuentro y la ubicación de los controles son simplificaciones.',btn:'Volver a empezar'},
 ];
-const TAGTXT={real:'Dato confirmado',simp:'Simplificado',hipo:'Hipotético'};
-
-/* =========================================================
-   3. ESTADO
-   ========================================================= */
 const S={boarded:false,view:'cabin',t:-1200,step:0,uwarp:1,ready:false,holding:false,
   flags:{panels:false,kurs:false,suits:false,prop:false,arm:false,les:false,power:false,go:false,tli:false,sep:false,nose:false,manual:false,auto:false},
   log:[],sepT:0,attMode:'flight',slewT:0,yaw:0,pitch:0,zoom:1,sound:true,shake:0};
-
-/* =========================================================
-   4. RENDERER, POSPROCESO Y ESCENAS (iluminación física)
-   ========================================================= */
-const canvas=$('#gl');
-const MOBILE=matchMedia('(pointer:coarse)').matches||Math.min(innerWidth,innerHeight)<600;
-const Q={high:!MOBILE};
-let renderer;
-try{ renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'}); }
-catch(e){ $('#loading').textContent='Tu navegador no pudo iniciar WebGL. Prueba con Chrome, Edge o Safari actualizados.'; throw e; }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,Q.high?2:1.25));
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1;
-renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-RectAreaLightUniformsLib.init();
-const pmrem=new THREE.PMREMGenerator(renderer);
-
-const ground=new THREE.Scene();       // plataforma y ascenso visto desde tierra
-const far=new THREE.Scene();          // Tierra, Luna, estrellas (escala real en metros)
-const near=new THREE.Scene();         // la nave y su cabina
-const gcam=new THREE.PerspectiveCamera(45,1,0.5,4e5);
-const cam=new THREE.PerspectiveCamera(70,1,0.02,3000);   // vista de astronauta
-const ecam=new THREE.PerspectiveCamera(50,1,0.1,5000);   // vista exterior en el espacio
-const fcam=new THREE.PerspectiveCamera(70,1,2000,5e10);  // copia de la cámara activa para el fondo lejano
-
-// Posproceso: escena lejana + nave → bloom → tono ACES → viñeta y grano de cámara
-const composer=new EffectComposer(renderer);
-const rpGround=new RenderPass(ground,gcam);
-const rpFar=new RenderPass(far,fcam);
-const rpNear=new RenderPass(near,cam); rpNear.clear=false; rpNear.clearDepth=true;
-const bloom=new UnrealBloomPass(new THREE.Vector2(512,512),.3,.55,.92);
-const outPass=new OutputPass();
-const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},time:{value:0},grain:{value:.03},vig:{value:.3}},
-  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:`uniform sampler2D tDiffuse;uniform float time,grain,vig;varying vec2 vUv;
-  float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
-  void main(){vec4 c=texture2D(tDiffuse,vUv);vec2 d=vUv-.5;c.rgb*=1.-vig*smoothstep(.3,.95,length(d*vec2(1.,.8))*1.3);
-  c.rgb+=(h(vUv*vec2(1733.,977.)+fract(time*7.))-.5)*grain;gl_FragColor=c;}`});
-[rpGround,rpFar,rpNear,bloom,outPass,grade].forEach(p=>composer.addPass(p));
-
-/* ---------- utilidades de texturas procedurales ---------- */
-const texLoader=new THREE.TextureLoader();
-function img(uri,srgb=true){const t=texLoader.load(uri);if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;}
-function canvasTex(w,h,draw,srgb=true){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;}
-function hash(x,y){const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.floor(s);}
-function vnoise(x,y){const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);return lerp(lerp(hash(ix,iy),hash(ix+1,iy),u),lerp(hash(ix,iy+1),hash(ix+1,iy+1),u),v);}
-function fbm(x,y,o=4){let a=0,f=1,s=.5;for(let i=0;i<o;i++){a+=vnoise(x*f,y*f)*s;f*=2;s*=.5;}return a;}
-// genera mapa de normales a partir de una función de altura (tileable si la función lo es)
-function normalTex(w,h,hf,str=2,rep=[1,1]){
-  const H=new Float32Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++)H[y*w+x]=hf(x,y);
-  const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d'),im=ctx.createImageData(w,h),d=im.data;
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const l=H[y*w+(x-1+w)%w],r=H[y*w+(x+1)%w],u=H[((y-1+h)%h)*w+x],b=H[((y+1)%h)*w+x];
-    let nx=(l-r)*str,ny=(b-u)*str,nz=1;const n=Math.hypot(nx,ny,nz);const i=(y*w+x)*4;d[i]=(nx/n*.5+.5)*255;d[i+1]=(ny/n*.5+.5)*255;d[i+2]=(nz/n*.5+.5)*255;d[i+3]=255;}
-  ctx.putImageData(im,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(...rep);t.anisotropy=8;return t;
-}
-const glowTex=canvasTex(128,128,(x)=>{const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.2,'rgba(255,255,255,.5)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128);});
-const puffTex=canvasTex(128,128,(x)=>{x.clearRect(0,0,128,128);for(let i=0;i<70;i++){const a=Math.random()*6.28,r=Math.random()*34,cx=64+Math.cos(a)*r,cy=64+Math.sin(a)*r,rad=14+Math.random()*22;const g=x.createRadialGradient(cx,cy,0,cx,cy,rad);g.addColorStop(0,'rgba(255,255,255,.16)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128);}});
-// textura de paneles soldados para el cohete (u = alrededor, v = altura)
-function hullTex(lines,seed=1){return canvasTex(512,1024,(x,w,h)=>{x.fillStyle='#f3f4f5';x.fillRect(0,0,w,h);
-  for(let i=0;i<1400;i++){x.fillStyle=`rgba(${120+Math.random()*60|0},${120+Math.random()*60|0},${130+Math.random()*60|0},${Math.random()*.035})`;x.fillRect(Math.random()*w,Math.random()*h,2+Math.random()*30,1+Math.random()*3);}
-  x.strokeStyle='rgba(90,95,105,.32)';x.lineWidth=2;for(let i=1;i<lines;i++){const y=i*h/lines;x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke();}
-  x.strokeStyle='rgba(90,95,105,.18)';x.beginPath();x.moveTo(w*.25,0);x.lineTo(w*.25,h);x.stroke();});}
-const MW=new THREE.MeshPhysicalMaterial({map:hullTex(14),roughness:.38,metalness:0,clearcoat:.35,clearcoatRoughness:.35});
-const MWdragon=new THREE.MeshPhysicalMaterial({map:hullTex(5),roughness:.33,metalness:0,clearcoat:.5,clearcoatRoughness:.25});
-const carbonCol=canvasTex(256,256,(x,w,h)=>{x.fillStyle='#16171a';x.fillRect(0,0,w,h);const s=16;for(let j=0;j<h/s;j++)for(let i=0;i<w/s;i++){const g=x.createLinearGradient(i*s,j*s,(i+1)*s,(j+1)*s);const on=(i+j)%2;g.addColorStop(0,on?'#26282d':'#121316');g.addColorStop(1,on?'#1a1c20':'#202227');x.fillStyle=g;x.fillRect(i*s,j*s,s,s);}});
-carbonCol.wrapS=carbonCol.wrapT=THREE.RepeatWrapping; carbonCol.repeat.set(6,6);
-const MK=new THREE.MeshPhysicalMaterial({map:carbonCol,color:0xffffff,roughness:.45,metalness:.1,clearcoat:.6,clearcoatRoughness:.3});
-const MG=new THREE.MeshStandardMaterial({color:0x4a4f57,roughness:.38,metalness:.85});
-const MTi=new THREE.MeshStandardMaterial({color:0x6d6f73,roughness:.55,metalness:.8});
-const solarTex=canvasTex(1024,256,(x,w,h)=>{x.fillStyle='#f1f2f3';x.fillRect(0,0,w,h);x.fillStyle='#0d1730';x.fillRect(0,0,w/2,h);
-  for(let i=0;i<32;i++)for(let j=0;j<8;j++){x.fillStyle=`rgb(${18+Math.random()*10|0},${30+Math.random()*14|0},${66+Math.random()*24|0})`;x.fillRect(i*16+1,j*32+1,14,30);}
-  x.strokeStyle='rgba(180,190,210,.35)';x.lineWidth=1;for(let i=0;i<=32;i++){x.beginPath();x.moveTo(i*16,0);x.lineTo(i*16,h);x.stroke();}});
-const MTrunk=new THREE.MeshPhysicalMaterial({map:solarTex,roughness:.3,metalness:.25,clearcoat:.6});
-function lathe(pts,seg=48){return new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg);}
-
-/* ---------- Crew Dragon exterior (se usa sobre el cohete y en el espacio) ---------- */
-const CAP_PROF=[[2.02,-2.0],[1.99,-1.75],[1.9,-1.2],[1.74,-.5],[1.52,.3],[1.28,1.1],[1.08,1.7],[.99,2.0],[.72,2.02]];
-function capR(y){for(let i=1;i<CAP_PROF.length;i++){if(y<=CAP_PROF[i][1]){const a=CAP_PROF[i-1],b=CAP_PROF[i],u=(y-a[1])/(b[1]-a[1]);return lerp(a[0],b[0],u);}}return .99;}
-function buildDragon(){
-  const g=new THREE.Group();
-  const body=new THREE.Mesh(lathe(CAP_PROF,72),MWdragon); g.add(body);
-  const shield=new THREE.Mesh(lathe([[0,-2.42],[.9,-2.38],[1.6,-2.25],[1.98,-2.07],[2.03,-2.0]],72),new THREE.MeshStandardMaterial({color:0x2b2724,roughness:.95,side:THREE.DoubleSide}));g.add(shield);
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(2.0,.03,8,96),MG);ring.rotation.x=Math.PI/2;ring.position.y=-2.0;g.add(ring);
-  const port=new THREE.Mesh(new THREE.CylinderGeometry(.66,.7,.16,40),MG);port.position.y=2.08;g.add(port);
-  const glass=new THREE.MeshPhysicalMaterial({color:0x05070c,roughness:.05,metalness:.2,clearcoat:1});
-  for(let i=0;i<4;i++){const a=i*Math.PI/2+.62,y=.35,r=capR(y)+.005;const p=new THREE.Vector3(Math.sin(a)*r,y,Math.cos(a)*r);
-    const n=new THREE.Vector3(Math.sin(a),.28,Math.cos(a)).normalize();
-    const w=new THREE.Mesh(new THREE.CircleGeometry(.19,24),glass);w.position.copy(p);w.lookAt(p.clone().add(n));g.add(w);
-    const f=new THREE.Mesh(new THREE.TorusGeometry(.2,.022,8,32),MG);f.position.copy(p);f.lookAt(p.clone().add(n));g.add(f);}
-  const podMat=MWdragon, nzMat=new THREE.MeshStandardMaterial({color:0x2e3036,roughness:.4,metalness:.7});
-  for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4,y=-1.05,r=capR(y)+.12;const pod=new THREE.Group();pod.position.set(Math.sin(a)*r,y,Math.cos(a)*r);pod.rotation.y=a;pod.rotation.x=.18;g.add(pod);
-    pod.add(new THREE.Mesh(new RoundedBoxGeometry(.66,1.05,.3,3,.08),podMat));
-    for(const sx of[-.16,.16]){const nz=new THREE.Mesh(lathe([[.07,0],[.09,-.05],[.13,-.16]],16),nzMat);nz.position.set(sx,-.5,.06);pod.add(nz);}}
-  const hinge=new THREE.Group();hinge.position.set(0,2.02,.99);g.add(hinge);
-  const nose=new THREE.Mesh(lathe([[.99,0],[.97,.25],[.88,.5],[.68,.74],[.38,.9],[0,.96]],64),MWdragon);nose.position.set(0,0,-.99);hinge.add(nose);
-  g.userData.hinge=hinge;
-  return g;
-}
-function buildTrunk(){const t=new THREE.Mesh(new THREE.CylinderGeometry(1.98,1.98,2.8,72),MTrunk);t.position.y=-2.42-1.4;return t;}
-
-/* ---------- 4a. Escena de tierra: Baikonur, Sitio 31 ---------- */
-const gSun=new THREE.Vector3().setFromSphericalCoords(1,THREE.MathUtils.degToRad(90-3.2),THREE.MathUtils.degToRad(-104));
-function makeSky(scale){const s=new Sky();s.scale.setScalar(scale);const u=s.material.uniforms;u.turbidity.value=4.5;u.rayleigh.value=2.8;u.mieCoefficient.value=.006;u.mieDirectionalG.value=.84;u.sunPosition.value.copy(gSun);return s;}
-ground.add(makeSky(3e5));
-{ const es=new THREE.Scene(); es.add(makeSky(1000)); ground.environment=pmrem.fromScene(es,0,.1,3000).texture; }
-const hemiG=new THREE.HemisphereLight(0x8aa2d4,0x2a2218,.35); ground.add(hemiG);
-const sunG=new THREE.DirectionalLight(0xffb07a,2.4); sunG.position.copy(gSun).multiplyScalar(600); sunG.target.position.set(0,0,0); ground.add(sunG,sunG.target);
-sunG.castShadow=true; Object.assign(sunG.shadow.camera,{left:-70,right:70,top:90,bottom:-30,near:10,far:1600}); sunG.shadow.mapSize.set(Q.high?2048:1024,Q.high?2048:1024); sunG.shadow.bias=-.0004; sunG.shadow.normalBias=.04;
 { // estepa de Kazajistán, plataforma y foso de llamas
   const gt=canvasTex(512,512,(x,w,h)=>{const id=x.createImageData(w,h),d=id.data;for(let j=0;j<h;j++)for(let i=0;i<w;i++){const n=fbm(i/40,j/40,5),k=(j*w+i)*4,s=Math.random()*.08;d[k]=(118+n*52+s*40);d[k+1]=(104+n*44+s*36);d[k+2]=(74+n*30);d[k+3]=255;}x.putImageData(id,0,0);});
   gt.wrapS=gt.wrapT=THREE.RepeatWrapping; gt.repeat.set(220,220);
@@ -414,8 +275,6 @@ sunG.castShadow=true; Object.assign(sunG.shadow.camera,{left:-70,right:70,top:90
   for(let i=0;i<N;i++){const a=Math.random()*Math.PI*2,r=900+Math.random()*2200,h=8+Math.random()*26,w=30+Math.random()*90;m.compose(new THREE.Vector3(Math.cos(a)*r,h/2-2,Math.sin(a)*r),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),a),new THREE.Vector3(w,h,w*(.4+Math.random()*.6)));inst.setMatrixAt(i,m);}
   ground.add(inst);
 }
-// Sistema de lanzamiento: 4 brazos que sostienen el cohete («tulipán»), torre de servicio bajada y mástil de cables
-const steel=new THREE.MeshStandardMaterial({color:0x8a9097,roughness:.55,metalness:.75});
 const gantryMat=new THREE.MeshStandardMaterial({color:0xc8582f,roughness:.6,metalness:.35});
 function latticeIM(W,H,lvl,mat){ // torre de celosía con InstancedMesh (base en y=0)
   const cnt=4+lvl*12, im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),mat,cnt); let k=0; const m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
@@ -438,16 +297,12 @@ for(const k of[-1,1]){ // dos mitades de la torre de servicio, ya bajadas a los 
   const half=latticeIM(7,44,14,gantryMat); half.rotation.z=k*Math.PI/2; half.position.set(k*10,3.5,0); ground.add(half);
 }
 { const mast=latticeIM(3,36,10,steel); mast.position.set(0,0,-10); ground.add(mast); }
-const beacon=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:new THREE.Color(6,.6,.3),blending:THREE.AdditiveBlending,depthWrite:false}));beacon.position.set(0,36.6,-10);beacon.scale.setScalar(4);ground.add(beacon);
-const armPivot=new THREE.Group(); ground.add(armPivot);
-const pick=[];
-// Soyuz‑2.1a: 46,3 m; núcleo de 27,1 m (2,95 m de diámetro); laterales de 19,6 m (2,68 m); tercera etapa de 6,7 m
+beacon.position.set(0,36.6,-10);
+beacon.scale.setScalar(4);
 const MS=new THREE.MeshPhysicalMaterial({map:hullTex(12),color:0xe2e5e1,roughness:.5,metalness:0,clearcoat:.2,clearcoatRoughness:.5});
 const MSd=new THREE.MeshStandardMaterial({color:0x56604f,roughness:.7,metalness:.1});
 const MFair=new THREE.MeshPhysicalMaterial({map:hullTex(4),roughness:.4,metalness:0,clearcoat:.4,clearcoatRoughness:.35});
 const bellG=lathe([[.12,0],[.15,-.12],[.24,-.4],[.33,-.8]],20);
-const fh=new THREE.Group(); ground.add(fh);
-const stage1=new THREE.Group(); fh.add(stage1);
 { const core=new THREE.Mesh(lathe([[1.0,0],[1.03,2],[1.15,8],[1.35,16],[1.47,21],[1.475,27.1],[0,27.1]],48),MS); stage1.add(core);
   for(let i=0;i<4;i++){const e=new THREE.Mesh(bellG,MG);const a=i/4*Math.PI*2+Math.PI/4;e.position.set(Math.cos(a)*.42,0,Math.sin(a)*.42);stage1.add(e);}
   const truss=new THREE.Mesh(new THREE.CylinderGeometry(1.33,1.42,1.3,16,1,true),new THREE.MeshStandardMaterial({color:0x2b2e31,roughness:.6,metalness:.5,wireframe:true})); truss.position.y=27.75; stage1.add(truss); }
@@ -460,140 +315,55 @@ for(let i=0;i<4;i++){
   b.position.set(Math.cos(a)*2.25,0,Math.sin(a)*2.25); b.rotation.set(Math.sin(a)*.035,0,-Math.cos(a)*.035); b.userData.dir=new THREE.Vector3(Math.cos(a),0,Math.sin(a));
   fh.add(b); boosters.push(b);
 }
-const upper=new THREE.Group(); fh.add(upper);
 { const s3=new THREE.Mesh(new THREE.CylinderGeometry(1.33,1.33,6.7,48),MS); s3.position.y=28.4+3.35; upper.add(s3);
   for(let i=0;i<4;i++){const e=new THREE.Mesh(bellG,MG);const a=i/4*Math.PI*2;e.position.set(Math.cos(a)*.45,28.4,Math.sin(a)*.45);e.scale.setScalar(.8);upper.add(e);} }
-const fairL=new THREE.Group(), fairR=new THREE.Group(), les=new THREE.Group(); upper.add(fairL,fairR,les);
+const fairL=new THREE.Group(), fairR=new THREE.Group(), les=new THREE.Group();
+upper.add(fairL,fairR,les);
 { const prof=[[1.5,0],[1.5,6.6],[1.32,8.2],[.9,9.6],[.45,10.5],[0,10.7]];
   for(const [g,phi] of [[fairL,0],[fairR,Math.PI]]){const half=new THREE.Mesh(new THREE.LatheGeometry(prof.map(p=>new THREE.Vector2(p[0],p[1])),36,phi,Math.PI),MFair);half.position.y=35.1;g.add(half);
     for(const k of[-1,1]){const f=new THREE.Mesh(new THREE.BoxGeometry(.15,1.3,1.1),MSd);const a=phi+Math.PI/2+k*Math.PI/4;f.position.set(Math.cos(a)*1.72,36.2,Math.sin(a)*1.72);f.rotation.y=-a;g.add(f);}
     g.traverse(o=>{if(o.isMesh)pick.push(o);});}
   const tw=new THREE.Mesh(new THREE.CylinderGeometry(.12,.42,4.6,16),MSd); tw.position.y=45.8+2.3; les.add(tw);
   const tp=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,1.2,16),MSd); tp.position.y=47.6; les.add(tp); }
-const tagAnchor=new THREE.Object3D(); tagAnchor.position.y=41; upper.add(tagAnchor); fh.userData.dragon=tagAnchor;
+const tagAnchor=new THREE.Object3D();
+tagAnchor.position.y=41;
+upper.add(tagAnchor);
+fh.userData.dragon=tagAnchor;
 fh.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
-// Llamas: shader con núcleo caliente, ruido y bordes suaves (valores HDR para el bloom)
-function plumeMat(core,edge,power=1){return new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
-  uniforms:{time:{value:0},power:{value:power},cCore:{value:new THREE.Color(core)},cEdge:{value:new THREE.Color(edge)}},
-  vertexShader:'varying vec2 vUv;varying vec3 vN;varying vec3 vV;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
-  fragmentShader:`uniform float time,power;uniform vec3 cCore,cEdge;varying vec2 vUv;varying vec3 vN;varying vec3 vV;
-  float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
-  void main(){float a=1.-vUv.y;float e=pow(abs(dot(normalize(vN),normalize(vV))),1.4);
-   float n=h(floor(vec2(vUv.x*28.,a*26.-time*24.)));float diam=.75+.25*sin(a*60.-time*3.);
-   vec3 col=mix(cEdge,cCore,pow(1.-a,5.));float i=power*pow(1.-a,1.7)*e*(.72+.28*n)*diam;
-   gl_FragColor=vec4(col*i*3.,i);}`});}
-function plume(len,r0,r1,core,edge){
-  const geo=new THREE.CylinderGeometry(r0,r1,len,28,1,true); geo.translate(0,-len/2,0);
-  const g=new THREE.Group(); const outer=new THREE.Mesh(geo,plumeMat(core,edge,1)); const inner=new THREE.Mesh(geo.clone().scale(.5,.55,.5),plumeMat(0xffffff,core,1.4));
-  g.add(outer,inner); g.userData={mats:[outer.material,inner.material]}; g.visible=false; return g;
-}
-const plC=plume(24,1.0,2.4,0xffd9a0,0xff6a1a); plC.position.y=-.8; stage1.add(plC);
+const plC=plume(24,1.0,2.4,0xffd9a0,0xff6a1a);
+plC.position.y=-.8;
+stage1.add(plC);
 const plB=boosters.map(b=>{const p=plume(24,1.0,2.4,0xffd9a0,0xff6a1a); p.position.y=-.8; b.add(p); return p;});
-const plU=plume(14,.6,1.6,0xffe0b0,0xff7a2a); plU.position.y=27.6; upper.add(plU);
-const engLight=new THREE.PointLight(0xffa050,0,900,0); engLight.position.set(0,-8,0); fh.add(engLight);
-// reflectores con haz visible
+const plU=plume(14,.6,1.6,0xffe0b0,0xff7a2a);
+plU.position.y=27.6;
+upper.add(plU);
 const floods=[[-55,3,48],[58,3,44],[40,3,-40]].map(p=>{const s=new THREE.SpotLight(0xe6eeff,.9,0,.22,.6,0);s.position.set(...p);s.target.position.set(0,24,0);ground.add(s,s.target);
   const len=new THREE.Vector3(...p).distanceTo(new THREE.Vector3(0,24,0));const cone=new THREE.Mesh(new THREE.ConeGeometry(len*.22,len,24,1,true),new THREE.MeshBasicMaterial({color:0x6d7c99,transparent:true,opacity:.022,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
   cone.geometry.translate(0,-len/2,0);cone.position.set(...p);cone.lookAt(0,24,0);cone.rotateX(-Math.PI/2);ground.add(cone);return s;});
-// Humo del despegue y venteo de oxígeno: partículas con tamaño y opacidad por partícula
-function puffSystem(n,color,s0,s1,life){
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*3),3));
-  geo.setAttribute('aSize',new THREE.BufferAttribute(new Float32Array(n),1));
-  geo.setAttribute('aAlpha',new THREE.BufferAttribute(new Float32Array(n),1));
-  geo.setAttribute('aRot',new THREE.BufferAttribute(new Float32Array(n).map(()=>Math.random()*6.28),1));
-  const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{map:{value:puffTex},color:{value:new THREE.Color(color)},glow:{value:new THREE.Color(0)},scale:{value:600},opacity:{value:1}},
-    vertexShader:`attribute float aSize,aAlpha,aRot;varying float vA,vR;varying float vY;uniform float scale;void main(){vA=aAlpha;vR=aRot;vec4 mv=modelViewMatrix*vec4(position,1.);vY=position.y;gl_PointSize=aSize*scale/-mv.z;gl_Position=projectionMatrix*mv;}`,
-    fragmentShader:`uniform sampler2D map;uniform vec3 color,glow;uniform float opacity;varying float vA,vR,vY;void main(){vec2 p=gl_PointCoord-.5;float c=cos(vR),s=sin(vR);p=mat2(c,-s,s,c)*p+.5;vec4 t=texture2D(map,p);float g=exp(-max(vY,0.)/40.);gl_FragColor=vec4(color+glow*g,t.a*vA*opacity);}`});
-  const pts=new THREE.Points(geo,mat); pts.frustumCulled=false; pts.userData={vel:new Float32Array(n*3),age:new Float32Array(n).fill(999),next:0,s0,s1,life}; return pts;
-}
-const smoke=puffSystem(700,0xbfb8ae,8,90,70); ground.add(smoke);
-const vent=puffSystem(220,0xf4f7fb,1.5,9,8); ground.add(vent);
-function emit(sys,p,v){const u=sys.userData,i=u.next;u.next=(i+1)%u.age.length;sys.geometry.attributes.position.array.set(p,i*3);u.vel.set(v,i*3);u.age[i]=0;}
 function stepPuffs(sys,dt,drag){const u=sys.userData,g=sys.geometry.attributes,a=g.position.array,sz=g.aSize.array,al=g.aAlpha.array;
   for(let i=0;i<u.age.length;i++){if(u.age[i]>u.life){al[i]=0;continue;}u.age[i]+=dt;const k=u.age[i]/u.life;sz[i]=lerp(u.s0,u.s1,Math.sqrt(k));al[i]=Math.min(1,u.age[i]*3)*(1-k)*(1-k);
     for(let j=0;j<3;j++){a[i*3+j]+=u.vel[i*3+j]*dt;u.vel[i*3+j]*=Math.exp(-drag*dt);} u.vel[i*3+1]+=dt*1.2;}
   g.position.needsUpdate=g.aSize.needsUpdate=g.aAlpha.needsUpdate=true;}
-
-/* ---------- 4b. Escena lejana: Tierra, Luna, Sol, estrellas ---------- */
-const sunDir=new THREE.Vector3(-1,.08,.2).normalize();
-const uM=new THREE.Vector3(.55,.6,-.58).normalize();      // dirección Tierra→Luna en este escenario
-const farRoot=new THREE.Group(); far.add(farRoot);
-const sunDirL=sunDir.clone();
-const earthMat=new THREE.ShaderMaterial({uniforms:{day:{value:img(EARTH_DAY)},night:{value:img(EARTH_NIGHT)},spec:{value:img(EARTH_SPEC,false)},clouds:{value:img(EARTH_CLOUDS,false)},sunDir:{value:sunDirL},cOff:{value:0}},
- vertexShader:'#include <common>\nvarying vec2 vUv;varying vec3 vN;varying vec3 vW;void main(){vUv=uv;vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
- fragmentShader:`uniform sampler2D day,night,spec,clouds;uniform vec3 sunDir;uniform float cOff;varying vec2 vUv;varying vec3 vN;varying vec3 vW;
- void main(){vec3 N=normalize(vN);vec3 V=normalize(cameraPosition-vW);float d=dot(N,sunDir);
-  vec3 dc=texture2D(day,vUv).rgb;vec3 nc=texture2D(night,vUv).rgb;float sp=texture2D(spec,vUv).r;
-  vec2 cu=vUv+vec2(cOff,0.);float cl=texture2D(clouds,cu).r;float cs=texture2D(clouds,cu+vec2(.0012,.0006)).r;
-  float lit=smoothstep(-.1,.22,d);float diff=max(d,0.);
-  vec3 col=dc*(diff*1.25+.012)*(1.-.5*cs*lit);
-  vec3 H=normalize(sunDir+V);col+=vec3(1.,.9,.75)*pow(max(dot(N,H),0.),80.)*sp*1.6*lit*(1.-cl);
-  col=mix(col,vec3(1.)*(diff*1.3+.008),cl*.9);
-  col+=nc*vec3(1.,.78,.5)*1.8*(1.-lit)*(1.-cl*.8);
-  float rim=pow(1.-max(dot(N,V),0.),2.5);vec3 atm=mix(vec3(1.,.42,.18),vec3(.32,.58,1.),smoothstep(-.02,.35,d));
-  col=mix(col,atm*(.25+diff),rim*smoothstep(-.3,.25,d)*.75);
-  gl_FragColor=vec4(col,1.);
-  #include <colorspace_fragment>
- }`});
-const earth=new THREE.Mesh(new THREE.SphereGeometry(RE*1000,128,96),earthMat); farRoot.add(earth);
-const atmo=new THREE.Mesh(new THREE.SphereGeometry(RE*1000*1.028,128,96),new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.BackSide,uniforms:{sunDir:{value:sunDirL}},
- vertexShader:'varying vec3 vN;varying vec3 vW;void main(){vN=normalize(normalMatrix*normal);vW=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:'uniform vec3 sunDir;varying vec3 vN;varying vec3 vW;void main(){float f=pow(clamp(.72+dot(vN,vec3(0.,0.,1.)),0.,1.),5.);float d=dot(vW,sunDir);float l=smoothstep(-.35,.3,d);vec3 c=mix(vec3(1.,.45,.2),vec3(.3,.56,1.),smoothstep(-.05,.3,d));gl_FragColor=vec4(c*f*l*2.2,1.);}'}));
-farRoot.add(atmo);
-const moon=new THREE.Mesh(new THREE.SphereGeometry(RM*1000,128,96),new THREE.ShaderMaterial({uniforms:{map:{value:img(MOON_URI)},sunDir:{value:sunDirL}},
- vertexShader:'varying vec2 vUv;varying vec3 vN;void main(){vUv=uv;vN=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*modelMatrix*vec4(position,1.);}',
- fragmentShader:'uniform sampler2D map;uniform vec3 sunDir;varying vec2 vUv;varying vec3 vN;void main(){vec3 c=texture2D(map,vUv).rgb;float d=max(dot(normalize(vN),sunDir),0.);gl_FragColor=vec4(c*(pow(d,.75)*1.35+.006),1.);\n#include <colorspace_fragment>\n}'}));
-moon.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),uM.clone().negate()); farRoot.add(moon);
-const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:new THREE.Color(30,27,22),blending:THREE.AdditiveBlending,depthWrite:false}));
-sun.position.copy(sunDir).multiplyScalar(3e9); sun.scale.setScalar(5e7); farRoot.add(sun);
-const sunHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:new THREE.Color(.9,.8,.6),blending:THREE.AdditiveBlending,depthWrite:false}));
-sunHalo.position.copy(sun.position); sunHalo.scale.setScalar(3.2e8); farRoot.add(sunHalo);
-const stars=(()=>{const n=6000,p=new Float32Array(n*3),c=new Float32Array(n*3),s=new Float32Array(n);for(let i=0;i<n;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(4e9);p.set([v.x,v.y,v.z],i*3);const b=Math.pow(Math.random(),3)*1.6+.25,w=Math.random();c.set([b*(w<.2?.75:1),b*(w<.2?.85:.97),b*(w>.8?.75:1)],i*3);s[i]=1+Math.pow(Math.random(),6)*2.6;}
- const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));g.setAttribute('aSize',new THREE.BufferAttribute(s,1));
- return new THREE.Points(g,new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{op:{value:0},pr:{value:1}},vertexShader:'attribute float aSize;varying vec3 vC;uniform float pr;void main(){vC=color;gl_PointSize=aSize*pr;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:'uniform float op;varying vec3 vC;void main(){float d=length(gl_PointCoord-.5);gl_FragColor=vec4(vC,op*smoothstep(.5,.15,d));}',vertexColors:true}));})();
-farRoot.add(stars);
-// Orientación de la Tierra: Baikonur (45,96° N, 63,56° E) bajo la nave al despegar, con el este hacia +X
 const earthQ0=(()=>{const lat=45.96*D2R,lon=63.56*D2R,ph=lon+Math.PI;
   const up=new THREE.Vector3(-Math.cos(ph)*Math.cos(lat),Math.sin(lat),Math.sin(ph)*Math.cos(lat));
   const east=new THREE.Vector3(Math.sin(ph),0,Math.cos(ph));
   const q=new THREE.Quaternion().setFromUnitVectors(up,new THREE.Vector3(0,1,0));
   const e=east.applyQuaternion(q); const ang=Math.atan2(-e.z,e.x);
   return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),ang).multiply(q);})();
-
-/* ---------- 4c. La nave: cabina interior y modelo exterior ---------- */
-const craft=new THREE.Group(); near.add(craft);
-const envCabin=pmrem.fromScene(new RoomEnvironment(),.04).texture;
-const envSpace=(()=>{const s=new THREE.Scene();s.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,vertexShader:'varying vec3 vP;void main(){vP=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'varying vec3 vP;void main(){float e=smoothstep(.1,-.6,vP.y);gl_FragColor=vec4(vec3(.09,.12,.17)*e*3.+vec3(.012),1.);}'})));return pmrem.fromScene(s,0,.1,500).texture;})();
-near.environment=envCabin;
-const hemiN=new THREE.HemisphereLight(0x0b0d12,0x2c4a78,.5); near.add(hemiN);
-const sunLight=new THREE.DirectionalLight(0xfff6ea,6); near.add(sunLight,sunLight.target);
-sunLight.castShadow=true; sunLight.shadow.mapSize.set(Q.high?2048:1024,Q.high?2048:1024); sunLight.shadow.bias=-.0003; sunLight.shadow.normalBias=.012;
-function setSunFrustum(r,dist){const c=sunLight.shadow.camera;c.left=-r;c.right=r;c.top=r;c.bottom=-r;c.near=.1;c.far=dist*2;c.updateProjectionMatrix();sunLight.userData.dist=dist;}
-setSunFrustum(2.4,12);
-const cabin=new THREE.Group(); craft.add(cabin);
-
-// Perfil interior del casco a presión (r, y): paredes curvas, mamparo delantero y túnel de acoplamiento
 const IN_PROF=[[1.0,-.9],[1.08,-.62],[1.08,-.2],[1.0,.2],[.86,.6],[.68,.95],[.5,1.15],[.38,1.22],[.36,1.24],[.36,1.4]];
 function inR(y){for(let i=1;i<9;i++){if(y<=IN_PROF[i][1]){const a=IN_PROF[i-1],b=IN_PROF[i],u=(y-a[1])/(b[1]-a[1]);return lerp(a[0],b[0],u);}}return .5;}
 const WIN_U=[.25,.75], WIN_Y=.32;
 const vOf=(()=>{const j0=3,j1=4,u=(WIN_Y-IN_PROF[j0][1])/(IN_PROF[j1][1]-IN_PROF[j0][1]);return (j0+u)/(IN_PROF.length-1);})();
-// Paneles acolchados: textura de color y mapa de normales generados
-const quiltH=(x,y)=>{const t=256,lx=x%t,ly=y%t,de=Math.min(lx,t-lx,ly,t-ly);let h=smooth(0,10,de);h+=fbm(x/3,y/3,3)*.05;return h*3;};
-const quiltN=normalTex(256,256,quiltH,1,[12,4]);
 const wallCol=canvasTex(256,256,(x,w,h)=>{const id=x.createImageData(w,h),d=id.data;for(let j=0;j<h;j++)for(let i=0;i<w;i++){const n=fbm(i/2.5,j/2.5,3),k=(j*w+i)*4,v=236+n*12;d[k]=v-12;d[k+1]=v-16;d[k+2]=v-44;d[k+3]=255;}x.putImageData(id,0,0);});
-wallCol.wrapS=wallCol.wrapT=THREE.RepeatWrapping; wallCol.repeat.set(12,4);
+wallCol.wrapS=wallCol.wrapT=THREE.RepeatWrapping;
+wallCol.repeat.set(12,4);
 const winAlpha=canvasTex(2048,1024,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#000';for(const u of WIN_U){x.beginPath();x.ellipse(u*w,(1-vOf)*h,30,24,0,0,7);x.fill();}},false);
 const wallMat=new THREE.MeshStandardMaterial({map:wallCol,normalMap:quiltN,normalScale:new THREE.Vector2(.45,.45),alphaMap:winAlpha,alphaTest:.5,side:THREE.BackSide,shadowSide:THREE.DoubleSide,roughness:.8,envMapIntensity:1.5});
-const wall=new THREE.Mesh(lathe(IN_PROF,128),wallMat); wall.castShadow=true; wall.receiveShadow=true; cabin.add(wall);
-const metal=new THREE.MeshStandardMaterial({color:0xaeb3ba,roughness:.32,metalness:.9});
-const darkMetal=new THREE.MeshStandardMaterial({color:0x2c3036,roughness:.45,metalness:.6});
-const fabric=new THREE.MeshStandardMaterial({color:0xdcd8cf,roughness:.92,normalMap:normalTex(128,128,(x,y)=>fbm(x/2,y/2,3)*2+((x+y)%8<1?.3:0),1,[3,3])});
-const glassMat=new THREE.MeshPhysicalMaterial({color:0xffffff,transparent:true,opacity:.05,roughness:.02,metalness:0,clearcoat:1,envMapIntensity:.3,depthWrite:false});
-// Ventanas: marco grueso, túnel de la ventana y cristal
+const wall=new THREE.Mesh(lathe(IN_PROF,128),wallMat);
+wall.castShadow=true;
+wall.receiveShadow=true;
+cabin.add(wall);
 const topWin=new THREE.Vector3(0,1.38,0);
-const winCenters=[];
 for(const u of WIN_U){
   const phi=u*Math.PI*2, r=inR(WIN_Y), dr=(inR(WIN_Y+.01)-inR(WIN_Y-.01))/.02;
   const p=new THREE.Vector3(Math.sin(phi)*r,WIN_Y,Math.cos(phi)*r), nOut=new THREE.Vector3(Math.sin(phi),-dr,Math.cos(phi)).normalize();
@@ -626,13 +396,7 @@ for(const u of WIN_U){
     const al=new THREE.RectAreaLight(0xf2f6ff,12,.5,.12);al.position.copy(pos).add(new THREE.Vector3(0,-.02,0));al.lookAt(s*.1,-1.3,.2);cabin.add(al);}
   const al2=new THREE.RectAreaLight(0xeaf0ff,8,.8,.1);al2.position.set(0,.62,.62);al2.lookAt(0,-.5,-.4);cabin.add(al2);
 }
-// Panel de control (posición aproximada sobre los asientos)
 const PANEL_C=new THREE.Vector3(0,.24,-.5);
-const camHome=new THREE.Vector3();
-const shellMat=new THREE.MeshPhysicalMaterial({map:carbonCol,roughness:.35,metalness:.15,clearcoat:1,clearcoatRoughness:.15});
-const cushMat=new THREE.MeshStandardMaterial({color:0x2a2c31,roughness:.95,normalMap:normalTex(128,128,(x,y)=>fbm(x/1.5,y/1.5,3)*2,1,[2,2])});
-const strapMat=new THREE.MeshStandardMaterial({color:0x1b1d21,roughness:.8});
-const buckle=new THREE.MeshStandardMaterial({color:0xc9ccd1,roughness:.25,metalness:.95});
 [-.58,0,.58].forEach((sx,i)=>{
   const s=new THREE.Group(); s.position.set(sx,-.42,.14); s.scale.setScalar(.84); cabin.add(s); s.lookAt(PANEL_C.x,PANEL_C.y,PANEL_C.z);
   const add=(geo,mat,p,r)=>{const m=new THREE.Mesh(geo,mat);m.position.set(...p);if(r)m.rotation.set(...r);m.castShadow=m.receiveShadow=true;s.add(m);return m;};
@@ -647,32 +411,16 @@ const buckle=new THREE.MeshStandardMaterial({color:0xc9ccd1,roughness:.25,metaln
   add(new RoundedBoxGeometry(.08,.08,.02,2,.008),buckle,[0,-.24,.04]);
   if(i===1){ s.updateMatrixWorld(); camHome.set(0,.42,.32).applyMatrix4(s.matrixWorld); }
 });
-cabin.updateMatrixWorld(true);
-const panel=new THREE.Group(); panel.position.copy(PANEL_C); cabin.add(panel); panel.lookAt(camHome); panel.scale.setScalar(.64); panel.updateMatrixWorld();
+panel.position.copy(PANEL_C);
+panel.scale.setScalar(.64);
 const panelMat=new THREE.MeshStandardMaterial({color:0x56626c,roughness:.5,metalness:.35,normalMap:normalTex(128,128,(x,y)=>fbm(x/1.2,y/1.2,2)*.6,1,[6,3])});
 { const body=new THREE.Mesh(new RoundedBoxGeometry(1.7,.64,.08,4,.025),panelMat); body.position.z=-.015; body.castShadow=body.receiveShadow=true; panel.add(body);
   const lip=new THREE.Mesh(new RoundedBoxGeometry(1.62,.2,.02,3,.008),new THREE.MeshStandardMaterial({color:0x1b1d21,roughness:.6,metalness:.2}));lip.position.set(0,-.17,.03);panel.add(lip);
   for(const sx of[-.55,.55]){const strut=new THREE.Mesh(new RoundedBoxGeometry(.07,.07,.75,2,.015),metal);strut.position.set(sx,.32,-.34);strut.rotation.x=.7;strut.castShadow=true;panel.add(strut);}
   const cab=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.7,.25,-.05),new THREE.Vector3(.8,.45,-.3),new THREE.Vector3(.7,.7,-.55)]),20,.012,6),strapMat);panel.add(cab);
 }
-
-// Pantallas táctiles (lienzos 2D emisivos bajo un vidrio brillante)
-class Screen{
-  constructor(name){this.name=name;this.c=document.createElement('canvas');this.c.width=1024;this.c.height=576;this.x=this.c.getContext('2d');this.tex=new THREE.CanvasTexture(this.c);this.tex.colorSpace=THREE.SRGBColorSpace;this.tex.anisotropy=8;this.hits=[];}
-  hit(id,x,y,w,h,en=true){this.hits.push({id,x,y,w,h,en});}
-  pick(u,v){const px=u*1024,py=(1-v)*576;for(const h of this.hits) if(px>=h.x&&px<=h.x+h.w&&py>=h.y&&py<=h.y+h.h) return h;return null;}
-}
-const scr={left:new Screen('left'),center:new Screen('center'),right:new Screen('right')};
-const screenMeshes=[];
-[['left',-.53],['center',0],['right',.53]].forEach(([k,x])=>{
-  const m=new THREE.Mesh(new THREE.PlaneGeometry(.5,.28125),new THREE.MeshStandardMaterial({color:0x000000,emissive:0xffffff,emissiveMap:scr[k].tex,emissiveIntensity:1.15,roughness:.06,metalness:0,envMapIntensity:.9}));
-  m.position.set(x,.09,.034); m.userData.screen=scr[k]; panel.add(m); screenMeshes.push(m);
-  const bez=new THREE.Mesh(new RoundedBoxGeometry(.528,.31,.03,3,.01),new THREE.MeshStandardMaterial({color:0x0b0c0f,roughness:.25,metalness:.3}));bez.position.set(x,.09,.017);panel.add(bez);
-});
-// 38 botones físicos en dos filas; la fila superior con tapas transparentes
 const PHYS_LABEL={3:'DESCENSO',7:'INCENDIO',11:'PARACAÍDAS',15:'ALEJARSE ISS'};
 const PHYS_INFO={3:'DESCENSO: en una emergencia iniciaría el regreso a la Tierra. En este simulador está bloqueado.',7:'INCENDIO: activaría el sistema contra incendios de la cabina. No hay ningún incendio.',11:'PARACAÍDAS: solo se usa en el descenso final si la secuencia automática falla.',15:'ALEJARSE DE LA ISS: ordenaría una maniobra para alejarse de la estación en una emergencia.'};
-const capMeshes=[], coverMeshes=[], buttons=[];
 { const capG=lathe([[0,0],[.0175,0],[.019,.003],[.019,.017],[.016,.02],[0,.02]],24); capG.rotateX(Math.PI/2);
   const baseG=new RoundedBoxGeometry(.056,.056,.012,2,.004);
   const coverG=new RoundedBoxGeometry(.06,.06,.034,2,.006); coverG.translate(0,-.03,.017);
@@ -691,25 +439,6 @@ const capMeshes=[], coverMeshes=[], buttons=[];
     buttons.push(b);
   }
 }
-const ringMesh=new THREE.Mesh(new THREE.RingGeometry(.038,.047,32),new THREE.MeshBasicMaterial({color:new THREE.Color(.6,1.6,2.4),transparent:true,depthWrite:false}));
-ringMesh.visible=false; panel.add(ringMesh);
-// Indicador de gravedad cero: un peluche colgado del panel (tradición real de las tripulaciones)
-const plush=(()=>{const g=new THREE.Group();const fur=new THREE.MeshStandardMaterial({color:0xc9a77c,roughness:1,normalMap:normalTex(64,64,(x,y)=>Math.random()*1.5,1,[2,2])});
-  const body=new THREE.Mesh(new THREE.SphereGeometry(.045,24,16),fur);body.scale.y=1.15;g.add(body);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.036,24,16),fur);head.position.y=.07;g.add(head);
-  for(const k of[-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(.013,12,8),fur);e.position.set(k*.026,.1,0);g.add(e);
-    const eye=new THREE.Mesh(new THREE.SphereGeometry(.005,8,6),new THREE.MeshStandardMaterial({color:0x111,roughness:.2}));eye.position.set(k*.012,.075,.032);g.add(eye);
-    const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.011,.03,4,8),fur);arm.position.set(k*.048,.0,0);arm.rotation.z=k*.6;g.add(arm);
-    const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.012,.025,4,8),fur);leg.position.set(k*.022,-.055,.01);g.add(leg);}
-  const nose=new THREE.Mesh(new THREE.SphereGeometry(.012,12,8),new THREE.MeshStandardMaterial({color:0xe9d8bf,roughness:1}));nose.position.set(0,.065,.03);g.add(nose);
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true;}); cabin.add(g);
-  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0x222}));cabin.add(line);
-  const anchor=panel.localToWorld(new THREE.Vector3(-.87,.3,.03)); cabin.worldToLocal(anchor);
-  return {g,line,anchor,pos:anchor.clone().add(new THREE.Vector3(0,-.22,.05)),vel:new THREE.Vector3(),L:.22};})();
-
-// Modelo exterior de la Soyuz MS: módulo orbital, cápsula de descenso y módulo de servicio con paneles solares
-const extModel=new THREE.Group(); craft.add(extModel); extModel.visible=false;
-const ext={};
 { const blanket=new THREE.MeshStandardMaterial({color:0x6e7a60,roughness:.85,metalness:.05,normalMap:normalTex(128,128,(x,y)=>fbm(x/3,y/3,3)*2,1,[4,4])});
   const smMat=new THREE.MeshStandardMaterial({color:0xd8dbd6,roughness:.6,metalness:.2});
   const dm=new THREE.Mesh(lathe([[1.1,-.95],[1.12,-.6],[.98,.2],[.74,.8],[.5,1.2],[0,1.28]],64),blanket); extModel.add(dm);
@@ -730,8 +459,9 @@ const ext={};
   const pl=plume(30,1.0,6,0xffe0b0,0xff7a2a); pl.position.y=-11.3; s2.add(pl); ext.plume=pl;
   extModel.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
 }
-// Estación Espacial Internacional (esquemática): el origen del grupo es el puerto de acoplamiento
-const iss=new THREE.Group(); near.add(iss); iss.visible=false;
+const iss=new THREE.Group();
+near.add(iss);
+iss.visible=false;
 { const mod=new THREE.MeshStandardMaterial({color:0xd6d8d4,roughness:.55,metalness:.25});
   const arr=new THREE.MeshPhysicalMaterial({color:0x8a6a3a,roughness:.35,metalness:.6,clearcoat:.4});
   const rad=new THREE.MeshStandardMaterial({color:0xf2f2ee,roughness:.7});
@@ -742,11 +472,6 @@ const iss=new THREE.Group(); near.add(iss); iss.visible=false;
   for(const z of[-50,-38,38,50]) for(const s of[-1,1]) add(new THREE.BoxGeometry(11.6,.1,35),arr,cx+s*7.5,4.5,z+Math.sign(z)*0,0,0).scale.set(1,1,1);
   for(const z of[-22,22]) add(new THREE.BoxGeometry(3,.1,23),rad,cx,-6,z,0,0);
 }
-
-/* =========================================================
-   5. DIBUJO DE LAS PANTALLAS
-   ========================================================= */
-const UI={bg:'#05070c',ink:'#e8ecf4',dim:'#8d99b0',faint:'#4f5a74',line:'#1e2940',craft:'#6fd3ff',ok:'#7ee2a8',warn:'#ffcf6b',bad:'#ff8a7a',btn:'#0c121d'};
 let NOW=0;
 function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
 function sp(c,v){if('letterSpacing' in c) c.letterSpacing=v;}
@@ -761,9 +486,6 @@ function uiBtn(sc,id,x,y,w,h,label,o={}){
   sc.hit(id,x,y,w,h,en);
 }
 function kv(c,x,y,k,v,col=UI.ink,vs=40){c.textAlign='left';c.textBaseline='alphabetic';c.font=`500 18px ${FD}`;sp(c,'3px');c.fillStyle=UI.dim;c.fillText(k,x,y);sp(c,'0px');c.font=`500 ${vs}px ${FM}`;c.fillStyle=col;c.fillText(v,x,y+vs+6);}
-function fmtClock(t){const sgn=t<0?'T−':'T+';let a=Math.abs(t);const d=Math.floor(a/86400);a-=d*86400;const h=Math.floor(a/3600),m=Math.floor(a%3600/60),s=Math.floor(a%60);const p=n=>String(n).padStart(2,'0');return sgn+(d?d+'d ':'')+p(h)+':'+p(m)+':'+p(s);}
-function fmtNum(x,d=0){return x.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,'\u2009');}
-
 function drawLeft(){
   const sc=scr.left,c=sc.x,s=mstate(S.t); sc.hits=[];
   header(sc,'TRAYECTORIA',PHASE[s.phase].toUpperCase());
@@ -823,8 +545,6 @@ function drawCenter(){
   }
   sc.tex.needsUpdate=true;
 }
-function wrapText(c,txt,x,y,maxW,lh,maxL=3){const words=txt.split(' ');let line='',n=0;for(const w of words){const t=line?line+' '+w:w;if(c.measureText(t).width>maxW&&line){c.fillText(line,x,y+n*lh);line=w;n++;if(n>=maxL)return;}else line=t;}if(line)c.fillText(line,x,y+n*lh);}
-
 function drawRight(){
   const sc=scr.right,c=sc.x,st=STEPS[S.step],F=S.flags; sc.hits=[];
   const manualMode=F.manual&&!F.auto;
@@ -868,8 +588,6 @@ function propLevels(t){
   if(t<=0) return {b:1,c:1,s3:1};
   return {b:1-clamp(t/T.BSEP,0,1), c:1-clamp(t/T.CSEP,0,.97), s3: t<T.SES1?1:1-clamp((t-T.SES1)/(T.SECO-T.SES1),0,.96)};
 }
-// Juego de orientación: cámara de nariz con la Luna y los errores
-const G={q:new THREE.Quaternion(),w:{x:0,y:0,z:0},stepSize:.1,err:{x:0,y:0,z:0},okT:0};
 function drawAim(sc){
   const c=sc.x, e=G.err, s=mstate(S.t);
   const cx=300,cy=318,R=210;
@@ -893,11 +611,6 @@ function drawAim(sc){
     c.fillStyle=Math.abs(w)<.2?UI.ok:UI.warn;c.fillText(w.toFixed(1),810,y+34);});
   c.font=`500 18px ${FM}`;c.fillStyle=G.okT>0?UI.ok:UI.dim;c.fillText(G.okT>0?'MANTÉN… ALINEADO':'META: TODO < 0.2',560,470);
 }
-
-/* =========================================================
-   6. CÁMARAS Y ORIENTACIÓN
-   ========================================================= */
-cabin.add(cam); cam.position.copy(camHome);
 const lookBase=(()=>{const f=PANEL_C.clone().sub(camHome).normalize();const r=new THREE.Vector3().crossVectors(f,new THREE.Vector3(0,1,0)).normalize();const u=new THREE.Vector3().crossVectors(r,f);return {f,r,u};})();
 function lookDir(yaw,pitch){const {f,r,u}=lookBase;return f.clone().multiplyScalar(Math.cos(yaw)*Math.cos(pitch)).addScaledVector(r,Math.sin(yaw)*Math.cos(pitch)).addScaledVector(u,Math.sin(pitch)).normalize();}
 function aimCabinCam(){
@@ -911,9 +624,6 @@ function yawPitchTo(localPoint){
 let lookAnim=null;
 function lookAt(local){const [y,p]=yawPitchTo(local);lookAnim={y0:S.yaw,p0:S.pitch,y1:y,p1:clamp(p,-1.2,1.35),t:0};}
 const orbitG={th:.75,ph:1.38,d:105,tgt:new THREE.Vector3(0,23,0)};
-const orbitE={th:2.3,ph:1.2,d:26};
-const qTmp=new THREE.Quaternion(), vTmp=new THREE.Vector3();
-// dirección de la nave a la estación (marco de vuelo): por delante, un poco arriba, y alineándose al final
 function issDirFromCraft(t){const s=mstate(t),a=clamp(s.range/300,0,1)*.07;return new THREE.Vector3(Math.cos(a),Math.sin(a),0).normalize();}
 function moonDirFromCraft(t){return issDirFromCraft(t);}
 function earthPos(t,out){
@@ -921,13 +631,7 @@ function earthPos(t,out){
   return out.multiplyScalar(s.r*1000);
 }
 function flightQuat(t,out){const s=mstate(t);if(t<0) return out.identity();return out.setFromAxisAngle(new THREE.Vector3(0,0,1),-(Math.PI/2-s.gamma));}
-// la nave apunta de modo que la Luna se vea por la ventana superior desde el asiento del comandante
-const BORE=new THREE.Vector3();
 function targetQuat(t,out){if(!BORE.lengthSq())BORE.set(0,1,0);return out.setFromUnitVectors(BORE,issDirFromCraft(t));}
-
-/* =========================================================
-   7. MOTOR DE PASOS
-   ========================================================= */
 function stepWarp(st){if(st.warp==='user')return S.uwarp;if(st.warp==='coast'){return clamp((T.FLYBY-S.t)/10,15,6000);}return st.warp??1;}
 function advance(){
   const st=STEPS[S.step];
@@ -1007,12 +711,6 @@ function targetLocal(st){
   if(['Persiguiendo a la estación','¡Acoplada!','Se abre la cofia','¡En órbita!','Misión cumplida'].includes(st.title)) return winCenters[0].clone();
   return null;
 }
-function worldToCabin(v){return v.applyMatrix4(new THREE.Matrix4().copy(cabin.matrixWorld).invert());}
-
-/* =========================================================
-   8. HUD
-   ========================================================= */
-const cardEl=$('#card');
 function setCard(){
   if(!S.boarded){
     $('#stepn').textContent='Escenario'; setTag('real');
@@ -1029,7 +727,6 @@ function setCard(){
   $('#bWhere').hidden=!targetLocal(st);
   $('#bWhere').textContent=(st.k==='act'||st.k==='game')?'Mostrar dónde':'Mirar por la ventana';
 }
-function setTag(k){const el=$('#tag');el.className='tag '+k;el.textContent=TAGTXT[k];}
 let hudAcc=0;
 function hud(dt){
   hudAcc+=dt; if(hudAcc<.1) return; hudAcc=0;
@@ -1053,10 +750,6 @@ function hud(dt){
   const wv=S.boarded&&st&&st.warp==='user'; $('#warp').hidden=!wv;
   document.querySelectorAll('#warp .btn').forEach(b=>b.classList.toggle('on',+b.dataset.w===S.uwarp));
 }
-let calloutTimer=0,toastTimer=0;
-function callout(big,sub){$('#cBig').textContent=big;$('#cSub').textContent=sub||'';$('#callout').classList.add('show');clearTimeout(calloutTimer);calloutTimer=setTimeout(()=>$('#callout').classList.remove('show'),3200);}
-function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),4200);}
-
 $('#bNext').addEventListener('click',()=>{
   if(!S.boarded){board();return;}
   const st=STEPS[S.step]; if(!st||st.k!=='info') return;
@@ -1064,13 +757,10 @@ $('#bNext').addEventListener('click',()=>{
   advance();
 });
 $('#bWhere').addEventListener('click',()=>{const st=STEPS[S.step];const p=targetLocal(st);if(!p)return;if(S.view!=='cabin')setView('cabin');lookAt(p);});
-$('#bMin').addEventListener('click',()=>{const m=cardEl.classList.toggle('min');$('#bMin').textContent=m?'Mostrar':'Ocultar';});
-$('#bReset').addEventListener('click',()=>{try{location.reload();}catch(e){}});
 $('#bView').addEventListener('click',()=>setView(S.view==='cabin'?'ext':'cabin'));
 $('#bSound').addEventListener('click',()=>{S.sound=!S.sound;$('#bSound').textContent='Sonido: '+(S.sound?'sí':'no');if(S.sound)audioInit();});
 document.querySelectorAll('#warp .btn').forEach(b=>b.addEventListener('click',()=>{S.uwarp=+b.dataset.w;}));
 function setView(v){S.view=v;$('#bView').textContent=v==='cabin'?'Vista exterior':'Vista de cabina';$('#bView').classList.toggle('on',v==='ext');}
-
 function board(){
   if(S.boarding) return; S.boarding=true; audioInit();
   $('#tag3d').hidden=true;
@@ -1080,11 +770,6 @@ function board(){
       $('#bView').hidden=false; $('#bSound').hidden=false; setCard(); $('#fade').style.opacity=0; },550); } };
   S.groundAnim=true; anim();
 }
-
-/* =========================================================
-   9. SONIDO (Web Audio)
-   ========================================================= */
-const A={ctx:null,g:null};
 function audioInit(){
   if(A.ctx||!S.sound) return;
   try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const len=ctx.sampleRate*2, buf=ctx.createBuffer(1,len,ctx.sampleRate), d=buf.getChannelData(0); let l=0;
@@ -1098,19 +783,15 @@ function audioUpdate(){
   if(S.boarded){ if(t>=T.IGN&&t<T.SECO1){lvl= t<0? .3 : t<T.MAXQ? .9 : t<T.MECO? .6 : t<T.SES1? .05 : .25;} else if(t>=T.TLI&&t<T.SECO2) lvl=.22; else if(t>=-2100&&t<0) lvl=.04; }
   if(!S.sound) lvl=0; A.g.gain.setTargetAtTime(lvl*.6,A.ctx.currentTime,.25);
 }
-
-/* =========================================================
-   10. INTERACCIÓN (arrastrar, tocar, pellizcar)
-   ========================================================= */
-const ptrs=new Map(); let drag=null, pinch=null;
-const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+let drag=null, pinch=null;
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(ptrs.size===1) drag={x:e.clientX,y:e.clientY,d:0}; else if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch={d0:Math.hypot(a.x-b.x,a.y-b.y),z0:S.zoom,e0:orbitE.d,g0:orbitG.d};if(drag)drag.d=99;}});
 canvas.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pinch&&ptrs.size===2){const [a,b]=[...ptrs.values()];const k=pinch.d0/Math.max(20,Math.hypot(a.x-b.x,a.y-b.y));zoomTo(k,pinch);return;}
   if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY; drag.d+=Math.abs(dx)+Math.abs(dy); if(drag.d>6) look(dx,dy);});
 const endPtr=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(drag&&ptrs.size===0){if(drag.d<=6&&e.type==='pointerup')click(e.clientX,e.clientY);drag=null;}};
-canvas.addEventListener('pointerup',endPtr); canvas.addEventListener('pointercancel',endPtr);
+canvas.addEventListener('pointerup',endPtr);
+canvas.addEventListener('pointercancel',endPtr);
 canvas.addEventListener('wheel',e=>{e.preventDefault();zoomTo(Math.exp(e.deltaY*.0012),null,true);},{passive:false});
 function zoomTo(k,p,rel){
   if(isCabinView()){S.zoom=clamp((rel?S.zoom:p.z0)*k,.4,1.25);}
@@ -1138,14 +819,8 @@ function click(x,y){
   if(o.userData.btn!==undefined){ const b=buttons[o.userData.btn]; if(b.cover&&!b.open){pressPhysical(b.idx);return;} pressPhysical(b.idx); }
 }
 canvas.addEventListener('keydown',e=>{if(!isCabinView())return;const k={ArrowLeft:[40,0],ArrowRight:[-40,0],ArrowUp:[0,-40],ArrowDown:[0,40]}[e.key];if(k){look(k[0],k[1]);e.preventDefault();}});
-
-/* =========================================================
-   11. ACTUALIZACIÓN DE LAS ESCENAS
-   ========================================================= */
-const detached=[];
 function detach(obj,vel,axis=new THREE.Vector3(0,0,1),spin=(Math.random()-.5)*.3){obj.updateMatrixWorld();const m=obj.matrixWorld.clone();obj.parent.remove(obj);ground.add(obj);m.decompose(obj.position,obj.quaternion,obj.scale);detached.push({obj,vel,axis,spin,age:0});}
 const sep={side:false,core:false,les:false,fair:false};
-const glowCol=new THREE.Color();
 function updateGround(dt){
   const t=S.t, s=mstate(t);
   beacon.material.opacity=Math.sin(NOW*3)>0?1:.15;
@@ -1189,11 +864,7 @@ function updateGroundCam(dt){
   const {th,ph,d,tgt}=orbitG; gcam.position.set(tgt.x+d*Math.sin(ph)*Math.sin(th),tgt.y+d*Math.cos(ph),tgt.z+d*Math.sin(ph)*Math.cos(th));
   if(gcam.position.y<2)gcam.position.y=2; gcam.lookAt(tgt);
 }
-const skyLow=new THREE.Color(0x46689e), black=new THREE.Color(0x000000), skyCol=new THREE.Color();
-const duskCol=new THREE.Color(0xffb27a), spaceCol=new THREE.Color(0xfff6ea);
-const hemiSkyPad=new THREE.Color(0x6f8fc8), hemiSkySpace=new THREE.Color(0x07080c);
-let frustMode=''; const craftQ=new THREE.Quaternion();
-const gLocal=new THREE.Vector3(), tmpV=new THREE.Vector3();
+let frustMode='';
 function updatePlush(dt){
   const t=S.t, s=mstate(t), P=plush;
   const g= t<T.IGN ? 1 : (t<T.SECO1 ? s.g : (t>=T.TLI&&t<T.SECO2 ? s.g : 0));
@@ -1259,21 +930,9 @@ function updateSpace(dt){
   ecam.position.set(d*Math.sin(ph)*Math.sin(th),d*Math.cos(ph),d*Math.sin(ph)*Math.cos(th)).applyQuaternion(qi).add(tmpV.set(0,-4,0));
   ecam.up.set(0,1,0).applyQuaternion(qi); ecam.lookAt(0,-4,0);
 }
-
-/* =========================================================
-   12. BUCLE PRINCIPAL
-   ========================================================= */
-function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(w,h);for(const c of[gcam,ecam]){c.aspect=w/h;c.updateProjectionMatrix();}}
-addEventListener('resize',resize); resize();
-function applyQuality(){
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,Q.high?2:1.25)); resize();
-  bloom.enabled=Q.high;
-  for(const l of[sunLight,sunG]){const n=Q.high?2048:1024;if(l.shadow.mapSize.x!==n){l.shadow.mapSize.set(n,n);if(l.shadow.map){l.shadow.map.dispose();l.shadow.map=null;}}}
-  $('#bQual').textContent='Calidad: '+(Q.high?'alta':'media');
-}
-$('#bQual').addEventListener('click',()=>{Q.high=!Q.high;applyQuality();});
+resize();
 applyQuality();
-const clock=new THREE.Clock(); let screenAcc=0;
+let screenAcc=0;
 function frame(){
   const dt=Math.min(clock.getDelta(),.1); NOW+=dt;
   const t0=S.t; tick(dt); S.lastWarp=dt>0?(S.t-t0)/dt:1;
@@ -1292,7 +951,10 @@ function frame(){
   composer.render(dt);
   requestAnimationFrame(frame);
 }
-setCard(); drawLeft(); drawCenter(); drawRight();
+setCard();
+drawLeft();
+drawCenter();
+drawRight();
 $('#loading').remove();
 window.__soy={S,T,STEPS,setView,advance,mstate,catchTo:t=>{S.t=t;}};
 requestAnimationFrame(frame);

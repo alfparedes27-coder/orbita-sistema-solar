@@ -19,6 +19,21 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
 - Luna y eclipses: [Astronomy Engine](https://github.com/cosinekitty/astronomy) (Don Cross, MIT).
 - Estrellas y constelaciones: [d3-celestial](https://github.com/ofrohn/d3-celestial) (Olaf Frohn, BSD), catálogo Hipparcos.
 - Gráficos 3D: [three.js](https://threejs.org) (MIT).
+- Mapas de los planetas y anillos de Saturno: [Solar System Scope](https://www.solarsystemscope.com/textures/) (CC BY 4.0).
+- Lunas galileanas: [Björn Jónsson](https://bjj.mmedia.is/data/planetary_maps.html), a partir de datos NASA/PDS. Luna: NASA LRO/LROC. Marte: NASA/USGS Viking.
+  Titán, Encélado, Tritón, Plutón y Caronte: NASA/JPL y New Horizons (dominio público).
+- Edificios y puntos de interés de los sitios de lanzamiento: © colaboradores de [OpenStreetMap](https://www.openstreetmap.org/copyright) (ODbL).
+
+## Cómo está organizado
+
+- `index.html`: el simulador. Los datos pesados (efemérides JPL, catálogo de estrellas, mapa de las simulaciones) están en `datos/`
+  y las texturas en `simulaciones/tex/`; se descargan aparte, se guardan en caché y los mapas de los planetas llegan en segundo plano.
+- `simulaciones/`: una carpeta por simulación. Las tres cabinas (Dragon, Soyuz, Starliner) comparten `simulaciones/cabina/comun.js`
+  y los dos recorridos por sitios de lanzamiento (Baikonur, Cabo Cañaveral) comparten el motor `simulaciones/sitio/motor.js` y `sitio.css`:
+  cada página sólo contiene sus datos, su nave y su misión.
+- `tools/hornear_osm.py`: descarga los edificios de OpenStreetMap y los guarda en `edificios-osm.bin` (formato compacto OSB2);
+  un flujo de GitHub Actions lo ejecuta una vez al mes.
+- `datos/incrustado.js`: copia de datos y texturas para abrir `index.html` con doble clic (sin servidor). En la web no se descarga.
 
 ## Uso sin internet
 

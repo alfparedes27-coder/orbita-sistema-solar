@@ -253,7 +253,12 @@ function moonTex(kind){
 }
 
 // Júpiter: radio 1 = 71 492 km, achatamiento 0,06487, rota en 9 h 55 min 30 s
-const jup = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), new THREE.MeshStandardMaterial({ map:jupiterTex(), roughness:1, metalness:0 }));
+// Primero se ve la textura dibujada (instantánea); en cuanto descargan, se cambian por los mapas reales:
+// Júpiter de Solar System Scope (CC BY 4.0) y las lunas galileanas de Björn Jónsson (datos NASA/PDS).
+const REAL = { jup:'../tex/jupiter.webp', io:'../tex/io.webp', eu:'../tex/europa.webp', ga:'../tex/ganimedes.webp', ca:'../tex/calisto.webp' };
+// (dispose() hace que la textura se reserve de nuevo con el tamaño del mapa real)
+function realTex(key, tex){ const im = new Image(); im.onload = () => { tex.dispose(); tex.image = im; tex.needsUpdate = true; }; im.src = REAL[key]; return tex; }
+const jup = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), new THREE.MeshStandardMaterial({ map:realTex('jup', jupiterTex()), roughness:1, metalness:0 }));
 jup.scale.set(1, 1-0.06487, 1); scene.add(jup);
 const JUP_ROT_H = 9.925;
 
@@ -262,7 +267,7 @@ function ringLine(rad, col, op){ const pts = []; for (let i=0;i<=256;i++){ const
   return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:col, transparent:true, opacity:op })); }
 MOONS.forEach(m => {
   m.orbit = ringLine(m.a/RJ, m.col, .28); scene.add(m.orbit);
-  m.mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshStandardMaterial({ map:moonTex(m.id), roughness:1, metalness:0, emissive: m.id==='io' ? 0x3a1a00 : 0x000000 }));
+  m.mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshStandardMaterial({ map:realTex(m.id, moonTex(m.id)), roughness:1, metalness:0, emissive: m.id==='io' ? 0x3a1a00 : 0x000000 }));
   scene.add(m.mesh);
   m.lbl = document.createElement('div'); m.lbl.className = 'lbl'; m.lbl.textContent = m.name; m.lbl.style.color = m.col; document.body.appendChild(m.lbl);
 });

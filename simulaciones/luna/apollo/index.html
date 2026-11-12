@@ -331,7 +331,7 @@ const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true,lo
 renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
 const texL=new THREE.TextureLoader();
 const earthTex=texL.load('../../tex/tierra-dia.webp'); earthTex.colorSpace=THREE.SRGBColorSpace; earthTex.anisotropy=8;
-const moonTex=texL.load('../../tex/luna.jpg'); moonTex.colorSpace=THREE.SRGBColorSpace; moonTex.anisotropy=8;
+const moonTex=texL.load('../../tex/luna.webp'); moonTex.colorSpace=THREE.SRGBColorSpace; moonTex.anisotropy=8;
 function glowTex(stops){ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'), g=x.createRadialGradient(64,64,0,64,64,64);
   stops.forEach(s=>g.addColorStop(s[0],s[1])); x.fillStyle=g; x.fillRect(0,0,128,128); return new THREE.CanvasTexture(c); }
 const GLOW=glowTex([[0,'rgba(255,255,255,1)'],[0.25,'rgba(255,220,160,.8)'],[1,'rgba(255,140,40,0)']]);

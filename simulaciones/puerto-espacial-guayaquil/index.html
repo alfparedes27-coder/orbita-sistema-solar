@@ -358,7 +358,6 @@ button{cursor:pointer}
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
-<script id="tex-earth" type="text/plain">tierra.webp</script>
 <script>
 // ===== Física de la misión (SI). Plano inercial 2D: x hacia el sitio en T=0, y hacia el este =====
 const G0 = 9.80665;
@@ -821,6 +820,16 @@ const renderPass = new RenderPass(new THREE.Scene(), new THREE.PerspectiveCamera
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.55, 0.9);
 composer.addPass(renderPass); composer.addPass(bloomPass); composer.addPass(new OutputPass());
 
+// Texturas grandes en dos pasos: primero la versión de 2 048 px (liviana), y unos segundos después de arrancar la de 4 096 px.
+const texLoader = new THREE.TextureLoader();
+const texBig = [];
+function texProgresiva(low, high) {
+  const t = texLoader.load(low); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; t.userData.high = high; texBig.push(t); return t;
+}
+function cargarTexturasGrandes() {
+  for (const t of texBig) { const h = t.userData.high; if (!h) continue; t.userData.high = null; texLoader.load(h, img => { t.dispose(); t.image = img.image; t.needsUpdate = true; }); }   // dispose(): la textura se vuelve a reservar con el nuevo tamaño
+}
+addEventListener('load', () => setTimeout(cargarTexturasGrandes, 6000));
 const LOGV = '#include <common>\n#include <logdepthbuf_pars_vertex>\n';
 const LOGF = '#include <logdepthbuf_pars_fragment>\n';
 
@@ -1002,7 +1011,7 @@ const TEX_BODY = canvasTex(256, 1024, (g, w, h) => {
   const fr = g.createLinearGradient(0, h * 0.18, 0, h * 0.5); fr.addColorStop(0, 'rgba(255,255,255,0)'); fr.addColorStop(0.5, 'rgba(250,252,255,.35)'); fr.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = fr; g.fillRect(0, h * 0.18, w, h * 0.32);
 });
-TEX_BODY.wrapS = THREE.RepeatWrapping;
+TEX_BODY.wrapS = THREE.RepeatWrapping; TEX_BODY.anisotropy = maxAniso;
 const TEX_CARBON = canvasTex(256, 256, (g, w, h) => {
   g.fillStyle = '#17181b'; g.fillRect(0, 0, w, h);
   for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) { g.fillStyle = ((x + y) / 4) % 2 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.12)'; g.fillRect(x, y, 4, 4); }
@@ -1016,10 +1025,41 @@ const TEX_GRID = canvasTex(128, 128, (g, w, h) => {
   g.restore();
 });
 
+// ---------- relieve y rugosidad del casco (mapas de normales calculados, sin imágenes) ----------
+// La luz responde a las soldaduras, los refuerzos y las abolladuras del tanque; la escarcha es mate y la pintura, satinada.
+function heightToNormal(w, h, height, strength = 2.0) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); const im = g.createImageData(w, h), d = im.data;
+  const H = new Float32Array(w * h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) H[y * w + x] = height(x, y);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const l = H[y * w + (x + w - 1) % w], r = H[y * w + (x + 1) % w], u = H[((y + h - 1) % h) * w + x], dn = H[((y + 1) % h) * w + x];
+    const nx = (l - r) * strength, ny = (dn - u) * strength, k = 1 / Math.hypot(nx, ny, 1), i = (y * w + x) * 4;
+    d[i] = 128 + nx * k * 127; d[i + 1] = 128 + ny * k * 127; d[i + 2] = 128 + k * 127; d[i + 3] = 255;
+  }
+  g.putImageData(im, 0, 0); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = maxAniso; return t;
+}
+const hullNoise = rng(77), dents = Array.from({ length: 40 }, () => [hullNoise() * 256, hullNoise() * 1024, 6 + hullNoise() * 14, (hullNoise() - 0.5) * 0.5]);
+const TEX_BODY_N = heightToNormal(256, 1024, (x, y) => {
+  let z = 0;
+  const wy = y % 46; z -= wy < 2 ? 0.9 : wy < 4 ? 0.35 : 0;                                   // soldaduras circunferenciales (surco)
+  const sx = x % 32; z += sx < 2 ? 0.25 : 0;                                                   // refuerzos longitudinales
+  if (Math.abs(x - 64) < 4) z += 0.8; else if (Math.abs(x - 64) < 6) z += 0.3;                // canaleta de cables en relieve
+  for (const [cx, cy, r, a] of dents) { const dd = Math.hypot(x - cx, y - cy); if (dd < r) z += a * (1 - dd / r) * (1 - dd / r); }  // abolladuras suaves
+  return z;
+}, 1.6);
+const TEX_BODY_R = canvasTex(64, 256, (g, w, h) => {
+  g.fillStyle = '#6c6c6c'; g.fillRect(0, 0, w, h);                                             // pintura satinada
+  const fr = g.createLinearGradient(0, h * 0.18, 0, h * 0.5); fr.addColorStop(0, 'rgba(230,230,230,0)'); fr.addColorStop(0.5, 'rgba(230,230,230,.9)'); fr.addColorStop(1, 'rgba(230,230,230,0)');
+  g.fillStyle = fr; g.fillRect(0, h * 0.18, w, h * 0.32);                                      // escarcha: mate
+  g.fillStyle = 'rgba(40,40,40,.5)'; g.fillRect(w * 0.245, 0, 2, h);                           // canaleta: más brillante
+}, false);
+TEX_BODY_R.wrapS = THREE.RepeatWrapping;
+const TEX_CARBON_N = heightToNormal(64, 64, (x, y) => (((x >> 2) + (y >> 2)) % 2 ? 0.5 : 0) + 0.25 * Math.sin(x * 1.57) * Math.sin(y * 1.57), 1.2);
+TEX_CARBON_N.repeat.set(6, 3);
+
 // ---------- materiales ----------
-const M_WHITE = new THREE.MeshStandardMaterial({ color: 0xffffff, map: TEX_BODY, roughness: 0.42, metalness: 0.05 });
-const M_WHITE_PLAIN = new THREE.MeshStandardMaterial({ color: 0xf2f3f1, roughness: 0.45, metalness: 0.05 });
-const M_BLACK = new THREE.MeshStandardMaterial({ color: 0xffffff, map: TEX_CARBON, roughness: 0.55, metalness: 0.15 });
+const M_WHITE = new THREE.MeshStandardMaterial({ color: 0xffffff, map: TEX_BODY, normalMap: TEX_BODY_N, normalScale: new THREE.Vector2(0.55, 0.55), roughnessMap: TEX_BODY_R, roughness: 1.0, metalness: 0.05 });
+const M_WHITE_PLAIN = new THREE.MeshStandardMaterial({ color: 0xf2f3f1, normalMap: TEX_BODY_N, normalScale: new THREE.Vector2(0.25, 0.25), roughness: 0.42, metalness: 0.05 });
+const M_BLACK = new THREE.MeshStandardMaterial({ color: 0xffffff, map: TEX_CARBON, normalMap: TEX_CARBON_N, normalScale: new THREE.Vector2(0.35, 0.35), roughness: 0.5, metalness: 0.15 });
 const M_SOOT = new THREE.MeshStandardMaterial({ color: 0x55524d, roughness: 0.85 });
 const M_METAL = new THREE.MeshStandardMaterial({ color: 0x8a8d93, roughness: 0.32, metalness: 0.85 });
 const M_TITAN = new THREE.MeshStandardMaterial({ color: 0x5b5b5e, roughness: 0.45, metalness: 0.8, alphaMap: TEX_GRID, transparent: false, alphaTest: 0.5, side: THREE.DoubleSide });
@@ -1162,7 +1202,7 @@ const QS = new URLSearchParams(location.search);
 
   // Tierra de respaldo (más allá de las teselas, o si no cargan): esfera real con la textura global
   {
-    const tex = new THREE.TextureLoader().load(document.getElementById('tex-earth').textContent.trim()); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = maxAniso;
+    const tex = texProgresiva('../tex/tierra-dia.webp', 'tierra.webp');
     const m = new THREE.Mesh(new THREE.SphereGeometry(R_E - 4000, 360, 180), new THREE.MeshLambertMaterial({ map: tex }));
     m.matrixAutoUpdate = false;
     const rot = new THREE.Matrix4().set(E3[0], E3[1], E3[2], 0, S3[0], S3[1], S3[2], 0, -N3[0], -N3[1], -N3[2], 0, 0, 0, 0, 1);
@@ -2049,9 +2089,8 @@ const RE_KM = R_E / 1000, RM_KM = R_M / 1000;
   const sun = new THREE.DirectionalLight(0xfff4e6, 3.0); sun.position.copy(SUN3).multiplyScalar(1e6); sc.add(sun); sc.add(sun.target); G.sunLight = sun;
   sc.add(new THREE.AmbientLight(0x3a4260, 0.35));
   G.earth = new THREE.Group(); sc.add(G.earth);
-  const loadTex = (id) => { const t = new THREE.TextureLoader().load(document.getElementById(id).textContent.trim()); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; return t; };
   // Tierra: Blue Marble de la NASA; en el lado nocturno se encienden las luces de las ciudades (Black Marble)
-  const earthMat = new THREE.MeshPhongMaterial({ map: loadTex('tex-earth'), specular: 0x2a3a50, shininess: 18, emissive: 0xffc890, emissiveMap: (() => { const t = new THREE.TextureLoader().load('tierra-noche.webp'); t.colorSpace = THREE.SRGBColorSpace; return t; })(), emissiveIntensity: 1.6 });
+  const earthMat = new THREE.MeshPhongMaterial({ map: texProgresiva('../tex/tierra-dia.webp', 'tierra.webp'), specular: 0x2a3a50, shininess: 18, emissive: 0xffc890, emissiveMap: (() => { const t = new THREE.TextureLoader().load('tierra-noche.webp'); t.colorSpace = THREE.SRGBColorSpace; return t; })(), emissiveIntensity: 1.6 });
   earthMat.onBeforeCompile = sh => {
     sh.uniforms.uSunW = { value: SUN3 };
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWN;').replace('#include <defaultnormal_vertex>', '#include <defaultnormal_vertex>\nvWN = normalize(mat3(modelMatrix) * objectNormal);');
@@ -2081,7 +2120,7 @@ const RE_KM = R_E / 1000, RM_KM = R_M / 1000;
   // Luna
   // Luna: mapa de color del orbitador LRO (NASA, CGI Moon Kit) con su relieve; la cara visible (longitud 0) mira a la Tierra
   const moonGeo = new THREE.SphereGeometry(RM_KM, 160, 120); moonGeo.rotateY(-Math.PI / 2);
-  const moonMap = new THREE.TextureLoader().load('luna.webp'); moonMap.colorSpace = THREE.SRGBColorSpace; moonMap.anisotropy = maxAniso;
+  const moonMap = texProgresiva('../tex/luna.webp', 'luna.webp');
   const moonBump = new THREE.TextureLoader().load('luna-relieve.webp');
   G.moon = new THREE.Mesh(moonGeo, new THREE.MeshPhongMaterial({ map: moonMap, bumpMap: moonBump, bumpScale: 3.5, shininess: 2, specular: 0x0a0a0a }));
   sc.add(G.moon);

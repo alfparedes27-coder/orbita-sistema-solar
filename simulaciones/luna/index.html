@@ -240,7 +240,7 @@ const CAT=[['crew','Con astronautas (Apollo)','Las 6 misiones que llevaron a 12 
 const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
 const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(40,1,0.01,1000);
-const tex=new THREE.TextureLoader().load('../tex/luna.jpg'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+const tex=new THREE.TextureLoader().load('../tex/luna.webp'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
 const moon=new THREE.Mesh(new THREE.SphereGeometry(1,128,96),new THREE.MeshStandardMaterial({map:tex,roughness:1,bumpMap:tex,bumpScale:3})); scene.add(moon);
 { const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<3000;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(300);p.push(v.x,v.y,v.z);} g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.3,sizeAttenuation:false}))); }
 const sunL=new THREE.DirectionalLight(0xffffff,2.0); scene.add(sunL); scene.add(new THREE.AmbientLight(0x8a90a0,1.4));
