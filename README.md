@@ -31,6 +31,8 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
 - `simulaciones/`: una carpeta por simulación. Las tres cabinas (Dragon, Soyuz, Starliner) comparten `simulaciones/cabina/comun.js`
   y los dos recorridos por sitios de lanzamiento (Baikonur, Cabo Cañaveral) comparten el motor `simulaciones/sitio/motor.js` y `sitio.css`:
   cada página sólo contiene sus datos, su nave y su misión.
+- `simulaciones/marte/rovers.js`: «Explorar el rover»: modelo 3D detallado, despiece por piezas con explicación, recorrido animado
+  con suspensión rocker‑bogie y ficha de lanzamiento y llegada. Se añaden rovers de dos en dos.
 - `tools/hornear_osm.py`: descarga los edificios de OpenStreetMap y los guarda en `edificios-osm.bin` (formato compacto OSB2);
   un flujo de GitHub Actions lo ejecuta una vez al mes.
 - `datos/incrustado.js`: copia de datos y texturas para abrir `index.html` con doble clic (sin servidor). En la web no se descarga.

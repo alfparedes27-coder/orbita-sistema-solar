@@ -66,7 +66,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 .body ul{margin:6px 0;padding-left:18px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;margin:6px 0}
 .kv span{color:var(--dim)} .kv b{font-weight:500}
-.go{display:block;margin:10px 0 0;padding:9px 12px;border-radius:8px;background:var(--mars);color:var(--mars-ink);text-decoration:none;font:600 13px var(--f-display);text-align:center}
+.go{display:block;width:100%;text-align:left;cursor:pointer;border:0;margin:10px 0 0;padding:9px 12px;border-radius:8px;background:var(--mars);color:var(--mars-ink);text-decoration:none;font:600 13px var(--f-display);text-align:center}
 .go.alt{background:transparent;border:1px solid var(--line2);color:var(--ink)}
 .soon{color:var(--dim);font-size:12.5px;border:1px dashed var(--line2);border-radius:8px;padding:8px 10px;margin-top:8px}
 .lbl{position:fixed;left:0;top:0;font:600 11px var(--f-display);letter-spacing:.04em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;transform:translate(-50%,-160%);z-index:2;cursor:pointer;padding:2px 4px}
@@ -79,6 +79,27 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
   .legend{display:none}
   .hint{display:none}
 }
+/* ---- Explorar el rover (visor a pantalla completa) ---- */
+.rv{position:fixed;inset:0;z-index:50;background:var(--void);color:var(--ink)}
+.rv-gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.rv-top{position:absolute;left:0;right:0;top:0;padding:calc(10px + var(--top)) var(--gr) 10px var(--gl);display:flex;align-items:center;gap:14px;background:linear-gradient(rgba(5,6,11,.85),rgba(5,6,11,0));pointer-events:none}
+.rv-top>*{pointer-events:auto}
+.rv-top h2{margin:0;font:700 22px var(--f-display);line-height:1.1} .rv-sub{font:500 11px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--mars)}
+.rv-tabs{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.rv-tabs button{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 11px;font:500 12.5px var(--f-body);cursor:pointer}
+.rv-tabs button[aria-pressed=true]{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
+.rv-close{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;width:36px;height:36px;font-size:16px;cursor:pointer}
+.rv-side{position:absolute;left:var(--gl);bottom:calc(64px + var(--bot));width:min(360px,calc(100vw - 32px));max-height:50vh;overflow:auto;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);font-size:13px;line-height:1.45}
+.rv-side h3{margin:0 0 6px;font:600 15px var(--f-display)} .rv-side p{margin:6px 0}
+.rv-firsts{margin:8px 0 0;padding-left:18px} .rv-firsts li{margin:2px 0}
+.rv-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px} .rv-list button{background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:7px;padding:4px 8px;font-size:12px;cursor:pointer}
+.rv-list button[aria-pressed=true]{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
+.rv-labels{position:absolute;inset:0;pointer-events:none} .rv-tag{position:absolute;transform:translate(-50%,-120%);pointer-events:auto;background:rgba(10,12,20,.8);border:1px solid var(--line2);color:var(--ink);border-radius:6px;padding:3px 7px;font:500 11.5px var(--f-body);cursor:pointer;white-space:nowrap}
+.rv-tag.sel{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
+.rv-foot{position:absolute;left:0;right:0;bottom:calc(12px + var(--bot));display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.rv-slider{pointer-events:auto;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font:500 12.5px var(--f-body)} .rv-slider input{width:min(260px,50vw);accent-color:var(--mars)}
+.rv-hint{font:500 11.5px var(--f-data);color:var(--dim);letter-spacing:.04em}
+@media (max-width:720px){ .rv-top{flex-wrap:wrap} .rv-side{max-height:36vh;font-size:12.5px} .rv-top h2{font-size:18px} }
 </style>
 </head>
 <body>
@@ -111,6 +132,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { abrirRover, ROVER_IDS } from './rovers.js';
 const $=id=>document.getElementById(id);
 const SIM='../cabo-canaveral/marte/';
 
@@ -319,12 +341,13 @@ function openCard(s){
   if(!I){ $('cbody').innerHTML=`<div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${fc(s)}</b></div>
     <div class="soon">La ficha completa de ${s.name} (modelo 3D, cómo funciona, historia y animación del aterrizaje) se agregará en las próximas tandas.</div>`; return; }
   buildRobot(s.model); castAll(robot);
-  let h='';
+  let h=ROVER_IDS.includes(s.id)?`<button class="go" id="explore">Explorar el rover en 3D: piezas, recorrido y lanzamiento →</button>`:'';
   if(tab==='how') h=I.how;
   if(tab==='story') h=I.story;
   if(tab==='launch') h=`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${fc(s)}</b></div>
     <a class="go" href="${SIM}#${s.id}/llegada">Ver la animación del aterrizaje →</a><a class="go alt" href="${SIM}#${s.id}">Ver todo desde el despegue en Cabo Cañaveral →</a>`;
   $('cbody').innerHTML=h; $('cbody').scrollTop=0;
+  const ex=$('explore'); if(ex) ex.onclick=()=>{ abrirRover(s.id); history.replaceState(null,'','#'+s.id+'/rover'); };
 }
 const fc=s=>`${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${s.lon.toFixed(2)}° E`;
 $('close').onclick=()=>{ $('card').hidden=true; sel=null; SITES.forEach(x=>x.lbl.classList.remove('sel')); };
@@ -449,7 +472,7 @@ function loop(t){
     rctl.update(); rr.render(rs,rcam); }
 }
 requestAnimationFrame(loop);
-const start=SITES.find(s=>'#'+s.id===location.hash); if(start) select(start);
+const hs=location.hash.slice(1).split('/'), start=SITES.find(s=>s.id===hs[0]); if(start){ select(start); if(hs[1]==='rover') abrirRover(start.id); }
 window.__mm={select,SITES};
 </script>
 </body>
