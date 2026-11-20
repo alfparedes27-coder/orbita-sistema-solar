@@ -140,6 +140,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { $, A, BORE, D2R, DM, FD, FM, G, MG, MU_E, RE, UI, WATER_URI, applyQuality, armPivot, atmo, beacon, black, bloom, buckle, buttons, cabin, callout, cam, camHome, canvas, canvasTex, capMeshes, clamp, clock, composer, coverMeshes, craftQ, cushMat, darkMetal, detached, duskCol, earth, earthMat, ecam, emit, engLight, envCabin, envSpace, ext, extModel, fabric, far, farRoot, fbm, fcam, fh, fmtClock, fmtNum, gLocal, gcam, glassMat, glowCol, grade, ground, hemiN, hemiSkyPad, hemiSkySpace, hullTex, img, lathe, lerp, metal, moon, ndc, near, normalTex, orbitE, panel, pick, plume, plush, ptrs, qTmp, quiltN, ray, renderer, resize, ringMesh, rpFar, rpGround, rpNear, scr, screenMeshes, setPadSky, setSunFrustum, setTag, shellMat, skyCol, skyLow, smoke, smooth, solarTex, spaceCol, stage1, stars, steel, strapMat, sun, sunDir, sunDirL, sunLight, tmpV, toast, uM, upper, vent, winCenters, worldToCabin, wrapText } from '../../cabina/comun.js';
+import { sfx, setSoundGate, toggle, push, knob, key, lamp, handle, thing, plate, tapCtrl, updateMandos, pick as ctrlPick, lampTest, registerCabinLights, setCabinLights, osInit, osDraw, osTap, osStep, osPower, osPage, pageMap, pageSystems, pageComm, pageADI } from '../../cabina/mandos.js';
 setPadSky({elev:42,az:150,turbidity:3,rayleigh:1.1,mie:.005,sun:0xfff4e4,intensity:1.6,hemiSky:0x9fbdf0,hemiGround:0x4e6a3a,hemi:.3});   // Cabo Cañaveral: media mañana húmeda de Florida (el CFT despegó a las 10:52)
 const PAD_EXPOSURE=0.2, PAD_BLOOM=0.22;   // exposición y resplandor de la escena de la plataforma (hay luz de día: menos que en el ocaso de Guayaquil)
 const T={IGN:-3,MAXQ:61.7,SRB:140.4,BECO:268.9,SIDESEP:140.4,MECO:268.9,STAGESEP:274.9,SES1:284.9,CMECO:715.4,SEP:895.4,INS:1860,SECO1:1860,DOCK:96105,TLI:1e9,SECO2:1e9};
@@ -427,29 +428,64 @@ const PANEL_C=new THREE.Vector3(0,.38,-.5);
   if(i===1){ s.updateMatrixWorld(); camHome.set(0,.42,.32).applyMatrix4(s.matrixWorld); }
 });
 panel.position.copy(PANEL_C);
-// consola de vuelo Boeing: ancha, con tres pantallas en línea, panel superior inclinado y filas de interruptores con guarda
+// consola de vuelo de la Starliner. Según Boeing y NASA (2018‑2024): NO hay pantallas táctiles; cada pantalla se maneja con
+// teclas físicas en su marco. Unos 40 interruptores de palanca para lo urgente (algunos hay que sacarlos antes de moverlos),
+// botones críticos bajo tapas de plástico, una manija redonda de aborto, el interruptor «Flight Controller» y dos tapas que
+// habilitan los mandos manuales de traslación (izquierda) y rotación (derecha).
+const SLTH={bg:'#061120',ink:'#eaf1ff',dim:'#8fa6c8',faint:'#3f5478',line:'#1b3252',accent:'#5bc8ff',ok:'#7fe3b0',warn:'#ffd166',bad:'#ff8577',btn:'#0b1c33',onBg:'#0f3556',head:'#0e2444',font:FD,mono:FM,radius:6};
+const PL={bg:'#3a3f49',fg:'#e6ebf5',font:FD};
+const fansL=[true,false];
+const HC={flt:false,thc:false,rhc:false};
 { const body=new THREE.Mesh(new RoundedBoxGeometry(1.9,.74,.09,4,.02),M_CONSOLE); body.position.set(0,-.02,-.02); body.castShadow=body.receiveShadow=true; panel.add(body);
-  const over=new THREE.Mesh(new RoundedBoxGeometry(1.9,.34,.08,4,.02),M_CONSOLE); over.position.set(0,.5,-.12); over.rotation.x=.55; over.castShadow=true; panel.add(over);   // panel superior (overhead)
-  for(const [k] of [[-1],[1]]){const side=new THREE.Mesh(new RoundedBoxGeometry(.3,.6,.12,3,.02),M_CONSOLE_L);side.position.set(k*1.05,-.05,.0);side.rotation.y=-k*.45;side.castShadow=true;panel.add(side);}
-  for(const m of screenMeshes){ const bez=m.userData.bezel; bez.geometry=new RoundedBoxGeometry(.55,.33,.03,3,.015); bez.material=M_CONSOLE_L; }
-  // interruptores de palanca en el panel superior (3 filas × 14), con rótulos
-  const sw=(parent,x,y,z,rx,on)=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.012,10).rotateX(Math.PI/2),M_KNOB);b.position.set(x,y,z);parent.add(b);
-    const l=new THREE.Mesh(new THREE.CylinderGeometry(.005,.007,.03,8),M_SWITCH);l.position.set(x,y+(on?.012:-.012),z+.012);l.rotation.x=on?-.5:.5;parent.add(l);};
-  for(let r=0;r<3;r++)for(let c=0;c<14;c++) sw(over,-.78+c*.12,.09-r*.09,.045,0,(r*7+c*3)%5<3);
-  for(let c=0;c<14;c++){const l=new THREE.Mesh(new THREE.BoxGeometry(.1,.004,.001),M_SWITCH);l.position.set(-.78+c*.12,.135,.044);over.add(l);}
-  // fila de mandos rotatorios bajo las pantallas
-  for(let c=0;c<6;c++){const k=new THREE.Mesh(new THREE.CylinderGeometry(.025,.028,.025,20).rotateX(Math.PI/2),M_KNOB);k.position.set(-.6+c*.24,-.25,.04);panel.add(k);
-    const mark=new THREE.Mesh(new THREE.BoxGeometry(.004,.02,.004),M_SWITCH);mark.position.set(-.6+c*.24,-.24,.053);panel.add(mark);}
-  // dos mandos manuales: rotación (izquierda) y traslación (derecha), en los laterales
-  for(const k of[-1,1]){const g=new THREE.Group();g.position.set(k*1.0,-.33,.14);g.rotation.y=-k*.45;panel.add(g);
-    const base=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,.03,16),M_CONSOLE_L);g.add(base);
-    const stick=new THREE.Mesh(new THREE.CylinderGeometry(.013,.018,.14,12),M_KNOB);stick.position.y=.08;g.add(stick);
-    const grip=new THREE.Mesh(new RoundedBoxGeometry(.05,.1,.055,2,.014),M_SEAT_CUSH);grip.position.y=.18;grip.rotation.x=-.3;g.add(grip);}
-  // rótulo BOEING STARLINER y placas de texto
-  const lbl=(parent,txt,x,y,z,w,rx=0)=>{const cw=512;const t=canvasTex(cw,48,(c)=>{c.fillStyle='#3a3f49';c.fillRect(0,0,cw,48);c.fillStyle='#e6ebf5';c.font=`600 26px ${FD}`;c.textAlign='center';c.textBaseline='middle';c.fillText(txt,cw/2,25);});
-    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,w*48/cw),new THREE.MeshStandardMaterial({map:t,roughness:.6}));m.position.set(x,y,z);m.rotation.x=rx;parent.add(m);};
-  lbl(panel,'CST‑100 STARLINER',0,.3,.027,.5); lbl(over,'ELEC · ECLSS · PROP · GNC · COMM · DOCK',0,.2,.041,1.1);
-  lbl(panel,'ROTACIÓN',-.6,-.33,.027,.16); lbl(panel,'TRASLACIÓN',.6,-.33,.027,.18);
+  const over=new THREE.Group(); over.position.set(0,.5,-.12); over.rotation.x=.55; panel.add(over);
+  const ob=new THREE.Mesh(new RoundedBoxGeometry(1.9,.34,.08,4,.02),M_CONSOLE); ob.castShadow=true; over.add(ob);
+  // --- pantallas con marco ancho y seis teclas físicas abajo ---
+  const PG=['MSN','ADI','SIS','COM','MAP'];
+  for(const m of screenMeshes){ const sc=m.userData.screen, x=m.position.x;
+    const bez=m.userData.bezel; bez.geometry=new RoundedBoxGeometry(.53,.4,.03,3,.015); bez.material=M_CONSOLE_L; bez.position.set(x,.055,.017);
+    PG.forEach((l,i)=>key(panel,{x:x-.2+i*.08,y:-.11,z:.03,w:.06,h:.025,label:l,face:'#20242b',fg:'#dfe8f7',info:{MSN:'MSN: formato de la misión.',ADI:'ADI: la «bola ocho», que muestra hacia dónde apunta la nave (cielo azul arriba, suelo marrón abajo).',SIS:'SIS: soporte vital y energía.',COM:'COM: radios. Púlsala otra vez para hablar con Tierra.',MAP:'MAP: traza de la órbita sobre la Tierra.'}[l],
+      onKey:()=>{ if(l==='COM'&&sc.os.page===3) sc.os.pages[3].talk(); else osPage(sc,i); }}));
+    key(panel,{x:x+.21,y:-.11,z:.03,w:.04,h:.025,label:'PWR',face:'#4a1f1c',fg:'#ffd8d0',info:'PWR: enciende o apaga esta pantalla. Al encender hace su autoprueba de colores.',onKey:()=>osPower(sc,!sc.os.on)});
+    for(const [bx,by] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const bolt=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.006,8).rotateX(Math.PI/2),M_RIB);bolt.position.set(x+bx*.25,.055+by*.185,.033);panel.add(bolt);} }
+  plate(panel,'CST‑100 STARLINER',0,.3,.027,.34,.024,PL);
+  // --- panel superior: 20 interruptores con luz testigo, agrupados por sistema ---
+  const OV=[['ELÉCTRICO',[['BUS A',1,1,'Barra de energía A: reparte la electricidad de las baterías a los equipos.'],['BUS B',1,1,'Barra de energía B, la de respaldo.'],['BAT 1',1,1,'Batería 1. Hay que sacar la palanca antes de moverla, para que nadie la apague por accidente.'],['BAT 2',1,1,'Batería 2, también con traba.'],['INVERSOR',1,0,'Inversor: convierte corriente continua en alterna para algunos equipos.']]],
+            ['SOPORTE VITAL',[['VENT 1',1,0,'Ventilador de cabina 1.'],['VENT 2',0,0,'Ventilador de cabina 2.'],['O2',1,0,'Válvula de oxígeno de los tanques a la cabina.'],['N2',0,0,'Nitrógeno: repone el aire si hay una pequeña fuga.'],['LiOH',1,0,'Cartuchos de hidróxido de litio: atrapan el CO2 que exhalan los astronautas.']]],
+            ['LUCES',[['CABINA',1,0,'Luces blancas de la cabina.'],['AZUL',1,0,'Luces azules de ambiente, como en los aviones de Boeing.'],['PANEL',1,0,'Retroiluminación de las leyendas del panel.']]],
+            ['COMUNIC.',[['BANDA S',1,0,'Radio de banda S, a través de los satélites TDRS de la NASA.'],['UHF',1,0,'Radio UHF para hablar con la Estación Espacial al acercarse.'],['AUDIO',1,0,'Sistema de audio de los cascos.']]],
+            ['PROPULSIÓN',[['RCS A',0,0,'Propulsores de control de orientación, sistema A (28 en el módulo de servicio y 12 en la cápsula).'],['RCS B',0,0,'Propulsores de control, sistema B.'],['CALENT.',1,0,'Calentadores de las líneas de combustible: si el combustible se congela, los propulsores fallan.'],['PANTALLAS',1,0,'Encendido de las tres pantallas.']]]];
+  let n=0; OV.forEach(([g,items])=>{ const x0=-.855+n*.09; plate(over,g,x0+(items.length-1)*.045,.135,.041,items.length*.09-.012,.02,{bg:'#232830',fg:'#9fb4d6',font:FD});
+    items.forEach(([l,on,lock,inf],i)=>{ const x=-.855+(n+i)*.09, y=i%2? -.07:.05;
+      toggle(over,{x:x,y:.02,z:.04,label:l,on:!!on,lock:!!lock,lamp:on?0x7fe3b0:0x7fe3b0,info:l+': '+inf,plateOpts:{bg:'#3a3f49',fg:'#e6ebf5',font:FD},onChange:v=>{
+        if(l==='CABINA') setCabinLights('main',v?1:.1); if(l==='AZUL') setCabinLights('accent',v?1:0);
+        if(l==='VENT 1'||l==='VENT 2'){ fansL[l==='VENT 1'?0:1]=v; sfx.fans(fansL.some(Boolean),'fanL',800); }
+        if(l==='PANTALLAS') for(const k in scr) osPower(scr[k],v);
+        if(l==='RCS A'||l==='RCS B') sfx.valve(); }}); });
+    n+=items.length; });
+  // --- perillas bajo las pantallas ---
+  [['VOL CMD','Volumen del audio del comandante.',5],['VOL PLT','Volumen del audio del piloto.',5],['BRILLO','Brillo de las tres pantallas.',5],['PANEL','Brillo de las leyendas del panel.',5],['TEMP','Temperatura de la cabina, entre 18 y 27 °C.',7],['MODO ADI','Escala de la bola ocho: fina para acoplar, gruesa para maniobras grandes.',3]].forEach(([l,inf,st],i)=>{
+    const x=[-.62,-.38,-.14,.14,.38,.62][i];
+    knob(panel,{x,y:-.305,z:.026,r:.022,steps:st,pos:l==='BRILLO'?3:0,label:l,info:l+': '+inf,onChange:p=>{ if(l==='BRILLO'){ for(const m of screenMeshes) m.material.emissiveIntensity=1.15*(.45+p*.22); } }}); });
+  // --- manija redonda de aborto, en el centro ---
+  handle(panel,{x:0,y:-.32,z:.026,kind:'ring',label:'ABORT',info:'ABORT: la manija redonda del centro. Durante el ascenso encendería los cuatro motores de escape del módulo de servicio (178 kN cada uno), que empujan la cápsula lejos del cohete Atlas V. La computadora lo haría sola en milisegundos; la manija es el respaldo de la tripulación. Aquí está bloqueada.'});
+  // --- laterales: Flight Controller, tapas que habilitan los mandos, y los mandos manuales ---
+  for(const k of[-1,1]){ const sg=new THREE.Group(); sg.position.set(k*1.05,-.05,0); sg.rotation.y=-k*.45; panel.add(sg);
+    const side=new THREE.Mesh(new RoundedBoxGeometry(.3,.6,.12,3,.02),M_CONSOLE_L); side.castShadow=true; sg.add(side);
+    const T=k<0?'THC':'RHC', es=k<0?'traslación (mover la nave sin girarla: adelante, atrás, arriba, abajo y a los lados)':'rotación (girar la nave: cabeceo, guiñada y alabeo)';
+    push(sg,{x:0,y:.2,z:.06,w:.09,h:.04,label:T+' ENA',lit:0xffd166,cover:0xffd34d,face:'#2a2f38',info:`${T} ENA: habilita el mando de ${k<0?'traslación':'rotación'}. Va bajo una tapa amarilla para no activarlo por accidente.`,onChange:v=>{HC[k<0?'thc':'rhc']=v;}});
+    if(k<0) toggle(sg,{x:0,y:.09,z:.06,s:1.3,label:'FLT CTRL',lamp:0x5bc8ff,info:'FLIGHT CONTROLLER: el primer paso para pilotar a mano. Se sube este interruptor y luego se levantan las tapas de THC ENA y RHC ENA. Así lo hicieron Butch Wilmore y Suni Williams en junio de 2024, cerca de la Estación.',onChange:v=>{HC.flt=v;}});
+    else lamp(sg,{x:0,y:.09,z:.061,w:.1,h:.04,label:'MANUAL',color:0x5bc8ff,info:'MANUAL: se enciende cuando el control manual está habilitado.'});
+    plate(sg,k<0?'TRASLACIÓN':'ROTACIÓN',0,-.06,.061,.16,.022,PL);
+    const g=new THREE.Group(); g.position.set(0,-.2,.08); sg.add(g);
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,.03,16),M_CONSOLE_L));
+    const stick=new THREE.Group(); g.add(stick);
+    stick.add(new THREE.Mesh(new THREE.CylinderGeometry(.013,.018,.14,12).translate(0,.08,0),M_KNOB));
+    if(k<0){ const t=new THREE.Mesh(new RoundedBoxGeometry(.1,.04,.05,2,.014),M_SEAT_CUSH); t.position.y=.16; stick.add(t); }
+    else { const gr=new THREE.Mesh(new RoundedBoxGeometry(.05,.11,.055,2,.014),M_SEAT_CUSH); gr.position.y=.18; gr.rotation.x=-.3; stick.add(gr); const tr=new THREE.Mesh(new THREE.BoxGeometry(.012,.025,.012),M_KNOB); tr.position.set(0,.19,.035); stick.add(tr); }
+    g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+    thing(stick,{label:T,sound:'toggle',info:null,onTap:()=>{ const ok=HC.flt&&HC[k<0?'thc':'rhc'];
+      if(ok){ sfx.valve(); toast(`${T}: ¡disparo de propulsores! Con el control manual habilitado, mover este mando enciende los pequeños motores RCS para ${es}.`); }
+      else { sfx.denied(); toast(`${T} desactivado. Para pilotar a mano: sube FLT CTRL (lateral izquierdo) y levanta la tapa de ${T} ENA. Mando de ${es}.`); } }}); }
   for(const sx of[-.7,.7]){const strut=new THREE.Mesh(new RoundedBoxGeometry(.07,.07,.75,2,.015),M_RIB);strut.position.set(sx,.32,-.34);strut.rotation.x=.7;strut.castShadow=true;panel.add(strut);}
 }
 const PHYS_LABEL={3:'ABORTAR',7:'INCENDIO',11:'PARACAÍDAS',15:'ALEJARSE ISS'};
@@ -460,11 +496,11 @@ const PHYS_INFO={3:'ABORTAR: dispararía los cuatro motores de escape para aleja
   const coverG=new RoundedBoxGeometry(.058,.06,.04,2,.006); coverG.translate(0,-.03,.02);
   const coverMat=new THREE.MeshPhysicalMaterial({color:0xffd34d,transparent:true,opacity:.35,roughness:.1,clearcoat:1,depthWrite:false});   // guardas amarillas translúcidas
   for(let r=0;r<2;r++) for(let i=0;i<19;i++){
-    const idx=r*19+i, x=-.738+i*.082, y=r===0?-.1:-.17;
-    const hidden=(i%6===4)||(r===1&&i>=16);     // huecos para los mandos rotatorios y el mando de traslación; los índices se conservan
+    const idx=r*19+i, x=-.738+i*.082, y=r===0?-.165:-.23;
+    const hidden=i===9||(r===1&&(i<2||i>=17));     // hueco central para la manija de aborto; los índices se conservan
     const base=new THREE.Mesh(baseG,M_CONSOLE_L); base.position.set(x,y,.03); base.visible=!hidden; panel.add(base);
     const lab=PHYS_LABEL[idx];
-    const cap=new THREE.Mesh(capG,lab?M_SWITCH:M_KNOB); cap.position.set(x,y,.036); cap.rotation.x=.35; cap.userData.btn=idx; cap.castShadow=true; cap.visible=!hidden; panel.add(cap); if(!hidden) capMeshes.push(cap);
+    const cap=new THREE.Mesh(capG,(lab?M_SWITCH:M_KNOB).clone()); cap.position.set(x,y,.036); cap.rotation.x=.35; cap.userData.btn=idx; cap.castShadow=true; cap.visible=!hidden; panel.add(cap); if(!hidden) capMeshes.push(cap);
     const b={idx,cap,base,cover:null,open:false,openT:0,press:0,label:lab,z0:.036};
     if(r===0&&lab&&!hidden){ const pv=new THREE.Group(); pv.position.set(x,y+.03,.037); panel.add(pv);
       const cv=new THREE.Mesh(coverG,coverMat); cv.userData.cover=idx; pv.add(cv); coverMeshes.push(cv); b.cover=pv; }
@@ -473,6 +509,26 @@ const PHYS_INFO={3:'ABORTAR: dispararía los cuatro motores de escape para aleja
     buttons.push(b);
   }
 }
+// --- ductos naranjas de ventilación y bolsas naranjas de emergencia (los mostraron Wilmore y Williams en su recorrido de 2024) ---
+{ const orange=new THREE.MeshStandardMaterial({color:0xf0761e,roughness:.7,normalMap:normalTex(64,256,(x,y)=>Math.sin(y*.8)*1.5,1.5,[1,8])});
+  // salen de la pared detrás de los asientos y terminan junto a la cabeza de cada tripulante
+  for(const [a,y0,end] of [[-1.05,.55,[-.42,.12,.5]],[1.05,.55,[.42,.12,.5]],[.15,.75,[.0,.3,.75]]]){ const r=inR(y0)-.05;
+    const p0=new THREE.Vector3(Math.sin(a)*r,y0,Math.cos(a)*r), p2=new THREE.Vector3(...end), p1=p0.clone().lerp(p2,.5).add(new THREE.Vector3(0,.12,0));
+    const pts=[p0,p1,p2];
+    const d=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.032,12),orange); d.castShadow=d.receiveShadow=true; cabin.add(d);
+    const nz=new THREE.Mesh(new THREE.CylinderGeometry(.04,.036,.05,16),M_KNOB); nz.position.copy(p2); nz.lookAt(p1); nz.rotateX(Math.PI/2); cabin.add(nz);
+    thing(d,{label:'Ducto de ventilación',sound:'valve',info:'Ducto naranja de ventilación: lleva aire fresco y seco a cada asiento. Suni Williams los mostró colgada cabeza abajo en el recorrido por la Starliner acoplada a la Estación (junio de 2024).'}); }
+  const bagM=new THREE.MeshStandardMaterial({color:0xf26a1b,roughness:.85,normalMap:normalTex(128,128,(x,y)=>fbm(x/2,y/2,3)*1.5,1,[2,2])});
+  for(const [a,y,l] of [[-1.25,.35,'TOXIC'],[1.25,.35,'O2 MASK']]){ const r=inR(y)-.12; const g=new THREE.Group(); g.position.set(Math.sin(a)*r,y,Math.cos(a)*r); g.lookAt(0,y,0); cabin.add(g);
+    g.add(new THREE.Mesh(new RoundedBoxGeometry(.36,.26,.12,3,.04),bagM)); for(const k of[-1,1]){const s=new THREE.Mesh(new THREE.BoxGeometry(.38,.025,.13),strapMat);s.position.y=k*.07;g.add(s);}
+    plate(g,l,0,0,.061,.18,.05,{bg:'#f26a1b',fg:'#111'}); g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+    thing(g,{label:'Bolsa de emergencia',sound:'push',info:'Bolsa naranja de emergencia: '+(l==='TOXIC'?'equipo para una fuga de amoníaco u otro químico tóxico.':'mascarillas respiradoras de oxígeno.')+' Starliner, como la Dragon, sirve de bote salvavidas de la Estación Espacial: si algo grave pasa allá, la tripulación se encierra aquí y vuelve a la Tierra.'}); }
+}
+for(const k of ['left','center','right']) osInit(scr[k],{theme:SLTH,boot:'starliner',pages:[pageADI({}),pageSystems({fans:()=>fansL}),pageComm({}),pageMap({labels:{home:'CABO CAÑAVERAL',homeLL:[28.49,-80.58]}})]});
+thing(plush.g,{label:'Indicador de gravedad cero',sound:'touch',info:'Indicador de gravedad cero: cuando el peluche empieza a flotar, la nave llegó a la órbita y los motores se apagaron.'});
+setSoundGate(()=>S.sound);
+registerCabinLights(cabin);
+const needScr=()=>{const st=STEPS[S.step];return !!st&&(st.k==='game'||(st.k==='act'&&st.ctl.startsWith('scr:')));};
 { const cm=new THREE.Mesh(lathe([[2.28,-1.4],[2.25,-1.1],[1.9,0],[1.45,1.0],[1.0,1.55],[.7,1.65],[0,1.7]],64),MStar); extModel.add(cm);
   const port=new THREE.Mesh(new THREE.CylinderGeometry(.62,.66,.3,32),MG); port.position.y=1.85; extModel.add(port);
   const sm=new THREE.Mesh(new THREE.CylinderGeometry(2.28,2.28,1.3,64),new THREE.MeshPhysicalMaterial({map:solarTex,roughness:.35,metalness:.3,clearcoat:.5})); sm.position.y=-2.05; extModel.add(sm);
@@ -726,10 +782,10 @@ function applyEffect(id){
 }
 function pressPhysical(idx){
   const b=buttons[idx]; if(!b) return;
-  if(b.cover&&!b.open){ b.open=true; b.openT=8; beep(500,.05,.05);
+  if(b.cover&&!b.open){ b.open=true; b.openT=8; sfx.cover();
     const st=STEPS[S.step]; if(st&&st.ctl==='cover:'+idx&&S.ready){ S.log.push({t:S.t,n:st.title}); beep(990,.07,.07); advance(); return; }
     toast((b.label||'Botón de respaldo')+': tapa abierta. Se cierra sola en unos segundos.'); return; }
-  b.press=.18; b.openT=8; beep(300,.08,.06);
+  b.press=.18; b.openT=8; sfx.toggle(); b.lit=!b.lit; b.cap.material.emissive.set(0x5bc8ff); b.cap.material.emissiveIntensity=b.lit?.9:0;
   toast(PHYS_INFO[idx]||'Botón de respaldo: su función exacta no es pública. Los botones físicos son la tercera opción después de las pantallas y del control en tierra.');
 }
 function highlightPhysical(){
@@ -844,9 +900,10 @@ function click(x,y){
   if(!isCabinView()) return;
   ray.setFromCamera(ndc,cam);
   const covers=coverMeshes.filter(m=>!buttons[m.userData.cover].open);
-  const hits=ray.intersectObjects([...screenMeshes,...capMeshes,...covers],false);
+  const hits=ray.intersectObjects([...screenMeshes,...capMeshes,...covers,...ctrlPick],false);
   if(!hits.length) return; const h=hits[0], o=h.object;
-  if(o.userData.screen){ const hp=o.userData.screen.pick(h.uv.x,h.uv.y); if(hp&&hp.en) doControl(hp.id); else if(hp) toast('Ese botón todavía no está disponible.'); return; }
+  if(tapCtrl(o)) return;
+  if(o.userData.screen){ if(osTap(o.userData.screen,h.uv.x,h.uv.y)) return; const hp=o.userData.screen.pick(h.uv.x,h.uv.y); if(hp&&hp.en) doControl(hp.id); else if(hp) toast('Ese botón todavía no está disponible.'); return; }
   if(o.userData.cover!==undefined){ pressPhysical(o.userData.cover); return; }
   if(o.userData.btn!==undefined){ const b=buttons[o.userData.btn]; if(b.cover&&!b.open){pressPhysical(b.idx);return;} pressPhysical(b.idx); }
 }
@@ -967,7 +1024,7 @@ function frame(){
   updateGround(dt); updateGroundCam(dt); updateSpace(dt); audioUpdate(); hud(dt);
   const useGround=!S.boarded||(S.view==='ext'&&S.t<T.SES1);
   cabin.visible=!useGround&&S.view==='cabin'; extModel.visible=!useGround&&S.view==='ext';
-  if(isCabinView()){ screenAcc+=dt; if(screenAcc>1/20){screenAcc=0;drawLeft();drawCenter();drawRight();} }
+  if(isCabinView()){ updateMandos(dt); osStep(S.step,needScr()); screenAcc+=dt; if(screenAcc>1/20){screenAcc=0;osDraw(scr.left,drawLeft,NOW);osDraw(scr.center,drawCenter,NOW);osDraw(scr.right,drawRight,NOW);} }
   const tag=$('#tag3d');
   if(!S.boarded&&!S.boarding){const p=fh.userData.dragon.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(2.2,2.5,0)).project(gcam);
     tag.hidden=p.z>1; tag.style.left=((p.x+1)/2*innerWidth)+'px'; tag.style.top=((1-p.y)/2*innerHeight)+'px';}

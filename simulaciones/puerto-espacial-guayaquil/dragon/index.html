@@ -140,6 +140,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { $, A, BORE, D2R, DM, FD, FM, G, MG, MK, MTi, MU_E, MU_M, MW, RE, RM, UI, WATER_URI, applyQuality, armPivot, atmo, beacon, black, bloom, buckle, buildDragon, buildTrunk, buttons, cabin, callout, cam, camHome, canvas, canvasTex, capMeshes, clamp, clock, composer, coverMeshes, craftQ, cushMat, darkMetal, detached, duskCol, earth, earthMat, ecam, emit, engLight, envCabin, envSpace, ext, extModel, fabric, far, farRoot, fbm, fcam, fh, fmtClock, fmtNum, gLocal, gcam, glassMat, glowCol, grade, ground, hemiN, hemiSkyPad, hemiSkySpace, img, lathe, lerp, metal, moon, ndc, near, normalTex, orbitE, panel, pick, plume, plush, ptrs, qTmp, quiltN, ray, renderer, resize, ringMesh, rpFar, rpGround, rpNear, scr, screenMeshes, setSunFrustum, setTag, shellMat, skyCol, skyLow, smoke, smooth, spaceCol, stage1, stars, steel, strapMat, sun, sunDir, sunDirL, sunLight, tmpV, toast, uM, upper, vent, winCenters, worldToCabin, wrapText } from '../../cabina/comun.js';
+import { sfx, setSoundGate, handle, thing, plate, tapCtrl, updateMandos, pick as ctrlPick, registerCabinLights, osInit, osDraw, osTap, osStep, pageMap, pageSystems, pageCabin, pageComm } from '../../cabina/mandos.js';
 const T={IGN:-3,MAXQ:66,BECO:149,SIDESEP:153,MECO:184,STAGESEP:187,SES1:195,SECO1:511,TLI:2400,SECO2:2730};
 const EMB=(()=>{const q=new URLSearchParams(location.search);let tm=null;try{tm=JSON.parse(q.get('t')||'null');}catch(e){}
   return {on:q.has('embed'),slave:false,t:0,rate:1,playing:false,tel:null,hidden:false,tm};})();
@@ -461,7 +462,7 @@ const PHYS_INFO={3:'DESORBITAR: en una emergencia iniciaría el regreso automát
     const idx=r*19+i, x=-.738+i*.082, y=r===0?-.125:-.215;
     const base=new THREE.Mesh(baseG,darkMetal); base.position.set(x,y,.03); panel.add(base);
     const lab=PHYS_LABEL[idx];
-    const cap=new THREE.Mesh(capG,new THREE.MeshStandardMaterial({color:lab?0xe2e5e9:0xa7adb5,roughness:.32,metalness:.1}));
+    const cap=new THREE.Mesh(capG,new THREE.MeshStandardMaterial({color:lab?0x4a4f57:0x2c2f34,roughness:.42,metalness:.15}));
     cap.position.set(x,y,.035); cap.userData.btn=idx; cap.castShadow=true; panel.add(cap); capMeshes.push(cap);
     const b={idx,cap,base,cover:null,open:false,openT:0,press:0,label:lab,z0:.035};
     if(r===0){ const pv=new THREE.Group(); pv.position.set(x,y+.03,.036); panel.add(pv);
@@ -471,6 +472,22 @@ const PHYS_INFO={3:'DESORBITAR: en una emergencia iniciaría el regreso automát
     buttons.push(b);
   }
 }
+// ===== Mandos de la Crew Dragon =====
+// Fuentes: SpaceX y NASA (2018‑2020): tres pantallas táctiles, 38 botones físicos de respaldo en dos filas, muchos bajo tapas
+// transparentes, y en el centro la manija EJECT negra y roja, que se tira y se gira; en órbita queda desactivada.
+setSoundGate(()=>S.sound);
+for(const i of [9,28]){ const b=buttons[i]; b.cap.visible=b.base.visible=false; capMeshes.splice(capMeshes.indexOf(b.cap),1);
+  if(b.cover){ b.cover.visible=false; coverMeshes.splice(coverMeshes.indexOf(b.cover.children[0]),1); b.cover=null; } }
+handle(panel,{x:0,y:-.172,z:.04,kind:'eject',label:'EJECT',info:'EJECT: la manija negra y roja del centro. Hay que tirar de ella y girarla. Durante el ascenso encendería los ocho motores SuperDraco, que alejan la cápsula del cohete a 700 km/h en medio segundo. En órbita queda desactivada; en este simulador está bloqueada.'});
+thing(plush.g,{label:'Indicador de gravedad cero',sound:'touch',info:'Indicador de gravedad cero: un peluche que cuelga frente a la tripulación. Cuando se apagan los motores y empieza a flotar, todos saben que llegaron a la ingravidez. En la Demo‑2 (2020) fue Tremor, un dinosaurio de peluche brillante.'});
+const DTH={...UI,accent:UI.craft,font:FD,mono:FM};
+const fansD=[false,false];
+const fanMsg=on=>toast(on?'Ventiladores encendidos: mueven el aire de la cabina. En órbita el aire caliente no sube, así que sin ellos el CO2 que exhalas se queda flotando frente a tu cara.':'Ventiladores apagados. En la cápsula real nunca se apagan durante el vuelo.');
+for(const k of ['left','center','right']) osInit(scr[k],{theme:DTH,nav:'touch',boot:'dragon',pages:[
+  pageMap({}), pageSystems({fans:()=>fansD,onFan:i=>{fansD[i]=!fansD[i];sfx.fans(fansD.some(Boolean),'fanD',850);fanMsg(fansD[i]);}}),
+  pageCabin({fansOn:()=>fansD.some(Boolean),onFans:()=>{const on=!fansD.some(Boolean);fansD.fill(on);sfx.fans(on,'fanD',850);fanMsg(on);}}), pageComm({})]});
+registerCabinLights(cabin);
+const needScr=()=>{const st=STEPS[S.step];return !!st&&(st.k==='game'||(st.k==='act'&&st.ctl.startsWith('scr:')));};
 { const d=buildDragon(); extModel.add(d); ext.hinge=d.userData.hinge;
   const trunk=new THREE.Group(); extModel.add(trunk); ext.trunk=trunk; trunk.add(buildTrunk());
   const s2=new THREE.Group(); extModel.add(s2); ext.s2=s2;
@@ -709,10 +726,10 @@ function applyEffect(id){
 }
 function pressPhysical(idx){
   const b=buttons[idx]; if(!b) return;
-  if(b.cover&&!b.open){ b.open=true; b.openT=8; beep(500,.05,.05);
+  if(b.cover&&!b.open){ b.open=true; b.openT=8; sfx.cover();
     const st=STEPS[S.step]; if(st&&st.ctl==='cover:'+idx&&S.ready){ S.log.push({t:S.t,n:st.title}); beep(990,.07,.07); advance(); return; }
     toast((b.label||'Botón de respaldo')+': tapa abierta. Se cierra sola en unos segundos.'); return; }
-  b.press=.18; b.openT=8; beep(300,.08,.06);
+  b.press=.18; b.openT=8; sfx.push(); b.lit=!b.lit; b.cap.material.emissive.set(0x9fd8ff); b.cap.material.emissiveIntensity=b.lit?1.3:0;
   toast(PHYS_INFO[idx]||'Botón de respaldo: su función exacta no es pública. Los botones físicos son la tercera opción después de las pantallas y del control en tierra.');
 }
 function highlightPhysical(){
@@ -837,9 +854,10 @@ function click(x,y){
   if(!isCabinView()) return;
   ray.setFromCamera(ndc,cam);
   const covers=coverMeshes.filter(m=>!buttons[m.userData.cover].open);
-  const hits=ray.intersectObjects([...screenMeshes,...capMeshes,...covers],false);
+  const hits=ray.intersectObjects([...screenMeshes,...capMeshes,...covers,...ctrlPick],false);
   if(!hits.length) return; const h=hits[0], o=h.object;
-  if(o.userData.screen){ const hp=o.userData.screen.pick(h.uv.x,h.uv.y); if(hp&&hp.en) doControl(hp.id); else if(hp) toast('Ese botón todavía no está disponible.'); return; }
+  if(tapCtrl(o)) return;
+  if(o.userData.screen){ if(osTap(o.userData.screen,h.uv.x,h.uv.y)) return; const hp=o.userData.screen.pick(h.uv.x,h.uv.y); if(hp&&hp.en) doControl(hp.id); else if(hp) toast('Ese botón todavía no está disponible.'); return; }
   if(o.userData.cover!==undefined){ pressPhysical(o.userData.cover); return; }
   if(o.userData.btn!==undefined){ const b=buttons[o.userData.btn]; if(b.cover&&!b.open){pressPhysical(b.idx);return;} pressPhysical(b.idx); }
 }
@@ -960,7 +978,7 @@ function frame(){
   const useGround=!S.boarded||(S.view==='ext'&&S.t<T.SES1);
   cabin.visible=!useGround&&S.view==='cabin'; extModel.visible=!useGround&&S.view==='ext';
   if(EMB.hidden){ requestAnimationFrame(frame); return; }
-  if(isCabinView()){ screenAcc+=dt; if(screenAcc>1/20){screenAcc=0;drawLeft();drawCenter();drawRight();} }
+  if(isCabinView()){ updateMandos(dt); osStep(S.step,needScr()); screenAcc+=dt; if(screenAcc>1/20){screenAcc=0;osDraw(scr.left,drawLeft,NOW);osDraw(scr.center,drawCenter,NOW);osDraw(scr.right,drawRight,NOW);} }
   const tag=$('#tag3d');
   if(!S.boarded&&!S.boarding){const p=fh.userData.dragon.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(2.2,2.5,0)).project(gcam);
     tag.hidden=p.z>1; tag.style.left=((p.x+1)/2*innerWidth)+'px'; tag.style.top=((1-p.y)/2*innerHeight)+'px';}

@@ -140,6 +140,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { $, A, BORE, D2R, DM, FD, FM, G, MG, MTrunk, MU_E, RE, UI, WATER_URI, applyQuality, atmo, beacon, black, bloom, buckle, buttons, cabin, callout, cam, camHome, canvas, canvasTex, capMeshes, clamp, clock, composer, coverMeshes, craftQ, cushMat, darkMetal, detached, duskCol, earth, earthMat, ecam, emit, engLight, envCabin, envSpace, ext, extModel, fabric, far, farRoot, fbm, fcam, fh, fmtClock, fmtNum, gLocal, gcam, glassMat, glowCol, grade, ground, hemiN, hemiSkyPad, hemiSkySpace, hullTex, img, lathe, lerp, metal, moon, ndc, near, normalTex, orbitE, panel, pick, plume, plush, ptrs, qTmp, quiltN, ray, renderer, resize, ringMesh, rpFar, rpGround, rpNear, scr, screenMeshes, setPadSky, setSunFrustum, setTag, shellMat, skyCol, skyLow, smoke, smooth, spaceCol, stage1, stars, steel, strapMat, sun, sunDir, sunDirL, sunLight, tmpV, toast, uM, upper, vent, winCenters, worldToCabin, wrapText } from '../../cabina/comun.js';
+import { sfx, setSoundGate, toggle, push, knob, key, lamp, handle, thing, plate, tapCtrl, updateMandos, pick as ctrlPick, lampTest, registerCabinLights, setCabinLights, osInit, osDraw, osTap, osStep, osPower, osPage, pageMap, pageTelemetry, pageNeptun } from '../../cabina/mandos.js';
 setPadSky({elev:7,az:112,turbidity:2,rayleigh:1.0,sun:0xffd2a0,intensity:2.4,hemiSky:0x9db6e8,hemiGround:0x8f7c58,hemi:.4});   // Baikonur: amanecer frío y seco sobre la estepa, Sol bajo al este
 const PAD_EXPOSURE=0.3, PAD_BLOOM=0.3;   // exposición y resplandor de la escena de la plataforma (hay luz de día: menos que en el ocaso de Guayaquil)
 const T={IGN:-15,MAXQ:70,LES:113,BECO:116,BSEP:118,SIDESEP:118,FAIR:153,SES1:285,MECO:287,CSEP:287,STAGESEP:287,TAIL:295,SECO:526,SEP:529,SECO1:529,DOCK:11057,TLI:1e9,SECO2:1e9};
@@ -449,52 +450,124 @@ const PANEL_C=new THREE.Vector3(0,.24,-.5);
 });
 panel.position.copy(PANEL_C);
 panel.scale.setScalar(.64);
-// consola Neptun‑ME: caja gris con dos pantallas, teclado numérico, interruptores con guarda, reloj y periscopio en el centro
+// consola Neptun‑ME (Soyuz TMA‑M y MS). Distribución según fotos de la consola y descripciones de cosmonautas y astronautas:
+// alarma general arriba al centro, dos pantallas VGA de 8 colores con sus teclas de función, a los lados dos franjas de seis
+// botones iluminados de estado, debajo dos teclados (números y flechas para mover el cursor sobre los botones virtuales),
+// a la izquierda el campo de lámparas y la franja de comandos críticos (algunos piden dos botones), en el centro el periscopio
+// Vzor y las dos válvulas naranjas de oxígeno, abajo los tres paneles de audio (uno por tripulante) y a la derecha los
+// ventiladores de los trajes, la temperatura, los fusibles y el voltímetro. Los mandos RUD (izq.) y RUO (der.) van en brazos.
 const panelMat=new THREE.MeshStandardMaterial({color:0x8e978f,roughness:.6,metalness:.3,normalMap:normalTex(128,128,(x,y)=>fbm(x/1.2,y/1.2,2)*.5,1,[6,3])});
-{ const body=new THREE.Mesh(new RoundedBoxGeometry(1.74,.9,.1,3,.015),panelMat); body.position.set(0,-.02,-.03); body.castShadow=body.receiveShadow=true; panel.add(body);
-  // las dos pantallas principales van arriba, lado a lado; la tercera pantalla queda abajo a la derecha, más pequeña (pantalla auxiliar)
+const SPL={bg:'#8e978f',fg:'#15181a',font:FM,weight:700};   // rótulos impresos en la consola
+const STH={bg:'#0d1310',ink:'#eef2ea',dim:'#9db09a',faint:'#4f6250',line:'#2a3a2c',accent:'#ffc45c',ok:'#9be28a',warn:'#ffd36a',bad:'#ff7a6a',btn:'#17211a',onBg:'#2a3a1c',head:'#152019',font:FM,mono:FM,lang:'ru',radius:0};
+const fansS=[false,false,false];
+let alarmOn=false;
+{ const body=new THREE.Mesh(new RoundedBoxGeometry(2.1,.92,.1,3,.015),panelMat); body.position.set(0,-.02,-.03); body.castShadow=body.receiveShadow=true; panel.add(body);
   const place=(k,x,y,sc)=>{const m=screenMeshes.find(m=>m.userData.screen.name===k);m.position.set(x,y,.034);m.scale.setScalar(sc);
     const bez=m.userData.bezel;bez.geometry=new RoundedBoxGeometry(.53*sc,.315*sc,.03,2,.004);bez.material=M_GREY_D;bez.position.set(x,y,.018);
     for(const [bx,by] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const bolt=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.01,8).rotateX(Math.PI/2),M_ALU);bolt.position.set(x+bx*.25*sc,y+by*.145*sc,.034);panel.add(bolt);}};
-  place('left',-.46,.17,.86); place('center',.46,.17,.86); place('right',.5,-.2,.56);
-  // teclado numérico y de comandos bajo la pantalla izquierda
-  const keyMat=new THREE.MeshStandardMaterial({color:0xe6e4dc,roughness:.5}), keyMatD=new THREE.MeshStandardMaterial({color:0x2b2d2b,roughness:.5});
-  for(let r=0;r<4;r++)for(let c=0;c<6;c++){const k=new THREE.Mesh(new RoundedBoxGeometry(.05,.038,.02,2,.005),(c>3)?keyMatD:keyMat);k.position.set(-.73+c*.062,-.09-r*.052,.04);k.castShadow=true;panel.add(k);}
-  // reloj analógico de a bordo
-  const clk=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.025,32).rotateX(Math.PI/2),M_GREY_D);clk.position.set(-.2,-.19,.035);panel.add(clk);
-  const face=new THREE.Mesh(new THREE.CircleGeometry(.055,32),new THREE.MeshStandardMaterial({map:canvasTex(128,128,(x)=>{x.fillStyle='#e8e6dc';x.fillRect(0,0,128,128);x.fillStyle='#222';x.font='bold 14px sans-serif';x.textAlign='center';for(let i=1;i<=12;i++){const a=i/12*Math.PI*2;x.fillText(i,64+Math.sin(a)*48,70-Math.cos(a)*48);}x.strokeStyle='#222';x.lineWidth=3;x.beginPath();x.moveTo(64,64);x.lineTo(64,24);x.moveTo(64,64);x.lineTo(92,64);x.stroke();}),roughness:.3}));face.position.set(-.2,-.19,.049);panel.add(face);
-  // periscopio «Vzor»: tubo desde abajo y visor con capucha en el centro, frente al comandante
-  const tube=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.9,24),M_GREY);tube.position.set(0,-.55,-.1);tube.castShadow=true;panel.add(tube);
-  const hood=new THREE.Mesh(new RoundedBoxGeometry(.24,.2,.22,3,.02),M_GREY_D);hood.position.set(0,-.22,.06);hood.castShadow=true;panel.add(hood);
-  const eye=new THREE.Mesh(new THREE.CircleGeometry(.055,32),new THREE.MeshPhysicalMaterial({color:0x06080a,roughness:.05,clearcoat:1}));eye.position.set(0,-.2,.172);panel.add(eye);
-  const eyeRing=new THREE.Mesh(new THREE.TorusGeometry(.06,.012,10,32),M_ALU);eyeRing.position.set(0,-.2,.17);panel.add(eyeRing);
-  // dos palancas de mando (RUO: giro, RUD: traslación) a los lados del periscopio
-  for(const k of[-1,1]){const stick=new THREE.Mesh(new THREE.CylinderGeometry(.014,.02,.16,12),M_CABLE);stick.position.set(k*.3,-.3,.12);stick.rotation.x=-.5;panel.add(stick);
-    const grip=new THREE.Mesh(new RoundedBoxGeometry(.045,.1,.05,2,.012),M_LINER);grip.position.set(k*.3,-.22,.16);grip.rotation.x=-.5;panel.add(grip);
-    const base=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.03,16),M_GREY_D);base.position.set(k*.3,-.37,.09);panel.add(base);}
-  // rótulos en cirílico impresos sobre la consola
-  const lbl=(txt,x,y,w)=>{const cw=txt.length>12?768:256;const t=canvasTex(cw,40,(c)=>{c.fillStyle='#8e978f';c.fillRect(0,0,cw,40);c.fillStyle='#1a1d1a';c.font=`bold 22px ${FM}`;c.textAlign='center';c.textBaseline='middle';c.fillText(txt,cw/2,21);});
-    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,w*40/cw),new THREE.MeshStandardMaterial({map:t,roughness:.6}));m.position.set(x,y,.0205);panel.add(m);};
-  lbl('ПУЛЬТ КОСМОНАВТОВ «НЕПТУН-МЭ»',0,.39,.9); lbl('КЛАВИАТУРА',-.58,-.03,.22); lbl('ВЗОР',0,-.08,.12); lbl('РУО',-.3,-.4,.08); lbl('РУД',.3,-.4,.08);
+  place('left',-.46,.19,.86); place('center',.46,.19,.86); place('right',.74,-.32,.4);
+  plate(panel,'ПУЛЬТ КОСМОНАВТОВ «НЕПТУН-МЭ»',0,.415,.0205,.6,.026,SPL);
+  plate(panel,'СИМВОЛ',.74,-.24,.0205,.1,.016,SPL);
+  // --- alarma general ---
+  push(panel,{x:0,y:.355,z:.021,w:.15,h:.042,label:'АВАРИЯ',lit:0xff3b2a,face:'#3a1512',fg:'#ffb3a8',info:'АВАРИЯ: alarma general. Suena y parpadea cuando algo necesita atención urgente (presión, incendio, fallo de motor). Se calla pulsándola, después de ver qué pasó.',
+    onChange:(on,c)=>{ if(alarmOn){ alarmOn=false; sfx.stopAlarm(); c.on=false; c.blink=0; } else { alarmOn=true; c.on=true; c.blink=1; sfx.alarm('soyuz',6); lampTest(2); setTimeout(()=>{ if(alarmOn){alarmOn=false;c.on=false;c.blink=0;} },6000); } }});
+  // --- teclas de función bajo cada pantalla: formatos Ф1..Ф4 y encendido ---
+  for(const [k,x0] of [['left',-.46],['center',.46]]){ const sc=scr[k];
+    ['Ф1','Ф2','Ф3','Ф4'].forEach((f,i)=>key(panel,{x:x0-.18+i*.07,y:.032,w:.05,h:.02,label:f,face:'#2b2d2b',fg:'#e6e4dc',info:['Ф1: formato de la misión.','Ф2: telemetría de la cápsula (presión, oxígeno, CO2, temperatura, voltaje).','Ф3: navegación, con la traza de la órbita sobre la Tierra.','Ф4: botones virtuales y ventanas numéricas. Muévete con las flechas del teclado y pulsa ВВОД.'][i],onKey:()=>osPage(sc,i)}));
+    key(panel,{x:x0+.15,y:.032,w:.05,h:.02,label:'ЭКР',face:'#5a1d18',fg:'#ffd0c8',info:'ЭКР: enciende o apaga esta pantalla.',onKey:()=>osPower(sc,!sc.os.on)}); }
+  // --- franjas de seis botones iluminados de estado, a los lados de las pantallas ---
+  const STAT=[[['СОЖ','soporte vital'],['СУД','control de movimiento'],['СЭП','energía eléctrica'],['СТР','control térmico'],['КУРС','radar de acoplamiento Kurs'],['БДУС','giroscopios']],
+              [['ДПО','propulsores de acoplamiento'],['СКД','motor principal'],['ТОРУ','pilotaje desde la Estación'],['ПРК','programa de reentrada'],['СИОС','sistema de navegación GPS/GLONASS'],['РАДИО','radio']]];
+  STAT.forEach((col,s)=>col.forEach(([l,es],i)=>push(panel,{x:s?.79:-.79,y:.30-i*.055,z:.021,w:.07,h:.04,label:l,face:'#1d221e',fg:'#c9d6c4',lit:i%3===2?0xffd36a:0x8dff7a,on:i<3,info:`${l}: ${es}. Los botones de estado se iluminan cuando su sistema está activo; al pulsarlos, el cosmonauta pide a la computadora la pantalla de ese sistema.`})));
+  // --- campo de lámparas de señal (izquierda) y reloj ---
+  const clk=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.025,32).rotateX(Math.PI/2),M_GREY_D);clk.position.set(-.95,.30,.03);panel.add(clk);
+  const face=new THREE.Mesh(new THREE.CircleGeometry(.05,32),new THREE.MeshStandardMaterial({map:canvasTex(128,128,(x)=>{x.fillStyle='#e8e6dc';x.fillRect(0,0,128,128);x.fillStyle='#222';x.font='bold 14px sans-serif';x.textAlign='center';for(let i=1;i<=12;i++){const a=i/12*Math.PI*2;x.fillText(i,64+Math.sin(a)*48,70-Math.cos(a)*48);}x.strokeStyle='#222';x.lineWidth=3;x.beginPath();x.moveTo(64,64);x.lineTo(64,24);x.moveTo(64,64);x.lineTo(92,64);x.stroke();}),roughness:.3}));face.position.set(-.95,.30,.044);panel.add(face);
+  thing(face,{label:'Reloj',sound:'knob',info:'Reloj de a bordo. Las Soyuz llevan la hora de Moscú; la tripulación también mira el tiempo de misión en las pantallas.'});
+  [['НОРМА',0x8dff7a,1],['ДАВЛ',0xffd36a,0],['O2',0xffd36a,0],['CO2',0xffd36a,0],['ПОЖАР',0xff3b2a,0],['ГЕРМ',0xff3b2a,0],['БАТ',0xffd36a,0],['ОТКАЗ',0xff3b2a,0],['СВЯЗЬ',0x8dff7a,1]].forEach(([l,col,on],i)=>
+    lamp(panel,{x:-.99+(i%3)*.055,y:.17-Math.floor(i/3)*.04,w:.05,h:.03,label:l,color:col,on:!!on,bg:'#1a1c1a',fg:'#7a857a',info:'Lámparas de señal: '+({НОРМА:'todo normal',ДАВЛ:'presión de cabina',O2:'oxígeno',CO2:'dióxido de carbono',ПОЖАР:'incendio',ГЕРМ:'fuga de aire',БАТ:'baterías',ОТКАЗ:'falla',СВЯЗЬ:'enlace de radio con Tierra'})[l]+'. Si una se enciende, suena la alarma general.'}));
+  // --- comandos críticos (abajo a la izquierda): se arman con su botón y se confirman con ПОДТВ, dos botones para no equivocarse ---
+  const CMD=[['ОТД БО','separar el módulo orbital'],['ОТД ПАО','separar el módulo de servicio'],['ВКЛ СКД','encender el motor principal'],['ЗАП ПАР','abrir el paracaídas de reserva'],['ДМП','motores de aterrizaje suave'],['СПУСК','iniciar el descenso']];
+  let armed=null, armT=null;
+  CMD.forEach(([l,es],i)=>push(panel,{x:-.98+i*.058,y:-.335,z:.021,w:.052,h:.036,label:l,face:'#2a2526',fg:'#ffd0c8',lit:0xff7a3a,cover:i<2?0xff3b2a:false,info:null,
+    onChange:(on,c)=>{ c.on=true; c.blink=1; if(armed&&armed!==c){armed.on=false;armed.blink=0;} armed=c; clearTimeout(armT); armT=setTimeout(()=>{c.on=false;c.blink=0;if(armed===c)armed=null;},4000);
+      toast(`${l} (${es}) armado. Ahora pulsa ПОДТВ en menos de 4 segundos. Los comandos críticos piden dos botones para que nadie los dispare por accidente.`);} }));
+  push(panel,{x:-.61,y:-.335,z:.021,w:.06,h:.036,label:'ПОДТВ',face:'#1d2a1d',fg:'#c9ffc0',lit:0x8dff7a,momentary:true,info:null,
+    onChange:()=>{ if(!armed){ sfx.denied(); toast('ПОДТВ (confirmar): primero elige un comando crítico de la izquierda.'); return; }
+      const c=armed, l=CMD.find(x=>c.label===x[0]); armed=null; clearTimeout(armT); c.blink=0; sfx.confirm(); setTimeout(()=>c.on=false,2500);
+      toast(`Comando ${c.label} confirmado: en la Soyuz real ordenaría ${l?l[1]:'la acción'}. Aquí solo se enciende la luz.`); }});
+  plate(panel,'КОМАНДЫ',-.83,-.3,.0205,.12,.016,SPL);
+  // --- teclados: números y flechas que mueven el cursor sobre los botones virtuales de la pantalla (formato Ф4) ---
+  const pads=[['left',-1],['center',1]];
+  for(const [k,sg] of pads){ const sc=scr[k], X=(i)=>sg<0?-.66+i*.06:.42+i*.06;
+    const send=ch=>{ if(sc.os.page!==3) osPage(sc,3); sc.os.pages[3].key(ch,(i,on,cell)=>{ if(cell[0]==='ОСВЕЩ') setCabinLights('main',on?1:.15); if(cell[0]==='ВЕНТ'){ fansS.fill(on); sfx.fans(on,'fanS',700); } if(cell[0]==='ТЕСТ') lampTest(2.5); if(cell[0]==='СИГН') sfx.alarm('soyuz',2); }); };
+    const rows=[['1','2','3'],['4','5','6'],['7','8','9'],['СБ','0','ВВ']];
+    rows.forEach((r,j)=>r.forEach((ch,i)=>key(panel,{x:X(i),y:-.085-j*.05,w:.048,h:.04,label:ch,face:ch==='ВВ'?'#2b3a2b':ch==='СБ'?'#3a2b2b':'#e6e4dc',fg:/[ВС]/.test(ch)?'#e6e4dc':'#15171b',onKey:send})));
+    ['↑','←','→','↓'].forEach((ch,j)=>key(panel,{x:sg<0?-.465:.615+.0,y:-.085-j*.05,w:.048,h:.04,label:ch,face:'#2b2d2b',fg:'#e6e4dc',onKey:send}));
+ }
+  // --- periscopio «Vzor» ---
+  const tube=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.9,24),M_GREY);tube.position.set(0,-.6,-.1);tube.castShadow=true;panel.add(tube);
+  const hood=new THREE.Mesh(new RoundedBoxGeometry(.24,.2,.22,3,.02),M_GREY_D);hood.position.set(0,-.2,.06);hood.castShadow=true;panel.add(hood);
+  const eye=new THREE.Mesh(new THREE.CircleGeometry(.055,32),new THREE.MeshPhysicalMaterial({color:0x06080a,roughness:.05,clearcoat:1,emissive:0x1a3a5a,emissiveIntensity:.25}));eye.position.set(0,-.18,.172);panel.add(eye);
+  const eyeRing=new THREE.Mesh(new THREE.TorusGeometry(.06,.012,10,32),M_ALU);eyeRing.position.set(0,-.18,.17);panel.add(eyeRing);
+  thing(hood,{label:'Periscopio Vzor',sound:'knob',info:'ВЗОР (Vzor): periscopio óptico que asoma por fuera de la cápsula. Mira hacia adelante, hacia el puerto de acoplamiento, y hacia abajo, a la Tierra. Con él el comandante comprueba la orientación antes de encender el motor para volver.'});
+  plate(panel,'ВЗОР',0,-.075,.0205,.08,.016,SPL);
+  // --- dos válvulas naranjas de oxígeno ---
+  for(const [x,l] of [[-.17,'O2 1'],[.17,'O2 2']]) knob(panel,{x,y:-.40,z:.021,r:.026,steps:4,color:0xe2701e,sound:'valve',label:l,info:'Válvula de oxígeno (naranja): abre el suministro de O2 a la cabina y a los trajes Sokol. Se gira a mano; el silbido es el gas pasando.'});
+  // --- paneles de audio de cada tripulante: botón de transmitir y dos perillas ---
+  [[-.62,'ИНЖ-1','ingeniero de vuelo 1 (asiento izquierdo)'],[0,'КОМ','comandante (asiento central)'],[.4,'ИНЖ-2','ingeniero de vuelo 2 (asiento derecho)']].forEach(([x,l,es])=>{
+    const bg=new THREE.Mesh(new RoundedBoxGeometry(.2,.075,.012,2,.004),M_GREY_D);bg.position.set(x,-.435,.024);panel.add(bg);
+    plate(panel,l,x-.07,-.41,.031,.05,.014,{bg:'#5c6660',fg:'#eef2ea',font:FM});
+    push(panel,{x:x-.07,y:-.445,z:.03,w:.04,h:.026,label:'ПРД',face:'#a7ada6',fg:'#15181a',lit:0xffd36a,momentary:true,info:`Panel de audio del ${es}. ПРД = transmitir: mientras se pulsa, Moscú (el centro de control TsUP) escucha.`,onChange:()=>sfx.radio(false)});
+    knob(panel,{x:x+.0,y:-.437,z:.03,r:.014,steps:5,label:'',info:'Volumen del auricular.'});
+    knob(panel,{x:x+.06,y:-.437,z:.03,r:.014,steps:3,label:'',info:'Canal de radio: VHF‑1, VHF‑2 u onda corta.'}); });
+  // --- derecha: temperatura, ventiladores de los trajes, fusibles y voltímetro ---
+  knob(panel,{x:.95,y:.31,z:.021,r:.022,steps:7,pos:3,label:'ТЕМП',info:'Temperatura de la cabina: entre 18 y 25 °C. La regula el sistema térmico (СТР) con radiadores.'});
+  [.90,.95,1.0].forEach((x,i)=>toggle(panel,{x,y:.19,z:.021,s:.9,label:'ВЕНТ'+(i+1),lamp:0x8dff7a,info:`Ventilador del traje Sokol ${i+1}: sopla aire de la cabina dentro del traje para que el cosmonauta no se sofoque durante el aterrizaje.`,onChange:on=>{fansS[i]=on;sfx.fans(fansS.some(Boolean),'fanS',700);}}));
+  { const fb=new THREE.Mesh(new RoundedBoxGeometry(.18,.2,.012,2,.004),M_GREY_D);fb.position.set(.95,-.01,.024);panel.add(fb);
+    plate(panel,'ПРЕДОХР.',.95,.07,.031,.1,.014,{bg:'#5c6660',fg:'#eef2ea',font:FM});
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++){ push(panel,{x:.905+c*.03,y:.035-r*.035,z:.03,w:.02,h:.02,round:true,label:'',face:'#111',lit:0xffffff,momentary:true,info:'Fusibles (ПРЕДОХРАНИТЕЛИ): protegen cada circuito eléctrico. Los cosmonautas bromean: «a estos mejor no los toques». No pasa nada, este es de mentira.'}); } }
+  { const vt=canvasTex(256,64,(x)=>{x.fillStyle='#e8e6dc';x.fillRect(0,0,256,64);x.fillStyle='#222';x.font='bold 14px monospace';x.textAlign='center';for(let v=0;v<=35;v+=5){const X=16+v/35*224;x.fillRect(X-1,6,2,14);x.fillText(v,X,36);}x.fillStyle='#c8261c';x.fillRect(16+27.5/35*224-2,4,4,40);x.fillStyle='#222';x.fillText('В',240,56);});
+    const vm=new THREE.Group(); vm.position.set(.95,-.17,.024); panel.add(vm);
+    vm.add(new THREE.Mesh(new RoundedBoxGeometry(.18,.055,.014,2,.004),M_GREY_D));
+    const sc2=new THREE.Mesh(new THREE.PlaneGeometry(.16,.04),new THREE.MeshStandardMaterial({map:vt,roughness:.4})); sc2.position.z=.0075; vm.add(sc2);
+    const gl=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.165,24,1,true,-Math.PI/3,Math.PI/1.5).rotateZ(Math.PI/2),new THREE.MeshPhysicalMaterial({color:0xffffff,transparent:true,opacity:.18,roughness:.05,clearcoat:1,depthWrite:false})); gl.position.z=-.012; gl.scale.set(1,.7,1); vm.add(gl); thing(vm,{label:'Voltímetro',sound:'lamp',info:'Voltímetro: mide la tensión de las baterías de la cápsula, unos 27 voltios. Abajo a la derecha, junto a los fusibles, como en la consola real.'}); }
+  // --- mandos manuales en sus brazos: RUD a la izquierda (traslación), RUO a la derecha (rotación) ---
+  for(const [k,l,es,ex] of [[-1,'РУД','traslación: mover la nave adelante y atrás, arriba y abajo, a los lados','En la Soyuz se usa sobre todo para el acoplamiento manual con la Estación Espacial.'],[1,'РУО','rotación: girar la nave (cabeceo, guiñada y alabeo)','Con él se orienta la cápsula antes de encender el motor para volver.']]){
+    const g=new THREE.Group(); panel.add(g);
+    const a0=new THREE.Vector3(k*.36,-.47,.0), a1=new THREE.Vector3(k*.42,-.6,.32);
+    const arm=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,a1.distanceTo(a0),10),M_ALU); arm.position.copy(a0).add(a1).multiplyScalar(.5); arm.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),a1.clone().sub(a0).normalize()); g.add(arm);
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.04,16),M_GREY_D); base.position.copy(a1); g.add(base);
+    const stick=new THREE.Group(); stick.position.copy(a1).add(new THREE.Vector3(0,.02,0)); g.add(stick);
+    stick.add(new THREE.Mesh(new THREE.CylinderGeometry(.013,.018,.12,12).translate(0,.06,0),M_CABLE));
+    if(k<0){ const t=new THREE.Mesh(new RoundedBoxGeometry(.11,.035,.04,2,.012),M_LINER); t.position.y=.13; stick.add(t); }   // RUD: empuñadura en T
+    else { const gr=new THREE.Mesh(new RoundedBoxGeometry(.045,.1,.05,2,.012),M_LINER); gr.position.y=.15; gr.rotation.x=-.3; stick.add(gr); const trig=new THREE.Mesh(new THREE.BoxGeometry(.012,.025,.012),M_CABLE); trig.position.set(0,.17,.03); stick.add(trig); }
+    plate(panel,l,k*.36,-.455,.0205,.06,.016,SPL);
+    g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+    thing(stick,{label:l,sound:'toggle',info:`${l}: palanca de ${es}. ${ex}`}); }
+  // --- puntero (указка): atados al asiento, los cosmonautas no alcanzan toda la consola ---
+  { const g=new THREE.Group(); g.position.set(-1.0,-.42,.06); g.rotation.set(.9,0,-.5); panel.add(g);
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.42,10),new THREE.MeshStandardMaterial({color:0xd9c27a,roughness:.5})); rod.position.y=.21; g.add(rod);
+    const tip=new THREE.Mesh(new THREE.SphereGeometry(.011,12,8),new THREE.MeshStandardMaterial({color:0x222,roughness:.8})); tip.position.y=.42; g.add(tip);
+    const cord=new THREE.Mesh(new THREE.TorusGeometry(.03,.003,6,20),M_CABLE); cord.position.y=0; g.add(cord);
+    thing(g,{label:'Puntero',sound:'touch',info:'Указка (puntero): con el traje presurizado y atados al asiento, los cosmonautas no llegan a los botones más lejanos de la consola. Los pulsan con este palito, atado con un cordón para que no salga flotando.'}); }
   for(const sx of[-.6,.6]){const strut=new THREE.Mesh(new RoundedBoxGeometry(.06,.06,.8,2,.012),M_ALU);strut.position.set(sx,.3,-.38);strut.rotation.x=.75;strut.castShadow=true;panel.add(strut);}
-  const cab=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(.8,.3,-.05),new THREE.Vector3(.9,.5,-.3),new THREE.Vector3(.75,.8,-.6)]),20,.014,6),M_CABLE);panel.add(cab);
+  const cab=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(1.0,.3,-.05),new THREE.Vector3(1.1,.5,-.3),new THREE.Vector3(.9,.8,-.6)]),20,.014,6),M_CABLE);panel.add(cab);
 }
-const PHYS_LABEL={3:'СПУСК',7:'ПОЖАР',11:'ПАРАШЮТ',15:'ОТХОД',19:'ВКЛ',23:'СВЕТ'};
+const PHYS_LABEL={3:'СПУСК',7:'ПОЖАР',11:'ПАРАШЮТ',15:'ОТХОД'};
 const PHYS_LABEL_ES={3:'DESCENSO',7:'INCENDIO',11:'PARACAÍDAS',15:'ALEJARSE ISS'};
 const PHYS_INFO={3:'СПУСК (DESCENSO): en una emergencia iniciaría el regreso a la Tierra. En este simulador está bloqueado.',7:'ПОЖАР (INCENDIO): activaría el sistema contra incendios de la cabina. No hay ningún incendio.',11:'ПАРАШЮТ (PARACAÍDAS): solo se usa en el descenso final si la secuencia automática falla.',15:'ОТХОД (ALEJARSE): retirada de emergencia de la Estación Espacial. No aplica en este vuelo.'};
-{ // interruptores de palanca con guarda, en dos filas sobre la consola, como en la Soyuz
+{ // fila de interruptores de palanca con guarda bajo las pantallas (los de la misión); la segunda fila queda reservada
   const baseG=new RoundedBoxGeometry(.052,.052,.012,2,.004);
   const capG=new THREE.CylinderGeometry(.006,.009,.034,10); capG.translate(0,.017,0); capG.rotateX(-Math.PI/2);
   const coverG=new RoundedBoxGeometry(.058,.06,.04,2,.006); coverG.translate(0,-.03,.02);
   const coverMat=new THREE.MeshStandardMaterial({color:0xc8372f,roughness:.5,metalness:.1});   // guardas rojas de los mandos de emergencia
   const capMat=new THREE.MeshStandardMaterial({color:0xd8d9d4,roughness:.35,metalness:.6}), capMatD=new THREE.MeshStandardMaterial({color:0x222,roughness:.5});
   for(let r=0;r<2;r++) for(let i=0;i<19;i++){
-    const idx=r*19+i, x=-.738+i*.082, y=r===0?.0:-.33;
-    // los índices deben coincidir con buttons[idx]: los que no caben (periscopio, teclado, pantalla auxiliar) se crean ocultos
-    const hidden=(r===0&&i>=9&&i<=10)||(r===1&&(i>=3&&i<=8||i>=11));
+    const idx=r*19+i, x=-.738+i*.082, y=r===0?-.025:-.33;
+    const hidden=r===1||(i>=9&&i<=10);     // los índices deben coincidir con buttons[idx]: los que no se usan se crean ocultos
     const base=new THREE.Mesh(baseG,M_GREY_D); base.position.set(x,y,.026); base.visible=!hidden; panel.add(base);
     const lab=PHYS_LABEL[idx];
-    const cap=new THREE.Mesh(capG,lab?capMat:capMatD); cap.position.set(x,y,.032); cap.rotation.x=.35; cap.userData.btn=idx; cap.castShadow=true; cap.visible=!hidden; panel.add(cap); if(!hidden) capMeshes.push(cap);
+    const cap=new THREE.Mesh(capG,(lab?capMat:capMatD).clone()); cap.position.set(x,y,.032); cap.rotation.x=.35; cap.userData.btn=idx; cap.castShadow=true; cap.visible=!hidden; panel.add(cap); if(!hidden) capMeshes.push(cap);
     const b={idx,cap,base,cover:null,open:false,openT:0,press:0,label:PHYS_LABEL_ES[idx]||lab,z0:.032};
     if(r===0&&lab&&!hidden){ const pv=new THREE.Group(); pv.position.set(x,y+.03,.034); panel.add(pv);
       const cv=new THREE.Mesh(coverG,coverMat); cv.userData.cover=idx; pv.add(cv); coverMeshes.push(cv); b.cover=pv; }
@@ -503,6 +576,13 @@ const PHYS_INFO={3:'СПУСК (DESCENSO): en una emergencia iniciaría el regre
     buttons.push(b);
   }
 }
+// pantallas: Ф1 misión · Ф2 telemetría · Ф3 navegación · Ф4 botones virtuales
+for(const k of ['left','center']) osInit(scr[k],{theme:STH,boot:'soyuz',pages:[pageTelemetry({}),pageMap({name:'НАВИГ',title:'НАВИГАЦИЯ',labels:{alt:'ОРБИТА 51,6°',home:'БАЙКОНУР',homeLL:[45.96,63.3]}}),pageNeptun({})]});
+osInit(scr.right,{theme:STH,boot:'soyuz',pages:[]});
+thing(plush.g,{label:'Indicador de gravedad cero',sound:'touch',info:'Indicador de gravedad cero: una tradición de las Soyuz desde 1961 (Gagarin llevó una muñequita). Lo elige el comandante, a menudo un regalo de sus hijos. Cuando empieza a flotar, la nave llegó a la órbita.'});
+setSoundGate(()=>S.sound);
+const needScr=()=>{const st=STEPS[S.step];return !!st&&(st.k==='game'||(st.k==='act'&&st.ctl.startsWith('scr:')));};
+registerCabinLights(cabin);
 { const blanket=new THREE.MeshStandardMaterial({color:0x6e7a60,roughness:.85,metalness:.05,normalMap:normalTex(128,128,(x,y)=>fbm(x/3,y/3,3)*2,1,[4,4])});
   const smMat=new THREE.MeshStandardMaterial({color:0xd8dbd6,roughness:.6,metalness:.2});
   const dm=new THREE.Mesh(lathe([[1.1,-.95],[1.12,-.6],[.98,.2],[.74,.8],[.5,1.2],[0,1.28]],64),blanket); extModel.add(dm);
@@ -762,10 +842,10 @@ function applyEffect(id){
 }
 function pressPhysical(idx){
   const b=buttons[idx]; if(!b) return;
-  if(b.cover&&!b.open){ b.open=true; b.openT=8; beep(500,.05,.05);
+  if(b.cover&&!b.open){ b.open=true; b.openT=8; sfx.cover();
     const st=STEPS[S.step]; if(st&&st.ctl==='cover:'+idx&&S.ready){ S.log.push({t:S.t,n:st.title}); beep(990,.07,.07); advance(); return; }
     toast((b.label||'Botón de respaldo')+': tapa abierta. Se cierra sola en unos segundos.'); return; }
-  b.press=.18; b.openT=8; beep(300,.08,.06);
+  b.press=.18; b.openT=8; sfx.toggle(); b.lit=!b.lit; b.cap.material.emissive.set(0xffd36a); b.cap.material.emissiveIntensity=b.lit?.9:0;
   toast(PHYS_INFO[idx]||'Botón de respaldo: su función exacta no es pública. Los botones físicos son la tercera opción después de las pantallas y del control en tierra.');
 }
 function highlightPhysical(){
@@ -880,9 +960,10 @@ function click(x,y){
   if(!isCabinView()) return;
   ray.setFromCamera(ndc,cam);
   const covers=coverMeshes.filter(m=>!buttons[m.userData.cover].open);
-  const hits=ray.intersectObjects([...screenMeshes,...capMeshes,...covers],false);
+  const hits=ray.intersectObjects([...screenMeshes,...capMeshes,...covers,...ctrlPick],false);
   if(!hits.length) return; const h=hits[0], o=h.object;
-  if(o.userData.screen){ const hp=o.userData.screen.pick(h.uv.x,h.uv.y); if(hp&&hp.en) doControl(hp.id); else if(hp) toast('Ese botón todavía no está disponible.'); return; }
+  if(tapCtrl(o)) return;
+  if(o.userData.screen){ if(osTap(o.userData.screen,h.uv.x,h.uv.y)) return; const hp=o.userData.screen.pick(h.uv.x,h.uv.y); if(hp&&hp.en) doControl(hp.id); else if(hp) toast('Ese botón todavía no está disponible.'); return; }
   if(o.userData.cover!==undefined){ pressPhysical(o.userData.cover); return; }
   if(o.userData.btn!==undefined){ const b=buttons[o.userData.btn]; if(b.cover&&!b.open){pressPhysical(b.idx);return;} pressPhysical(b.idx); }
 }
@@ -1007,7 +1088,7 @@ function frame(){
   updateGround(dt); updateGroundCam(dt); updateSpace(dt); audioUpdate(); hud(dt);
   const useGround=!S.boarded||(S.view==='ext'&&S.t<T.SES1);
   cabin.visible=!useGround&&S.view==='cabin'; extModel.visible=!useGround&&S.view==='ext';
-  if(isCabinView()){ screenAcc+=dt; if(screenAcc>1/20){screenAcc=0;drawLeft();drawCenter();drawRight();} }
+  if(isCabinView()){ updateMandos(dt); osStep(S.step,needScr()); screenAcc+=dt; if(screenAcc>1/20){screenAcc=0;osDraw(scr.left,drawLeft,NOW);osDraw(scr.center,drawCenter,NOW);osDraw(scr.right,drawRight,NOW);} }
   const tag=$('#tag3d');
   if(!S.boarded&&!S.boarding){const p=fh.userData.dragon.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(2.2,2.5,0)).project(gcam);
     tag.hidden=p.z>1; tag.style.left=((p.x+1)/2*innerWidth)+'px'; tag.style.top=((1-p.y)/2*innerHeight)+'px';}

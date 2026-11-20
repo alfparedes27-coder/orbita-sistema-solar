@@ -270,7 +270,7 @@ class Screen{
 const scr={left:new Screen('left'),center:new Screen('center'),right:new Screen('right')};
 const screenMeshes=[];
 [['left',-.53],['center',0],['right',.53]].forEach(([k,x])=>{
-  const m=new THREE.Mesh(new THREE.PlaneGeometry(.5,.28125),new THREE.MeshStandardMaterial({color:0x000000,emissive:0xffffff,emissiveMap:scr[k].tex,emissiveIntensity:1.15,roughness:.06,metalness:0,envMapIntensity:.9}));
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(.5,.28125),new THREE.MeshStandardMaterial({color:0x000000,emissive:0xffffff,emissiveMap:scr[k].tex,emissiveIntensity:1.15,roughness:.22,metalness:0,envMapIntensity:.3}));
   m.position.set(x,.09,.034); m.userData.screen=scr[k]; panel.add(m); screenMeshes.push(m);
   const bez=new THREE.Mesh(new RoundedBoxGeometry(.528,.31,.03,3,.01),new THREE.MeshStandardMaterial({color:0x0b0c0f,roughness:.25,metalness:.3}));bez.position.set(x,.09,.017);panel.add(bez);m.userData.bezel=bez;
 });
