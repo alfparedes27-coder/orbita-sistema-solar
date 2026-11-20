@@ -57,11 +57,11 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(
 <div class="cross"></div>
 <div class="top">
   <a class="back panel" href="../">← Mapa de la Luna</a>
-  <div class="title panel"><div class="kick">Apolo 11 · 21 de julio de 1969</div><h1>Tranquility Base</h1></div>
+  <div class="title panel"><div class="kick" id="kick">Apolo 11 · 21 de julio de 1969</div><h1 id="ttl">Tranquility Base</h1></div>
   <div class="tools">
-    <button id="bEarth">Mirar la Tierra</button><button id="bVisor" aria-pressed="false">Visor dorado</button><button id="bRadio">Radio</button><button id="bSound" aria-pressed="true">Sonido</button>
+    <button id="bDrive" hidden>Subir al rover (E)</button><button id="bCam" hidden aria-pressed="false">Cámara afuera (C)</button><button id="bEarth">Mirar la Tierra</button><button id="bVisor" aria-pressed="false">Visor dorado</button><button id="bRadio">Radio</button><button id="bSound" aria-pressed="true">Sonido</button>
   </div>
-  <div class="suit panel" aria-live="off"><span>Gravedad</span><b>1,62 m/s² (1/6)</b><span>Al Eagle</span><b id="dLM">—</b><span>Caminata</span><b id="dEVA">0:00:00</b><span>O2 de la mochila</span><b id="dO2">100 %</b><span>Huellas</span><b id="dFP">0</b></div>
+  <div class="suit panel" aria-live="off"><span>Gravedad</span><b>1,62 m/s² (1/6)</b><span id="lLM">Al Eagle</span><b id="dLM">—</b><span>Caminata</span><b id="dEVA">0:00:00</b><span>O2 de la mochila</span><b id="dO2">100 %</b><span>Huellas</span><b id="dFP">0</b><span class="rv" hidden>Velocidad</span><b class="rv" id="dV" hidden>0,0 km/h</b><span class="rv" hidden>Rumbo</span><b class="rv" id="dH" hidden>0°</b><span class="rv" hidden>Recorrido</span><b class="rv" id="dOdo" hidden>0 m</b><span class="rv" hidden>Batería</span><b class="rv" id="dBat" hidden>100 %</b></div>
 </div>
 <div class="tip panel" id="tip" hidden></div>
 <section class="card panel" id="card" hidden aria-live="polite"><button class="x" id="cardX" aria-label="Cerrar">✕</button><h3 id="cT"></h3><div id="cB"></div></section>
@@ -85,28 +85,38 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 const $=id=>document.getElementById(id);
 const G=1.62, EYE=1.62;
+// Dos misiones con el mismo motor: ?m=a17 abre el Apolo 17 en el valle Taurus‑Littrow, con montañas y el rover lunar.
+const A17=new URLSearchParams(location.search).get('m')==='a17';
+// Sol y Tierra vistos desde cada sitio. Acimut desde el norte, hacia el este. La Tierra se calcula desde la latitud y longitud del sitio (el punto bajo la Tierra está en 0°, 0°).
+const MIS=A17?{seed:19721211,sunEl:22,earthEl:53.8,earthAz:240,start:[10,-14],startYaw:2.5}:{seed:19690720,sunEl:14,earthEl:66,earthAz:268.5,start:[7,7],startYaw:Math.atan2(7,7)};
+const SKY=A17?30000:4600;   // distancia a la que se dibujan la Tierra y el Sol (más allá de las montañas)
 /* ============ TERRENO ============
    Coordenadas en metros: +x = este, −z = norte. El módulo lunar está en el origen.
    Posiciones de los objetos según el mapa de la zona que hizo la sonda LRO (LROC, 2012); son aproximadas al metro. */
 function rng(seed){ let s=seed>>>0; return ()=>((s=Math.imul(s^s>>>15,1|s)+0x6D2B79F5|0,(s^s>>>7)>>>0)/4294967296); }
-const R=rng(19690720);
-const CRATERS=[{x:60,z:0,r:15,d:3.6,name:'west'}];   // Little West: unos 30 m de diámetro, 60 m al este del Eagle
+const R=rng(MIS.seed);
+const CRATERS=A17?[{x:-90,z:60,r:22,d:5}]:[{x:60,z:0,r:15,d:3.6,name:'west'}];   // Apolo 11: Little West, unos 30 m de diámetro, 60 m al este del Eagle
 for(let i=0;i<2600;i++){ const r=.4*Math.pow(1/(1-R()*.995),.55); const a=R()*Math.PI*2, d=8+Math.pow(R(),.7)*480; const x=Math.cos(a)*d, z=Math.sin(a)*d; if(Math.hypot(x,z)<6+r) continue; CRATERS.push({x,z,r:Math.min(r,12),d:Math.min(r,12)*(.12+R()*.12)}); }
-CRATERS.push({x:-330,z:40,r:60,d:12});   // un cráter grande al oeste (el «West crater» que Armstrong esquivó al alunizar está a unos 400 m)
+if(!A17) CRATERS.push({x:-330,z:40,r:60,d:12});   // un cráter grande al oeste (el «West crater» que Armstrong esquivó al alunizar está a unos 400 m)
+else CRATERS.push({x:-420,z:-260,r:70,d:14},{x:300,z:-380,r:45,d:9});
 const CELL=24, grid=new Map();
 for(const c of CRATERS){ const e=c.r*1.6; for(let gx=Math.floor((c.x-e)/CELL);gx<=Math.floor((c.x+e)/CELL);gx++) for(let gz=Math.floor((c.z-e)/CELL);gz<=Math.floor((c.z+e)/CELL);gz++){ const k=gx+','+gz; (grid.get(k)||grid.set(k,[]).get(k)).push(c); } }
+function vnoise(){ const N=256,P=new Float32Array(N*N); for(let i=0;i<P.length;i++)P[i]=R(); return (x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),g=(a,b)=>P[((b&255)*N)+(a&255)];return (g(xi,yi)*(1-u)+g(xi+1,yi)*u)*(1-v)+(g(xi,yi+1)*(1-u)+g(xi+1,yi+1)*u)*v;}; }
+const vn=vnoise(); const fbm=(x,y,o=4)=>{let s=0,a=.5,f=1;for(let i=0;i<o;i++){s+=a*vn(x*f,y*f);a*=.5;f*=2;}return s;};
+// Montañas del valle Taurus‑Littrow (Apolo 17): el valle mide unos 7 km de ancho; el Macizo Sur se eleva 2,3 km y el Macizo Norte 2 km.
+// Posiciones aproximadas respecto al módulo Challenger (x este, z sur), según el mapa de la misión.
+const MOUNT=A17?[[-1800,7200,2300,2600,'Macizo Sur'],[-1200,-6300,2000,2500,'Macizo Norte'],[6200,-5600,1500,2400,'Colinas Esculpidas'],[8200,700,1600,2000,'Macizo Este'],[4600,5400,1300,1300,'Montaña Familia'],[-9000,1500,1400,2500,'Macizo Oeste']]:[];
+function hFar(x,z){ let h=0; for(const [mx,mz,H,W] of MOUNT){ const d2=((x-mx)**2+(z-mz)**2)/(W*W); if(d2<9){ const n=fbm(x/700+mx,z/700,4)-.5; h+=H*Math.exp(-d2*1.4)*(1+n*.5)+H*.1*Math.exp(-d2*.4)*n; } } return h; }
 function hgt(x,z){
-  let h=Math.sin(x*.013+1.3)*Math.cos(z*.011)*1.2+Math.sin(x*.041+z*.033)*.35+Math.sin(x*.11-z*.09)*.08;
+  const hf=hFar(x,z); let h=Math.sin(x*.013+1.3)*Math.cos(z*.011)*1.2+Math.sin(x*.041+z*.033)*.35+Math.sin(x*.11-z*.09)*.08;
   const L=grid.get(Math.floor(x/CELL)+','+Math.floor(z/CELL)); if(L) for(const c of L){ const q=Math.hypot(x-c.x,z-c.z)/c.r; if(q<1) h+=c.d*(q*q-1)+c.d*.12; else if(q<1.6) h+=c.d*.12*Math.pow(1-(q-1)/.6,2); }
   const r0=Math.hypot(x,z); if(r0<5) h*=r0/5*.4+.6;   // el lugar del alunizaje era llano
-  return h;
+  return h+hf;
 }
 const SIZE=900, SEG=450;
 const tgeo=new THREE.PlaneGeometry(SIZE,SIZE,SEG,SEG); tgeo.rotateX(-Math.PI/2);
 { const p=tgeo.attributes.position; for(let i=0;i<p.count;i++) p.setY(i,hgt(p.getX(i),p.getZ(i))); tgeo.computeVertexNormals(); }
 function canvasTex(w,h,draw,srgb=true){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;}
-function vnoise(){ const N=256,P=new Float32Array(N*N); for(let i=0;i<P.length;i++)P[i]=R(); return (x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),g=(a,b)=>P[((b&255)*N)+(a&255)];return (g(xi,yi)*(1-u)+g(xi+1,yi)*u)*(1-v)+(g(xi,yi+1)*(1-u)+g(xi+1,yi+1)*u)*v;}; }
-const vn=vnoise(); const fbm=(x,y,o=4)=>{let s=0,a=.5,f=1;for(let i=0;i<o;i++){s+=a*vn(x*f,y*f);a*=.5;f*=2;}return s;};
 // regolito: gris oscuro algo pardo (el suelo del Mar de la Tranquilidad refleja ~12 % de la luz), grano fino y piedritas
 const regCol=canvasTex(1024,1024,(x,w,h)=>{const id=x.createImageData(w,h),d=id.data;for(let j=0;j<h;j++)for(let i=0;i<w;i++){const n=fbm(i/28,j/28,5),m=fbm(i/3,j/3,2),k=(j*w+i)*4,v=86+n*44+m*26+(R()-.5)*18;d[k]=v+3;d[k+1]=v+1;d[k+2]=v-3;d[k+3]=255;}x.putImageData(id,0,0);
   for(let i=0;i<1400;i++){const r=.6+Math.pow(R(),4)*5,X=R()*w,Y=R()*h;x.fillStyle=`rgba(${150+R()*50|0},${148+R()*50|0},${145+R()*50|0},.55)`;x.beginPath();x.arc(X,Y,r,0,7);x.fill();x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.arc(X+r*.5,Y+r*.5,r,0,7);x.fill();}});
@@ -118,22 +128,26 @@ regNrm.wrapS=regNrm.wrapT=THREE.RepeatWrapping; regNrm.repeat.set(SIZE/4.3,SIZE/
 const regMat=new THREE.MeshStandardMaterial({map:regCol,normalMap:regNrm,normalScale:new THREE.Vector2(.85,.85),roughness:1,metalness:0});
 
 /* ============ ESCENA, SOL Y TIERRA ============ */
-const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true,logarithmicDepthBuffer:A17});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
-const cam=new THREE.PerspectiveCamera(62,1,.05,6000); cam.rotation.order='YXZ';
+const cam=new THREE.PerspectiveCamera(62,1,.05,A17?60000:6000); cam.rotation.order='YXZ';
 const ground=new THREE.Mesh(tgeo,regMat); ground.receiveShadow=true; scene.add(ground);
+if(A17){ const FS=34000, fg=new THREE.PlaneGeometry(FS,FS,260,260); fg.rotateX(-Math.PI/2); const p=fg.attributes.position;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), z=p.getZ(i), r=Math.max(Math.abs(x),Math.abs(z)); p.setY(i,hFar(x,z)-(r<480?3:0)); }   // debajo del terreno cercano, que lo tapa
+  fg.computeVertexNormals(); const ft=regCol.clone(); ft.needsUpdate=true; ft.repeat.set(FS/40,FS/40);
+  const farM=new THREE.Mesh(fg,new THREE.MeshStandardMaterial({map:ft,roughness:1,color:0xd2d0cc})); farM.receiveShadow=false; scene.add(farM); }
 // Sol: al este, 14° sobre el horizonte durante la caminata (la luz rasante que se ve en todas las fotos del Apolo 11)
-const SUN_EL=14*Math.PI/180, sunDir=new THREE.Vector3(Math.cos(SUN_EL),Math.sin(SUN_EL),0);
+const SUN_EL=MIS.sunEl*Math.PI/180, sunDir=new THREE.Vector3(Math.cos(SUN_EL),Math.sin(SUN_EL),0);
 const sun=new THREE.DirectionalLight(0xfff6ea,4.2); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-30,right:30,top:30,bottom:-30,near:1,far:300}); sun.shadow.bias=-.0004; sun.shadow.normalBias=.05; scene.add(sun,sun.target);
 scene.add(new THREE.HemisphereLight(0x0d0f14,0x5a5752,.32));   // casi sin luz ambiente: solo el reflejo del propio suelo
-const sunDisc=new THREE.Mesh(new THREE.SphereGeometry(22,24,16),new THREE.MeshBasicMaterial({color:0xffffff})); scene.add(sunDisc);
+const sunDisc=new THREE.Mesh(new THREE.SphereGeometry(SKY*.0047,24,16),new THREE.MeshBasicMaterial({color:0xffffff})); scene.add(sunDisc);
 // Tierra: desde Tranquility Base está a 66° de altura hacia el oeste y no se mueve en el cielo. Mide unos 2° (cuatro veces la Luna llena vista desde aquí).
-const EARTH_DIR=new THREE.Vector3(-Math.cos(66*Math.PI/180),Math.sin(66*Math.PI/180),.06).normalize();
+const EARTH_DIR=(()=>{const e=MIS.earthEl*Math.PI/180,a=MIS.earthAz*Math.PI/180;return new THREE.Vector3(Math.sin(a)*Math.cos(e),Math.sin(e),-Math.cos(a)*Math.cos(e));})();
 const earthTex=new THREE.TextureLoader().load('../../tex/tierra-dia.webp'); earthTex.colorSpace=THREE.SRGBColorSpace;
-const earth=new THREE.Mesh(new THREE.SphereGeometry(85,48,32),new THREE.MeshStandardMaterial({map:earthTex,roughness:.8,metalness:0,emissive:0x0a1020,emissiveIntensity:.2})); earth.castShadow=false; earth.receiveShadow=false; earth.rotation.y=2.4; scene.add(earth);
-{ const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<1600;i++){const v=new THREE.Vector3().randomDirection(); if(v.y<-.02) v.y*=-1; v.multiplyScalar(5000); p.push(v.x,v.y,v.z);} g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.1,sizeAttenuation:false,color:0x9aa0b0}))); }
+const earth=new THREE.Mesh(new THREE.SphereGeometry(SKY*.01845,48,32),new THREE.MeshStandardMaterial({map:earthTex,roughness:.8,metalness:0,emissive:0x0a1020,emissiveIntensity:.2})); earth.castShadow=false; earth.receiveShadow=false; earth.rotation.y=2.4; scene.add(earth);
+{ const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<1600;i++){const v=new THREE.Vector3().randomDirection(); if(v.y<-.02) v.y*=-1; v.multiplyScalar(SKY*1.25); p.push(v.x,v.y,v.z);} g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.1,sizeAttenuation:false,color:0x9aa0b0}))); }
 // piedras sueltas, más numerosas cerca de los cráteres
 { const geo=new THREE.DodecahedronGeometry(1,1); { const p=geo.attributes.position; for(let i=0;i<p.count;i++){const v=new THREE.Vector3().fromBufferAttribute(p,i);v.multiplyScalar(.75+R()*.4);p.setXYZ(i,v.x,v.y*.7,v.z);} geo.computeVertexNormals(); }
   const N=2400, rk=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0x6d6b67,roughness:.95,normalMap:regNrm,normalScale:new THREE.Vector2(2,2)}),N), m=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler();
@@ -170,9 +184,9 @@ const lm=new THREE.Group(); scene.add(lm); lm.position.y=hgt(0,0);
   // placa en la pata de la escalera
   const plq=new THREE.Mesh(new THREE.PlaneGeometry(.34,.23),Mt(0xd9dcdf,{metalness:.95,roughness:.25,map:canvasTex(512,346,(x,w,h)=>{x.fillStyle='#cfd3d6';x.fillRect(0,0,w,h);x.strokeStyle='#555';x.lineWidth=4;x.strokeRect(6,6,w-12,h-12);
     x.fillStyle='#333';x.beginPath();x.arc(140,95,58,0,7);x.stroke();x.beginPath();x.arc(372,95,58,0,7);x.stroke();x.font='bold 17px serif';x.textAlign='center';
-    ['HERE MEN FROM THE PLANET EARTH','FIRST SET FOOT UPON THE MOON','JULY 1969, A.D.','WE CAME IN PEACE FOR ALL MANKIND'].forEach((l,i)=>x.fillText(l,w/2,200+i*26));x.font='12px serif';x.fillText('ARMSTRONG · COLLINS · ALDRIN · NIXON',w/2,320);})}));
+    (A17?['HERE MAN COMPLETED HIS FIRST','EXPLORATIONS OF THE MOON','DECEMBER 1972, A.D.','MAY THE SPIRIT OF PEACE IN WHICH WE CAME']:['HERE MEN FROM THE PLANET EARTH','FIRST SET FOOT UPON THE MOON','JULY 1969, A.D.','WE CAME IN PEACE FOR ALL MANKIND']).forEach((l,i)=>x.fillText(l,w/2,200+i*26));x.font='12px serif';x.fillText(A17?'CERNAN · EVANS · SCHMITT · NIXON':'ARMSTRONG · COLLINS · ALDRIN · NIXON',w/2,320);})}));
   plq.position.set(-.45,1.25,0); plq.rotation.y=-Math.PI/2; lad.add(plq);
-  info(plq,'La placa del Eagle','<p>«Aquí, hombres del planeta Tierra pusieron pie por primera vez en la Luna. Julio de 1969 d. C. Vinimos en paz en nombre de toda la humanidad.»</p><p>Está atornillada a la pata de la escalera, que se quedó en la Luna con toda la etapa de descenso. La firman los tres astronautas y el presidente Nixon. Los dos círculos son los dos hemisferios de la Tierra.</p>');
+  info(plq,A17?'La placa del Challenger':'La placa del Eagle',A17?'<p>«Aquí el hombre completó sus primeras exploraciones de la Luna. Diciembre de 1972 d. C. Que el espíritu de paz con el que vinimos se refleje en la vida de toda la humanidad.»</p><p>Cernan la leyó en voz alta antes de subir. Muestra los dos hemisferios de la Tierra y, en el centro, la Luna con los seis lugares donde alunizaron los Apolo.</p>':'<p>«Aquí, hombres del planeta Tierra pusieron pie por primera vez en la Luna. Julio de 1969 d. C. Vinimos en paz en nombre de toda la humanidad.»</p><p>Está atornillada a la pata de la escalera, que se quedó en la Luna con toda la etapa de descenso. La firman los tres astronautas y el presidente Nixon. Los dos círculos son los dos hemisferios de la Tierra.</p>');
   // etapa de ascenso: la cabina de los astronautas, con sus paneles plateados y negros
   const as=new THREE.Group(); as.position.y=2.75; as.scale.setScalar(1.35); lm.add(as);
   const cab=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.25,1.6,8,1),M_SILV); cab.position.set(-.2,.85,0); cab.rotation.y=Math.PI/8; cab.scale.set(1,1,1.05); as.add(cab);
@@ -187,9 +201,10 @@ const lm=new THREE.Group(); scene.add(lm); lm.position.y=hgt(0,0);
   const mast=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.7,8),M_GREY); mast.position.set(.6,1.95,.5); as.add(mast);
   const rr=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.08,24),M_DARK); rr.position.set(-1.0,1.65,.2); rr.rotation.z=1.1; as.add(rr);
   lm.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
-  info(ds,'Módulo lunar Eagle','<p>Mide 7 m de alto y 9,4 m de pata a pata, y pesaba 15 toneladas al despegar de la Tierra. La parte dorada de abajo (etapa de descenso) tiene el motor que lo frenó para alunizar y se queda aquí para siempre como plataforma de lanzamiento.</p><p>La parte plateada de arriba (etapa de ascenso) es la cabina, más pequeña que un auto por dentro. A las 17:54 UTC de este día despegará llevándose a Armstrong y Aldrin de vuelta a la nave Columbia, donde los espera Michael Collins.</p><p class="src">Las «mantas doradas» son capas de Kapton y Mylar que protegen del calor (+120 °C al Sol) y del frío (−150 °C a la sombra).</p>');
-  info(as,'Etapa de ascenso','<p>Aquí dentro viajaron y durmieron Armstrong y Aldrin, de pie y atados con correas (no tenía asientos). Las dos ventanas triangulares miran hacia adelante; abajo está la escotilla cuadrada por donde salieron arrastrándose de espaldas.</p><p>Al despegar, un pequeño motor de 15,6 kN la lanzó a la órbita lunar en 7 minutos. En el panel, Aldrin encontró un interruptor roto y lo arregló con la punta de un marcador.</p>');
+  info(ds,A17?'Módulo lunar Challenger':'Módulo lunar Eagle',A17?'<p>El último módulo lunar. Cernan y Schmitt vivieron aquí tres días, del 11 al 14 de diciembre de 1972, y salieron tres veces a explorar el valle con el rover, en total 22 horas fuera.</p><p>Este modelo era más grande que el del Apolo 11: llevaba el rover plegado en un costado de la etapa dorada, como un libro cerrado, y más oxígeno y comida.</p>':'<p>Mide 7 m de alto y 9,4 m de pata a pata, y pesaba 15 toneladas al despegar de la Tierra. La parte dorada de abajo (etapa de descenso) tiene el motor que lo frenó para alunizar y se queda aquí para siempre como plataforma de lanzamiento.</p><p>La parte plateada de arriba (etapa de ascenso) es la cabina, más pequeña que un auto por dentro. A las 17:54 UTC de este día despegará llevándose a Armstrong y Aldrin de vuelta a la nave Columbia, donde los espera Michael Collins.</p><p class="src">Las «mantas doradas» son capas de Kapton y Mylar que protegen del calor (+120 °C al Sol) y del frío (−150 °C a la sombra).</p>');
+  info(as,'Etapa de ascenso',A17?'<p>La cabina donde dormían Cernan y Schmitt en hamacas. El 14 de diciembre de 1972 despegó de aquí y la cámara del rover, manejada desde Houston, la siguió hacia el cielo. Desde entonces nadie ha vuelto a despegar de la Luna.</p>':'<p>Aquí dentro viajaron y durmieron Armstrong y Aldrin, de pie y atados con correas (no tenía asientos). Las dos ventanas triangulares miran hacia adelante; abajo está la escotilla cuadrada por donde salieron arrastrándose de espaldas.</p><p>Al despegar, un pequeño motor de 15,6 kN la lanzó a la órbita lunar en 7 minutos. En el panel, Aldrin encontró un interruptor roto y lo arregló con la punta de un marcador.</p>');
 }
+if(!A17){
 // bandera: con una barra horizontal arriba para que se viera extendida aunque no haya viento
 { const g=new THREE.Group(); const x=-6.5,z=-2; g.position.set(x,hgt(x,z),z); g.rotation.y=-.4; scene.add(g);
   g.add((m=>{m.position.set(0,1.15-.25,0);return m;})(new THREE.Mesh(new THREE.CylinderGeometry(.016,.016,2.3,8),M_SILV)));
@@ -228,6 +243,7 @@ const lm=new THREE.Group(); scene.add(lm); lm.position.y=hgt(0,0);
   const sh=new THREE.Mesh(new THREE.PlaneGeometry(.3,1.35),Mt(0xe6e8ea,{metalness:.9,roughness:.2,side:THREE.DoubleSide})); sh.position.set(0,.9,.02); g.add(sh);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   info(g,'Colector de viento solar','<p>Una lámina de aluminio que estuvo 77 minutos atrapando partículas que vienen del Sol (helio, neón, argón). La enrollaron y la llevaron de vuelta a la Tierra. Fue el único experimento de otro país en el Apolo 11: lo diseñó la Universidad de Berna, en Suiza.</p>'); }
+}
 // la huella de la foto más famosa (AS11‑40‑5878), cerca del Eagle
 const fpTex=canvasTex(128,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle='rgba(0,0,0,.0)';x.fillRect(0,0,w,h);x.save();x.beginPath();x.ellipse(64,72,44,64,0,0,7);x.ellipse(64,190,38,58,0,0,7);x.clip();x.fillStyle='rgba(20,20,20,.6)';x.fillRect(0,0,w,h);x.fillStyle='rgba(0,0,0,.55)';for(let y=14;y<250;y+=17)x.fillRect(0,y,w,7);x.restore();});
 const fpMat=new THREE.MeshStandardMaterial({color:0x9a9a9a,map:fpTex,transparent:true,depthWrite:false,roughness:1,polygonOffset:true,polygonOffsetFactor:-2});
@@ -236,17 +252,113 @@ let fpi=0, fpTot=0;
 function footprint(x,z,yaw,side){ const m=new THREE.Matrix4(), q=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,yaw,0)); const ox=Math.cos(yaw)*.13*side, oz=-Math.sin(yaw)*.13*side;
   m.compose(new THREE.Vector3(x+ox,hgt(x+ox,z+oz)+.012,z+oz),q,new THREE.Vector3(1,1,1)); fpMesh.setMatrixAt(fpi,m); fpi=(fpi+1)%FPN; fpMesh.count=Math.min(FPN,fpMesh.count+1); fpMesh.instanceMatrix.needsUpdate=true; fpTot++; }
 for(let i=0;i<40;i++){ const a=R()*Math.PI*2, d=2+R()*8; footprint(Math.cos(a)*d-2,Math.sin(a)*d,R()*6,i%2?1:-1); } fpTot=0;   // las huellas que ya dejaron
+if(!A17){
 { const x=-3,z=3.4; const big=new THREE.Mesh(new THREE.PlaneGeometry(.17,.34).rotateX(-Math.PI/2),fpMat); big.position.set(x,hgt(x,z)+.013,z); big.rotation.y=.6; scene.add(big);
   const hit=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.05,12),new THREE.MeshBasicMaterial({visible:false})); hit.position.copy(big.position); scene.add(hit);
   info(hit,'La huella de Aldrin','<p>Aldrin fotografió una de sus huellas para estudiar cómo se compacta el polvo lunar: es la foto AS11‑40‑5878, una de las más famosas de la historia.</p><p>El polvo lunar no tiene viento ni lluvia que lo mueva, así que estas huellas pueden durar millones de años. Las suelas tenían esas rayas horizontales para que el pie no resbalara.</p>'); }
 // cráter Little West: hasta allí corrió Armstrong al final, sin estar en el plan
 { const hit=new THREE.Mesh(new THREE.CylinderGeometry(15,15,4,32),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(60,hgt(60,0)+1,0); scene.add(hit);
   info(hit,'Cráter Little West','<p>Tiene unos 30 m de ancho y 4 m de hondo. Al final de la caminata, Armstrong corrió solo hasta su borde, 60 m al este del Eagle, para fotografiarlo por dentro: fue lo más lejos que llegó alguien en el Apolo 11.</p><p>La caminata entera duró 2 horas y 31 minutos y nunca se alejaron más que un campo de fútbol. Tres años después, en el Apolo 17, recorrerían 35 km en un rover.</p>'); }
-info(earth,'La Tierra','<p>Desde aquí la Tierra no sale ni se pone: como la Luna siempre nos da la misma cara, se queda quieta en el mismo lugar del cielo, a 66° de altura hacia el oeste. Se ve cuatro veces más grande que la Luna llena desde la Tierra.</p><p>Ahora ves algo más de la mitad iluminada: la Tierra tiene fases, igual que la Luna, pero al revés. Cuando en la Tierra hay Luna nueva, desde aquí se ve «Tierra llena». Allá, unos 600 millones de personas te están viendo por televisión.</p>');
+}
+info(earth,'La Tierra',A17?'<p>Desde el valle Taurus‑Littrow la Tierra está a 54° de altura hacia el oeste‑suroeste, y nunca se mueve del cielo. En el viaje de ida, esta misma tripulación tomó «La canica azul» (7 de diciembre de 1972), una de las fotos más vistas de la historia: la Tierra entera, con África y la Antártida.</p>':'<p>Desde aquí la Tierra no sale ni se pone: como la Luna siempre nos da la misma cara, se queda quieta en el mismo lugar del cielo, a 66° de altura hacia el oeste. Se ve cuatro veces más grande que la Luna llena desde la Tierra.</p><p>Ahora ves algo más de la mitad iluminada: la Tierra tiene fases, igual que la Luna, pero al revés. Cuando en la Tierra hay Luna nueva, desde aquí se ve «Tierra llena». Allá, unos 600 millones de personas te están viendo por televisión.</p>');
+
+/* ============ APOLO 17: VALLE TAURUS‑LITTROW Y EL ROVER LUNAR ============ */
+let lrv=null;
+if(A17){
+  // bandera, a unos 8 m del Challenger
+  { const g=new THREE.Group(); const x=-8,z=-4; g.position.set(x,hgt(x,z),z); g.rotation.y=-.6; scene.add(g);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.016,.016,2.3,8),M_SILV); pole.position.y=.9; g.add(pole);
+    const bar=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,1.5,8),M_SILV); bar.rotation.z=Math.PI/2; bar.position.set(.75,1.98,0); g.add(bar);
+    const fg=new THREE.PlaneGeometry(1.5,.9,24,8); { const p=fg.attributes.position; for(let i=0;i<p.count;i++){const X=p.getX(i);p.setZ(i,Math.sin(X*6)*.03*(X+.75));} fg.computeVertexNormals(); }
+    const flag=new THREE.Mesh(fg,new THREE.MeshStandardMaterial({side:THREE.DoubleSide,roughness:.8,map:canvasTex(380,200,(x,w,h)=>{for(let i=0;i<13;i++){x.fillStyle=i%2?'#f2f2f0':'#b32234';x.fillRect(0,i*h/13,w,h/13+1);}x.fillStyle='#3c3b6e';x.fillRect(0,0,w*.4,h*7/13);x.fillStyle='#fff';for(let r=0;r<9;r++)for(let c=0;c<(r%2?5:6);c++){x.beginPath();x.arc(8+c*25+(r%2?12:0),6+r*11.6,2.6,0,7);x.fill();}})}));
+    flag.position.set(.75,1.53,0); g.add(flag); g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+    info(g,'La bandera del Apolo 17','<p>Esta bandera estuvo colgada en la sala de control de Houston durante todas las misiones Apolo; la tripulación la trajo para dejarla aquí, en la última. Las fotos de la sonda LRO muestran que la sombra de esta bandera sigue ahí: sigue en pie, aunque el Sol seguramente la blanqueó.</p>'); }
+  // ALSEP: estación central, generador nuclear y experimentos, a unos 185 m al oeste‑noroeste
+  { const x=-170,z=-70, g=new THREE.Group(); g.position.set(x,hgt(x,z),z); scene.add(g);
+    const cs=new THREE.Mesh(new THREE.BoxGeometry(.6,.3,.45),M_FOIL); cs.position.y=.2; g.add(cs);
+    const sh=new THREE.Mesh(new THREE.BoxGeometry(.7,.02,.6),M_SILV); sh.position.y=.62; g.add(sh);
+    for(const [a,b] of [[-1,-1],[1,-1],[-1,1],[1,1]]){ const l=new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,.42,6),M_SILV); l.position.set(a*.32,.42,b*.28); g.add(l); }
+    const ant=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.7,8),M_SILV); ant.position.set(.2,.95,0); ant.rotation.z=.4; g.add(ant);
+    const rtg=new THREE.Group(); rtg.position.set(3.2,0,.6); g.add(rtg); const core=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.46,16),M_DARK); core.position.y=.42; rtg.add(core);
+    for(let i=0;i<8;i++){ const f=new THREE.Mesh(new THREE.BoxGeometry(.01,.42,.2),M_DARK); const a=i/8*Math.PI*2; f.position.set(Math.cos(a)*.27,.42,Math.sin(a)*.27); f.rotation.y=-a; rtg.add(f); }
+    const cable=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0,.05,0),new THREE.Vector3(1.6,.02,.5),new THREE.Vector3(3.2,.05,.6)]),20,.008,5),M_DARK); g.add(cable);
+    for(const [dx,dz,w] of [[-6,3,.35],[5,-6,.3],[-4,-8,.4],[8,5,.28]]){ const e=new THREE.Mesh(new THREE.BoxGeometry(w,.25,w),M_FOIL); e.position.set(dx,hgt(x+dx,z+dz)-g.position.y+.13,dz); g.add(e);
+      const c2=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0,.03,0),new THREE.Vector3(dx/2,.02,dz/2+.4),new THREE.Vector3(dx,.03,dz)]),16,.006,4),M_DARK); g.add(c2); }
+    g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+    info(g,'ALSEP: la estación de experimentos','<p>El paquete de experimentos del Apolo 17: un gravímetro para buscar ondas gravitacionales, sondas que midieron el calor que sale del interior de la Luna, sismógrafos que escuchaban explosiones de prueba, y un detector de la finísima «atmósfera» lunar.</p><p>Todo funcionaba con el generador nuclear de aletas negras (unos 70 W) y mandó datos a la Tierra hasta 1977, cuando la NASA lo apagó para ahorrar dinero.</p>'); }
+  // las últimas huellas, al pie de la escalera
+  { const x=-3.5,z=.4; const hit=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,.05,12),new THREE.MeshBasicMaterial({visible:false})); hit.position.set(x,hgt(x,z),z); scene.add(hit);
+    for(let i=0;i<6;i++) footprint(x-i*.5,z+(i%2)*.2,Math.PI/2,i%2?1:-1);
+    info(hit,'Las últimas huellas','<p>El 14 de diciembre de 1972, Gene Cernan subió por esta escalera y fue la última persona que pisó la Luna. Antes dijo: «Dejamos la Luna como llegamos y, si Dios quiere, como volveremos: con paz y esperanza para toda la humanidad».</p><p>Desde entonces nadie ha vuelto. El programa Artemis planea llevar personas otra vez, cerca del polo sur.</p>'); }
+  // el rover lunar (LRV): 3,1 m de largo, 2,3 m entre ejes, ruedas de 82 cm, 210 kg vacío
+  lrv=(()=>{ const g=new THREE.Group(); scene.add(g); const body=new THREE.Group(); g.add(body);
+    const M_FR=Mt(0xbfc3c8,{metalness:.8,roughness:.35}), M_FEND=Mt(0x8d99a8,{roughness:.6,metalness:.2}), M_SEAT=Mt(0x6c7686,{roughness:.9}), M_BAT=Mt(0xe8e8e4,{roughness:.7});
+    const mesh=canvasTex(512,256,(x,w,h)=>{x.clearRect(0,0,w,h);x.strokeStyle='rgba(205,210,215,.95)';x.lineWidth=2;for(let i=-h;i<w;i+=10){x.beginPath();x.moveTo(i,0);x.lineTo(i+h,h);x.stroke();x.beginPath();x.moveTo(i+h,0);x.lineTo(i,h);x.stroke();}
+      x.fillStyle='#b9bec4';for(let i=0;i<24;i++){const X=i*w/24;x.beginPath();x.moveTo(X,h*.15);x.lineTo(X+w/48,h*.5);x.lineTo(X,h*.85);x.lineTo(X+8,h*.85);x.lineTo(X+w/48+8,h*.5);x.lineTo(X+8,h*.15);x.fill();}});
+    const tireM=new THREE.MeshStandardMaterial({map:mesh,alphaTest:.4,side:THREE.DoubleSide,metalness:.8,roughness:.35});
+    const part=(o,title,html)=>{ info(o,title,html); return o; };
+    // chasis de aluminio en tres secciones
+    const fr=new THREE.Group(); body.add(fr); fr.position.y=.5;
+    for(const sx of[-.55,.55]){ const r=new THREE.Mesh(new THREE.BoxGeometry(.05,.06,2.9),M_FR); r.position.x=sx; fr.add(r); }
+    for(const z of[-1.35,-.45,.45,1.35]){ const r=new THREE.Mesh(new THREE.BoxGeometry(1.15,.05,.05),M_FR); r.position.z=z; fr.add(r); }
+    const floor=new THREE.Mesh(new THREE.BoxGeometry(1.1,.02,1.0),M_FR); floor.position.set(0,.02,.15); fr.add(floor);
+    // ruedas de malla de alambre con chevrones de titanio
+    const wheels=[]; for(const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){ const w=new THREE.Group(); w.position.set(sx*.915,.41,sz*1.145); body.add(w);
+      const steer=new THREE.Group(); w.add(steer); const spin=new THREE.Group(); steer.add(spin);
+      const tire=new THREE.Mesh(new THREE.CylinderGeometry(.41,.41,.23,40,1,true),tireM); tire.rotation.z=Math.PI/2; spin.add(tire);
+      const inner=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.18,24,1,true),Mt(0x8c9196,{side:THREE.DoubleSide,metalness:.7})); inner.rotation.z=Math.PI/2; spin.add(inner);
+      const hub=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.24,20),M_DARK); hub.rotation.z=Math.PI/2; spin.add(hub);
+      for(let k=0;k<6;k++){ const sp=new THREE.Mesh(new THREE.BoxGeometry(.03,.28,.03),M_FR); sp.rotation.x=k/6*Math.PI; spin.add(sp); }
+      const broken=sx>0&&sz>0;   // el guardabarros trasero derecho del Apolo 17, arreglado con mapas
+      const fend=new THREE.Mesh(new THREE.CylinderGeometry(.47,.47,.3,24,1,true,0,Math.PI*.55),broken?new THREE.MeshStandardMaterial({side:THREE.DoubleSide,roughness:.7,map:canvasTex(256,128,(x,w,h)=>{x.fillStyle='#d9d4c4';x.fillRect(0,0,w,h);x.strokeStyle='#8a8170';for(let i=0;i<w;i+=16){x.beginPath();x.moveTo(i,0);x.lineTo(i,h);x.stroke();}for(let j=0;j<h;j+=16){x.beginPath();x.moveTo(0,j);x.lineTo(w,j);x.stroke();}x.fillStyle='#555';x.font='bold 14px monospace';x.fillText('LUNAR MAP',8,20);x.fillText('TAURUS-LITTROW',8,110);})}):Mt(0x8d99a8,{side:THREE.DoubleSide,roughness:.6}));
+      fend.rotation.z=Math.PI/2; fend.rotation.x=-Math.PI*.27+(sz<0?0:Math.PI*.0); fend.position.set(0,.02,0); w.add(fend);
+      if(broken){ for(const k of[-1,1]){ const cl=new THREE.Mesh(new THREE.BoxGeometry(.05,.03,.05),M_DARK); cl.position.set(k*.12,.45,-.1); w.add(cl); }
+        part(fend,'El guardabarros de mapas','<p>Cernan enganchó este guardabarros con el martillo y se rompió. Sin él, cada rueda lanzaba un chorro de polvo sobre los astronautas, los instrumentos y las baterías, que se calentaban.</p><p>En Houston, el astronauta John Young probó una solución en un simulador durante la noche: <b>cuatro mapas plastificados pegados con cinta y sujetos con dos pinzas de la lámpara de la cabina</b>. Funcionó. El guardabarros original volvió a la Tierra y está en el museo Smithsonian.</p>'); }
+      wheels.push({w,steer,spin,sx,sz}); part(w.children[0],'Rueda de malla de alambre','<p>No son de goma: son una malla de 800 alambres de acero galvanizado, con chevrones de titanio que hacen de dibujo. Así no pinchan, aguantan desde −170 °C hasta +120 °C y pesan 5,4 kg.</p><p>Cada rueda tiene su propio motor eléctrico de un cuarto de caballo de fuerza; las cuatro se dirigen, adelante y atrás, así que el rover gira en un círculo de solo 6 m.</p>'); }
+    // asientos plegables de tubo y red de nailon, con cinturón
+    for(const sx of[-.32,.32]){ const s=new THREE.Group(); s.position.set(sx,.56,.25); body.add(s);
+      const seat=new THREE.Mesh(new THREE.BoxGeometry(.48,.03,.45),M_SEAT); s.add(seat);
+      const back=new THREE.Mesh(new THREE.BoxGeometry(.48,.42,.03),M_SEAT); back.position.set(0,.2,.25); back.rotation.x=.25; s.add(back);
+      for(const k of[-1,1]){ const t=new THREE.Mesh(new THREE.BoxGeometry(.02,.02,.47),M_FR); t.position.set(k*.24,0,0); s.add(t); }
+      const belt=new THREE.Mesh(new THREE.BoxGeometry(.5,.012,.05),Mt(0xd9d4c8,{roughness:.9})); belt.position.set(0,.15,-.05); s.add(belt);
+      part(s,'Asientos del rover','<p>Dos sillas plegables de tubo de aluminio y red de nailon, con apoyabrazos y cinturón. Con el traje inflado es difícil sentarse y no ver las piernas; los astronautas decían que manejar el rover era como un bote saltando sobre las olas.</p>'); }
+    // consola de navegación y mando en T
+    const con=new THREE.Group(); con.position.set(0,.98,-.45); body.add(con);
+    const cb=new THREE.Mesh(new THREE.BoxGeometry(.42,.32,.08),M_FR); con.add(cb);
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(.38,.28),new THREE.MeshStandardMaterial({roughness:.5,map:canvasTex(256,192,(x,w,h)=>{x.fillStyle='#2a2d31';x.fillRect(0,0,w,h);x.strokeStyle='#ddd';x.fillStyle='#ddd';x.lineWidth=2;x.font='bold 11px monospace';
+      [[50,55,'RUMBO'],[128,55,'DIST.'],[206,55,'BAT.']].forEach(([cx,cy,l])=>{x.beginPath();x.arc(cx,cy,30,0,7);x.stroke();x.fillText(l,cx-18,cy+46);x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+18,cy-18);x.stroke();});
+      x.fillStyle='#ffcf6b';x.fillRect(30,140,190,24);x.fillStyle='#111';x.fillText('VELOCIDAD  km/h',60,156);})}));
+    face.position.z=.042; face.rotation.y=Math.PI; con.add(face);
+    const sun=new THREE.Mesh(new THREE.CylinderGeometry(.005,.005,.12,6),M_DARK); sun.position.set(0,.22,0); con.add(sun);
+    part(con,'Consola de navegación','<p>Sin GPS ni brújula (la Luna no tiene campo magnético), la navegación usaba un giróscopo y el conteo de vueltas de las ruedas. La consola mostraba el rumbo, la distancia recorrida y, lo más importante, <b>hacia dónde y a qué distancia estaba el módulo lunar</b>, para volver siempre.</p><p>El palito de arriba es un reloj de sol: su sombra servía para alinear el giróscopo con el Sol.</p>');
+    const tH=new THREE.Group(); tH.position.set(0,.75,-.02); body.add(tH);
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(.02,.025,.22,10),M_DARK); post.position.y=.11; tH.add(post);
+    const tbar=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.16,10),M_DARK); tbar.rotation.z=Math.PI/2; tbar.position.y=.23; tH.add(tbar);
+    part(tH,'Mando en T','<p>El rover se manejaba con una sola palanca entre los dos asientos: adelante para acelerar, atrás para frenar y reversa, a los lados para girar. Así cualquiera de los dos podía manejar.</p><p>En el Apolo 17, Cernan llegó a 18 km/h bajando una pendiente: el récord de velocidad en la Luna.</p>');
+    // baterías, antenas y cámara de TV adelante
+    const bat=new THREE.Mesh(new THREE.BoxGeometry(.9,.18,.5),M_BAT); bat.position.set(0,.63,-1.05); body.add(bat);
+    part(bat,'Baterías','<p>Dos baterías de plata y zinc de 36 voltios, que no se recargaban. Alcanzaban para unos 92 km; en el Apolo 17 recorrieron 35,7 km en tres salidas. Las tapas blancas se abrían al final del día para que las baterías soltaran calor hacia el cielo negro.</p>');
+    const lcru=new THREE.Mesh(new THREE.BoxGeometry(.4,.28,.3),M_FOIL); lcru.position.set(0,.88,-1.3); body.add(lcru);
+    const hmast=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,1.1,8),M_FR); hmast.position.set(-.5,1.5,-1.4); body.add(hmast);
+    const dish=new THREE.Mesh(new THREE.SphereGeometry(.48,24,10,0,Math.PI*2,0,.85),new THREE.MeshStandardMaterial({side:THREE.DoubleSide,metalness:.85,roughness:.35,color:0xd7c48a,transparent:true,opacity:.85}));
+    dish.position.set(-.5,2.1,-1.4); dish.rotation.set(-2.3,0,.5); body.add(dish);
+    part(dish,'Antena de alta ganancia','<p>Un paraguas de malla dorada que se apuntaba a mano hacia la Tierra cada vez que paraban. Por ella mandaban la televisión en color: la gente en casa veía en vivo lo que pasaba en la Luna.</p>');
+    const lga=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.8,8),M_FR); lga.position.set(.2,1.3,-1.3); body.add(lga);
+    const tv=new THREE.Group(); tv.position.set(0,1.18,-1.38); body.add(tv); tv.add(new THREE.Mesh(new THREE.BoxGeometry(.18,.16,.28),M_WHITE)); const tvl=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,.1,14),M_DARK); tvl.rotation.x=Math.PI/2; tvl.position.z=-.18; tv.add(tvl);
+    part(tv,'Cámara de televisión','<p>Una cámara en color que en Houston manejaba Ed Fendell a distancia, girándola y haciendo zoom con 1,3 segundos de retraso. Desde aquí, a 145 m del módulo, filmó el despegue del Challenger el 14 de diciembre de 1972: la única vez que se vio un despegue desde la Luna con la cámara siguiéndolo hacia arriba.</p>');
+    // bandeja de herramientas atrás
+    const pal=new THREE.Mesh(new THREE.BoxGeometry(.9,.35,.4),M_FOILB); pal.position.set(0,.75,1.3); body.add(pal);
+    for(let i=0;i<4;i++){ const t=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.9,6),M_FR); t.position.set(-.3+i*.2,1.1,1.42); t.rotation.x=.3; body.add(t); }
+    const bags=new THREE.Mesh(new THREE.BoxGeometry(.35,.2,.15),Mt(0xe0dcd0,{roughness:.9})); bags.position.set(.28,.98,1.25); body.add(bags);
+    part(pal,'Herramientas y muestras','<p>Atrás iban las pinzas, el martillo, el rastrillo, el taladro y las bolsas de muestras. El Apolo 17 trajo 110 kg de rocas, la mayor cantidad de todas las misiones, incluido el famoso suelo naranja del cráter Shorty: gotitas de vidrio volcánico de hace 3 600 millones de años.</p>');
+    g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+    const s={g,body,wheels,x:6,z:-7,yaw:.6,v:0,steer:0,y:0,vy:0,air:false,odo:0,bat:100,pitch:0,roll:0,gPrev:0};
+    s.y=s.gPrev=hgt(s.x,s.z); g.position.set(s.x,s.y,s.z); g.rotation.order='YXZ'; g.rotation.y=s.yaw; return s; })();
+}
 
 /* ============ CAMINAR ============ */
-const P={x:7,z:7,y:0,vy:0,yaw:Math.atan2(7,7)+.0,pitch:.08,air:false,phase:0,side:1,eva:0,o2:100};
-P.yaw=Math.atan2(P.x,P.z); P.y=hgt(P.x,P.z);
+const P={x:MIS.start[0],z:MIS.start[1],y:0,vy:0,yaw:MIS.startYaw,pitch:.08,air:false,phase:0,side:1,eva:0,o2:100,drive:false};
+P.y=hgt(P.x,P.z);
 const keys=new Set(); let stick={x:0,y:0};
 addEventListener('keydown',e=>{ if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault(); keys.add(e.key.toLowerCase()); if(e.key===' ') jump(); });
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
@@ -286,9 +398,20 @@ const snd=(()=>{ let ctx=null, on=true, breath=null;
     breathe(t){ if(!breath||!on) return; const ph=(t%3.6)/3.6; breath.gain.value=(ph<.4?Math.sin(ph/.4*Math.PI):ph<.85?Math.sin((ph-.4)/.45*Math.PI)*.7:0)*.035; },
     step(k=1){ tone(70,.18,.25*k); nz(.12,.18*k,320); },   // el paso se oye por el traje, como un golpe sordo
     beep(){ tone(1500,.05,.05); },
+    motor(v){ if(!ctx) return; if(!snd.mot){ const o=ctx.createOscillator(); o.type='sawtooth'; const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=300; const g=ctx.createGain(); g.gain.value=0; o.connect(f).connect(g).connect(ctx.destination); o.start(); snd.mot={o,g}; }
+      snd.mot.o.frequency.value=40+Math.abs(v)*30; snd.mot.g.gain.value=on?Math.min(.05,Math.abs(v)*.014):0; },
     radio(){ tone(2525,.25,.05); nz(1.6,.06,1800,.3,'bandpass'); tone(2475,.25,.05,1.95); } };
 })();
-const LINES=['Houston, aquí Tranquility Base. El Eagle ha alunizado.','Es un pequeño paso para un hombre, un gran salto para la humanidad.','Magnífica desolación.','Buzz, aquí Houston: les queda media hora de caminata.','Neil, ¿puedes acercarte a la bandera para la foto?','Tranquility, aquí Houston: el presidente quiere hablar con ustedes.'];
+if(A17){ document.title='Paseo lunar · Apolo 17'; $('kick').textContent='Apolo 17 · 12 de diciembre de 1972'; $('ttl').textContent='Valle Taurus‑Littrow'; $('lLM').textContent='Al Challenger';
+  $('bDrive').hidden=false;
+  document.querySelector('#intro .box').innerHTML=`<div class="kick">Apolo 17 · Valle Taurus‑Littrow · 20,19° N 30,77° E</div><h2>La última vez en la Luna</h2>
+  <p>Diciembre de 1972. Eres Gene Cernan, comandante del Apolo 17, junto a Harrison Schmitt, el único geólogo que ha pisado la Luna. Están en un valle más hondo que el Gran Cañón, rodeado de montañas de más de 2 km.</p>
+  <ul><li>El rover lunar está estacionado junto al módulo Challenger. Acércate y pulsa <b>E</b> (o el botón) para subirte.</li>
+  <li>Al manejar: <b>W/S</b> o la palanca para acelerar y frenar, <b>A/D</b> para girar, <b>Mayús</b> para ir más rápido, <b>Espacio</b> para frenar, <b>C</b> para ver el rover desde afuera.</li>
+  <li>Con la sexta parte de gravedad, si pasas una loma rápido el rover salta, y el polvo de las ruedas vuela en arcos perfectos.</li>
+  <li>Toca cada parte del rover, la bandera, la placa, las últimas huellas y la estación de experimentos.</li></ul>
+  <button id="go">Bajar a la superficie</button>`; }
+const LINES=A17?['¡Es naranja! (Schmitt, al encontrar suelo naranja en el cráter Shorty)','«Estaba paseando por la Luna un día…» (Cernan y Schmitt cantando mientras manejaban el rover)','Houston, el guardabarros de mapas quedó como nuevo.','Dejamos la Luna como llegamos y, si Dios quiere, como volveremos: con paz y esperanza para toda la humanidad.','Bob, esto es lo más bonito que he visto: ¡mira esas montañas!']:['Houston, aquí Tranquility Base. El Eagle ha alunizado.','Es un pequeño paso para un hombre, un gran salto para la humanidad.','Magnífica desolación.','Buzz, aquí Houston: les queda media hora de caminata.','Neil, ¿puedes acercarte a la bandera para la foto?','Tranquility, aquí Houston: el presidente quiere hablar con ustedes.'];
 let line=0;
 $('bRadio').onclick=()=>{ snd.init(); snd.radio(); $('cT').textContent='Radio'; $('cB').innerHTML=`<p>«${LINES[line++%LINES.length]}»</p><p class="src">Los dos pitidos al empezar y al terminar son los tonos Quindar: avisaban a las antenas de la NASA que se abría o cerraba el micrófono. Llegaban a Houston 1,3 segundos después, lo que tarda la luz en recorrer 384 000 km.</p>`; $('card').hidden=false; };
 $('bSound').onclick=e=>{ const on=e.target.getAttribute('aria-pressed')!=='true'; e.target.setAttribute('aria-pressed',on); snd.init(); snd.set(on); };
@@ -300,8 +423,47 @@ dgeo.setAttribute('position',new THREE.BufferAttribute(dpos,3));
 const dust=new THREE.Points(dgeo,new THREE.PointsMaterial({color:0x8d8a84,size:.025,sizeAttenuation:true})); dust.frustumCulled=false; scene.add(dust);
 let di=0; function kick(x,z,yaw,n){ for(let i=0;i<n;i++){ const k=di; di=(di+1)%DN; const a=yaw+(Math.random()-.5)*1.4, sp=.6+Math.random()*1.6, up=.4+Math.random()*1.4;
   dpos[k*3]=x;dpos[k*3+1]=hgt(x,z)+.03;dpos[k*3+2]=z; dvel[k*3]=-Math.sin(a)*sp; dvel[k*3+1]=up; dvel[k*3+2]=-Math.cos(a)*sp; dlife[k]=4; } }
+function kick2(x,y,z,vx,vy,vz,n){ for(let i=0;i<n;i++){ const k=di; di=(di+1)%DN; dpos[k*3]=x;dpos[k*3+1]=y;dpos[k*3+2]=z; dvel[k*3]=vx*(.6+Math.random()*.6)+(Math.random()-.5)*.6; dvel[k*3+1]=vy*(.5+Math.random()); dvel[k*3+2]=vz*(.6+Math.random()*.6)+(Math.random()-.5)*.6; dlife[k]=5; } }
 function stepDust(dt){ for(let k=0;k<DN;k++){ if(dlife[k]<=0) continue; dlife[k]-=dt; dvel[k*3+1]-=G*dt; dpos[k*3]+=dvel[k*3]*dt; dpos[k*3+1]+=dvel[k*3+1]*dt; dpos[k*3+2]+=dvel[k*3+2]*dt;
   const g=hgt(dpos[k*3],dpos[k*3+2]); if(dpos[k*3+1]<g){ dpos[k*3+1]=-999; dlife[k]=0; } } dgeo.attributes.position.needsUpdate=true; }
+
+/* ============ MANEJAR EL ROVER ============ */
+let chase=false;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function enterLRV(){ if(!lrv) return; if(P.drive){ exitLRV(); return; } if(Math.hypot(P.x-lrv.x,P.z-lrv.z)>5){ tap2({title:'El rover está lejos',html:'<p>Acércate a menos de 5 m del rover para subirte.</p>'}); return; }
+  P.drive=true; P.yaw=0; P.pitch=-.12; $('bDrive').textContent='Bajar del rover (E)'; $('bCam').hidden=false; document.querySelectorAll('.rv').forEach(e=>e.hidden=false); snd.step(1); }
+function exitLRV(){ P.drive=false; const L=lrv; P.x=L.x-Math.cos(L.yaw)*1.6; P.z=L.z+Math.sin(L.yaw)*1.6; P.y=hgt(P.x,P.z); P.yaw=L.yaw; P.pitch=0; L.v=0; snd.motor(0);
+  $('bDrive').textContent='Subir al rover (E)'; $('bCam').hidden=true; document.querySelectorAll('.rv').forEach(e=>e.hidden=true); }
+$('bDrive').onclick=enterLRV; $('bCam').onclick=e=>{ chase=!chase; e.target.setAttribute('aria-pressed',chase); };
+addEventListener('keydown',e=>{ const k=e.key.toLowerCase(); if(k==='e'&&A17) enterLRV(); if(k==='c'&&P.drive){ chase=!chase; $('bCam').setAttribute('aria-pressed',chase); } });
+const fwd=new THREE.Vector3(), rgt=new THREE.Vector3();
+function driveStep(dt,fx,fz){
+  const L=lrv, thr=-fz, st=-fx, vmax=keys.has('shift')?5:3.6;   // 13 km/h normal; Cernan llegó a 18 km/h (5 m/s) cuesta abajo
+  if(Math.abs(thr)>.05) L.v+=thr*(Math.sign(thr)===Math.sign(L.v)||Math.abs(L.v)<.1?1.1:2.5)*dt; else L.v*=Math.exp(-dt*.45);
+  if(keys.has(' ')) L.v*=Math.exp(-dt*3);
+  if(L.bat<=0) L.v*=Math.exp(-dt*2);
+  L.v=clamp(L.v,-1.4,vmax); if(L.air) L.v*=1;   // en el aire no hay tracción
+  L.steer+=(st*.42-L.steer)*Math.min(1,dt*4);
+  L.yaw+=L.v*Math.tan(L.steer)/1.145*dt;   // dirección en las cuatro ruedas: el centro de giro queda a la altura del medio del rover
+  let nx=L.x-Math.sin(L.yaw)*L.v*dt, nz=L.z-Math.cos(L.yaw)*L.v*dt;
+  if(Math.hypot(nx,nz)<5.2){ L.v*=-.25; snd.step(1); nx=L.x; nz=L.z; }   // choque suave con el módulo lunar
+  if(Math.abs(nx)>SIZE/2-30||Math.abs(nz)>SIZE/2-30){ L.v=0; nx=L.x; nz=L.z; tap2({title:'Fin del mapa',html:'<p>Hasta aquí llega el terreno detallado. En la misión real, Cernan y Schmitt manejaron hasta 7,6 km del Challenger, al pie de los macizos.</p>'}); }
+  L.odo+=Math.hypot(nx-L.x,nz-L.z); L.bat=Math.max(0,100-L.odo/92000*100); L.x=nx; L.z=nz;
+  fwd.set(-Math.sin(L.yaw),0,-Math.cos(L.yaw)); rgt.set(Math.cos(L.yaw),0,-Math.sin(L.yaw));
+  const h=(a,b)=>hgt(L.x+fwd.x*a+rgt.x*b,L.z+fwd.z*a+rgt.z*b);
+  const hfl=h(1.145,-.915), hfr=h(1.145,.915), hbl=h(-1.145,-.915), hbr=h(-1.145,.915);
+  const ground=(hfl+hfr+hbl+hbr)/4, pt=Math.atan2((hfl+hfr)/2-(hbl+hbr)/2,2.29), rl=Math.atan2((hfr+hbr)/2-(hfl+hbl)/2,1.83);
+  if(L.air){ L.vy-=G*dt; L.y+=L.vy*dt; if(L.y<=ground){ const hit=L.vy-(ground-L.gPrev)/dt; L.y=ground; L.air=false; L.vy=0; if(hit<-.6){ snd.step(Math.min(1,-hit/2)); for(const s2 of[-1,1]) kick2(L.x+rgt.x*s2*.9,ground+.05,L.z+rgt.z*s2*.9,0,1.2,0,25); } } }
+  else { const vyG=(ground-L.gPrev)/Math.max(dt,1e-3); if(vyG<L.vy-G*dt*1.5&&Math.abs(L.v)>1){ L.air=true; L.vy-=G*dt; L.y+=L.vy*dt; } else { L.vy=vyG; L.y=ground; } }
+  L.gPrev=ground;
+  const k=Math.min(1,dt*(L.air?1.5:8)); L.pitch+=(pt-L.pitch)*k; L.roll+=(rl-L.roll)*k;
+  L.g.position.set(L.x,L.y,L.z); L.g.rotation.order='YXZ'; L.g.rotation.set(L.pitch,L.yaw,L.roll);
+  for(const w of L.wheels){ w.spin.rotation.x-=L.v/.41*dt; w.steer.rotation.y=w.sz<0?L.steer:-L.steer; }
+  // chorros de polvo de las cuatro ruedas: sin aire suben en arco y caen de golpe, sin nube
+  if(!L.air&&Math.abs(L.v)>.4){ const n=Math.min(6,Math.ceil(Math.abs(L.v)*dt*70)); for(const w of L.wheels){ const wx=L.x+fwd.x*w.sz*-1.145+rgt.x*w.sx*.915, wz=L.z+fwd.z*w.sz*-1.145+rgt.z*w.sx*.915;
+    kick2(wx,hgt(wx,wz)+.05,wz,-fwd.x*L.v*.9,.8+Math.abs(L.v)*(w.sx>0&&w.sz>0?.9:.45),-fwd.z*L.v*.9,n); } }
+  snd.motor(L.v);
+}
 
 /* ============ BUCLE ============ */
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); }
@@ -314,6 +476,8 @@ function frame(now){
   // movimiento: el «paso de canguro» que usaron todos los astronautas del Apolo
   let fx=0,fz=0; if(keys.has('w')||keys.has('arrowup')) fz-=1; if(keys.has('s')||keys.has('arrowdown')) fz+=1; if(keys.has('a')||keys.has('arrowleft')) fx-=1; if(keys.has('d')||keys.has('arrowright')) fx+=1;
   fx+=stick.x; fz+=stick.y; const mvL=Math.min(1,Math.hypot(fx,fz)), run=keys.has('shift')?1.6:1;
+  if(P.drive) driveStep(dt,fx,fz);
+  else {
   if(mvL>.05){ const sp=1.15*run*mvL, ang=P.yaw+Math.atan2(-fx,-fz);
     const tx=P.x+(-Math.sin(ang))*sp*dt, tz=P.z+(-Math.cos(ang))*sp*dt;
     if(Math.hypot(tx,tz)>2.6||Math.hypot(P.x,P.z)<=2.6) { if(Math.abs(tx)<SIZE/2-20&&Math.abs(tz)<SIZE/2-20){ P.x=tx; P.z=tz; } }   // no atravesar el módulo lunar
@@ -321,20 +485,26 @@ function frame(now){
   }
   if(P.air){ P.vy-=G*dt; P.y+=P.vy*dt; const g=hgt(P.x,P.z); if(P.y<=g){ P.y=g; if(P.vy<-.3){ footprint(P.x,P.z,P.yaw,P.side); P.side*=-1; footprint(P.x,P.z,P.yaw,P.side); snd.step(Math.min(1,-P.vy/2)); kick(P.x,P.z,P.yaw,mvL>.05?14:24); } P.vy=0; P.air=false; } }
   else P.y=hgt(P.x,P.z);
+  }
   if(look){ look.t=Math.min(1,look.t+dt*1.2); const k=look.t*look.t*(3-2*look.t); let dy=((look.yaw-look.y0+Math.PI*3)%(Math.PI*2))-Math.PI; P.yaw=look.y0+dy*k; P.pitch=look.p0+(look.pitch-look.p0)*k; if(look.fov){ if(look.f0===undefined) look.f0=FOV; FOV=look.f0+(look.fov-look.f0)*k; } if(look.t>=1) look=null; }
   if(Math.abs(cam.fov-FOV)>.01){ cam.fov=FOV; cam.updateProjectionMatrix(); }
-  cam.position.set(P.x,P.y+EYE,P.z); cam.rotation.set(P.pitch,P.yaw,0);
+  if(P.drive){ const L=lrv; L.g.updateMatrixWorld();
+    if(chase){ const yaw=L.yaw+P.yaw; cam.position.set(L.x+Math.sin(yaw)*6.5,L.y+2.6-P.pitch*3,L.z+Math.cos(yaw)*6.5); cam.lookAt(L.x,L.y+.9,L.z); }
+    else { cam.position.set(-.32,1.62,.28).applyMatrix4(L.g.matrixWorld); cam.quaternion.copy(L.g.quaternion).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(P.pitch,P.yaw,0,'YXZ'))); }
+    P.x=L.x; P.z=L.z; P.y=L.y; }
+  else { cam.position.set(P.x,P.y+EYE,P.z); cam.rotation.set(P.pitch,P.yaw,0); }
+  if(lrv&&!P.drive){ const near=Math.hypot(P.x-lrv.x,P.z-lrv.z)<5; $('bDrive').style.outline=near?'2px solid var(--acc)':''; }
   // sol y sombras siguen al astronauta
   sun.position.set(P.x,P.y,P.z).addScaledVector(sunDir,150); sun.target.position.set(P.x,P.y,P.z); sun.target.updateMatrixWorld();
-  sunDisc.position.copy(cam.position).addScaledVector(sunDir,4500);
-  earth.position.copy(cam.position).addScaledVector(EARTH_DIR,4600); earth.rotation.y+=dt*.002;
+  sunDisc.position.copy(cam.position).addScaledVector(sunDir,SKY*.98);
+  earth.position.copy(cam.position).addScaledVector(EARTH_DIR,SKY); earth.rotation.y+=dt*.002;
   stepDust(dt); snd.breathe(T);
   if($('intro').hidden){ P.eva+=dt; P.o2=Math.max(0,100-P.eva/(4*3600)*100); }   // la mochila PLSS daba unas 4 horas de oxígeno
-  if(Math.floor(T*4)!==Math.floor((T-dt)*4)){ $('dLM').textContent=Math.hypot(P.x,P.z).toFixed(1)+' m'; $('dEVA').textContent=fmt(P.eva); $('dO2').textContent=P.o2.toFixed(1)+' %'; $('dFP').textContent=fpTot; }
+  if(Math.floor(T*4)!==Math.floor((T-dt)*4)){ $('dLM').textContent=Math.hypot(P.x,P.z).toFixed(1)+' m'; $('dEVA').textContent=fmt(P.eva); $('dO2').textContent=P.o2.toFixed(1)+' %'; $('dFP').textContent=fpTot; if(P.drive){ const L=lrv; $('dV').textContent=(Math.abs(L.v)*3.6).toFixed(1).replace('.',',')+' km/h'; $('dH').textContent=Math.round(((-L.yaw*180/Math.PI)%360+360)%360)+'°'; $('dOdo').textContent=Math.round(L.odo)+' m'; $('dBat').textContent=L.bat.toFixed(2).replace('.',',')+' %'; } }
   renderer.render(scene,cam);
 }
 requestAnimationFrame(frame);
-window.__paseo={P,things,tap:(name)=>{const t=things.find(t=>t.title===name); if(t){$('cT').textContent=t.title;$('cB').innerHTML=t.html;$('card').hidden=false;} return !!t;}};
+window.__paseo={P,lrv,enterLRV,keys,things,tap:(name)=>{const t=things.find(t=>t.title===name); if(t){$('cT').textContent=t.title;$('cB').innerHTML=t.html;$('card').hidden=false;} return !!t;}};
 </script>
 </body>
 </html>

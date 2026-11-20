@@ -94,19 +94,19 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 <canvas id="gl" tabindex="0" aria-label="Globo 3D de la Luna con los sitios de alunizaje"></canvas>
 <div class="top">
   <a class="back panel" href="../">← Simulaciones</a>
-  <div class="title panel"><div class="kick">Mapa interactivo · cara visible</div><h1>Misiones en la Luna</h1></div>
+  <div class="title panel"><div class="kick">Mapa interactivo · toda la Luna</div><h1>Misiones en la Luna</h1></div>
   <div class="legend panel">
     <span><i class="dot" style="background:#6fd3ff"></i>Con astronautas</span>
     <span><i class="dot" style="background:var(--end)"></i>Robots que alunizaron</span>
     <span><i class="dot" style="background:var(--bad)"></i>Impactos y choques</span>
   </div>
   <div class="legend panel" id="relief" title="Relieve medido por el altímetro láser LOLA de la sonda LRO (NASA)"><span>Relieve</span><button data-k="1">real</button><button data-k="4">×4</button><button data-k="10">×10</button></div>
-  <a class="back panel walk" href="paseo/">🚶 Caminar en la Luna</a>
+  <button class="back panel" id="bFar">🌑 Cara oculta</button><a class="back panel walk" href="paseo/">🚶 Caminar</a>
 </div>
 
 <aside class="cat panel" aria-label="Catálogo de misiones">
   <h2>Todo lo que llegó a la Luna</h2>
-  <p class="sub">Cara visible, desde 1959, en 3 grupos y de 3 en 3 por fecha. Toca una misión para verla en el mapa. Abajo, los mares.</p>
+  <p class="sub">Toda la Luna, desde 1959, en 3 grupos y de 3 en 3 por fecha. Toca una misión para verla en el mapa. Abajo, los mares.</p>
   <a class="go" href="apollo/" style="margin:0 0 8px">Misiones Apollo completas: del 8 al 17 →</a>
   <div class="scroll" id="cat"></div>
 </aside>
@@ -162,14 +162,17 @@ const SITES=[
  S('beresheet','Beresheet','hit',32.59,19.35,'11 abr 2019','Mar de la Serenidad','Israel (SpaceIL) · Falcon 9 desde SLC‑40, Cabo Cañaveral'),
  S('vikram2','Vikram (Chandrayaan‑2)','hit',-70.88,22.78,'6 sep 2019','Cerca del polo sur','India · GSLV Mk III desde Sriharikota'),
  S('hakuto','Hakuto‑R M1','hit',47.58,44.09,'25 abr 2023','Cráter Atlas','ispace (Japón) · Falcon 9 desde SLC‑40, Cabo Cañaveral'),
+ S('ce4','Chang\'e 4 + Yutu‑2','robot',-45.444,177.599,'3 ene 2019','Cráter Von Kármán, cara oculta','China · Larga Marcha 3B desde Xichang',{far:true}),
+ S('ce6','Chang\'e 6','robot',-41.638,-153.985,'1 jun 2024','Cuenca Apolo, cara oculta','China · Larga Marcha 5 desde Wenchang',{far:true}),
+ S('ranger4','Ranger 4','hit',-15.5,-130.7,'26 abr 1962','Cara oculta (aprox.)','NASA · Atlas‑Agena desde Cabo Cañaveral',{far:true}),
  S('luna25','Luna 25','hit',-57.86,61.36,'19 ago 2023','Cerca del cráter Pontécoulant','Rusia · Soyuz desde Vostochni'),
 ];
 const GROUP={crew:[0x6fd3ff,'Con astronautas'],robot:[0xffcf6b,'Alunizaje robótico'],hit:[0xff7a6b,'Impacto o choque']};
-const NOTE={a11:'Primer alunizaje tripulado: Neil Armstrong y Buzz Aldrin.',a12:'Alunizaje de precisión a 180 m de la sonda Surveyor 3; trajeron piezas de ella.',a14:'Alan Shepard golpeó dos pelotas de golf.',a15:'Primer vehículo lunar (LRV) y la "roca del Génesis".',a16:'Única misión a las tierras altas del centro.',a17:'La última vez que hubo personas en la Luna.',
+const NOTE={ce4:'Primer alunizaje en la cara oculta; su rover Yutu‑2 sigue funcionando y una semilla de algodón brotó en un pequeño invernadero.',ce6:'Trajo 1.935 g de rocas: las primeras muestras de la cara oculta.',ranger4:'Primera nave de EE. UU. que llegó a la Luna, pero su computadora falló y chocó a ciegas en la cara oculta.',a11:'Primer alunizaje tripulado: Neil Armstrong y Buzz Aldrin.',a12:'Alunizaje de precisión a 180 m de la sonda Surveyor 3; trajeron piezas de ella.',a14:'Alan Shepard golpeó dos pelotas de golf.',a15:'Primer vehículo lunar (LRV) y la "roca del Génesis".',a16:'Única misión a las tierras altas del centro.',a17:'La última vez que hubo personas en la Luna.',
  luna9:'Primer alunizaje suave y primeras fotos desde el suelo.',surv1:'Primer alunizaje suave de EE. UU.',luna13:'Midió la dureza del suelo con un brazo.',surv3:'Su cámara la llevaron a la Tierra los astronautas del Apollo 12.',surv5:'Analizó el suelo: basalto, como la lava de la Tierra.',surv6:'Primer "salto": encendió motores y se movió 2,5 m.',surv7:'Única en las tierras altas brillantes junto a Tycho.',
  luna16:'Primera muestra traída por un robot: 101 g.',luna17:'Primer rover en otro mundo: recorrió 10,5 km.',luna20:'Trajo 55 g de las tierras altas.',luna21:'Recorrió 39 km: récord hasta 2014.',luna24:'Trajo 170 g, con una perforación de 2 m.',ce3:'Primer alunizaje en 37 años; Yutu recorrió 114 m.',ce5:'Trajo 1,73 kg de roca volcánica joven.',ch3:'India llega cerca del polo sur; el rover Pragyan recorrió 100 m.',slim:'Aterrizó a menos de 100 m del objetivo, pero quedó de cabeza.',im1:'Primera nave privada en alunizar; quedó inclinada.',bg1:'Primer alunizaje privado totalmente exitoso; funcionó 14 días.',im2:'Quedó de costado dentro de un cráter.',
  luna2:'Primer objeto humano que tocó otro mundo.',ranger7:'Envió 4.300 fotos antes de chocar; ese mar se bautizó "Conocido".',ranger8:'Fotografió la zona del futuro Apollo 11.',ranger9:'Sus fotos se transmitieron en vivo por TV.',lcross:'Chocó a propósito y encontró hielo de agua en la sombra eterna.',beresheet:'Primera nave privada en llegar; falló un giroscopio.',vikram2:'Perdió el control a 2 km de altura.',hakuto:'Se quedó sin combustible por un error de altura.',luna25:'Primera misión rusa en 47 años; falló una maniobra.'};
-const MARIA=[['Océano de las Tormentas',18,-57,'El más grande: unos 4 millones de km². Aquí alunizaron Luna 9, Surveyor 1 y 3 y el Apollo 12.'],['Mar de las Lluvias (Imbrium)',33,-16,'Una cuenca de impacto de 1.100 km, formada hace unos 3.900 millones de años y rellenada después por lava.'],['Mar de la Serenidad',28,17,'Casi redondo, de unos 700 km. Junto a su borde aterrizó el Apollo 17.'],['Mar de la Tranquilidad',8.5,31,'Lava rica en titanio, por eso es azulado en fotos con color. Aquí llegó el Apollo 11.'],['Mar de las Crisis',17,59,'Aislado y de 550 km; se ve como un óvalo en el borde. Aquí trajo muestras Luna 24.'],['Mar de la Fecundidad',-8,51,'Aquí Luna 16 tomó la primera muestra robótica.'],['Mar del Néctar',-15,35,'Una de las cuencas más antiguas de la cara visible.'],['Mar de las Nubes',-21,-17,'Junto a él está la Rupes Recta, un acantilado recto de 110 km.'],['Mar de los Humores',-24,-39,'Cuenca de 400 km con grietas en sus bordes.'],['Mar del Frío',56,0,'Una franja larga al norte.'],['Mar de los Vapores',13,4,'Pequeño mar central junto a los montes Apeninos.'],['Mar Conocido',-10,-23,'Bautizado así en 1964 porque Ranger 7 lo fotografió de cerca.'],['Cráter Tycho',-43,-11,'Joven (unos 108 millones de años): sus rayos brillantes cruzan media Luna.'],['Cráter Copérnico',9.6,-20,'De 93 km, con montañas en el centro.']];
+const MARIA=[['Cuenca Polo Sur‑Aitken (cara oculta)',-53,-169,'El cráter más grande y viejo de la Luna: 2.500 km de ancho y 8 km de hondo. Chang\'e 4 y 6 alunizaron dentro de ella.'],['Mar de Moscú (cara oculta)',27.3,147.9,'Uno de los poquísimos mares de la cara oculta. Lo nombró la URSS al ver las fotos de Luna 3 en 1959.'],['Cráter Tsiolkovski (cara oculta)',-20.4,129.1,'Cráter de 185 km con el fondo de lava oscura y un pico central. Lleva el nombre del padre ruso de la astronáutica.'],['Océano de las Tormentas',18,-57,'El más grande: unos 4 millones de km². Aquí alunizaron Luna 9, Surveyor 1 y 3 y el Apollo 12.'],['Mar de las Lluvias (Imbrium)',33,-16,'Una cuenca de impacto de 1.100 km, formada hace unos 3.900 millones de años y rellenada después por lava.'],['Mar de la Serenidad',28,17,'Casi redondo, de unos 700 km. Junto a su borde aterrizó el Apollo 17.'],['Mar de la Tranquilidad',8.5,31,'Lava rica en titanio, por eso es azulado en fotos con color. Aquí llegó el Apollo 11.'],['Mar de las Crisis',17,59,'Aislado y de 550 km; se ve como un óvalo en el borde. Aquí trajo muestras Luna 24.'],['Mar de la Fecundidad',-8,51,'Aquí Luna 16 tomó la primera muestra robótica.'],['Mar del Néctar',-15,35,'Una de las cuencas más antiguas de la cara visible.'],['Mar de las Nubes',-21,-17,'Junto a él está la Rupes Recta, un acantilado recto de 110 km.'],['Mar de los Humores',-24,-39,'Cuenca de 400 km con grietas en sus bordes.'],['Mar del Frío',56,0,'Una franja larga al norte.'],['Mar de los Vapores',13,4,'Pequeño mar central junto a los montes Apeninos.'],['Mar Conocido',-10,-23,'Bautizado así en 1964 porque Ranger 7 lo fotografió de cerca.'],['Cráter Tycho',-43,-11,'Joven (unos 108 millones de años): sus rayos brillantes cruzan media Luna.'],['Cráter Copérnico',9.6,-20,'De 93 km, con montañas en el centro.']];
 
 /* ============ FICHAS COMPLETAS ============ */
 const LMHOW=`<p>El <b>Módulo Lunar (LM)</b> fue la primera nave hecha solo para volar en el vacío: no tenía forma aerodinámica y sus paredes eran tan delgadas como unas hojas de aluminio.</p><ul>
@@ -287,6 +290,32 @@ canvas.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
 canvas.addEventListener('pointerup',e=>{ if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5) return;
   ray.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1),cam); const h=ray.intersectObjects(markers)[0]; if(h) select(h.object.userData.s); });
 
+/* ---- cara oculta: por qué nunca la vemos desde la Tierra ---- */
+let farOn=false, syncRAF=0;
+$('bFar').onclick=()=>{ farOn=!farOn; fly={from:cam.position.clone(),to:ll(farOn?-20:5,farOn?180:0,3.6),t:0}; $('bFar').textContent=farOn?'🌕 Cara visible':'🌑 Cara oculta'; if(farOn) openFar(); };
+function openFar(){
+  stopAnim(); sel=null; $('card').hidden=false; $('cst').textContent='La otra mitad de la Luna'; $('cst').style.color='#9fb4d6'; $('cname').textContent='La cara oculta';
+  $('tabs').innerHTML=''; $('robo').hidden=true; $('anim').hidden=true;
+  $('cbody').innerHTML=`<p>Desde la Tierra siempre vemos la misma cara de la Luna. No es casualidad: la Luna tarda lo mismo en dar una vuelta sobre sí misma que en dar una vuelta alrededor de la Tierra (27,3 días). Se llama <b>rotación sincrónica</b>: la gravedad de la Tierra la frenó hace miles de millones de años.</p>
+  <canvas id="sync" width="340" height="220" style="width:100%;max-width:340px;display:block;margin:6px auto;background:#05060b;border-radius:8px"></canvas>
+  <div class="anim" style="display:flex;gap:6px;justify-content:center"><button id="sOn" aria-pressed="true">Como es (sincrónica)</button><button id="sOff" aria-pressed="false">Si no girara</button></div>
+  <p>La cara oculta <b>no es oscura</b>: recibe tanto Sol como la visible; cuando aquí hay Luna nueva, allá es pleno día. Casi no tiene mares porque su corteza es más gruesa y la lava no llegó a la superficie.</p>
+  <p>Nadie la vio hasta 1959, cuando la sonda soviética Luna 3 le tomó fotos. Para alunizar allí, China tuvo que poner primero un satélite de enlace (Queqiao) detrás de la Luna, porque desde la cara oculta no se puede hablar con la Tierra.</p>
+  <p style="font-size:11.5px;color:var(--faint)">Por un pequeño bamboleo llamado libración, desde la Tierra se llega a ver el 59 % de la superficie, no solo la mitad.</p>`;
+  let spin=true; const c=$('sync').getContext('2d'); let t=0;
+  const btn=(on)=>{ spin=on; $('sOn').setAttribute('aria-pressed',on); $('sOff').setAttribute('aria-pressed',!on); }; $('sOn').onclick=()=>btn(true); $('sOff').onclick=()=>btn(false);
+  cancelAnimationFrame(syncRAF);
+  const draw=()=>{ if($('card').hidden||!$('sync')){ return; } syncRAF=requestAnimationFrame(draw); t+=.012; c.clearRect(0,0,340,220);
+    const ex=170,ey=110,R=80,a=t, mx=ex+Math.cos(a)*R, my=ey+Math.sin(a)*R*.85;
+    c.strokeStyle='#232a3d'; c.setLineDash([4,5]); c.beginPath(); c.ellipse(ex,ey,R,R*.85,0,0,7); c.stroke(); c.setLineDash([]);
+    c.fillStyle='#2f6fc9'; c.beginPath(); c.arc(ex,ey,22,0,7); c.fill(); c.fillStyle='#7ee2a8'; c.beginPath(); c.arc(ex-6,ey-4,8,0,7); c.fill();
+    const face=spin?Math.atan2(ey-my,ex-mx):Math.PI;   // hacia dónde mira la «cara visible» de la Luna
+    c.fillStyle='#b9bcc4'; c.beginPath(); c.arc(mx,my,13,0,7); c.fill();
+    c.fillStyle='#ffcf6b'; c.beginPath(); c.arc(mx+Math.cos(face)*8,my+Math.sin(face)*8,4.5,0,7); c.fill();
+    c.strokeStyle='rgba(255,207,107,.5)'; c.beginPath(); c.moveTo(mx,my); c.lineTo(mx+Math.cos(face)*26,my+Math.sin(face)*26); c.stroke();
+    c.font='11px IBM Plex Mono, monospace'; c.fillStyle='#9a9fb3'; c.fillText('Tierra',ex-18,ey+38); c.fillText('● cara visible',8,210);
+    c.textAlign='right'; c.fillStyle=spin?'#7ee2a8':'#ff7a6b'; c.fillText(spin?'Siempre mira a la Tierra':'Veríamos todos sus lados',332,210); c.textAlign='left'; };
+  draw(); }
 /* ---- catálogo ---- */
 { const box=$('cat');
   CAT.forEach(([g,t,d],gi)=>{ const list=SITES.filter(s=>s.g===g).sort((a,b)=>yr(a)-yr(b)); const el=document.createElement('details'); el.className='g'; el.open=gi===0;
@@ -316,6 +345,7 @@ function openCard(s){
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
     <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>
     ${s.id==='a11'?`<a class="go" href="paseo/">🚶 Caminar por Tranquility Base en primera persona →</a>`:''}
+    ${s.id==='a17'?`<a class="go" href="paseo/?m=a17">🚙 Manejar el rover lunar por el valle Taurus‑Littrow →</a>`:''}
     ${REVS[s.id]?`<a class="go alt" href="apollo/#${s.id}">Ver la misión completa: Saturn V, viaje, ${REVS[s.id]} vueltas y regreso →</a>`:''}
     <p style="font-size:11.5px;color:var(--faint)">Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.</p>`;
   $('cbody').innerHTML=h; $('cbody').scrollTop=0;
