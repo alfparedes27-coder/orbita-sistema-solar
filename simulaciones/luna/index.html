@@ -31,6 +31,9 @@ body{font-family:var(--f-body);font-size:14px}
 button{font:inherit;color:inherit;cursor:pointer}
 .top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
 .top>*{pointer-events:auto}
+#relief{display:flex;align-items:center;gap:6px} #relief button{background:transparent;border:1px solid var(--line2,#33405c);color:inherit;border-radius:6px;padding:3px 8px;font:inherit;font-size:12px;cursor:pointer}
+#relief button[aria-pressed=true]{background:#6fd3ff;border-color:#6fd3ff;color:#04121c}
+.walk{background:#6fd3ff!important;color:#04121c!important;font-weight:600}
 .back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px}
 .title{padding:8px 12px}
 .kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--mars)}
@@ -97,6 +100,8 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
     <span><i class="dot" style="background:var(--end)"></i>Robots que alunizaron</span>
     <span><i class="dot" style="background:var(--bad)"></i>Impactos y choques</span>
   </div>
+  <div class="legend panel" id="relief" title="Relieve medido por el altímetro láser LOLA de la sonda LRO (NASA)"><span>Relieve</span><button data-k="1">real</button><button data-k="4">×4</button><button data-k="10">×10</button></div>
+  <a class="back panel walk" href="paseo/">🚶 Caminar en la Luna</a>
 </div>
 
 <aside class="cat panel" aria-label="Catálogo de misiones">
@@ -241,7 +246,27 @@ const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace;
 const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(40,1,0.01,1000);
 const tex=new THREE.TextureLoader().load('../tex/luna.webp'); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
-const moon=new THREE.Mesh(new THREE.SphereGeometry(1,128,96),new THREE.MeshStandardMaterial({map:tex,roughness:1,bumpMap:tex,bumpScale:3})); scene.add(moon);
+// Relieve real: mapa de alturas de la sonda LRO (altímetro láser LOLA), del kit lunar de NASA SVS (dominio público).
+// 8 bits de 0 a 255 cubren unos 19,9 km, desde el fondo de la cuenca Polo Sur‑Aitken (−9,1 km) hasta los picos más altos (+10,8 km).
+const RANGE=19.9/1737.4, REL={k:4};
+const moonMat=new THREE.MeshStandardMaterial({map:tex,roughness:1,displacementScale:0,displacementBias:0});
+const moon=new THREE.Mesh(new THREE.SphereGeometry(1,512,256),moonMat); scene.add(moon);
+const H={data:null,w:0,h:0};
+function hAt(lat,lon){ if(!H.data) return 0; const x=Math.floor(((lon+180)/360)*H.w)%H.w, y=Math.min(H.h-1,Math.floor((90-lat)/180*H.h)); return H.data[(y*H.w+x)*4]/255; }
+new THREE.ImageLoader().load('../tex/luna-relieve.jpg',im=>{
+  const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; const x=c.getContext('2d'); x.drawImage(im,0,0); const id=x.getImageData(0,0,c.width,c.height); H.data=id.data; H.w=c.width; H.h=c.height;
+  const disp=new THREE.CanvasTexture(c); disp.colorSpace=THREE.NoColorSpace; moonMat.displacementMap=disp;
+  // mapa de normales calculado de las alturas: da las sombras de cada cráter y cordillera aunque el relieve sea pequeño
+  const n=document.createElement('canvas'); n.width=c.width; n.height=c.height; const nx=n.getContext('2d'), nd=nx.createImageData(c.width,c.height), W=c.width, Hh=c.height, d=id.data, S=6;
+  const g=(i,j)=>d[(((j+Hh)%Hh)*W+((i+W)%W))*4]/255;
+  for(let j=0;j<Hh;j++){ const cl=Math.max(.15,Math.cos((j/Hh-.5)*Math.PI)); for(let i=0;i<W;i++){ const dx=(g(i+1,j)-g(i-1,j))*S/cl, dy=(g(i,j+1)-g(i,j-1))*S, l=Math.hypot(dx,dy,1), k=(j*W+i)*4;
+    nd.data[k]=(-dx/l*.5+.5)*255; nd.data[k+1]=(dy/l*.5+.5)*255; nd.data[k+2]=(1/l*.5+.5)*255; nd.data[k+3]=255; } }
+  nx.putImageData(nd,0,0); const nt=new THREE.CanvasTexture(n); nt.colorSpace=THREE.NoColorSpace; moonMat.normalMap=nt; moonMat.normalScale.set(1.2,1.2);
+  setRelief(REL.k); });
+function setRelief(k){ REL.k=k; moonMat.displacementScale=RANGE*k; moonMat.displacementBias=-RANGE*k*.45; moonMat.normalScale.set(.5+k*.18,.5+k*.18); moonMat.needsUpdate=true;
+  // los puntos de las misiones se apoyan sobre el relieve
+  for(const s of SITES) if(s.sp) s.sp.position.copy(ll(s.lat,s.lon,1+RANGE*k*(hAt(s.lat,s.lon)-.45)+.006));
+  document.querySelectorAll('#relief button').forEach(b=>b.setAttribute('aria-pressed',(+b.dataset.k===k)+'')); }
 { const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<3000;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(300);p.push(v.x,v.y,v.z);} g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.3,sizeAttenuation:false}))); }
 const sunL=new THREE.DirectionalLight(0xffffff,2.0); scene.add(sunL); scene.add(new THREE.AmbientLight(0x8a90a0,1.4));
 // mapa equirectangular con −180° en el borde izquierdo (cara visible al centro)
@@ -252,6 +277,7 @@ cam.position.copy(ll(5,0,3.6)); ctl.update();
 const dotTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle='#fff';x.beginPath();x.arc(32,32,20,0,7);x.fill();x.lineWidth=5;x.strokeStyle='rgba(0,0,0,.6)';x.stroke();return new THREE.CanvasTexture(c);})();
 const markers=SITES.map(s=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:dotTex,color:GROUP[s.g][0]})); sp.position.copy(ll(s.lat,s.lon,1.004)); sp.userData.s=s; scene.add(sp);
   const l=document.createElement('div'); l.className='lbl'; l.textContent=s.name; if(s.below) l.style.transform='translate(-50%,60%)'; l.onclick=()=>select(s); document.body.appendChild(l); s.lbl=l; s.sp=sp; return sp; });
+document.querySelectorAll('#relief button').forEach(b=>b.onclick=()=>setRelief(+b.dataset.k));
 const mareEls=MARIA.map(m=>{ const d=document.createElement('div'); d.className='mare'; d.textContent=m[0].replace(/ \(.*\)/,''); document.body.appendChild(d); return {el:d,p:ll(m[1],m[2],1.0)}; });
 let sel=null, fly=null;
 function select(s){ sel=s; SITES.forEach(x=>x.lbl.classList.toggle('sel',x===s)); document.querySelectorAll('.ms[data-id]').forEach(b=>b.setAttribute('aria-current',(b.dataset.id===s.id)+''));
@@ -289,6 +315,7 @@ function openCard(s){
   if(I.kind) buildProbe(I.kind); else buildLM(['a15','a16','a17'].includes(s.id), s.id==='a12'); castAll(lm); castAll(stay); setPose(1e9,I.prof);
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
     <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>
+    ${s.id==='a11'?`<a class="go" href="paseo/">🚶 Caminar por Tranquility Base en primera persona →</a>`:''}
     ${REVS[s.id]?`<a class="go alt" href="apollo/#${s.id}">Ver la misión completa: Saturn V, viaje, ${REVS[s.id]} vueltas y regreso →</a>`:''}
     <p style="font-size:11.5px;color:var(--faint)">Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.</p>`;
   $('cbody').innerHTML=h; $('cbody').scrollTop=0;

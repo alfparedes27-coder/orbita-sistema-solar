@@ -22,6 +22,7 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
 - Mapas de los planetas y anillos de Saturno: [Solar System Scope](https://www.solarsystemscope.com/textures/) (CC BY 4.0).
 - Lunas galileanas: [Björn Jónsson](https://bjj.mmedia.is/data/planetary_maps.html), a partir de datos NASA/PDS. Luna: NASA LRO/LROC. Marte: NASA/USGS Viking.
   Titán, Encélado, Tritón, Plutón y Caronte: NASA/JPL y New Horizons (dominio público).
+- Relieve de la Luna: altímetro láser LOLA de la sonda LRO, del CGI Moon Kit de NASA SVS (dominio público).
 - Edificios y puntos de interés de los sitios de lanzamiento: © colaboradores de [OpenStreetMap](https://www.openstreetmap.org/copyright) (ODbL).
 
 ## Cómo está organizado
