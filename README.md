@@ -42,7 +42,7 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
   `fases/` (la Luna de cada noche desde Ecuador, por qué cambia y los próximos eclipses, todo calculado con Astronomy Engine).
 - `simulaciones/jpl/`: visita al JPL de la NASA. `trajes/` es la sala de trajes espaciales: línea del tiempo en 3D con modelos
   procedurales (tela con relieve de hilos, metal, visores con transparencia real), qué es cada pieza, capas, datos y fuentes.
-  Se agregan trajes de dos en dos (listos: Apollo A7L y Sokol KV‑2).
+  Se agregan trajes de dos en dos (listos: Apollo A7L, Sokol KV‑2, Orlan‑MKS y EMU).
 - `tools/hornear_osm.py`: descarga los edificios de OpenStreetMap y los guarda en `edificios-osm.bin` (formato compacto OSB2);
   un flujo de GitHub Actions lo ejecuta una vez al mes.
 - `datos/incrustado.js`: copia de datos y texturas para abrir `index.html` con doble clic (sin servidor). En la web no se descarga.

@@ -256,6 +256,9 @@ const M={
   visorClear: new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.03,transmission:1,thickness:.004,ior:1.5,transparent:true,envMapIntensity:1.2,side:THREE.DoubleSide,depthWrite:false}),
   mirror: new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:1,roughness:.02}),
   dial: new THREE.MeshPhysicalMaterial({color:0xf2f2ee,roughness:.4}),
+  orlanW: fabric('#eeede8',{seed:41,nscale:.45}),
+  emuW: fabric('#f0eee9',{seed:51,nscale:.5}),
+  blueStripe: fabric('#2f59b8',{seed:8,grimeAmt:.03}),
   ghost: new THREE.MeshPhysicalMaterial({color:0x7f93b5,roughness:.25,metalness:.1,transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide}),
 };
 
@@ -509,6 +512,146 @@ function buildSokol(){
   return {g,P,parts,inflate,anim:{visorPivot:vp},order:['capucha','visor','cierre','valvula','mangueras','cable','ventilador','correas','guantes','espejo','manometro','bandera','bolsillo','capas','botas']};
 }
 
+/* ================= TRAJE 3: ORLAN‑MKS (Rusia, caminatas desde la Estación) ================= */
+function buildOrlan(){
+  const {g,P,inflate}=body({mat:M.orlanW,seed:41,bulk:1.05,kneeRibs:[[.42,.6,3,.05]],elbowRibs:[[.42,.6,3,.05]],wr:.01});
+  const parts={}; const add=(k,meshes,anchorObj,anchorPos)=>{ parts[k]={meshes:[].concat(meshes),obj:anchorObj,pos:anchorPos}; };
+  // torso rígido de aluminio, cubierto de tela blanca
+  const shellT=mesh(new RoundedBoxGeometry(.46,.42,.32,6,.1),M.orlanW,g,{y:1.33,z:-.01});
+  const shellB=mesh(new RoundedBoxGeometry(.4,.14,.28,5,.06),M.orlanW,g,{y:1.08,z:0});
+  add('torso',[shellT,shellB],g,V3(-.16,1.2,.17));
+  // casco integrado al torso: no se quita, es parte de la «carcasa»
+  const helm=mesh(new THREE.SphereGeometry(.19,48,32,0,Math.PI*2,0,Math.PI*.62),M.orlanW,g,{y:1.6,z:.02}); helm.scale.set(1,1.05,1.05);
+  const hring=mesh(new THREE.CylinderGeometry(.2,.21,.06,48),M.orlanW,g,{y:1.56,z:.02});
+  const win=mesh(new THREE.SphereGeometry(.193,48,24,Math.PI*.18,Math.PI*.64,Math.PI*.24,Math.PI*.3),M.visorClear,g,{y:1.6,z:.02,cast:false});
+  const face=mesh(new THREE.SphereGeometry(.09,32,24),M.mannequin,g,{y:1.63,z:.04}); face.scale.set(.9,1.1,1);
+  const winRim=mesh(new THREE.TorusGeometry(.16,.01,8,48,Math.PI*1.1),M.plasticGray,g,{y:1.6,z:.15,rx:-.25,rz:-Math.PI*.05}); winRim.scale.set(1,.62,1);
+  const topWin=mesh(new THREE.CircleGeometry(.05,32),M.visorClear,g,{y:1.78,z:.09,rx:-1.05,cast:false});
+  const topRim=mesh(new THREE.TorusGeometry(.05,.008,8,32),M.plasticGray,g,{y:1.78,z:.09,rx:-1.05});
+  add('casco',[helm,hring,winRim],g,V3(-.15,1.72,.06));
+  add('ventana',[win,topWin,topRim],g,V3(.07,1.66,.2));
+  const filtVis=new THREE.Group(); filtVis.position.set(0,1.6,.02); g.add(filtVis);
+  const filt=mesh(new THREE.SphereGeometry(.198,48,24,Math.PI*.2,Math.PI*.6,Math.PI*.24,Math.PI*.29),M.gold,filtVis);
+  add('filtro',[filt],g,V3(.12,1.75,.15));
+  // luces a los lados del casco
+  const lamps=[]; const lampL=[];
+  for(const s of[-1,1]){ const b=mesh(new RoundedBoxGeometry(.05,.06,.08,2,.012),M.plasticGray,g,{x:s*.2,y:1.62,z:.06});
+    const lens=mesh(new THREE.CircleGeometry(.02,20),new THREE.MeshStandardMaterial({color:0xfff6d8,emissive:0xfff2c8,emissiveIntensity:0}),g,{x:s*.2,y:1.62,z:.101}); lamps.push(b,lens); lampL.push(lens); }
+  add('luces',lamps,g,V3(.24,1.64,.08));
+  // panel de control del pecho
+  const pan=mesh(new RoundedBoxGeometry(.24,.12,.07,3,.012),M.plasticGray,g,{y:1.24,z:.2,rx:-.25});
+  const scr=mesh(new THREE.PlaneGeometry(.09,.05),new THREE.MeshStandardMaterial({color:0x0c1a14,emissive:0x2c8f5c,emissiveIntensity:.5,roughness:.3}),g,{x:-.05,y:1.25,z:.236,rx:-.25});
+  const kn=[]; for(let i=0;i<3;i++) kn.push(mesh(new THREE.CylinderGeometry(.013,.013,.02,16),M.plasticDark,g,{x:.035+i*.032,y:1.25,z:.24,rx:Math.PI/2-.25}));
+  add('panel',[pan,scr,...kn],g,V3(0,1.3,.25));
+  // mochila = puerta de entrada (bisagra a la izquierda del traje)
+  const door=new THREE.Group(); door.position.set(.23,1.02,-.17); g.add(door);
+  const pack=mesh(new RoundedBoxGeometry(.46,.62,.24,6,.06),M.orlanW,door,{x:-.23,y:.31,z:-.12});
+  const pRim=mesh(new THREE.TorusGeometry(.27,.008,8,40),M.alu,door,{x:-.23,y:.31,z:.0}); pRim.scale.set(.85,1.1,1);
+  const lever=mesh(tube([[-.47,.25,-.1],[-.5,.3,-.08],[-.5,.38,-.08]],.012),M.alu,door);
+  add('mochila',[pack,pRim,lever],g,V3(.0,1.4,-.38));
+  const hatch=mesh(new THREE.CircleGeometry(.24,40),M.rubberDark,g,{y:1.33,z:-.172,ry:Math.PI}); hatch.scale.set(.85,1.1,1);
+  add('entrada',[hatch],g,V3(-.08,1.33,-.2));
+  // cables de ajuste en brazos y piernas (talla única)
+  const adj=[];
+  for(const ag of P.arms){ adj.push(mesh(sweep([[0,-.12,.008],[0,-.145,.01]],{nT:3,wr:0,r:()=>[.091,.089],ref:V3(1,0,0)}),M.alu,ag)); adj.push(mesh(tube([[0,-.15,.095],[0,-.3,.1]],.004,10),M.alu,ag)); }
+  for(const lg of P.legs){ adj.push(mesh(sweep([[0,-.2,.015],[0,-.225,.018]],{nT:3,wr:0,r:()=>[.108,.112]}),M.alu,lg)); adj.push(mesh(tube([[0,-.23,.13],[0,-.42,.13]],.004,10),M.alu,lg)); }
+  add('ajuste',adj,P.legs[1],V3(.0,-.32,.15));
+  // franjas de color: EV1 rojas, EV2 azules
+  const stripes=[];
+  for(const ag of P.arms) stripes.push(mesh(sweep([[0,-.2,.025],[0,-.26,.035]],{nT:4,wr:0,r:()=>[.09,.087],ref:V3(1,0,0)}),M.red,ag));
+  for(const lg of P.legs) stripes.push(mesh(sweep([[0,-.33,.025],[0,-.4,.03]],{nT:4,wr:0,r:()=>[.106,.112]}),M.red,lg));
+  stripes.push(mesh(new THREE.SphereGeometry(.1915,48,8,Math.PI*1.2,Math.PI*.6,Math.PI*.05,Math.PI*.08),M.red,g,{y:1.6,z:.02}));
+  add('franjas',stripes,P.arms[1],V3(.09,-.23,.05));
+  // guantes y anillos
+  const gl=[], rings=[];
+  P.wrists.forEach((wr,i)=>{ const s=i?1:-1; const hh=hand(wr,s,{shell:M.glove,tips:M.rubberDark,ring:M.alu}); gl.push(...hh.parts.filter(p=>p!==hh.ring)); rings.push(hh.ring); });
+  add('guantes',[...gl,...rings],P.wrists[0],V3(0,-.14,.06));
+  // cuerdas de seguridad (dos ganchos en la cintura)
+  const teth=[]; for(const s of[-1,1]){ teth.push(mesh(tube([[s*.12,1.02,.14],[s*.16,.9,.17],[s*.15,.8,.15]],.006,16),M.webBlue,g)); teth.push(mesh(new THREE.TorusGeometry(.025,.006,8,20),M.alu,g,{x:s*.15,y:.78,z:.15,ry:Math.PI/2})); }
+  add('cuerdas',teth,g,V3(-.17,.84,.19));
+  // botas
+  const boots=[];
+  P.legs.forEach((lg,i)=>{ const s=i?1:-1; const b=new THREE.Group(); b.position.set(s*.02,-.86,.03); lg.add(b);
+    boots.push(mesh(new RoundedBoxGeometry(.14,.13,.29,4,.05),M.orlanW,b,{y:-.045,z:.03}));
+    boots.push(mesh(new RoundedBoxGeometry(.145,.028,.3,3,.012),M.rubberDark,b,{y:-.108,z:.03})); });
+  add('botas',boots,P.legs[0],V3(-.03,-.92,.2));
+  const flag=mesh(new THREE.PlaneGeometry(.085,.05),new THREE.MeshPhysicalMaterial({map:flagTex('ru'),roughness:.8,sheen:.6}),P.arms[1],{x:.093,y:-.06,z:.01,ry:Math.PI/2-.1});
+  add('bandera',[flag],P.arms[1],V3(.1,-.04,.01));
+  return {g,P,parts,inflate,anim:{door,filtVis,stripes,lampL},order:['casco','ventana','filtro','luces','panel','torso','mochila','entrada','ajuste','guantes','cuerdas','bandera','botas','franjas']};
+}
+
+/* ================= TRAJE 4: EMU (transbordador y Estación Espacial, NASA) ================= */
+function buildEMU(){
+  const {g,P,inflate}=body({mat:M.emuW,seed:51,bulk:1.06,kneeRibs:[[.4,.62,4,.05]],elbowRibs:[[.42,.6,3,.04]],wr:.01});
+  const parts={}; const add=(k,meshes,anchorObj,anchorPos)=>{ parts[k]={meshes:[].concat(meshes),obj:anchorObj,pos:anchorPos}; };
+  // torso superior rígido (HUT) y parte inferior (LTA)
+  const hut=mesh(new RoundedBoxGeometry(.5,.4,.33,6,.11),M.emuW,g,{y:1.36,z:-.01});
+  const waist=mesh(new THREE.TorusGeometry(.18,.016,10,48),M.alu,g,{y:.99,rx:Math.PI/2}); waist.scale.set(1,.75,1);
+  add('hut',[hut],g,V3(-.19,1.42,.15));
+  add('lta',[P.torso,waist],g,V3(.12,.96,.15));
+  // cojinetes del brazo (permiten girar sin que el traje se resista)
+  const brg=[]; for(const ag of P.arms){ brg.push(mesh(new THREE.TorusGeometry(.088,.012,10,40),M.alu,ag,{y:-.04,rx:Math.PI/2})); brg.push(mesh(new THREE.TorusGeometry(.08,.01,10,40),M.alu,ag,{y:-.16,rx:Math.PI/2})); }
+  add('cojinetes',brg,P.arms[0],V3(-.06,-.1,.06));
+  // casco: burbuja + EVVA con visor dorado, persianas, 2 lámparas y cámara
+  const ring=mesh(new THREE.CylinderGeometry(.14,.145,.04,48),M.alu,P.neck,{y:0});
+  const head=new THREE.Group(); head.position.y=.16; P.neck.add(head);
+  const man=mesh(new THREE.SphereGeometry(.095,32,24),M.mannequin,head,{y:-.005}); man.scale.set(.9,1.12,1);
+  const cap=mesh(new THREE.SphereGeometry(.1,32,20,0,Math.PI*2,0,Math.PI*.5),M.snoopyW,head,{y:.012}); cap.scale.set(.93,1.12,1.03);
+  const bubble=mesh(new THREE.SphereGeometry(.172,64,40,0,Math.PI*2,0,Math.PI*.78),M.bubble,P.neck,{y:.15,cast:false});
+  const ev=new THREE.Group(); ev.position.y=.15; P.neck.add(ev);
+  const shell=mesh(new THREE.SphereGeometry(.186,64,40,Math.PI*1.1,Math.PI*.8,0,Math.PI*.72),M.shellWhite,ev);
+  const crown=mesh(new THREE.SphereGeometry(.188,64,20,0,Math.PI*2,0,Math.PI*.18),M.shellWhite,ev);
+  const vp=new THREE.Group(); ev.add(vp);
+  const visor=mesh(new THREE.SphereGeometry(.183,64,40,Math.PI*.12,Math.PI*.76,Math.PI*.2,Math.PI*.44),M.gold,vp);
+  add('casco',[bubble,ring,cap],P.neck,V3(-.13,.2,.1));
+  add('evva',[visor,shell,crown],P.neck,V3(.06,.26,.16));
+  const lamps=[], lampL=[];
+  for(const s of[-1,1]){ const b=mesh(new RoundedBoxGeometry(.06,.05,.1,2,.012),M.plasticDark,ev,{x:s*.2,y:.06,z:.03});
+    const lens=mesh(new THREE.CircleGeometry(.018,20),new THREE.MeshStandardMaterial({color:0xfff6d8,emissive:0xfff2c8,emissiveIntensity:0}),ev,{x:s*.2,y:.06,z:.081}); lamps.push(b,lens); lampL.push(lens); }
+  const camB=mesh(new RoundedBoxGeometry(.05,.05,.07,2,.01),M.plasticDark,ev,{x:-.205,y:-.01,z:.04});
+  const camL=mesh(new THREE.CircleGeometry(.014,20),M.mirror,ev,{x:-.205,y:-.01,z:.076});
+  add('luces',[...lamps,camB,camL],P.neck,V3(.22,.22,.08));
+  // módulo de pantalla y control (DCM) en el pecho
+  const dcm=mesh(new RoundedBoxGeometry(.24,.13,.09,3,.012),M.plasticGray,g,{y:1.25,z:.22,rx:-.3});
+  const dsp=mesh(new THREE.PlaneGeometry(.1,.035),new THREE.MeshStandardMaterial({color:0x0b1410,emissive:0xd23a2a,emissiveIntensity:.6}),g,{y:1.272,z:.262,rx:-.3});
+  const dk=[]; [[-.08,M.anoBlue],[-.03,M.plasticDark],[.03,M.plasticDark],[.08,M.anoRed]].forEach(([x,m])=>dk.push(mesh(new THREE.CylinderGeometry(.013,.013,.022,16),m,g,{x,y:1.225,z:.268,rx:Math.PI/2-.3})));
+  add('dcm',[dcm,dsp,...dk],g,V3(0,1.31,.27));
+  // mochila PLSS y SAFER debajo
+  const plss=mesh(new RoundedBoxGeometry(.52,.66,.24,6,.05),M.emuW,g,{y:1.29,z:-.3});
+  const plssTop=mesh(new RoundedBoxGeometry(.48,.08,.2,4,.03),M.emuW,g,{y:1.65,z:-.3});
+  add('plss',[plss,plssTop],g,V3(.22,1.45,-.34));
+  const saf=mesh(new RoundedBoxGeometry(.5,.16,.3,4,.03),M.plasticGray,g,{y:.89,z:-.32});
+  const jets=[]; for(const x of[-.22,.22]) for(const y of[.83,.95]) for(const z of[-.18,-.46]) jets.push(mesh(new THREE.ConeGeometry(.012,.025,10),M.alu,g,{x,y,z,rx:z>-.3?-Math.PI/2:Math.PI/2}));
+  const hcu=mesh(new RoundedBoxGeometry(.1,.05,.07,2,.01),M.plasticDark,g,{x:-.22,y:1.02,z:.15});
+  add('safer',[saf,...jets,hcu],g,V3(-.25,.92,-.36));
+  // guantes con calentadores, espejo y lista en la muñeca izquierda
+  const gl=[], rings=[];
+  P.wrists.forEach((wr,i)=>{ const s=i?1:-1; const hh=hand(wr,s,{shell:M.glove,tips:M.rubberDark,ring:M.alu}); gl.push(...hh.parts.filter(p=>p!==hh.ring)); rings.push(hh.ring);
+    gl.push(mesh(tube([[s*-.02,-.08,.04],[s*-.03,-.13,.05],[s*-.02,-.18,.045]],.0035,10),M.anoRed,wr)); });
+  add('guantes',[...gl,...rings],P.wrists[0],V3(0,-.14,.06));
+  const cuff=mesh(new RoundedBoxGeometry(.075,.014,.1,2,.004),M.emuW,P.arms[1],{x:.06,y:-.46,z:.07,rz:-1.2});
+  const cuffP=mesh(new THREE.PlaneGeometry(.06,.085),M.dial,P.arms[1],{x:.068,y:-.46,z:.07,ry:Math.PI/2});
+  const mir=mesh(new THREE.CylinderGeometry(.028,.028,.006,24),M.mirror,P.arms[1],{x:.04,y:-.4,z:.11,rx:Math.PI/2-.5});
+  add('lista',[cuff,cuffP],P.arms[1],V3(.075,-.47,.06));
+  add('espejo',[mir],P.arms[1],V3(.04,-.38,.13));
+  // cuerdas de seguridad (anillos en D de la cintura)
+  const teth=[]; for(const s of[-1,1]){ teth.push(mesh(new THREE.TorusGeometry(.022,.005,8,20,Math.PI*1.4),M.alu,g,{x:s*.17,y:.96,z:.1,ry:Math.PI/2})); }
+  teth.push(mesh(tube([[.17,.95,.11],[.22,.8,.14],[.18,.66,.12]],.006,16),M.webBlue,g));
+  add('cuerdas',teth,g,V3(.2,.84,.17));
+  // franjas rojas (para distinguir a los dos caminantes)
+  const stripes=[]; for(const lg of P.legs){ stripes.push(mesh(sweep([[0,-.12,.017],[0,-.2,.02]],{nT:4,wr:0,r:()=>[.107,.111]}),M.red,lg)); stripes.push(mesh(sweep([[0,-.6,.025],[0,-.68,.02]],{nT:4,wr:0,r:()=>[.085,.089]}),M.red,lg)); }
+  add('franjas',stripes,P.legs[1],V3(.03,-.16,.13));
+  // botas
+  const boots=[];
+  P.legs.forEach((lg,i)=>{ const s=i?1:-1; const b=new THREE.Group(); b.position.set(s*.02,-.86,.03); lg.add(b);
+    boots.push(mesh(new RoundedBoxGeometry(.14,.13,.3,4,.05),M.emuW,b,{y:-.045,z:.03}));
+    boots.push(mesh(new RoundedBoxGeometry(.145,.03,.31,3,.012),M.plasticGray,b,{y:-.108,z:.03})); });
+  add('botas',boots,P.legs[0],V3(-.03,-.92,.2));
+  const flag=mesh(new THREE.PlaneGeometry(.1,.053),new THREE.MeshPhysicalMaterial({map:flagTex('us'),roughness:.8,sheen:.6}),P.arms[1],{x:.095,y:-.07,z:.01,ry:Math.PI/2-.1});
+  add('bandera',[flag],P.arms[1],V3(.1,-.04,.01));
+  return {g,P,parts,inflate,anim:{visorPivot:vp,stripes,lampL},order:['casco','evva','luces','dcm','hut','plss','safer','cojinetes','guantes','lista','espejo','cuerdas','lta','bandera','botas','franjas']};
+}
+
 /* ================= FANTASMAS: los trajes que vendrán en los próximos pares ================= */
 function buildGhost(o){
   const {g,P}=body({mat:M.ghost,seed:o.seed||50,bulk:o.bulk||1,wr:.008});
@@ -591,8 +734,60 @@ const SUITS=[
    <p>La fábrica Zvezda tenía trajes para pilotos de aviones a gran altura. Los adaptó en menos de un año: así nació el Sokol‑K, que voló por primera vez en la Soyuz 12, en septiembre de 1973. Desde entonces nadie sube a una Soyuz sin él. A finales de los 70 se mejoró como Sokol KV‑2, el que se usa hasta hoy.</p>
    <p>Antes de cada despegue, en Baikonur, cada cosmonauta se pone su traje y lo inflan a más presión de la normal para buscar fugas. Lo puedes simular con el botón <b>Prueba de fugas</b>. El primer turista espacial, Dennis Tito, voló con uno en 2001 y lo donó al Smithsonian.</p>`,
   src:[['ESA · Sokol so cool','https://www.esa.int/ESA_Multimedia/Images/2017/07/Sokol_so_cool'],['Science Museum (Londres) · El traje de Helen Sharman','https://blog.sciencemuseum.org.uk/helen-sharmans-spacesuit/'],['National Space Centre · Sokol KV‑2','https://www.spacecentre.co.uk/collections/categories/spacesuits-and-clothing/sokol-kv-2-rescue-spacesuit/'],['Smithsonian NASM · Sokol de Dennis Tito','https://airandspace.si.edu/es/collection-objects/pressure-suit-sokol-kv-2-dennis-tito/nasm_A20030122000'],['Resumen técnico con referencias (Wikipedia)','https://en.wikipedia.org/wiki/Sokol_space_suit']]},
- {id:'orlan',name:'Orlan',year:1977,soon:true,pack:false,desc:'El traje ruso para caminatas espaciales: se entra por una puerta en la espalda, sin ayuda de nadie.'},
- {id:'emu',name:'EMU (Estación Espacial)',year:1983,soon:true,pack:true,desc:'El traje blanco de las caminatas de los transbordadores y de la Estación Espacial Internacional.'},
+ {id:'orlan',name:'Orlan‑MKS',year:1977,build:buildOrlan,
+  kick:'1977–hoy · NPP Zvezda (Rusia) · caminatas espaciales',
+  sum:'El traje ruso para salir de la estación. Su gran truco: no se «viste», se entra en él. La mochila es una puerta en la espalda; el cosmonauta se mete por ahí, cierra la puerta con una palanca y queda sellado, normalmente sin ayuda de nadie. El modelo actual es el Orlan‑MKS. «Orlan» significa «águila marina».',
+  parts:{
+   casco:['Casco integrado','El casco no se quita: está unido al torso rígido. Por eso hay que entrar por la espalda. Es más grande que la cabeza, así que el cosmonauta mira por la ventana sin que el casco se mueva.'],
+   ventana:['Ventana frontal y ventanita superior','Una ventana grande al frente y otra pequeña arriba, para ver lo que hay sobre la cabeza mientras trepa por los pasamanos de la estación.'],
+   filtro:['Filtro solar dorado','Una visera que se baja delante de la ventana cuando da el Sol directo, como unas gafas de sol muy fuertes.'],
+   luces:['Luces del casco','En la órbita de la estación hay noche cada 45 minutos. Las luces a los lados del casco permiten seguir trabajando a oscuras. Prueba el botón <b>Luces</b>.'],
+   panel:['Panel de control del pecho','Para manejar el traje: oxígeno, ventilación, radio y temperatura. El Orlan‑MKS trae una computadora y una pantalla a color, y regula la temperatura solo, sin que el cosmonauta tenga que girar perillas.'],
+   torso:['Torso rígido de aluminio','Una carcasa de aluminio, cubierta de tela blanca, que es la «espalda» del traje. Como es rígida, el traje es de talla única: lo que cambia es el largo de brazos y piernas.'],
+   mochila:['Mochila-puerta de soporte vital','Lleva el oxígeno, el filtro que atrapa el CO₂, el agua de enfriamiento, la radio y las baterías. Es a la vez la puerta: se abre hacia un costado con bisagra. Prueba el botón <b>Entrar por la espalda</b>.'],
+   entrada:['La abertura de entrada','Por este hueco entran primero las piernas, luego los brazos y la cabeza. Después la mochila se cierra y una palanca la traba con un sello hermético.'],
+   ajuste:['Cables de ajuste (talla única)','Cables y correas en brazos y piernas que alargan o acortan el traje para cada cosmonauta. Así el mismo traje sirve para varias personas, y no hay que llevar uno a medida de cada una.'],
+   guantes:['Guantes','Se traban en anillos de metal en las muñecas. Son lo más cansador de una caminata: con el traje inflado, cerrar la mano cuesta mucho.'],
+   cuerdas:['Cuerdas de seguridad','Dos cuerdas con ganchos. Siempre hay al menos una enganchada a la estación: si el cosmonauta se suelta, no se aleja flotando.'],
+   bandera:['Bandera','Cada traje lleva la bandera de quien lo usa.'],
+   botas:['Botas','Rígidas en la suela, para engancharse en los anclajes de pie de la estación y tener las manos libres.'],
+   franjas:['Franjas de color','Para distinguir a los dos cosmonautas en las cámaras: uno lleva franjas rojas y el otro azules (por ejemplo, en 2022 Shkaplerov iba de rojo y Dubrov de azul). Cambia el color con el botón.'],
+  },
+  layers:[['#b8c4d4','Prenda de enfriamiento','ropa interior con tubitos de agua'],['#55524c','Vejiga de presión','en el MKS una sola, más resistente; antes había una segunda de repuesto'],['#d7c9a8','Capa de sujeción','evita que el traje se infle como un globo'],['#d9dde3','Aislante multicapa','láminas aluminizadas contra el Sol y el frío'],['#f3f3f0','Cubierta exterior','tela blanca resistente']],
+  layersNote:'Zvezda no publica el detalle de todas las capas; esta es la estructura general. Lo que sí se sabe: el Orlan‑MKS logró quitar la vejiga de repuesto gracias a una capa de presión más resistente.',
+  data:[['Fabricante','NPP Zvezda, Tomilino (cerca de Moscú)'],['Primer uso','20 dic 1977, Orlan‑D, Georgi Grechko desde la estación Salyut 6'],['Modelo actual','Orlan‑MKS, en caminatas desde 2017'],['Masa','~110 kg (MKS)'],['Presión','~0,4 atm (≈ 40 kPa, 5,8 psi), oxígeno'],['Caminata','~7 h'],['Vida útil (MKS)','5–6 años o 15–20 caminatas; no vuelve a la Tierra'],['Talla','única, ajustable']],
+  hist:`<p>Desde 1977, casi todas las caminatas rusas se han hecho con algún Orlan. El primero, el Orlan‑D, lo estrenó Georgi Grechko en la estación Salyut 6, asomándose por la escotilla para revisar el mecanismo de acople.</p>
+   <p>Como no hace falta un traje a medida de cada persona, los trajes se quedan en la estación durante años y se usan una y otra vez. En 1997 Jerry Linenger fue el primer estadounidense en salir con un Orlan, desde la estación Mir. Michael Foale fue el primero en usar los dos: el Orlan ruso y el EMU de la NASA.</p>
+   <p>El traje chino Feitian, de la primera caminata china (2008), tiene, según el astronauta Leroy Chiao, «una herencia obvia del Orlan». En esa caminata, el compañero que ayudaba desde la escotilla vestía un Orlan.</p>`,
+  src:[['NASA NTRS · Comparación Orlan‑M y EMU','https://ntrs.nasa.gov/api/citations/20140009556/downloads/20140009556.pdf'],['NASA · 20 años de caminatas en la Estación','https://www.nasa.gov/feature/space-station-20th-spacewalking-history/'],['NASA blog · Caminata rusa de 2022 (franjas roja y azul)','https://www.nasa.gov/blogs/spacestation/2022/01/19/russian-spacewalkers-exit-station-to-service-russian-modules'],['Spaceflight Now · Caminata con el Orlan‑MKS (2017)','https://spaceflightnow.com/2017/08/17/russian-spacewalk/'],['Space.com · Georgi Grechko','https://space.com/36414-georgy-grechko-cosmonaut-obituary.html'],['RussianSpaceWeb · Orlan‑MKS (no oficial)','https://russianspaceweb.com/orlan_mks.html'],['NASA NTRS · Trajes en el mundo (cita de L. Chiao)','https://ntrs.nasa.gov/api/citations/20120002808/downloads/20120002808.pdf']]},
+ {id:'emu',name:'EMU (NASA)',year:1983,build:buildEMU,
+  kick:'1983–hoy · ILC Dover y Hamilton Standard (hoy Collins) · caminatas',
+  sum:'El traje blanco de las caminatas del transbordador espacial y de la Estación Espacial Internacional. Con la mochila y el propulsor de rescate pesa unos 145 kg en la Tierra; en órbita no pesa nada, pero sigue costando moverlo porque tiene la misma masa. Lleva más de 40 años en uso.',
+  parts:{
+   casco:['Casco de burbuja','Burbuja de plástico transparente, como la del Apollo. Por dentro va el gorro de comunicaciones con audífonos y micrófonos.'],
+   evva:['Visor EVVA','Encima de la burbuja: un visor dorado contra el Sol, otro transparente contra golpes y persianas laterales. Prueba el botón <b>Visor dorado</b>.'],
+   luces:['Lámparas y cámara','Dos lámparas para la noche orbital (cada 45 minutos) y una cámara de video para que en Houston vean lo que ve el astronauta. Prueba el botón <b>Luces</b>.'],
+   dcm:['Módulo de pantalla y control (DCM)','La caja del pecho: interruptores, perillas, la válvula de purga y una pantalla que muestra la presión, el oxígeno y el tiempo. Las letras de los controles están escritas al revés, para leerlas con el espejo de la muñeca.'],
+   hut:['Torso superior rígido (HUT)','Una pieza dura de fibra de vidrio. A ella se enganchan la mochila, el panel del pecho, los brazos y el casco. Se fabricó en 3 tallas; las piernas y los brazos se cambian por piezas de otro largo. Así se arma el traje para cada astronauta.'],
+   plss:['Mochila de soporte vital (PLSS)','Oxígeno, filtro de CO₂, ventilador, agua de enfriamiento, radio y batería. Da para unas 7 horas de caminata, más 30 minutos de oxígeno de reserva. Se construyeron 18; en 2017 quedaban 11 en servicio.'],
+   safer:['SAFER: el salvavidas a chorro','Una caja debajo de la mochila con 24 toberas pequeñas de nitrógeno. Si el astronauta se suelta y se aleja flotando, saca un control y se impulsa de vuelta; el aparato lo endereza solo. Se probó por primera vez en 1994. Nunca hubo que usarlo en una emergencia real.'],
+   cojinetes:['Cojinetes de los brazos','Anillos con rodamientos en hombros y brazos. Sin ellos, girar el brazo dentro del traje inflado sería como torcer un globo.'],
+   guantes:['Guantes con calentadores','Los guantes Phase VI llevan cables calentadores en las puntas de los dedos, porque en la sombra el metal de la estación está muy frío. Son la pieza que más se desgasta.'],
+   lista:['Lista en la muñeca','Un cuadernito de 27 páginas con espiral, en el brazo izquierdo, con los pasos de la caminata.'],
+   espejo:['Espejo de la muñeca','Con el casco puesto no se ve el propio pecho. El espejo sirve para leer el panel DCM, que por eso tiene las letras invertidas.'],
+   cuerdas:['Cuerdas de seguridad','Anillos en D en la cintura para las cuerdas. La regla es estar siempre enganchado a la estación.'],
+   lta:['Parte inferior (LTA)','Pantalón con botas, unido al torso por un anillo con rodamiento en la cintura, que deja girar la cadera.'],
+   bandera:['Bandera','La bandera del país del astronauta, en el hombro.'],
+   botas:['Botas','Suela rígida para trabar los pies en los anclajes y trabajar con las dos manos.'],
+   franjas:['Franjas rojas','Cuando salen dos astronautas con trajes iguales, uno lleva franjas rojas en las piernas para que en las cámaras se sepa quién es quién. Prueba el botón <b>Franjas rojas</b>.'],
+  },
+  layers:[['#b8c4d4','Prenda de enfriamiento (LCVG)','forro de nailon tricot y spandex con tubitos de agua'],['#55524c','Vejiga de presión','nailon recubierto de uretano'],['#cfc7b5','Capa de sujeción','Dacron'],['#6c5a48','Forro térmico','nailon ripstop con neopreno'],['#d9dde3','Aislante','7 capas de Mylar aluminizado con malla de Dacron'],['#f3f3f0','Cubierta exterior','Ortho‑Fabric: mezcla de Gore‑Tex, Kevlar y Nomex']],
+  layersNote:'14 capas en total, según la NASA. Las de Mylar funcionan como espejos que rebotan el calor del Sol y guardan el del cuerpo en la sombra.',
+  data:[['Fabricantes','ILC (el traje) y Hamilton Standard, hoy Collins Aerospace (la mochila)'],['Primera caminata','7 abr 1983, STS‑6 (Challenger): Story Musgrave y Don Peterson'],['Masa','~145 kg con mochila y SAFER (en la Tierra)'],['Presión','4,3 psi (29,6 kPa) de oxígeno puro'],['Caminata','hasta 7 h + 30 min de reserva'],['Capas','14'],['Mochilas','18 construidas; 11 en servicio en 2017'],['Vida útil prevista','15 años… y ya van más de 40']],
+  hist:`<p><b>Prerrespiración.</b> En la estación se respira aire a la presión de la Tierra, pero el traje va a 4,3 psi de oxígeno puro. Si se pasara de golpe, el nitrógeno disuelto en la sangre haría burbujas, como una gaseosa al abrirla. Por eso, antes de salir, los astronautas respiran oxígeno puro durante horas para sacar el nitrógeno del cuerpo.</p>
+   <p>El EMU se estrenó el 7 de abril de 1983, cuando Story Musgrave y Don Peterson salieron de la bodega del Challenger. Se diseñó para durar 15 años y se sigue usando en la Estación Espacial.</p>
+   <p>El 16 de julio de 2013, durante una caminata, al astronauta italiano Luca Parmitano se le empezó a llenar el casco de agua: llegó a tener 1,5 litros que le tapaban los ojos, la nariz y los oídos. Volvió a la escotilla guiándose por la cuerda de seguridad y no le pasó nada. Un filtro tapado dejaba pasar el agua del enfriamiento al aire; la NASA hizo 49 cambios después.</p>`,
+  src:[['NASA · Ficha del EMU (PDF)','https://www.nasa.gov/wp-content/uploads/2009/07/188963main_extravehicular_mobility_unit.pdf'],['NASA · EMU de la Estación (2019, PDF)','https://www.nasa.gov/wp-content/uploads/2015/07/2019_07_ea_emu.pdf'],['NASA · Libro de datos del EMU (PDF)','https://www.nasa.gov/wp-content/uploads/2017/02/esoc-13_rev._v_emu_hardware_data_book_jsc-e-daa-tn55224.pdf'],['NASA OIG · Informe sobre los trajes (2017)','https://oig.nasa.gov/docs/IG-17-018.pdf'],['NASA · Riesgo de descompresión','https://www.nasa.gov/reference/risk-of-decompression-sickness'],['NASA · 10 años de la EVA 23 (Parmitano)','https://nasa.gov/general/10-years-ago-eva-23-how-a-high-visibility-close-call-cut-short-a-spacewalk'],['NASA NTRS · SAFER','https://ntrs.nasa.gov/citations/19960022260'],['ESA · El traje de Tim Peake','https://www.esa.int/ESA_Multimedia/Images/2015/10/Tim_Peake_EVA_suit']]},
  {id:'aces',name:'ACES «calabaza»',year:1994,soon:true,tint:0xd68a3c,desc:'El traje naranja de despegue y aterrizaje del transbordador espacial, para ser vistos en el mar si había que saltar.'},
  {id:'feitian',name:'Feitian (China)',year:2008,soon:true,pack:true,desc:'El traje chino para caminatas espaciales, estrenado en la Shenzhou 7.'},
  {id:'spacex',name:'Traje de SpaceX',year:2020,soon:true,tint:0xd9dde3,desc:'El traje de la cápsula Dragon, hecho a medida y conectado al asiento por un solo cable.'},
@@ -666,6 +861,19 @@ function renderActs(){
     btn('Prueba de fugas',()=>leakTest(),undefined).classList.add('go');
     btn('Visor',b=>{ F.vT=F.vT>.5?0:1; b.setAttribute('aria-pressed',F.vT>.5); },F.vT>.5);
   }
+  if(s.id==='orlan'){
+    btn('Entrar por la espalda',b=>{ F.dT=F.dT>.5?0:1; b.setAttribute('aria-pressed',F.dT>.5); if(F.dT>.5){ pickPart('mochila'); flyBack(); } else flyTo(cur); },F.dT>.5);
+    btn('Presurizar 0,4 atm',b=>{ const on=F.pT<.5; F.pT=on?1:0; b.setAttribute('aria-pressed',on); gaugeGen(on,'Orlan‑MKS',5.8,'Oxígeno puro a unos 0,4 atmósferas: un poco más que el traje de la NASA, así que se necesita menos prerrespiración antes de salir.'); },F.pT>.5);
+    btn('Filtro solar',b=>{ F.vT=F.vT>.5?0:1; b.setAttribute('aria-pressed',F.vT>.5); },F.vT>.5);
+    btn('Luces',b=>{ F.lights=!F.lights; b.setAttribute('aria-pressed',F.lights); },!!F.lights);
+    btn(F.blue?'Franjas azules (EV2)':'Franjas rojas (EV1)',b=>{ F.blue=!F.blue; F.f.anim.stripes.forEach(m=>m.material=F.blue?M.blueStripe:M.red); b.textContent=F.blue?'Franjas azules (EV2)':'Franjas rojas (EV1)'; pickPart('franjas'); });
+  }
+  if(s.id==='emu'){
+    btn('Presurizar 4,3 psi',b=>{ const on=F.pT<.5; F.pT=on?1:0; b.setAttribute('aria-pressed',on); gaugeGen(on,'EMU',4.3,'Oxígeno puro a 4,3 psi, menos de un tercio de la presión de la cabina. Antes de llegar aquí el astronauta respiró oxígeno puro durante horas para sacar el nitrógeno de la sangre (ver Historia).'); },F.pT>.5);
+    btn('Visor dorado',b=>{ F.vT=F.vT>.5?0:1; b.setAttribute('aria-pressed',F.vT>.5); },F.vT>.5);
+    btn('Luces',b=>{ F.lights=!F.lights; b.setAttribute('aria-pressed',F.lights); },!!F.lights);
+    btn('Franjas rojas',b=>{ F.stripes=!F.stripes; F.f.anim.stripes.forEach(m=>m.visible=F.stripes); b.setAttribute('aria-pressed',F.stripes); if(F.stripes) pickPart('franjas'); },F.stripes);
+  }
   btn('Vista general',()=>flyTo(cur,true));
 }
 function showTab(t){
@@ -703,6 +911,12 @@ function gaugeA7L(on){
   sim={kind:'a7l',on,t:0};
   $('glog').innerHTML=on?'Entra oxígeno puro hasta 3,7 psi. El traje se pone duro como un globo y los brazos se separan solos del cuerpo: cada movimiento cuesta, porque hay que vencer el aire de adentro. Por eso existen los fuelles en codos y rodillas.':'Despresurizado: así se lo ponían dentro de la nave, con la cabina llena de aire.';
 }
+function gaugeGen(on,name,psi,txt){
+  $('gauge').hidden=false; $('gk').textContent='Presión del traje '+name; sim={kind:'gen',psi,on,t:0};
+  $('glog').textContent=on?txt:'Despresurizado.'; }
+function flyBack(){ const r=FIG[cur].root, target=r.localToWorld(V3(0,1.35,-.2)), pos=r.localToWorld(V3(-1.6,1.9,-2.6));
+  if(innerWidth<=860) pos.sub(target).multiplyScalar(1.4).add(target);
+  fly={t:0,p0:camera.position.clone(),t0:controls.target.clone(),p1:pos,t1:target}; }
 function leakTest(){
   const F=FIG[cur]; F.vT=1; $('acts').querySelectorAll('.tb')[1]?.setAttribute('aria-pressed',true);
   $('gauge').hidden=false; $('gk').textContent='Prueba de fugas · Sokol KV‑2';
@@ -712,6 +926,7 @@ const SOK=[[0,'1. Cerrar el visor y ajustar las correas.'],[2,'2. Inflar por enc
 function stepSim(dt){
   if(!sim) return; sim.t+=dt; const F=FIG[cur];
   if(sim.kind==='a7l'){ const v=3.7*F.p; $('gv').innerHTML=`${fmt(v)} <small>psi · ${fmt(v*6.895,0)} kPa</small>`; $('gb').style.width=(F.p*100)+'%'; }
+  if(sim.kind==='gen'){ const v=sim.psi*F.p; $('gv').innerHTML=`${fmt(v)} <small>psi · ${fmt(v*6.895,0)} kPa</small>`; $('gb').style.width=(F.p*100)+'%'; }
   if(sim.kind==='sokol'){
     let st=0; for(let k=0;k<SOK.length;k++) if(sim.t>=SOK[k][0]) st=k;
     if(st!==sim.step){ sim.step=st; if(SOK[st][1]) $('glog').textContent=SOK[st][1];
@@ -751,6 +966,9 @@ function tick(){
     F.f.P.legs.forEach((lg,k)=>{ lg.rotation.z=(k?1:-1)*.035*F.p; });
     if(F.s.id==='a7l') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.05;
     if(F.s.id==='sokol') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.15;
+    if(F.s.id==='emu') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.05;
+    if(F.s.id==='orlan'){ F.d=(F.d||0)+((F.dT||0)-(F.d||0))*Math.min(1,dt*2.2); F.f.anim.door.rotation.y=-1.5*F.d; F.f.anim.filtVis.rotation.x=-(1-F.v)*.75; }
+    if(F.f.anim.lampL) F.f.anim.lampL.forEach(l=>{ l.material.emissiveIntensity+=((F.lights?6:0)-l.material.emissiveIntensity)*Math.min(1,dt*6); });
   }
   stepSim(dt);
   hl.forEach((m,mesh_)=>{ mesh_.material.emissiveIntensity=.12+.1*Math.sin(now*4); });
@@ -758,7 +976,7 @@ function tick(){
   // números sobre las piezas
   if(cur>=0&&!SUITS[cur].soon&&tab==='partes'){ const F=FIG[cur], w=innerWidth, h=innerHeight; const cd=camera.getWorldDirection(V3());
     for(const t of tags.children){ const pt=F.f.parts[t.dataset.k]; if(!pt){ t.style.display='none'; continue; }
-      if(t.dataset.k==='franjas'&&!F.stripes){ t.style.display='none'; continue; }
+      if(t.dataset.k==='franjas'&&!F.stripes&&F.s.id!=='orlan'){ t.style.display='none'; continue; }
       pt.obj.localToWorld(tmp.copy(pt.pos)); const loc=F.root.worldToLocal(tmp.clone()), camL=F.root.worldToLocal(camera.position.clone());
       const back=(loc.z<-.05&&camL.z>0)||(loc.z>.08&&camL.z<0);
       tmp.project(camera); const vis=tmp.z<1;
@@ -766,7 +984,7 @@ function tick(){
   }
   requestAnimationFrame(tick);
 }
-FIG.forEach(F=>{ if(F.f.anim.stripes) F.f.anim.stripes.forEach(m=>m.visible=false); });
+FIG.forEach(F=>{ if(F.f.anim.stripes&&F.s.id!=='orlan') F.f.anim.stripes.forEach(m=>m.visible=false); });
 // arranque: vista de toda la sala y luego vuela al traje del enlace (o al A7L)
 camera.position.set(0,3,11); controls.target.set(0,1.3,0);
 const hi=SUITS.findIndex(s=>'#'+s.id===location.hash); select(hi>=0?hi:2);

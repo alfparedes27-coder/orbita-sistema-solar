@@ -143,9 +143,9 @@ const SITES=[
  S('surv6','Surveyor 6','robot',0.47,-1.43,'10 nov 1967','Sinus Medii (centro de la cara visible)','NASA · Atlas‑Centaur desde Cabo Cañaveral'),
  S('surv7','Surveyor 7','robot',-40.98,-11.51,'10 ene 1968','Borde del cráter Tycho','NASA · Atlas‑Centaur desde Cabo Cañaveral'),
  S('luna16','Luna 16','robot',-0.68,56.3,'20 sep 1970','Mar de la Fecundidad','URSS · Protón desde Baikonur'),
- S('luna17','Luna 17 + Lunojod 1','robot',38.28,-35.0,'17 nov 1970','Mar de las Lluvias','URSS · Protón desde Baikonur'),
+ S('luna17','Luna 17 + Lunojod 1','robot',38.28,-35.0,'17 nov 1970','Mar de las Lluvias','URSS · Protón desde Baikonur',{full:true}),
  S('luna20','Luna 20','robot',3.79,56.62,'21 feb 1972','Montañas junto al Mar de la Fecundidad','URSS · Protón desde Baikonur',{below:true}),
- S('luna21','Luna 21 + Lunojod 2','robot',25.85,30.45,'15 ene 1973','Cráter Le Monnier','URSS · Protón desde Baikonur',{below:true}),
+ S('luna21','Luna 21 + Lunojod 2','robot',25.85,30.45,'15 ene 1973','Cráter Le Monnier','URSS · Protón desde Baikonur',{below:true,full:true}),
  S('luna24','Luna 24','robot',12.71,62.21,'18 ago 1976','Mar de las Crisis','URSS · Protón desde Baikonur'),
  S('ce3','Chang\'e 3 + Yutu','robot',44.12,-19.51,'14 dic 2013','Mar de las Lluvias','China · Larga Marcha 3B desde Xichang'),
  S('ce5','Chang\'e 5','robot',43.06,-51.92,'1 dic 2020','Mons Rümker','China · Larga Marcha 5 desde Wenchang'),
@@ -203,6 +203,29 @@ const INFO={
    <p>Envió 11.237 fotos: rocas, sus propias patas hundidas apenas unos centímetros y el horizonte. Sobrevivió a la noche lunar, de unos 14 días a −150 °C, y siguió respondiendo hasta enero de 1967.</p>
    <p>Gracias a las Surveyor, la NASA supo que el módulo lunar del Apollo no se hundiría.</p>`,
   prof:{name:'Surveyor 1',kind:'surv',td:202,ev:[[0,75000,0,-2600,'A 75 km se enciende el retrocohete sólido principal'],[40,11000,0,-110,'Se apaga y se suelta el retrocohete; siguen 3 motores vernier'],[150,1500,0,-25,'El radar guía el descenso'],[198,4,0,-1.5,'A 4 m se apagan los motores'],[202,0,0,0,'Contacto a 3 m/s: primer alunizaje suave de EE. UU.']]}},
+ luna17:{ kind:'lunojod', launch:[['Cohete','Protón‑K con etapa Blok D'],['Plataforma','Cosmódromo de Baikonur (Kazajistán)'],['Despegue','10 de noviembre de 1970, 14:44 UTC'],['Alunizaje','17 de noviembre de 1970, 03:47 UTC, Mar de las Lluvias'],['Bajada del rover','el mismo día a las 06:28 UTC, por la rampa'],['Rover','Lunojod 1: 756 kg, 8 ruedas'],['Recorrido','10,54 km en 11 días lunares (322 días terrestres)']],
+  how:`<p>El <b>Lunojod 1</b> fue el primer vehículo con ruedas en otro mundo. Viajó sobre una plataforma de descenso (Luna 17) que llevaba dos pares de rampas: al alunizar, se bajó por las rampas que quedaban del lado más seguro.</p><ul>
+   <li><b>Tina de magnesio:</b> el cuerpo es una tina presurizada con aire, donde va la electrónica, como dentro de una casa con calefacción.</li>
+   <li><b>Tapa solar:</b> por dentro está cubierta de celdas solares. De día se abre para cargar las baterías; de noche se cierra como una tapa de olla para guardar el calor.</li>
+   <li><b>Calentador nuclear:</b> la noche lunar dura unos 14 días a −150 °C. Una fuente de polonio‑210 calentaba un gas que circulaba por la tina para que no se congelara.</li>
+   <li><b>8 ruedas con motor propio:</b> cada una podía frenarse o soltarse sola; si un motor fallaba, la rueda se desenganchaba y el rover seguía con 7.</li>
+   <li><b>Manejado desde la Tierra:</b> cinco personas en Crimea lo manejaban mirando una imagen de TV que llegaba cada pocos segundos, con 1,3 s de retraso en cada sentido.</li>
+   <li><b>Retrorreflector láser</b> de fabricación francesa: en 2010 un observatorio de EE. UU. volvió a recibir su eco y resultó más brillante que el del Lunojod 2.</li></ul>`,
+  story:`<p>Fue diseñado para durar 3 días lunares (unos 3 meses) y funcionó 11. Recorrió 10,54 km, tomó más de 20.000 imágenes de TV y 200 panoramas, y analizó el suelo en cientos de puntos.</p>
+   <p>Su última sesión fue el 14 de septiembre de 1971. Durante casi 40 años nadie supo exactamente dónde había quedado, hasta que la sonda LRO de la NASA lo fotografió en marzo de 2010 con sus huellas. El 22 de abril de 2010 el observatorio Apache Point le disparó un láser y recibió 1.916 fotones de vuelta.</p>`,
+  prof:{name:'Luna 17',kind:'lunojod',td:240,ev:[[0,16000,0,-250,'Desde el punto más bajo de su órbita se enciende el motor principal (perfil esquemático)'],[200,600,0,-25,'Se apaga el motor principal; siguen dos motores pequeños de precisión'],[234,15,0,-3,'Últimos metros'],[240,0,0,0,'Alunizaje en el Mar de las Lluvias']]}},
+ luna21:{ kind:'lunojod', l2:true, launch:[['Cohete','Protón‑K con etapa Blok D'],['Plataforma','Baikonur, plataforma 81L'],['Despegue','8 de enero de 1973, 06:55 UTC'],['Alunizaje','15 de enero de 1973, 22:35 UTC, dentro del cráter Le Monnier'],['Bajada del rover','16 de enero de 1973, 01:14 UTC'],['Rover','Lunojod 2: 840 kg, unos 1,7 × 1,6 × 1,35 m, 8 ruedas'],['Recorrido','unos 39 km (recálculo con fotos de LRO): récord hasta 2014'],['Dónde quedó','25,83° N, 30,92° E (medido por LRO)']],
+  how:`<p>El <b>Lunojod 2</b> es el hermano mejorado del Lunojod 1: misma tina de magnesio, la misma tapa solar y el mismo calentador de polonio‑210, pero más rápido y con mejores ojos.</p><ul>
+   <li><b>Tercera cámara de TV, más alta:</b> los conductores del Lunojod 1 veían el terreno casi a ras del suelo. La nueva cámara, montada más arriba, daba una vista más parecida a la de una persona y permitió ir más rápido.</li>
+   <li><b>RIFMA:</b> un espectrómetro de rayos X que decía de qué estaba hecho el suelo.</li>
+   <li><b>Penetrómetro PROP:</b> una novena rueda, pequeña, que medía qué tan blando era el suelo y servía de odómetro.</li>
+   <li><b>Magnetómetro y fotómetro:</b> midieron el magnetismo de las rocas y el brillo del cielo lunar, para saber si se podía hacer astronomía desde la Luna.</li>
+   <li><b>Retrorreflector francés</b> de 44 × 19 cm con 14 prismas: todavía hoy se le disparan láseres desde la Tierra para medir la distancia a la Luna, aunque solo de noche.</li></ul>`,
+  story:`<p>Alunizó dentro del cráter Le Monnier, a orillas del Mar de la Serenidad, un mes después del Apollo 17. En 4 meses recorrió unos 39 km según el recálculo con fotos de LRO (otras mediciones dan entre 37 y 42 km): el récord fuera de la Tierra hasta que el rover Opportunity lo superó en Marte en 2014.</p>
+   <p>El 9 de mayo de 1973 rozó la pared de un cráter y la tapa abierta se llenó de polvo. Al cerrarla de noche, el polvo cayó sobre el radiador y el rover se sobrecalentó. La misión terminó oficialmente a comienzos de junio de 1973.</p>
+   <p><b>Tiene dueño.</b> En 1993, en una subasta de Sotheby's en Nueva York, Rusia vendió el Lunojod 2 junto con su plataforma Luna 21. Lo compró Richard Garriott, creador de videojuegos, por 68.500 dólares. Recibió los papeles de propiedad y una foto de una maqueta: el rover sigue en la Luna. En 2008 Garriott viajó a la Estación Espacial.</p>
+   <p>En 2010 la sonda LRO lo fotografió con sus huellas.</p>`,
+  prof:{name:'Luna 21',kind:'lunojod',td:240,ev:[[0,16000,0,-250,'Desde el punto más bajo de su órbita se enciende el motor principal (perfil esquemático)'],[200,600,0,-25,'Se apaga el motor principal; siguen dos motores pequeños de precisión'],[234,15,0,-3,'Últimos metros'],[240,0,0,0,'Alunizaje en el cráter Le Monnier']]}},
  a11:{ launch:[['Cohete','Saturn V (SA‑506), 110 m de alto'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','16 de julio de 1969, 13:32 UTC'],['Viaje','4 días hasta la órbita lunar'],['Nave','Columbia (módulo de mando) y Eagle (módulo lunar)'],['Tripulación','Neil Armstrong, Buzz Aldrin y Michael Collins (en órbita)'],['Alunizaje','20 de julio de 1969, 20:17 UTC']],
   how:LMHOW+`<p>En el suelo dejaron un sismógrafo y un <b>retrorreflector láser</b>: aún hoy los observatorios disparan láseres a ese espejo y miden la distancia a la Luna con precisión de milímetros. Así sabemos que se aleja 3,8 cm por año.</p>`,
   story:`<p>Durante el descenso sonaron las alarmas 1202 y 1201: la computadora estaba sobrecargada, pero estaba diseñada para descartar tareas secundarias. Desde Houston, un ingeniero de 26 años dijo que podían seguir.</p>
@@ -335,19 +358,22 @@ function openCard(s){
   stopAnim();
   $('card').hidden=false; const c='#'+GROUP[s.g][0].toString(16); $('cst').textContent=GROUP[s.g][1]+' · '+s.place; $('cst').style.color=c; $('cname').textContent=s.name;
   const I=INFO[s.id], tabs=I?[['how','Cómo funciona'],['story','Historia'],['launch','Despegue y alunizaje']]:[];
+  if(LRVD[s.id]) tabs.push(['lrv','🚙 Rover lunar']); if(tab==='lrv'&&!LRVD[s.id]) tab='how';
   $('tabs').innerHTML=tabs.map(([k,l])=>`<button data-k="${k}" aria-pressed="${k===tab}">${l}</button>`).join('');
   $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.k;openCard(s);});
   $('robo').hidden=!I; $('anim').hidden=true;
   const coords=`${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${Math.abs(s.lon).toFixed(2)}° ${s.lon>=0?'E':'O'}`;
   if(!I){ $('cbody').innerHTML=`<p>${NOTE[s.id]||''}</p><div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${coords}</b><span>Quién y cómo</span><b>${s.who}</b></div>
     ${s.id==='luna17'?`<a class="go" href="lunojod/">🎛 Manejar el Lunojod 1 desde la Tierra, con el retraso de la señal →</a>`:`<div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`}`; return; }
-  if(I.kind) buildProbe(I.kind); else buildLM(['a15','a16','a17'].includes(s.id), s.id==='a12'); castAll(lm); castAll(stay); setPose(1e9,I.prof);
+  if(tab==='lrv'){ buildLRVDetail(s.id==='a17'); rctl.target.set(0,.8,0); rcam.position.set(4.2,2.3,4.6); $('cbody').innerHTML=lrvHTML(s); $('cbody').scrollTop=0; return; }
+  if(I.kind) buildProbe(I.l2?'lunojod2':I.kind); else buildLM(['a15','a16','a17'].includes(s.id), s.id==='a12'); castAll(lm); castAll(stay); setPose(1e9,I.prof); if(I.kind==='lunojod'){ rctl.target.set(.6,1.1,2.6); rcam.position.set(8,4.2,9.5); }
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
     <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>
+    ${s.id==='luna17'?`<a class="go" href="lunojod/">🎛 Manejar el Lunojod 1 desde la Tierra, con el retraso de la señal →</a>`:''}
     ${s.id==='a11'?`<a class="go" href="paseo/">🚶 Caminar por Tranquility Base en primera persona →</a>`:''}
     ${s.id==='a17'?`<a class="go" href="paseo/?m=a17">🚙 Manejar el rover lunar por el valle Taurus‑Littrow →</a>`:''}
     ${REVS[s.id]?`<a class="go alt" href="apollo/#${s.id}">Ver la misión completa: Saturn V, viaje, ${REVS[s.id]} vueltas y regreso →</a>`:''}
-    <p style="font-size:11.5px;color:var(--faint)">Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.</p>`;
+    <p style="font-size:11.5px;color:var(--faint)">${I.kind==='lunojod'?'Fechas: NASA (Siddiqi, «Deep Space Chronicle») y LROC. El perfil de descenso es esquemático; el rover baja por la rampa acelerado (en la realidad tardó unas 2 a 3 horas).':'Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.'}</p>`;
   $('cbody').innerHTML=h; $('cbody').scrollTop=0;
   if($('play')) $('play').onclick=()=>startAnim(I.prof);
 }
@@ -359,7 +385,7 @@ rr.shadowMap.enabled=true; rr.shadowMap.type=THREE.PCFSoftShadowMap;
 const castAll=g=>g.traverse(o=>{ if(o.isMesh && !(o.material.blending===THREE.AdditiveBlending)) o.castShadow=true; });
 const rs=new THREE.Scene(); rs.background=new THREE.Color(0x000000);
 const rcam=new THREE.PerspectiveCamera(35,1,0.05,60000); rcam.position.set(9,4,9);
-const rctl=new OrbitControls(rcam,rc); rctl.enableDamping=true; rctl.target.set(0,2,0); rctl.autoRotate=true; rctl.autoRotateSpeed=1.0; rctl.minDistance=4; rctl.maxDistance=40; rctl.maxPolarAngle=1.5;
+const rctl=new OrbitControls(rcam,rc); rctl.enableDamping=true; rctl.target.set(0,2,0); rctl.autoRotate=true; rctl.autoRotateSpeed=1.0; rctl.minDistance=2.5; rctl.maxDistance=40; rctl.maxPolarAngle=1.5;
 rs.add(new THREE.AmbientLight(0x404650,1.0)); const rl=new THREE.DirectionalLight(0xffffff,3.2); rl.position.set(-8,5,3); rs.add(rl); rl.castShadow=true; rl.shadow.mapSize.set(1024,1024); rl.shadow.camera.left=rl.shadow.camera.bottom=-12; rl.shadow.camera.right=rl.shadow.camera.top=12; rl.shadow.camera.far=60; rl.shadow.bias=-0.0008; rl.shadow.normalBias=0.03;
 { const c=document.createElement('canvas'); c.width=c.height=512; const x=c.getContext('2d'); x.fillStyle='#8d8b86'; x.fillRect(0,0,512,512);
   for(let i=0;i<5000;i++){const r=Math.random();x.fillStyle=`rgba(${110+r*80|0},${108+r*78|0},${104+r*74|0},.35)`;x.fillRect(Math.random()*512,Math.random()*512,1+Math.random()*4,1+Math.random()*4);}
@@ -390,6 +416,28 @@ function buildProbe(kind){
     const pet=[]; for(let i=0;i<4;i++){ const a=i*Math.PI/2, piv=new THREE.Group(); piv.rotation.y=a; const q=new THREE.Group(); q.position.set(0,-0.1,0.28); const pl=box(0.32,0.5,0.02,wht); pl.position.y=0.25; q.add(pl); piv.add(q); cap.add(piv); pet.push(q); }
     const ant=new THREE.Group(); for(let i=0;i<4;i++){ const a=i*Math.PI/2+0.78; ant.add(rod(new THREE.Vector3(0,0.2,0),new THREE.Vector3(Math.cos(a)*0.5,0.95,Math.sin(a)*0.5),0.008,alu)); } cap.add(ant);
     cap.userData={bags,pet,ant}; cap.scale.setScalar(3); stay.add(cap); stay.userData.cap=cap;
+  } else if(kind==='lunojod'||kind==='lunojod2'){ // plataforma de descenso con rampas y el rover encima
+    for(const sx of[-1,1]) for(const sz of[-1,1]){ const t=new THREE.Mesh(new THREE.SphereGeometry(.55,20,14),alu); t.position.set(sx*.65,1.05,sz*.65); lm.add(t); }
+    const deck=cy(1.5,1.5,.12,wht,8); deck.position.y=1.72; deck.rotation.y=Math.PI/8; lm.add(deck);
+    for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, f=new THREE.Vector3(Math.cos(a)*2.0,.08,Math.sin(a)*2.0);
+      lm.add(rod(new THREE.Vector3(Math.cos(a)*1.1,1.6,Math.sin(a)*1.1),f,.05,alu)); const pd=cy(.22,.25,.08,alu,12); pd.position.copy(f); lm.add(pd); }
+    const nz=cy(.2,.4,.6,dk,16); nz.position.y=.35; lm.add(nz); plume.position.y=-1.6; lm.add(plume);
+    for(const sz of[-1,1]) for(const sx of[-.42,.42]){ const r=box(.18,.03,2.4,alu); r.position.set(sx,.95,sz*2.6); r.rotation.x=sz*.62; r.name='ramp'; lm.add(r); }
+    // el rover: tina de magnesio, tapa solar, 8 ruedas, antenas, cámaras y retrorreflector
+    const rv=new THREE.Group(); const tub=new THREE.Mesh(new THREE.CylinderGeometry(.95,.7,.55,4,1),Mt(0xc2c6cc,{metalness:.55,roughness:.35})); tub.rotation.y=Math.PI/4; tub.scale.set(1,1,1.08); tub.position.y=.75; rv.add(tub);
+    const lidP=new THREE.Group(); lidP.position.set(0,1.03,-.75); rv.add(lidP);
+    const lid=new THREE.Mesh(new THREE.SphereGeometry(1.1,24,10,0,Math.PI*2,0,.55),Mt(0xa9adb3,{metalness:.7,roughness:.35,side:THREE.DoubleSide})); lid.scale.set(1,.45,1); lid.position.set(0,-.33,.75); lidP.add(lid);
+    const cells=new THREE.Mesh(new THREE.CircleGeometry(.86,24),Mt(0x1b2c5e,{metalness:.5,roughness:.3,side:THREE.DoubleSide})); cells.rotation.x=Math.PI/2; cells.position.set(0,.12,.75); lidP.add(cells); lidP.rotation.x=-1.9; rv.userData.lid=lidP;
+    for(const sx of[-1,1]) for(let k=0;k<4;k++){ const w=cy(.255,.255,.2,Mt(0x55585e,{metalness:.6}),18); w.rotation.z=Math.PI/2; w.position.set(sx*.82,.26,-.75+k*.5); rv.add(w);
+      for(let j=0;j<3;j++){ const sp=box(.22,.03,.46,alu); sp.position.copy(w.position); sp.rotation.x=j*Math.PI/3; rv.add(sp); } }
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(.12,.45,16),alu); cone.position.set(-.5,1.25,.55); rv.add(cone);
+    rv.add(rod(new THREE.Vector3(.45,1.0,.5),new THREE.Vector3(.55,1.65,.55),.02,alu)); const hel=cy(.05,.05,.45,wht,12); hel.position.set(.55,1.75,.55); hel.rotation.z=.25; rv.add(hel);
+    rv.add(rod(new THREE.Vector3(-.2,1.0,-.6),new THREE.Vector3(-.2,1.8,-.7),.01,alu));
+    for(const sx of[-.18,.18]){ const cmw=box(.14,.1,.06,dk); cmw.position.set(sx,.85,.98); rv.add(cmw); }
+    if(kind==='lunojod2'){ rv.add(rod(new THREE.Vector3(0,1.0,.9),new THREE.Vector3(0,1.38,.95),.02,alu)); const c3=box(.16,.12,.14,dk); c3.position.set(0,1.42,.98); rv.add(c3); }
+    const rr_=box(.44,.2,.04,Mt(0xd9dde3,{metalness:.95,roughness:.08})); rr_.position.set(0,.85,1.02); rr_.rotation.x=-.5; rv.add(rr_);
+    const iso=cy(.18,.18,.3,dk,14); iso.rotation.x=Math.PI/2; iso.position.set(0,.75,-1.1); rv.add(iso);
+    stay.add(rv); stay.userData.rover=rv;
   } else { // Surveyor: estructura triangular, 3 patas, mástil con panel solar, antena plana y cámara
     const fr=cy(0.9,0.9,0.15,alu,3); fr.position.y=1.3; lm.add(fr);
     for(let i=0;i<3;i++){ const a=i/3*Math.PI*2+Math.PI/6, f=new THREE.Vector3(Math.cos(a)*2.1,0.08,Math.sin(a)*2.1);
@@ -439,6 +487,82 @@ function buildLM(lrv,sv){ lm.visible=true;
     const um=new THREE.Mesh(new THREE.SphereGeometry(0.5,16,8,0,Math.PI*2,0,1.0),alu); um.position.set(0,2.0,-1.2); car.add(um); car.add(rod(new THREE.Vector3(0,0.8,-1.2),new THREE.Vector3(0,1.6,-1.2),0.03,alu));
     car.position.set(6,0,-2); car.rotation.y=0.7; stay.add(car); }
 }
+/* ---- rover lunar del Apollo (LRV) en detalle ---- */
+const LRVD={a15:['Apollo 15','27,8 km','3 h 02 min','5,0 km','≈165 m al este del módulo Falcon'],a16:['Apollo 16','26,7 km','3 h 26 min','4,5 km','≈81 m al este del módulo Orion'],a17:['Apollo 17','35,9 km','4 h 26 min','7,6 km','≈158 m al este del módulo Challenger']};
+const LRVPARTS=[
+ ['Ruedas de malla de alambre','No tienen goma ni aire, que en el vacío se reventaría o se congelaría. Son una malla tejida de alambre de acero galvanizado de 81,8 cm de diámetro, con chevrones de titanio en la mitad de la superficie para agarrarse al polvo.'],
+ ['Un motor en cada rueda','4 motores eléctricos de 0,25 caballos (uno por rueda), con reductor. Si fallaba uno, los otros tres seguían.'],
+ ['Dirección en las 4 ruedas','Las ruedas de adelante y las de atrás giran en sentidos opuestos, así que podía dar la vuelta en 3,1 m: menos que un auto.'],
+ ['Mando en T','No tenía volante ni pedales: una sola palanca entre los asientos. Adelante para acelerar, atrás para frenar, a los lados para girar. Lo podía manejar cualquiera de los dos astronautas.'],
+ ['Panel de navegación','Un giroscopio y un odómetro le decían a una pequeña computadora el rumbo y la distancia de vuelta al módulo lunar, porque en la Luna no hay brújula que sirva ni GPS.'],
+ ['Baterías','Dos baterías de plata‑zinc de 36 V, no recargables, con espejos encima para no calentarse. Si una fallaba, la otra alcanzaba para todo.'],
+ ['Guardabarros','Sin ellos cada rueda lanzaba un chorro de polvo sobre los astronautas, las baterías y los instrumentos. En el Apollo 17 se rompió uno y lo repararon con 4 mapas, cinta adhesiva y dos pinzas: el arreglo lo inventaron en Houston mientras ellos dormían.'],
+ ['Antena de plato','La antena grande, como un paraguas, mandaba la TV en directo a la Tierra. Había que apuntarla a mano a la Tierra en cada parada.'],
+ ['Cámara de TV controlada desde Houston','La GCTA, hecha por RCA, la movía un operador en Houston con 18 órdenes: girar, inclinar, zoom. Así se filmó el despegue del módulo lunar: la cámara quedó en el rover y siguió la nave hacia arriba.'],
+ ['Asientos plegables','Tubos de aluminio y red de nailon, con cinturón. Con el traje inflado costaba sentarse: por eso el traje A7LB del Apollo 15 al 17 agregó una articulación en la cintura.'],
+ ['Plegado en el módulo lunar','Viajó doblado en tres partes, colgado de costado en un hueco de la etapa de descenso. Un astronauta tiraba de unas cintas y el rover bajaba solo, desplegando las ruedas como una silla plegable.']];
+function lrvHTML(s){ const d=LRVD[s.id];
+  return `<p>El <b>LRV</b> (Lunar Roving Vehicle) fue el auto eléctrico de los últimos tres Apollo. Pesaba solo 210 kg en la Tierra (en la Luna, como 35 kg) y podía cargar 490 kg: más del doble de su peso, con dos astronautas, herramientas y rocas.</p>
+   <div class="kv"><span>En el ${d[0]}</span><b>${d[1]} en ${d[2]}</b><span>Lo más lejos del módulo</span><b>${d[3]}</b><span>Dónde quedó</span><b>${d[4]}</b><span>Fabricante</span><b>Boeing, con GM Delco (ruedas y motores)</b><span>Tamaño</span><b>3,1 m de largo, 1,8 m de ancho, 1,14 m de alto</b><span>Velocidad</span><b>unos 11–13 km/h; récord 18 km/h (Cernan, Apollo 17)</b></div>
+   <h4 style="margin:10px 0 4px;font-size:13.5px">Pieza por pieza</h4><ul>${LRVPARTS.map(p=>`<li><b>${p[0]}:</b> ${p[1]}</li>`).join('')}</ul>
+   <p><b>La regla de caminar de vuelta.</b> El rover no podía alejarse más de unos 9,7 km del módulo lunar: es lo que los astronautas podían caminar de regreso, con el oxígeno de la mochila, si se descomponía. Nunca los dejó a pie.</p>
+   <p><b>¿Cuánto costó?</b> El contrato con Boeing empezó en 19 millones de dólares y, con los sobrecostos, terminó en 38 millones por los 4 rovers de vuelo (3 fueron a la Luna y el cuarto se usó para repuestos), además de 8 unidades de prueba. Los tres siguen en la Luna, donde los dejaron estacionados, y la sonda LRO los ha fotografiado.</p>
+   ${s.id==='a17'?`<a class="go" href="paseo/?m=a17">🚙 Manejarlo por el valle Taurus‑Littrow →</a>`:''}
+   <p style="font-size:11.5px;color:var(--faint)">Fuentes: NASA NSSDCA (LRV), NASA Marshall (Morea, «LRV: Historical Perspective»), NASA SP‑350, Smithsonian, NASA ALSJ y LROC.</p>`; }
+function buildLRVDetail(repair){
+  lm.clear(); stay.clear(); lm.visible=true; lm.position.set(0,0,0); lm.rotation.set(0,0,0); plume=null;
+  const alu=Mt(0xc9ccd1,{metalness:.85,roughness:.32}), dark=Mt(0x2b2d31,{roughness:.6}), fen=Mt(0xd9d6cf,{roughness:.55,metalness:.1}), net=Mt(0x8f99a8,{roughness:.8}), gold=Mt(0xc9a03a,{metalness:.85,roughness:.35}), blk=Mt(0x18191c);
+  // malla de alambre (textura con huecos) y chevrones de titanio
+  const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'); x.strokeStyle='#d8dbe0'; x.lineWidth=2.2;
+  for(let i=-128;i<256;i+=10){ x.beginPath(); x.moveTo(i,0); x.lineTo(i+128,128); x.stroke(); x.beginPath(); x.moveTo(i,128); x.lineTo(i+128,0); x.stroke(); }
+  const mt=new THREE.CanvasTexture(c); mt.wrapS=mt.wrapT=THREE.RepeatWrapping; mt.repeat.set(14,2); mt.anisotropy=8;
+  const mesh_=new THREE.MeshStandardMaterial({color:0xc8ccd2,metalness:.9,roughness:.35,alphaMap:mt,transparent:false,alphaTest:.5,side:THREE.DoubleSide});
+  const R=.409, Wd=.23;
+  for(const sx of[-1,1]) for(const sz of[-1,1]){ const w=new THREE.Group(); w.position.set(sx*.915,R,sz*1.15); lm.add(w);
+    const tire=new THREE.Mesh(new THREE.CylinderGeometry(R,R,Wd,64,1,true),mesh_); tire.rotation.z=Math.PI/2; w.add(tire);
+    const inner=new THREE.Mesh(new THREE.CylinderGeometry(R*.86,R*.86,Wd*.9,48,1,true),mesh_); inner.rotation.z=Math.PI/2; w.add(inner);
+    for(let k=0;k<18;k++){ const a=k/18*Math.PI*2, ch=box(Wd*.92,.012,.07,alu); ch.position.set(0,Math.cos(a)*(R+.004),Math.sin(a)*(R+.004)); ch.rotation.x=-a; ch.rotation.y=(k%2?.35:-.35); w.add(ch); }
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.06,32),alu); hub.rotation.z=Math.PI/2; hub.position.x=-sx*.06; w.add(hub);
+    const motor=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.22,24),dark); motor.rotation.z=Math.PI/2; motor.position.x=-sx*.17; w.add(motor);
+    for(const rim of[-1,1]){ const t=new THREE.Mesh(new THREE.TorusGeometry(R,.008,8,64),alu); t.rotation.y=Math.PI/2; t.position.x=rim*Wd/2; w.add(t); }
+    // guardabarros (en el Apollo 17, el de atrás a la derecha reparado con mapas)
+    const f=new THREE.Mesh(new THREE.CylinderGeometry(R+.06,R+.06,Wd+.08,40,1,true,Math.PI*1.15,Math.PI*.95),fen); f.rotation.z=Math.PI/2; f.material=fen.clone(); f.material.side=THREE.DoubleSide; w.add(f);
+    if(repair && sx<0 && sz<0){ const mp=new THREE.Mesh(new THREE.CylinderGeometry(R+.075,R+.075,Wd+.1,30,1,true,Math.PI*1.25,Math.PI*.55),Mt(0xe9e1c8,{roughness:.9,side:THREE.DoubleSide})); mp.rotation.z=Math.PI/2; w.add(mp);
+      for(const zz of[-.12,.12]){ const cl=box(.03,.05,.03,blk); cl.position.set(0,R+.08,zz); w.add(cl); } }
+    lm.add(rod(new THREE.Vector3(sx*.55,.62,sz*1.0),new THREE.Vector3(sx*.8,R,sz*1.15),.02,alu)); }
+  // chasis en tres secciones
+  for(const [z0,z1] of [[-1.5,-.55],[-.5,.5],[.55,1.5]]){ const fr=box(1.1,.06,z1-z0,alu); fr.position.set(0,.6,(z0+z1)/2); lm.add(fr);
+    for(const sx of[-1,1]) lm.add(rod(new THREE.Vector3(sx*.55,.6,z0),new THREE.Vector3(sx*.55,.6,z1),.025,alu)); }
+  const floor=box(1.05,.015,1.0,Mt(0x9aa0a8,{metalness:.5})); floor.position.set(0,.64,.0); lm.add(floor);
+  // asientos de tubo y red
+  for(const sx of[-1,1]){ const sg=new THREE.Group(); sg.position.set(sx*.3,.66,-.15); lm.add(sg);
+    const seat=box(.42,.03,.42,net); seat.position.set(0,.12,0); sg.add(seat);
+    const back=box(.42,.42,.03,net); back.position.set(0,.33,-.21); back.rotation.x=-.18; sg.add(back);
+    for(const ex of[-.21,.21]){ sg.add(rod(new THREE.Vector3(ex,0,.2),new THREE.Vector3(ex,.13,.2),.012,alu)); sg.add(rod(new THREE.Vector3(ex,.13,-.21),new THREE.Vector3(ex,.54,-.28),.012,alu)); }
+    const foot=box(.3,.02,.18,alu); foot.position.set(sx*.3,.66,.62); foot.rotation.x=-.5; lm.add(foot); }
+  // consola y mando en T
+  lm.add(rod(new THREE.Vector3(0,.64,.55),new THREE.Vector3(0,1.05,.62),.025,alu));
+  const cons=box(.34,.26,.06,Mt(0x3a3d42,{roughness:.5})); cons.position.set(0,1.12,.66); cons.rotation.x=-.4; lm.add(cons);
+  for(let i=0;i<3;i++){ const g=new THREE.Mesh(new THREE.CircleGeometry(.035,20),Mt(0xe8e8e0,{emissive:0x111111})); g.position.set(-.1+i*.1,1.15,.695); g.rotation.x=-.4; lm.add(g); }
+  lm.add(rod(new THREE.Vector3(0,.64,.18),new THREE.Vector3(0,.86,.2),.02,dark));
+  const th=rod(new THREE.Vector3(-.06,.88,.2),new THREE.Vector3(.06,.88,.2),.015,dark); lm.add(th);
+  // baterías con tapas de espejo, unidad de radio (LCRU), antenas y cámara al frente
+  for(const sx of[-1,1]){ const b=box(.32,.16,.3,Mt(0xeeeeea,{roughness:.4})); b.position.set(sx*.25,.72,1.25); lm.add(b);
+    const mir=box(.3,.01,.28,Mt(0xffffff,{metalness:1,roughness:.08})); mir.position.set(sx*.25,.81,1.25); lm.add(mir); }
+  const lcru=box(.38,.22,.26,Mt(0xd8d4c8,{roughness:.6})); lcru.position.set(0,.98,1.38); lm.add(lcru);
+  lm.add(rod(new THREE.Vector3(-.3,.7,1.45),new THREE.Vector3(-.3,1.75,1.45),.015,alu));
+  const um=new THREE.Mesh(new THREE.SphereGeometry(.5,32,10,0,Math.PI*2,0,.85),Mt(0xdadde2,{metalness:.6,roughness:.4,side:THREE.DoubleSide})); um.position.set(-.3,1.6,1.45); um.rotation.x=-1.1; um.rotation.z=.3; lm.add(um);
+  lm.add(rod(new THREE.Vector3(.08,1.1,1.38),new THREE.Vector3(.08,1.5,1.38),.012,alu));
+  const hel=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.35,12),Mt(0xbdbdbd,{metalness:.6})); hel.position.set(.08,1.66,1.38); lm.add(hel);
+  lm.add(rod(new THREE.Vector3(.3,.7,1.45),new THREE.Vector3(.3,1.3,1.45),.02,alu));
+  const camb=box(.14,.13,.26,Mt(0xe4e2dc,{roughness:.5})); camb.position.set(.3,1.38,1.47); lm.add(camb);
+  const lens=new THREE.Mesh(new THREE.CylinderGeometry(.04,.045,.08,20),blk); lens.rotation.x=Math.PI/2; lens.position.set(.3,1.38,1.63); lm.add(lens);
+  // carga atrás: herramientas y bolsas de muestras
+  const pal=box(.9,.35,.3,Mt(0x8a8f96,{metalness:.4})); pal.position.set(0,.85,-1.38); lm.add(pal);
+  for(let i=0;i<3;i++){ const t=rod(new THREE.Vector3(-.3+i*.3,.95,-1.3),new THREE.Vector3(-.3+i*.3,1.55,-1.25),.012,alu); lm.add(t); }
+  const bag=box(.3,.25,.2,gold); bag.position.set(.3,1.12,-1.42); lm.add(bag);
+  castAll(lm);
+}
 /* ---- animación del alunizaje ---- */
 let anim=null, aSpeed=1;
 const ANS=[1,10,20,50];
@@ -452,6 +576,11 @@ function setPose(t,P){ const p=profAt(P,t), x=rangeLeft(P,t);
       if(cap){ const B=Math.max(0,k), hb=k<0?0:8*Math.exp(-B/12)*Math.abs(Math.sin(B*0.9)), done=k>60;
         cap.position.set(Math.min(B,60)*0.1-3.5, t<P.td? -50 : (done?0.9:0.9+hb), 1.5); cap.visible=t>=P.td-0.01;
         cap.userData.bags.visible=t>=P.td && k<70; const open=THREE.MathUtils.clamp((k-200)/40,0,1); cap.userData.pet.forEach((q,i)=>q.rotation.x=-open*1.9); cap.userData.ant.visible=open>=1; if(!done) cap.rotation.z=-B*0.6; else cap.rotation.z=0; } }
+    else if(P.kind==='lunojod'){ const rv=stay.userData.rover; stay.visible=true; lm.visible=true; if(plume) plume.visible=t<P.td-1;
+      if(rv){ const k=t-P.td, u=THREE.MathUtils.clamp((k-20)/35,0,1), v=THREE.MathUtils.clamp((k-55)/25,0,1);
+        if(u<=0){ rv.position.set(lm.position.x,lm.position.y+1.78,0); rv.rotation.x=0; }
+        else { const top=new THREE.Vector3(lm.position.x,lm.position.y+1.78,1.3), bot=new THREE.Vector3(lm.position.x,0,4.0); rv.position.lerpVectors(top,bot,u); rv.position.z+=v*1.2; rv.position.x+=v*1.4; rv.rotation.y=v*.6; rv.rotation.x=(u>0&&u<1)?.62:0; }
+        rv.userData.lid.rotation.x=-1.9*THREE.MathUtils.clamp((k-85)/15,0,1); } }
     else stay.visible=t>=P.td;
     return p; }
   const pitch = t<P.ev.find(e=>e[1]<=2300)[0] ? 1.25 : THREE.MathUtils.lerp(0.45,0,THREE.MathUtils.clamp((t-(P.td-150))/120,0,1));
@@ -481,17 +610,17 @@ function loop(t){
   if(moved) mareEls.forEach(m=>{ if(!vis(m.p)){ m.el.hidden=true; return; } tmp.copy(m.p).project(cam); m.el.hidden=false; m.el.style.left=((tmp.x+1)/2*innerWidth)+'px'; m.el.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
   renderer.render(scene,cam);
   if(!$('card').hidden && !rc.hidden){ const w=rc.clientWidth,h=rc.clientHeight; if(rc.width!==Math.floor(w*rr.getPixelRatio())){ rr.setSize(w,h,false); rcam.aspect=w/h; rcam.updateProjectionMatrix(); }
-    if(anim){ const prevX=lm.position.clone(); anim.t=Math.min(anim.P.td+(anim.P.kind==='luna9'?260:20),anim.t+dt*aSpeed); const p=setPose(anim.t,anim.P);
+    if(anim){ const prevX=lm.position.clone(); anim.t=Math.min(anim.P.td+(anim.P.kind==='luna9'?260:anim.P.kind==='lunojod'?110:20),anim.t+dt*aSpeed); const p=setPose(anim.t,anim.P);
       const d=lm.position.clone().sub(prevX); rctl.target.add(d); rcam.position.add(d);
       const want=new THREE.Vector3(lm.position.x+14,lm.position.y+16,lm.position.z+26); if(anim.t<1) { rcam.position.copy(want); rctl.target.copy(lm.position); }
       const mm=Math.floor(Math.max(0,anim.t)/60), ss=Math.floor(Math.max(0,anim.t)%60);
       $('hud').innerHTML=`${anim.P.name} · ${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')} desde el inicio<br>Altura: ${p[1]>=1000?(p[1]/1000).toFixed(1)+' km':Math.round(p[1])+' m'}<br>Velocidad: ${Math.round(Math.hypot(p[2],p[3])*3.6)} km/h<br><span style="color:var(--mars)">${anim.P.kind==='luna9'&&anim.t>anim.P.td+200?'Se abren los 4 pétalos: ¡primer aterrizaje suave en otro mundo!':anim.P.kind==='luna9'&&anim.t>anim.P.td+60?'Se sueltan las bolsas de aire':p[4]}</span>`;
-      if(anim.t>=anim.P.td+(anim.P.kind==='luna9'?260:20)){ anim=null; rctl.autoRotate=true; } }
+      if(anim.t>=anim.P.td+(anim.P.kind==='luna9'?260:anim.P.kind==='lunojod'?110:20)){ anim=null; rctl.autoRotate=true; } }
     rctl.update(); rr.render(rs,rcam); }
 }
 requestAnimationFrame(loop);
 const [hId,hPart]=location.hash.slice(1).split('/'); const start=SITES.find(s=>s.id===hId);
-if(start){ select(start); if(hPart==='alunizaje' && INFO[start.id]){ tab='launch'; openCard(start); startAnim(INFO[start.id].prof); } }
+if(start){ select(start); if(hPart==='lrv' && LRVD[start.id]){ tab='lrv'; openCard(start); } if(hPart==='alunizaje' && INFO[start.id]){ tab='launch'; openCard(start); startAnim(INFO[start.id].prof); } }
 window.__ml={select,SITES,startAnim:()=>startAnim(INFO.a11.prof)};
 </script>
 </body>
