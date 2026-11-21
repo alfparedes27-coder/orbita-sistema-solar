@@ -1,6 +1,6 @@
 // «Explorar el rover»: visor 3D a pantalla completa con el modelo detallado de cada rover, despiece por piezas con la explicación
 // de cada una, panel del lanzamiento y la llegada, y un recorrido animado sobre el terreno (suspensión rocker‑bogie articulada).
-// Cada rover se describe en ROVERS con su constructor; la página de Marte llama a abrirRover(id). Tanda 1: Perseverance y Curiosity.
+// Cada rover se describe en ROVERS con su constructor; la página de Marte llama a abrirRover(id). Rovers y, desde la tanda 4, módulos fijos (Phoenix, InSight) con su brazo en acción.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -338,6 +338,224 @@ function buildZhurong() {
   return { group: g, parts, wheels, susp, WR: .15, geo: { X: .78, zF: -.82, zM: 0, zR: .82, lift: .02 }, crawl: true };
 }
 
+// ---------- módulos fijos (Phoenix 2008 e InSight 2018): el mismo diseño de Lockheed Martin, con un brazo que trabaja el suelo ----------
+// brazo de dos tramos con muñeca; reach(p, wa) lo apunta con cinemática inversa (p: muñeca relativa a la base, wa: ángulo de la herramienta)
+function roboArm(L1, L2, tool, r = .035) {
+  const base = new THREE.Group(), yaw = new THREE.Group(), sh = new THREE.Group(), el = new THREE.Group(), wr = new THREE.Group();
+  base.add(yaw); yaw.add(at(cyl(.08, .09, .1, M.aluDark, 16), 0, .05, 0)); yaw.add(sh); sh.position.y = .1;
+  sh.add(at(cyl(.06, .06, .13, M.dark, 14), 0, 0, 0, 0, 0, Math.PI / 2));
+  sh.add(rod(V3(0, 0, 0), V3(0, 0, -L1), r, M.alu)); sh.add(rod(V3(0, .035, -.08), V3(0, .03, -L1 + .08), .008, M.black)); el.position.z = -L1; sh.add(el);
+  el.add(at(cyl(.05, .05, .11, M.dark, 14), 0, 0, 0, 0, 0, Math.PI / 2));
+  el.add(rod(V3(0, 0, 0), V3(0, 0, -L2), r * .85, M.alu)); el.add(rod(V3(0, -.03, -.08), V3(0, -.025, -L2 + .08), .007, M.black)); wr.position.z = -L2; el.add(wr);
+  wr.add(at(cyl(.04, .04, .09, M.dark, 12), 0, 0, 0, 0, 0, Math.PI / 2)); wr.add(tool);
+  function reach(p, wa = -Math.PI / 2) {
+    const x = p.x, y = p.y - .1, z = p.z; yaw.rotation.y = Math.atan2(-x, -z);
+    const d = Math.hypot(x, z), D = Math.min(L1 + L2 - 1e-3, Math.max(Math.abs(L1 - L2) + 1e-3, Math.hypot(d, y)));
+    const g = Math.acos(THREE.MathUtils.clamp((D * D - L1 * L1 - L2 * L2) / (2 * L1 * L2), -1, 1));
+    const t1 = Math.atan2(y, d) + Math.atan2(L2 * Math.sin(g), L1 + L2 * Math.cos(g));
+    sh.rotation.x = t1; el.rotation.x = -g; wr.rotation.x = wa - (t1 - g);
+  }
+  return { base, reach, el, wr };
+}
+// panel solar UltraFlex: un decágono que se abre como un abanico
+function ultraflex(R) {
+  const g = new THREE.Group(), pts = [];
+  for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; pts.push([Math.cos(a) * R, Math.sin(a) * R]); }
+  g.add(flatShape(pts, M_CELLS, 0, .018));
+  for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; g.add(rod(V3(0, .02, 0), V3(Math.cos(a) * R, .02, Math.sin(a) * R), .007, M.white)); }
+  const rim = []; for (let k = 0; k <= 10; k++) { const a = k / 10 * Math.PI * 2; rim.push(V3(Math.cos(a) * R, .02, Math.sin(a) * R)); }
+  for (let k = 0; k < 10; k++) g.add(rod(rim[k], rim[k + 1], .006, M.aluDark));
+  g.add(at(cyl(.07, .07, .05, M.alu, 12), 0, .02, 0)); return g;
+}
+// cubierta, propulsores, patas y paneles comunes a los dos; devuelve gy(x,z): altura del suelo en coordenadas del módulo
+function landerBase(part, hf, o) {
+  const h0 = hf(0, 0), gy = (x, z) => hf(x, z) - h0;
+  const deck = new THREE.Group(), skin = Mt(o.col, { metalness: .35, roughness: .45 });
+  deck.add(at(cyl(.78, .78, .28, skin, 10), 0, 1.0, 0));
+  deck.add(at(cyl(.8, .8, .03, M.alu, 10), 0, 1.15, 0));
+  deck.add(at(cyl(.72, .76, .06, M.gold, 10), 0, .84, 0));
+  for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.PI / 4; for (let j = -1; j <= 1; j++) { const b = a + j * .13; deck.add(at(cyl(.03, .05, .11, M.dark, 10), Math.cos(b) * .6, .76, Math.sin(b) * .6)); } }
+  deck.add(at(box(.16, .1, .1, M.dark), 0, .9, -.74)); deck.add(at(cyl(.03, .03, .02, M.lens, 10), 0, .9, -.8, Math.PI / 2));
+  part('cubierta', 'Cubierta y propulsores', deck, V3(0, -.35, 0), o.deckInfo);
+  const legs = new THREE.Group();
+  for (let i = 0; i < 3; i++) {
+    const a = Math.PI / 2 + i / 3 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a), fx = c * 1.12, fz = s * 1.12, f = V3(fx, gy(fx, fz) + .1, fz);
+    legs.add(rod(V3(c * .62, .88, s * .62), f, .045, M.alu));
+    for (const e of [-.4, .4]) legs.add(rod(V3(Math.cos(a + e) * .74, .95, Math.sin(a + e) * .74), f.clone().add(V3(0, .06, 0)), .02, M.aluDark));
+    legs.add(at(cyl(.14, .17, .06, M.alu, 16), fx, f.y - .06, fz));
+  }
+  part('patas', 'Patas', legs, V3(0, -.3, 0), 'Tres patas con amortiguadores de aluminio en forma de panal, que se aplastan una sola vez al tocar el suelo. Los platos de las patas tienen sensores: apenas uno toca el suelo, se apagan los 12 propulsores para no rebotar.');
+  const sol = new THREE.Group();
+  for (const s of [-1, 1]) { const p = ultraflex(o.R); p.position.set(s * (.8 + o.R), 1.16, 0); p.rotation.z = -s * .04; sol.add(p); sol.add(rod(V3(s * .78, 1.13, 0), V3(s * .95, 1.17, 0), .035, M.alu)); }
+  part('solar', 'Paneles solares UltraFlex', sol, V3(0, .45, 0), o.solarInfo);
+  return gy;
+}
+// interpolación suave por fotogramas clave [t, x, y, z, extra]
+function track(keys, t) {
+  let i = 0; while (i < keys.length - 2 && t >= keys[i + 1][0]) i++;
+  const a = keys[i], b = keys[i + 1], u = THREE.MathUtils.clamp((t - a[0]) / Math.max(1e-6, b[0] - a[0]), 0, 1), s = u * u * (3 - 2 * u);
+  return { p: V3(a[1] + (b[1] - a[1]) * s, a[2] + (b[2] - a[2]) * s, a[3] + (b[3] - a[3]) * s), x: (a[4] ?? 0) + ((b[4] ?? 0) - (a[4] ?? 0)) * s, i };
+}
+const sm = (a, b, t) => { const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
+// cable con algo de comba entre dos puntos (las amarras de SEIS y del topo)
+function tether(col) { const n = 16, geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3)); const l = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: col })); l.frustumCulled = false;
+  l.userData.set = (a, b, sag) => { const p = geo.attributes.position; for (let i = 0; i < n; i++) { const u = i / (n - 1); p.setXYZ(i, a.x + (b.x - a.x) * u, a.y + (b.y - a.y) * u - Math.sin(u * Math.PI) * sag, a.z + (b.z - a.z) * u); } p.needsUpdate = true; }; return l; }
+
+// ---------- Phoenix (2008): el módulo polar que cavó hasta el hielo ----------
+function buildPhoenix(hf) {
+  const g = new THREE.Group(), parts = [];
+  const part = (id, name, obj, dir, info) => { obj.userData.part = id; parts.push({ id, name, obj, dir, info, home: obj.position.clone() }); g.add(obj); return obj; };
+  const gy = landerBase(part, hf, { col: 0xd8ccae, R: 1.0,
+    deckInfo: 'La cubierta de 1,5 m guarda la computadora, las baterías y la radio que habla con los orbitadores. Debajo, 12 propulsores de hidracina que se encienden en pulsos lo frenaron en los últimos metros. Phoenix se armó con piezas del módulo Mars Surveyor 2001, que se canceló.',
+    solarInfo: 'Dos paneles de 2 m que se abren como abanicos de diez varillas. A 68° de latitud norte, en verano el Sol no se pone: da vueltas alrededor del cielo sin esconderse. Cuando llegó el invierno, la luz se acabó y el hielo de CO₂ que cayó encima los rompió.' });
+  // cámara estéreo SSI en su mástil
+  const ssi = new THREE.Group(); ssi.position.set(-.35, 1.16, -.3);
+  ssi.add(rod(V3(0, 0, 0), V3(0, .82, 0), .03, M.alu)); ssi.add(at(box(.22, .12, .13, M.white, .01), 0, .9, 0));
+  for (const x of [-.06, .06]) { ssi.add(at(cyl(.03, .03, .04, M.dark, 12), x, .91, -.08, Math.PI / 2)); ssi.add(at(cyl(.02, .02, .01, M.lens, 12), x, .91, -.1, Math.PI / 2)); }
+  part('ssi', 'Cámara estéreo SSI', ssi, V3(-.25, .5, -.1), 'Dos ojos a unos 2 m del suelo, como los de una persona de pie, con 12 filtros de color. Tomaban fotos en 3D para que en la Tierra supieran dónde mandar el brazo, y fotos del cielo para medir el polvo y las nubes.');
+  // estación del tiempo canadiense: mástil con la veleta y el lidar
+  const met = new THREE.Group(); met.position.set(.5, 1.16, .35);
+  met.add(rod(V3(0, 0, 0), V3(0, 1.0, 0), .015, M.alu));
+  for (const y of [.25, .5, 1.0]) met.add(at(box(.1, .01, .01, M.aluDark), .05, y, 0));
+  met.add(rod(V3(0, 1.0, 0), V3(0, .9, 0), .003, M.dark)); met.add(at(cyl(.012, .012, .03, M.gold, 8), 0, .89, 0));
+  const lid = at(box(.16, .12, .14, M.white, .01), .1, .06, .25); met.add(lid); met.add(at(cyl(.04, .04, .02, M.lens, 14), .1, .13, .25));
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, 12, 6, 1, true), new THREE.MeshBasicMaterial({ color: 0x40ff70, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); beam.position.set(.1, 6.14, .25); met.add(beam);
+  part('met', 'Estación del tiempo y lidar', met, V3(.4, .4, .3), 'Hecha en Canadá. Arriba del mástil cuelga la «veleta» (telltale): un tubito que el viento empuja y la cámara fotografía para medir su fuerza. El lidar dispara pulsos de láser verde hacia el cielo y mide la luz que rebota: así vio nieve cayendo de las nubes, que se evaporaba antes de llegar al suelo.');
+  // TEGA: 8 hornitos en fila con sus puertas
+  const tega = new THREE.Group(); tega.position.set(.28, 1.17, -.2);
+  tega.add(at(box(.6, .12, .2, M.white, .01), 0, .06, 0)); const doors = [];
+  for (let k = 0; k < 8; k++) { const d = new THREE.Group(); d.position.set(-.26 + k * .075, .125, -.07); d.add(at(box(.055, .008, .09, M.alu), 0, 0, .045)); d.add(at(box(.04, .01, .04, M.aluDark), 0, .002, .045)); tega.add(d); doors.push(d); }
+  part('tega', 'Hornos TEGA', tega, V3(.3, .3, .1), 'Ocho hornitos, cada uno se usa una sola vez. El brazo echa un poco de tierra por la rejilla, el horno la calienta hasta 1.000 °C y un espectrómetro «huele» los gases que salen. En el horno 0 salió vapor de agua al calentar la muestra: la prueba de que lo blanco era hielo.');
+  // MECA: laboratorio de química húmeda y microscopios
+  const meca = new THREE.Group(); meca.position.set(-.3, 1.17, .3);
+  meca.add(at(box(.34, .14, .26, M.white, .01), 0, .07, 0));
+  for (let k = 0; k < 4; k++) meca.add(at(cyl(.035, .035, .04, M.aluDark, 12), -.12 + k * .08, .16, -.04));
+  meca.add(at(box(.1, .06, .08, M.gold), .1, .17, .08));
+  part('meca', 'Laboratorio MECA', meca, V3(-.3, .35, .2), 'Cuatro vasitos donde la tierra se mezclaba con agua traída desde la Tierra, para medir si era ácida o salada. Encontró percloratos: sales que en la Tierra se usan en fuegos artificiales y que podrían servir para fabricar oxígeno. También tenía un microscopio de fuerza atómica, que tocaba los granos con una punta finísima.');
+  // brazo robótico de 2,35 m con la pala, la raspa y la cámara RAC
+  const tool = new THREE.Group();
+  tool.add(rod(V3(0, 0, 0), V3(0, 0, -.12), .025, M.alu));
+  tool.add(at(box(.1, .012, .16, M.alu), 0, 0, -.2)); for (const x of [-.05, .05]) tool.add(at(box(.01, .06, .16, M.alu), x, .03, -.2)); tool.add(at(box(.1, .06, .012, M.alu), 0, .03, -.125));
+  tool.add(at(box(.1, .006, .02, M.aluDark), 0, .003, -.285));
+  tool.add(at(cyl(.008, .008, .08, M.dark, 8), 0, -.025, -.17, Math.PI / 2));
+  tool.add(at(box(.05, .04, .05, M.dark), .07, .0, -.05)); tool.add(at(cyl(.014, .014, .01, M.lens, 10), .07, -.025, -.05));
+  const arm = roboArm(.95, 1.15, tool); arm.base.position.set(.2, 1.16, -.62);
+  part('brazo', 'Brazo robótico y pala', arm.base, V3(0, .3, -.6), 'Un brazo de 2,35 m con codo y muñeca. En la punta lleva una pala con filo para cavar y, detrás, una raspa que gira a toda velocidad para romper el hielo duro como el cemento. Encima, la cámara RAC fotografiaba lo que había en la pala. Cavó más de diez zanjas.');
+  // la zanja, el hielo y los terrones que se evaporan
+  const TX = .32, TZ0 = -2.25, TZ1 = -1.62;
+  const dirt = Mt(0x5a301e, { roughness: 1 }), trench = at(box(.26, .04, 1, dirt), TX, gy(TX, -1.95) - .015, 0); g.add(trench);
+  const iceM = Mt(0xdde6ea, { roughness: .4, transparent: true, opacity: 0 }), ice = at(box(.18, .01, 1, iceM), TX, gy(TX, -1.95) + .008, 0); g.add(ice);
+  const spoil = new THREE.Group(); for (let k = 0; k < 5; k++) spoil.add(at(new THREE.Mesh(new THREE.DodecahedronGeometry(.05 + k * .008, 0), dirt), TX + (k % 2 ? .05 : -.05), gy(TX, TZ1 + .1) + .01, TZ1 + .06 + k * .04)); g.add(spoil);
+  const chunks = []; for (let k = 0; k < 4; k++) { const c = new THREE.Mesh(new THREE.DodecahedronGeometry(.022 + k * .004, 0), Mt(0xf5f8fa, { roughness: .3 })); c.position.set(TX - .1 + k * .045, gy(TX, -2.1) + .02, -2.12 + (k % 2) * .05); g.add(c); chunks.push(c); }
+  // granitos que caen de la pala al horno y la nieve del cielo
+  const NP = 40, pGeo = new THREE.BufferGeometry(); pGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NP * 3), 3));
+  const grains = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0x8a5a3c, size: .025 })); grains.frustumCulled = false; g.add(grains);
+  const NS = 260, sGeo = new THREE.BufferGeometry(), sP = new Float32Array(NS * 3), seed = []; for (let i = 0; i < NS; i++) seed.push([(Math.random() - .5) * 9, Math.random(), (Math.random() - .5) * 9]); sGeo.setAttribute('position', new THREE.BufferAttribute(sP, 3));
+  const snow = new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0xffffff, size: .12, transparent: true, opacity: 0, depthWrite: false })); snow.frustumCulled = false; g.add(snow);
+  const DOOR = 4, dp = V3(.28 - .26 + DOOR * .075, 1.3, -.2 - .07 + .045), B = arm.base.position, S = [.32, 1.5, -.3];
+  const tz = z => gy(TX, z) + .3, keys = [[0, ...S], [3.5, TX, tz(TZ0) + .25, TZ0], [5.5, TX, tz(TZ0), TZ0], [10.5, TX, tz(TZ1), TZ1], [12, TX, .75, TZ1 + .05], [15, dp.x, dp.y + .32, dp.z - .05], [16, dp.x, dp.y + .32, dp.z - .05, -.75], [19, dp.x, dp.y + .32, dp.z - .05, -.75], [20, dp.x, dp.y + .4, dp.z - .05], [22.5, ...S], [36, ...S]];
+  const T = 36, tmp = V3();
+  function act(time, env) {
+    const t = time % T, k = track(keys, t); arm.reach(tmp.copy(k.p).sub(B), -Math.PI / 2 + k.x);
+    const dug = sm(5.5, 10.5, t), len = Math.max(.001, dug * (TZ1 - TZ0));
+    trench.scale.z = len; trench.position.z = TZ0 + len / 2; ice.scale.z = len * .85; ice.position.z = TZ0 + len / 2; iceM.opacity = sm(8, 10, t);
+    spoil.visible = t > 9; spoil.scale.setScalar(sm(9, 11, t) + 1e-3);
+    const sub = 1 - sm(29, 35, t); chunks.forEach((c, i) => { c.visible = t > 10; c.scale.setScalar(Math.max(1e-3, sub * (1 - i * .08))); });
+    doors[DOOR].rotation.x = -1.2 * sm(13, 14.5, t) * (1 - sm(20, 21, t));
+    const pp = pGeo.attributes.position, pour = t > 16 && t < 19.5; grains.visible = pour;
+    if (pour) for (let i = 0; i < NP; i++) { const f = ((t * 1.6 + i / NP) % 1); pp.setXYZ(i, dp.x + (Math.sin(i * 7.3) * .03), dp.y + .05 + (1 - f) * .14, dp.z + Math.cos(i * 3.1) * .03); } pp.needsUpdate = true;
+    const lidarOn = sm(21, 23, t) * (1 - sm(34.5, 35.8, t)); beam.material.opacity = lidarOn * (.35 + .25 * Math.sin(time * 40));
+    snow.material.opacity = lidarOn * .85;
+    for (let i = 0; i < NS; i++) { const s = seed[i], f = (s[1] + time * .07) % 1; sP[i * 3] = s[0] + Math.sin(time * .3 + i) * .2; sP[i * 3 + 1] = 9 - f * 4.5; sP[i * 3 + 2] = s[2]; } sGeo.attributes.position.needsUpdate = true;
+    if (env && env.sun) { const az = time / T * Math.PI * 2, el = (25 + 21 * Math.cos(az)) * Math.PI / 180; env.sun.position.set(Math.cos(az) * Math.cos(el) * 12, Math.sin(el) * 12, Math.sin(az) * Math.cos(el) * 12); }
+    const step = t < 4 ? 0 : t < 8.5 ? 1 : t < 12 ? 2 : t < 21 ? 3 : t < 29 ? 4 : 5, sol = Math.floor(18 + 6 * sm(26, 35.5, t));
+    return { step, kv: [['Sol', String(sol)], ['Sol a medianoche', 'sí: a 68° N en verano no se pone'], ['Zanja', `${(len * 100 / 1).toFixed(0)} cm de largo · unos 5 cm de hondo`], ['Terrones de hielo', sub > .99 ? 'recién destapados' : sub > .02 ? 'evaporándose…' : 'desaparecieron (sol 24)']] };
+  }
+  function reset() { act(0); }
+  shadows(g); [beam, snow, grains].forEach(o => { o.castShadow = false; o.receiveShadow = false; }); reset();
+  return { group: g, parts, act, reset };
+}
+
+// ---------- InSight (2018): el sismógrafo que escuchó el interior de Marte ----------
+function buildInSight(hf) {
+  const g = new THREE.Group(), parts = [];
+  const part = (id, name, obj, dir, info) => { obj.userData.part = id; parts.push({ id, name, obj, dir, info, home: obj.position.clone() }); g.add(obj); return obj; };
+  const gy = landerBase(part, hf, { col: 0xd9c49a, R: 1.1,
+    deckInfo: 'La misma cubierta que Phoenix, mejorada. Lleva la computadora, la radio y, debajo, la cámara ICC de ojo de pez que miraba el suelo de enfrente. Encima va un pequeño espejo LaRRI de Italia, para que futuras naves lo encuentren con láser desde la órbita.',
+    solarInfo: 'Dos abanicos de 2,2 m: juntos daban hasta 4,6 kW·h en un día soleado, suficiente para una licuadora durante horas. El polvo los fue tapando: al final daban 20 veces menos. Los operadores probaron a soltar arena con el brazo para que el viento se llevara el polvo, y funcionó un poco.' });
+  const H = 1.16;
+  // SEIS: el sismógrafo francés
+  const seis = new THREE.Group(); seis.position.set(-.38, H, -.25);
+  seis.add(at(cyl(.17, .19, .13, M.gold, 6), 0, .1, 0)); seis.add(at(new THREE.Mesh(new THREE.SphereGeometry(.14, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), M.white), 0, .165, 0));
+  for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; seis.add(rod(V3(Math.cos(a) * .14, .06, Math.sin(a) * .14), V3(Math.cos(a) * .2, 0, Math.sin(a) * .2), .012, M.aluDark)); }
+  seis.add(at(cyl(.025, .025, .04, M.aluDark, 10), 0, .32, 0)); seis.add(rod(V3(0, .3, 0), V3(0, .22, 0), .01, M.alu));
+  part('seis', 'Sismógrafo SEIS', seis, V3(-.3, .5, -.3), 'Hecho en Francia. Por dentro tiene péndulos tan sensibles que notan un movimiento del suelo más chico que el ancho de un átomo de hidrógeno. Va dentro de una esfera al vacío y con tres patas que se nivelan solas. El brazo lo bajó al suelo el 19 de diciembre de 2018: fue la primera vez que un robot puso un instrumento en el suelo de otro planeta.');
+  // WTS: el escudo contra el viento y el frío
+  const wts = new THREE.Group(); wts.position.set(.32, H, .3);
+  wts.add(at(new THREE.Mesh(new THREE.SphereGeometry(.36, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2), Mt(0xe8e3d6, { metalness: .65, roughness: .28 })), 0, .03, 0));
+  wts.add(at(cyl(.43, .45, .04, Mt(0x9a8a62, { metalness: .6, roughness: .5 }), 28), 0, .02, 0));
+  wts.add(at(cyl(.03, .03, .05, M.aluDark, 10), 0, .41, 0));
+  part('wts', 'Escudo WTS', wts, V3(.3, .6, .3), 'Una cúpula que tapa al sismógrafo, con una falda de malla metálica que se acomoda a las piedras del suelo. Sin ella, el viento y los cambios de temperatura (de −100 °C a 0 °C cada día) harían «temblar» al sensor más que los sismos de verdad. Se colocó el 2 de febrero de 2019.');
+  // HP³: el topo alemán y su estructura
+  const hp3 = new THREE.Group(); hp3.position.set(.42, H, -.38);
+  hp3.add(at(box(.28, .3, .22, Mt(0x9a9ca0, { metalness: .55, roughness: .4 }), .01), 0, .18, 0));
+  for (const [x, z] of [[-.13, -.1], [.13, -.1], [-.13, .1], [.13, .1]]) hp3.add(rod(V3(x, .05, z), V3(x * 1.3, 0, z * 1.3), .01, M.aluDark));
+  hp3.add(at(cyl(.02, .02, .04, M.aluDark, 10), 0, .35, 0)); hp3.add(at(box(.12, .1, .06, M.gold), .1, .12, .13));
+  const mole = at(cyl(.014, .014, .4, M.alu, 10), 0, .2, 0); hp3.add(mole);
+  part('hp3', 'Topo HP³', hp3, V3(.35, .45, -.35), 'Hecho en Alemania. Dentro de la caja hay un «topo»: un clavo de 40 cm con un martillo interior que golpea y lo hunde solo, arrastrando un cable con sensores de temperatura. Debía llegar a 5 m para medir el calor que sale del interior de Marte. El suelo resultó duro y pegajoso, como tierra apelmazada, y el topo rebotaba sin agarre: tras casi dos años de intentos, con ayuda de la pala del brazo, solo quedó enterrado justo bajo la superficie.');
+  // RISE y TWINS
+  const rise = new THREE.Group();
+  for (const [x, z, r] of [[-.5, .3, .4], [-.22, .55, -.4]]) { const h = at(cyl(.05, .1, .14, M.white, 4), x, H + .1, z, -.5, r); rise.add(h); rise.add(at(box(.08, .06, .08, M.gold), x, H + .03, z)); }
+  part('rise', 'Antenas RISE', rise, V3(-.3, .4, .35), 'Dos antenas en forma de bocina que mandaban una señal de radio a la Tierra. Midiendo sus cambios de frecuencia, se calcula cómo se bambolea el eje de Marte al girar, como un trompo, y de eso cuánto pesa y mide su núcleo.');
+  const twins = new THREE.Group();
+  for (const s of [-1, 1]) { twins.add(rod(V3(s * .5, H + .02, -.5), V3(s * .78, H + .12, -.58), .012, M.alu)); twins.add(at(box(.08, .05, .05, M.white), s * .8, H + .13, -.59)); }
+  twins.add(at(cyl(.02, .02, .05, M.dark, 8), 0, H + .04, .62));
+  part('clima', 'Estación del tiempo APSS', twins, V3(0, .4, -.45), 'Dos brazos de viento TWINS, que miran a lados opuestos para medir de dónde sopla, y un barómetro con una toma de aire. Los sismólogos necesitan saber el viento para distinguir un sismo de una ráfaga. De paso, dio el pronóstico del tiempo diario en Marte durante años.');
+  // brazo IDA de 2,4 m con la garra de cinco dedos y la cámara IDC
+  const tool = new THREE.Group(); tool.add(rod(V3(0, 0, 0), V3(0, 0, -.1), .022, M.alu)); tool.add(at(cyl(.045, .045, .03, M.aluDark, 14), 0, 0, -.1, Math.PI / 2)); const fingers = [];
+  for (let k = 0; k < 5; k++) { const o = new THREE.Group(); o.position.z = -.1; o.rotation.z = k / 5 * Math.PI * 2; const f = new THREE.Group(); f.position.x = .035; f.add(rod(V3(0, 0, 0), V3(0, 0, -.12), .007, M.dark)); f.add(at(box(.016, .016, .02, M.aluDark), 0, 0, -.12)); o.add(f); tool.add(o); fingers.push(f); }
+  tool.add(at(box(.05, .05, .07, M.dark), 0, .065, -.02)); tool.add(at(box(.03, .03, .03, M.gold), 0, .065, .04));
+  const arm = roboArm(1.0, 1.2, tool); arm.base.position.set(0, H, -.66);
+  arm.el.add(at(box(.07, .06, .09, M.white), 0, .06, -.45)); arm.el.add(at(cyl(.02, .02, .01, M.lens, 10), 0, .06, -.5, Math.PI / 2));
+  part('brazo', 'Brazo IDA y garra', arm.base, V3(0, .35, -.6), 'Un brazo de 2,4 m que primero fotografió el suelo con su cámara IDC para elegir el mejor lugar, y después levantó cada instrumento con una garra de cinco dedos, como una máquina de peluches, pero sin fallar ninguno. Todo se ensayó antes en una copia del módulo en JPL.');
+  // amarras
+  const t1 = tether(0x2a2a2a), t2 = tether(0x6b5a3a); g.add(t1, t2);
+  const off = o => o.userData.hk + .22; seis.userData.hk = .34; wts.userData.hk = .44; hp3.userData.hk = .37;
+  const SG = V3(-.55, gy(-.55, -1.95), -1.95), HG = V3(.78, gy(.78, -1.75), -1.75), WG = SG.clone();
+  const homes = { seis: seis.position.clone(), wts: wts.position.clone(), hp3: hp3.position.clone() };
+  const above = (P, o, up = 0) => [P.x, P.y + off(o) + up, P.z], S = [0, 1.55, -.32];
+  const keys = [[0, ...S], [3, ...above(homes.seis, seis, .25)], [4.5, ...above(homes.seis, seis)], [5.5, ...above(homes.seis, seis)], [7, ...above(homes.seis, seis, .35)], [9.5, ...above(SG, seis, .3)], [11, ...above(SG, seis)], [12, ...above(SG, seis)], [13, ...above(SG, seis, .3)],
+    [15.5, ...above(homes.wts, wts, .2)], [16.5, ...above(homes.wts, wts)], [17.5, ...above(homes.wts, wts)], [19, ...above(homes.wts, wts, .35)], [21.5, ...above(WG, wts, .3)], [23, ...above(WG, wts)], [24, ...above(WG, wts)], [25, ...above(WG, wts, .3)],
+    [27, ...above(homes.hp3, hp3, .25)], [28.5, ...above(homes.hp3, hp3)], [29.5, ...above(homes.hp3, hp3)], [31, ...above(homes.hp3, hp3, .35)], [33, ...above(HG, hp3, .3)], [34.5, ...above(HG, hp3)], [35.5, ...above(HG, hp3)], [36.5, ...above(HG, hp3, .3)], [39, ...S], [52, ...S]];
+  const plan = [[seis, 5, 11.5, SG], [wts, 17, 23.5, WG], [hp3, 29, 35, HG]];
+  const T = 52, tmp = V3(), B = arm.base.position, deckP = V3(-.5, 1.0, -.6), deckH = V3(.55, 1.0, -.62);
+  const seismo = new Float32Array(420); let sIdx = 0, lastT = 0, strokes = 0;
+  function act(time, env) {
+    const t = time % T, k = track(keys, t); arm.reach(tmp.copy(k.p).sub(B));
+    let grip = 0;
+    for (const [o, a, b, G] of plan) { const P = t < a ? homes[o === seis ? 'seis' : o === wts ? 'wts' : 'hp3'] : t < b ? V3(k.p.x, k.p.y - off(o), k.p.z) : G; o.position.copy(P); grip = Math.max(grip, sm(a - .8, a, t) * (1 - sm(b, b + .6, t))); }
+    for (const f of fingers) f.rotation.y = .45 - grip * .32;
+    // topo: martillazos a partir del segundo 39
+    const ham = t > 39.5 && t < 47.5, ph = (t * 1.8) % 1, hit = ham && ph < .12; mole.position.y = .2 - sm(39.5, 46, t) * .37 + (hit ? .006 : 0); hp3.position.y += hit ? .004 : 0;
+    // amarras: del sismógrafo y del topo hasta la cubierta
+    t1.visible = t > 5; t1.userData.set(V3(seis.position.x, seis.position.y + .08, seis.position.z), deckP, t < 11.5 ? .05 : .12);
+    t2.visible = t > 29; t2.userData.set(V3(hp3.position.x + .1, hp3.position.y + .12, hp3.position.z), deckH, t < 35 ? .04 : .1);
+    // sismograma: ruido, golpes del topo y el martemoto S1222a
+    const dt = t < lastT ? .016 : Math.min(.05, t - lastT); lastT = t; const nS = Math.max(1, Math.round(dt * 120));
+    for (let i = 0; i < nS; i++) { const tt = t - dt + dt * (i + 1) / nS; let v = (Math.random() - .5) * .06 * (t < 11.5 ? 3 : t < 23.5 ? 1.8 : 1);
+      if (ham && ((tt * 1.8) % 1) < .06) v += (Math.random() - .3) * .5;
+      if (tt > 46.5) { const P = sm(46.5, 46.8, tt) * Math.exp(-(tt - 46.6) * 1.2) * .35, Sw = sm(48.3, 48.6, tt) * Math.exp(-(tt - 48.5) * .55); v += (Math.random() - .5) * 2 * (P + Sw) * Math.sin(tt * 37); }
+      seismo[sIdx++ % seismo.length] = v; }
+    strokes = ham ? Math.floor((t - 39.5) * 1.8) : t >= 47.5 ? 14 : 0;
+    const step = t < 11.5 ? (t < 5.5 ? 0 : 1) : t < 25 ? 2 : t < 39 ? 3 : t < 46.5 ? 4 : 5;
+    const depth = Math.round(sm(39.5, 46, t) * 37);
+    return { step, kv: [['Sismógrafo', t < 11.5 ? 'en la cubierta' : t < 23.5 ? 'en el suelo, sin tapar' : 'en el suelo, tapado'], ['Punta del topo', t < 39.5 ? 'sin empezar' : `${depth} cm bajo la caja${t > 46 ? ' · atascado' : ''}`], ['Golpes del topo', `${strokes} (en la realidad, miles)`], ['Martemoto', t < 46.5 ? '—' : 'S1222a · magnitud 4,7']] };
+  }
+  function reset() { act(0); }
+  shadows(g); reset();
+  return { group: g, parts, act, reset, seismo: () => ({ a: seismo, i: sIdx }) };
+}
+
 // ---------- fichas: lanzamiento, viaje, llegada (datos NASA/JPL) ----------
 const ROVERS = {
   m2020: { name: 'Perseverance', sub: 'Mars 2020 · NASA/JPL', build: () => buildMSL('perse'), mass: '1.025 kg', size: '3,0 m de largo · 2,7 m de ancho · 2,2 m de alto', speed: 'hasta 152 m/h (0,042 m/s)',
@@ -367,15 +585,38 @@ const ROVERS = {
     launch: [['Despegue', '23 de julio de 2020, 04:41 UTC'], ['Cohete', 'Larga Marcha 5'], ['Plataforma', 'LC‑101, Wenchang, isla de Hainan (China)'], ['Órbita de Marte', '10 de febrero de 2021, junto al orbitador Tianwen‑1'], ['Llegada', '14 de mayo de 2021, 23:18 UTC'], ['Bajó del módulo', '22 de mayo de 2021, por una rampa'], ['Lugar', 'Utopia Planitia (25,1° N, 109,9° E)'], ['Misión prevista', '90 soles (unos 3 meses)'], ['Estado', 'Dormido desde mayo de 2022: no despertó tras el invierno. Recorrió 1.921 m']],
     edl: [['Separación', 'la cápsula se suelta del orbitador, que la llevó tres meses en órbita'], ['Entrada', 'escudo térmico contra la atmósfera'], ['Paracaídas', 'se abre y luego se suelta el escudo'], ['Retrocohete', 'un motor frena, el módulo se queda flotando, busca un lugar sin rocas con láser y cámaras, y baja'], ['Primer intento', 'China fue el segundo país en manejar un rover en Marte, y lo logró en su primer intento']],
     firsts: ['Primer rover chino en Marte, a la primera', 'Una cámara suelta en el suelo le sacó una foto de grupo con el módulo', 'Su radar vio una antigua playa enterrada', 'Se calentaba con cera que se derrite de día'] },
+  phx: { name: 'Phoenix', sub: 'Phoenix Mars Lander · NASA/JPL · Universidad de Arizona', build: buildPhoenix, lander: true, mass: '350 kg (664 kg al despegar)', size: '5,5 m de ancho con los paneles · unos 2,2 m de alto', speed: 'no se mueve: es un módulo fijo con un brazo de 2,35 m', speedLabel: 'Movimiento',
+    view: { ty: 1.0, cam: [5.2, 3.2, -5.4], drv: [3.6, 2.4, -4.6], back: 6, up: 2.6, max: 9 }, padName: 'Ver el despegue en Cabo Cañaveral',
+    act: { title: 'Cavando hasta el hielo', text: 'Un verano polar en 36 segundos: el brazo cava la zanja Dodo‑Goldilocks, destapa hielo y lo lleva al horno. Fíjate en el Sol: da vueltas bajo en el cielo y nunca se pone.',
+      steps: ['El brazo se despliega', 'Cava la zanja raspando hacia el módulo', 'Aparece hielo blanco a unos 5 cm', 'Lleva la muestra al horno TEGA, que la calienta', 'El lidar verde ve nieve que cae de las nubes y se evapora en el aire', 'Los terrones de hielo desaparecen en 4 soles: eran hielo de agua'] },
+    launch: [['Despegue', '4 de agosto de 2007, 09:26 UTC'], ['Cohete', 'Delta II 7925'], ['Plataforma', 'SLC‑17A, Cabo Cañaveral, Florida'], ['Viaje', '295 días · 680 millones de km'], ['Llegada', '25 de mayo de 2008, 23:38 UTC'], ['Lugar', 'Vastitas Borealis, llanura polar (68,22° N, 234,25° E)'], ['Misión prevista', '90 soles (unos 3 meses)'], ['Estado', 'Terminada: trabajó 157 soles; última señal el 2 de noviembre de 2008. El invierno lo cubrió de hielo seco']],
+    edl: [['Entrada', 'a 125 km de altura y unos 20.000 km/h; el escudo térmico se calienta a más de 1.400 °C'], ['Paracaídas', 'a 12,9 km de altura, 7 segundos más tarde de lo previsto'], ['Foto histórica', 'el orbitador MRO lo fotografió desde la órbita colgando de su paracaídas: la primera foto de una nave bajando a otro planeta'], ['Propulsores', 'a 1 km se suelta y 12 motores en pulsos lo frenan; se apagan al tocar'], ['Suelo', 'toca a unos 9 km/h sobre sus tres patas; los chorros dejaron ver hielo bajo el módulo']],
+    firsts: ['Primero en tocar y probar hielo de agua en Marte', 'Su bajada en paracaídas fue fotografiada desde la órbita', 'Vio nieve cayendo de las nubes marcianas', 'Descubrió percloratos en el suelo'] },
+  insight: { name: 'InSight', sub: 'Interior Exploration using Seismic Investigations · NASA/JPL', build: buildInSight, lander: true, mass: '358 kg (694 kg al despegar)', size: '6 m de ancho con los paneles · cubierta a 1 m del suelo', speed: 'no se mueve: es un módulo fijo con un brazo de 2,4 m', speedLabel: 'Movimiento',
+    view: { ty: .8, cam: [4.6, 3.0, -5.2], drv: [3.4, 2.2, -4.2], back: 6, up: 2.6, max: 9 }, padName: 'Ver el despegue en Vandenberg', seismo: true,
+    act: { title: 'Escuchando el interior de Marte', text: 'El brazo coloca los instrumentos uno por uno y el sismógrafo escucha: primero el viento, luego los golpes del topo y al final el martemoto más grande medido. En 52 segundos, lo que tomó años.',
+      steps: ['La garra toma el sismógrafo SEIS de la cubierta', 'Lo apoya en el suelo (19 de diciembre de 2018)', 'Lo tapa con el escudo WTS (2 de febrero de 2019)', 'Coloca el topo HP³ al otro lado (12 de febrero de 2019)', 'El topo martilla para enterrarse… y se atasca', 'Martemoto S1222a, magnitud 4,7 (4 de mayo de 2022): llegan las ondas P y luego las S, más fuertes'] },
+    launch: [['Despegue', '5 de mayo de 2018, 11:05 UTC'], ['Cohete', 'Atlas V 401 (sin propulsores sólidos)'], ['Plataforma', 'SLC‑3E, Base Vandenberg, California: la primera misión a otro planeta lanzada desde la costa oeste'], ['Viaje', '205 días · 485 millones de km, con los CubeSats MarCO A y B al lado'], ['Llegada', '26 de noviembre de 2018, 19:53 UTC'], ['Lugar', 'Elysium Planitia (4,50° N, 135,62° E)'], ['Misión prevista', '1 año marciano (unos 2 años terrestres)'], ['Estado', 'Terminada: trabajó 1.446 soles; último contacto el 15 de diciembre de 2022, cubierto de polvo']],
+    edl: [['Entrada', 'a 128 km de altura y 19.800 km/h; el escudo térmico llega a unos 1.500 °C'], ['Paracaídas', 'a unos 12 km de altura y 1.400 km/h'], ['Radar', 'mide la distancia al suelo; se sueltan el escudo y luego el paracaídas'], ['Propulsores', '12 motores lo frenan hasta unos 8 km/h y se apaga al tocar'], ['En vivo', 'los CubeSats MarCO retransmitieron el aterrizaje: en la Tierra supieron que llegó bien en 8 minutos, no horas']],
+    firsts: ['Primeros sismos medidos en otro planeta: más de 1.300', 'Midió el núcleo de Marte: líquido, de unos 1.830 km de radio', 'Primer instrumento puesto en el suelo de otro planeta por un brazo', 'Primeros CubeSats en otro planeta (MarCO)'] },
 };
 export const ROVER_IDS = Object.keys(ROVERS);
 
 // ---------- terreno del recorrido: campo de alturas suave con piedras ----------
 function hNoise(x, z) { return Math.sin(x * .9) * Math.cos(z * .7) * .09 + Math.sin(x * 2.3 + z * 1.7) * .035 + Math.sin(x * 5.1 - z * 4.3) * .012 + Math.cos(x * .25 + z * .4) * .18; }
-function makeTerrain() {
+// suelo polar de Phoenix: polígonos de 2 a 3 m que forma el hielo al encogerse y dilatarse cada año (diagrama de Voronoi repetible)
+function polygons(x, w, h) {
+  const P = []; for (let i = 0; i < 16; i++) P.push([Math.random() * w, Math.random() * h]);
+  const img = x.getImageData(0, 0, w, h), d = img.data;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { let a = 1e9, b = 1e9;
+    for (const [px, py] of P) for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) { const dd = Math.hypot(i - px - ox * w, j - py - oy * h); if (dd < a) { b = a; a = dd; } else if (dd < b) b = dd; }
+    const e = b - a, k = (j * w + i) * 4; if (e < 7) { const f = .74 + e / 7 * .26; d[k] *= f; d[k + 1] *= f; d[k + 2] *= f; } else { const f = 1 + Math.min(.08, (e - 7) / 250); d[k] = Math.min(255, d[k] * f); d[k + 1] = Math.min(255, d[k + 1] * f); d[k + 2] = Math.min(255, d[k + 2] * f); } }
+  x.putImageData(img, 0, 0);
+}
+function makeTerrain(kind) {
   const geo = new THREE.PlaneGeometry(60, 60, 240, 240); geo.rotateX(-Math.PI / 2);
   const p = geo.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, hNoise(p.getX(i), p.getZ(i))); geo.computeVertexNormals();
-  const tex = canvasTex(512, 512, (x, w, h) => { x.fillStyle = '#b0683e'; x.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { const r = Math.random(); x.fillStyle = `rgba(${120 + r * 90 | 0},${55 + r * 50 | 0},${28 + r * 30 | 0},.45)`; x.fillRect(Math.random() * w, Math.random() * h, 2 + Math.random() * 6, 2 + Math.random() * 6); } }, [14, 14]);
+  const tex = canvasTex(512, 512, (x, w, h) => { x.fillStyle = '#b0683e'; x.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { const r = Math.random(); x.fillStyle = `rgba(${120 + r * 90 | 0},${55 + r * 50 | 0},${28 + r * 30 | 0},.45)`; x.fillRect(Math.random() * w, Math.random() * h, 2 + Math.random() * 6, 2 + Math.random() * 6); } if (kind === 'phx') polygons(x, w, h); }, kind === 'phx' ? [7, 7] : [14, 14]);
   const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: 1 })); m.receiveShadow = true;
   const rocks = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(.14, 0), Mt(0x6e3f26, { roughness: 1 }), 260), mm = new THREE.Matrix4();
   for (let i = 0; i < 260; i++) { const x = (Math.random() - .5) * 56, z = (Math.random() - .5) * 56, s = .4 + Math.random() * 2.2; if (Math.abs(x) < 2 && Math.abs(z) < 3) continue; mm.compose(V3(x, hNoise(x, z) + .02, z), new THREE.Quaternion().random(), V3(s, s * .6, s)); rocks.setMatrixAt(i, mm); }
@@ -391,7 +632,7 @@ export function abrirRover(id, onClose) {
   const root = document.createElement('div'); root.className = 'rv'; root.innerHTML = `
     <canvas class="rv-gl" aria-label="Rover en 3D: arrastra para girar, rueda para acercar"></canvas>
     <header class="rv-top"><div><div class="rv-sub">${R.sub}</div><h2>${R.name}</h2></div>
-      <nav class="rv-tabs" role="tablist"><button data-m="modelo" aria-pressed="true">Modelo</button><button data-m="piezas">Piezas</button><button data-m="recorrido">Recorrido</button><button data-m="lanzamiento">Lanzamiento y llegada</button></nav>
+      <nav class="rv-tabs" role="tablist"><button data-m="modelo" aria-pressed="true">Modelo</button><button data-m="piezas">Piezas</button><button data-m="recorrido">${R.lander ? 'En acción' : 'Recorrido'}</button><button data-m="lanzamiento">Lanzamiento y llegada</button></nav>
       <button class="rv-close" aria-label="Cerrar">✕</button></header>
     <aside class="rv-side"></aside>
     <div class="rv-labels"></div>
@@ -408,10 +649,10 @@ export function abrirRover(id, onClose) {
   const sun = new THREE.DirectionalLight(0xfff1dc, 2.6); sun.position.set(6, 9, 4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, far: 60 }); sun.shadow.bias = -.0006; sun.shadow.normalBias = .03; scene.add(sun);
   // cielo: un degradado marciano (butterscotch) en una esfera
   const sky = new THREE.Mesh(new THREE.SphereGeometry(90, 32, 16), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, uniforms: {}, vertexShader: 'varying vec3 vp; void main(){ vp = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }', fragmentShader: 'varying vec3 vp; void main(){ float h = normalize(vp).y; vec3 c = mix(vec3(.86,.64,.47), vec3(.62,.46,.36), smoothstep(0.,.5,h)); c = mix(vec3(.93,.74,.55), c, smoothstep(-.02,.12,h)); gl_FragColor = vec4(c,1.); }' })); scene.add(sky);
-  const terrain = makeTerrain(); scene.add(terrain);
+  const terrain = makeTerrain(id); scene.add(terrain);
   if (id === 'merb') { const N = 1500, b = new THREE.InstancedMesh(new THREE.SphereGeometry(.012, 8, 6), Mt(0x56575c, { roughness: .45, metalness: .3 }), N), m = new THREE.Matrix4(); for (let i = 0; i < N; i++) { const x = (Math.random() - .5) * 36, z = (Math.random() - .5) * 36, sc = .6 + Math.random() * .8; m.compose(V3(x, hNoise(x, z) + .008, z), new THREE.Quaternion(), V3(sc, sc, sc)); b.setMatrixAt(i, m); } b.castShadow = true; terrain.add(b); }
   const MARKS = 1200, marks = new THREE.InstancedMesh(new THREE.BoxGeometry(.13, .006, .08), Mt(0xf0e8da, { roughness: .9 }), MARKS), mm4 = new THREE.Matrix4(); marks.count = 0; let markN = 0, markAcc = 0; terrain.add(marks);
-  const rover = R.build(); scene.add(rover.group); rover.group.rotation.order = 'YXZ'; for (const w of rover.wheels) w.obj.rotation.order = 'YXZ';
+  const rover = R.build(hNoise); scene.add(rover.group); rover.group.rotation.order = 'YXZ'; for (const w of rover.wheels || []) w.obj.rotation.order = 'YXZ'; let actT = 0, actKv = '', actStep = -1;
   const parts = rover.parts; let mode = 'modelo', explode = 0, selected = null, t0 = performance.now(), dist = 0, running = true;
   const drive = { s: 0, heading: 0, x: 0, z: 0, dust: [] };
   const dustGeo = new THREE.SphereGeometry(.06, 6, 5), dustMat = Mt(0xc9865a, { transparent: true, opacity: .55, roughness: 1 });
@@ -421,10 +662,11 @@ export function abrirRover(id, onClose) {
   function selectPart(p) { selected = p; renderSide(); tags.forEach((t, i) => t.classList.toggle('sel', parts[i] === p));
     parts.forEach(q => q.obj.traverse(o => { if (!o.isMesh) return; if (o.userData.m0) { o.material = o.userData.m0; o.userData.m0 = null; } if (q === p) { o.userData.m0 = o.material; o.material = o.material.clone(); o.material.emissive = new THREE.Color(0x2f6cff); o.material.emissiveIntensity = .35; } })); }
   function renderSide() {
-    if (mode === 'modelo') side.innerHTML = `<div class="kv"><span>Masa</span><b>${R.mass}</b><span>Tamaño</span><b>${R.size}</b><span>Velocidad</span><b>${R.speed}</b></div><p>Arrastra para girarlo y acércate con la rueda o pellizcando. En <b>Piezas</b> se separa en sus partes; en <b>Recorrido</b> lo ves andar.</p><ul class="rv-firsts">${R.firsts.map(f => `<li>${f}</li>`).join('')}</ul>`;
+    if (mode === 'modelo') side.innerHTML = `<div class="kv"><span>Masa</span><b>${R.mass}</b><span>Tamaño</span><b>${R.size}</b><span>${R.speedLabel || 'Velocidad'}</span><b>${R.speed}</b></div><p>Arrastra para girarlo y acércate con la rueda o pellizcando. En <b>Piezas</b> se separa en sus partes; ${R.lander ? 'en <b>En acción</b> lo ves trabajar con su brazo' : 'en <b>Recorrido</b> lo ves andar'}.</p><ul class="rv-firsts">${R.firsts.map(f => `<li>${f}</li>`).join('')}</ul>`;
     if (mode === 'piezas') side.innerHTML = (selected ? `<h3>${selected.name}</h3><p>${selected.info}</p>` : `<h3>Despiece</h3><p>Mueve el control de abajo para separar las piezas y toca el nombre de cada una para saber qué hace.</p>`) + `<div class="rv-list">${parts.map(p => `<button data-p="${p.id}" ${selected === p ? 'aria-pressed="true"' : ''}>${p.name}</button>`).join('')}</div>`;
-    if (mode === 'recorrido') side.innerHTML = `<h3>Conduciendo</h3><p>El rover avanza a <b>${R.speed}</b>; aquí lo ves <b>6 veces más rápido</b>. Mira cómo cada rueda sigue el suelo y los balancines se inclinan: ninguna rueda se despega.</p><p>En la realidad recorre unos 100 m en un buen día: los conductores en la Tierra planean la ruta con las fotos del día anterior, y el rover la sigue solo, frenando si ve una piedra o una pendiente peligrosa.</p>${rover.spirit ? '<p><b>Spirit anda en reversa</b>: su rueda delantera derecha se trabó en 2006 y la arrastra. Mira el surco claro que deja: así destapó la sílice de aguas termales.</p>' : id === 'merb' ? '<p>Las bolitas grises del suelo son los «arándanos» de hematita que encontró Opportunity en Meridiani: se formaron dentro de rocas empapadas en agua y quedaron sueltas cuando el viento gastó la roca.</p>' : ''}<div class="kv"><span>Distancia</span><b id="rv-dist">0 m</b><span>Tiempo real equivalente</span><b id="rv-time">0 min</b></div>${R.driveNote ? `<p>${R.driveNote}</p>` : ''}${rover.group.userData.ing ? '<p>Ingenuity vuela alrededor: en Marte voló hasta 24 m de alto y 700 m de distancia en un solo vuelo.</p>' : ''}`;
-    if (mode === 'lanzamiento') side.innerHTML = `<h3>Despegue y viaje</h3><div class="kv">${R.launch.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div><h3>${R.edlTitle || 'Los siete minutos de terror'}</h3><div class="kv">${R.edl.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div>${R.noSim ? '' : `<a class="go" href="../cabo-canaveral/marte/#${id}/llegada">Ver la animación del aterrizaje →</a><a class="go alt" href="../cabo-canaveral/marte/#${id}">Ver el despegue en Cabo Cañaveral →</a>`}`;
+    if (mode === 'recorrido' && R.lander) side.innerHTML = `<h3>${R.act.title}</h3><p>${R.act.text}</p>${R.seismo ? '<canvas id="rv-seis" width="560" height="150" aria-label="Sismograma en vivo"></canvas>' : ''}<div class="kv" id="rv-actkv"></div><ol class="rv-steps">${R.act.steps.map((s, i) => `<li data-step="${i}">${s}</li>`).join('')}</ol>`;
+    else if (mode === 'recorrido') side.innerHTML = `<h3>Conduciendo</h3><p>El rover avanza a <b>${R.speed}</b>; aquí lo ves <b>6 veces más rápido</b>. Mira cómo cada rueda sigue el suelo y los balancines se inclinan: ninguna rueda se despega.</p><p>En la realidad recorre unos 100 m en un buen día: los conductores en la Tierra planean la ruta con las fotos del día anterior, y el rover la sigue solo, frenando si ve una piedra o una pendiente peligrosa.</p>${rover.spirit ? '<p><b>Spirit anda en reversa</b>: su rueda delantera derecha se trabó en 2006 y la arrastra. Mira el surco claro que deja: así destapó la sílice de aguas termales.</p>' : id === 'merb' ? '<p>Las bolitas grises del suelo son los «arándanos» de hematita que encontró Opportunity en Meridiani: se formaron dentro de rocas empapadas en agua y quedaron sueltas cuando el viento gastó la roca.</p>' : ''}<div class="kv"><span>Distancia</span><b id="rv-dist">0 m</b><span>Tiempo real equivalente</span><b id="rv-time">0 min</b></div>${R.driveNote ? `<p>${R.driveNote}</p>` : ''}${rover.group.userData.ing ? '<p>Ingenuity vuela alrededor: en Marte voló hasta 24 m de alto y 700 m de distancia en un solo vuelo.</p>' : ''}`;
+    if (mode === 'lanzamiento') side.innerHTML = `<h3>Despegue y viaje</h3><div class="kv">${R.launch.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div><h3>${R.edlTitle || 'Los siete minutos de terror'}</h3><div class="kv">${R.edl.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div>${R.noSim ? '' : `<a class="go" href="../cabo-canaveral/marte/#${id}/llegada">Ver la animación del aterrizaje →</a><a class="go alt" href="../cabo-canaveral/marte/#${id}">${R.padName || 'Ver el despegue en Cabo Cañaveral'} →</a>`}`;
     side.querySelectorAll('[data-p]').forEach(b => b.onclick = () => selectPart(parts.find(p => p.id === b.dataset.p)));
   }
   function setMode(m) {
@@ -432,9 +674,9 @@ export function abrirRover(id, onClose) {
     slider.hidden = m !== 'piezas'; labels.hidden = m !== 'piezas'; ctl.autoRotate = m === 'modelo';
     if (m !== 'piezas') { explode = 0; range.value = 0; if (selected) { const q = selected; selected = null; parts.forEach(pp => pp.obj.traverse(o => { if (o.isMesh && o.userData.m0) { o.material = o.userData.m0; o.userData.m0 = null; } })); } tags.forEach(t => t.classList.remove('sel')); }
     if (m === 'piezas' && explode === 0) { range.value = 60; explode = .6; }
-    if (m !== 'recorrido') { rover.group.position.set(0, hNoise(0, 0), 0); rover.group.rotation.set(0, 0, 0); poseSuspension(0, 0, 0, 0, 0, 0); drive.s = 0; drive.x = drive.z = drive.heading = 0; dist = 0; ctl.target.set(0, TY, 0); marks.count = 0; markN = 0; terrain.visible = m !== 'piezas'; scene.fog.near = 14; }
+    if (m !== 'recorrido') { rover.group.position.set(0, hNoise(0, 0), 0); rover.group.rotation.set(0, 0, 0); if (rover.susp) poseSuspension(0, 0, 0, 0, 0, 0); if (rover.reset) rover.reset(); sun.position.set(6, 9, 4); actT = 0; actKv = ''; actStep = -1; drive.s = 0; drive.x = drive.z = drive.heading = 0; dist = 0; ctl.target.set(0, TY, 0); marks.count = 0; markN = 0; terrain.visible = m !== 'piezas'; scene.fog.near = 14; }
     else { terrain.visible = true; cam.position.set(...VW.drv); }
-    hint.textContent = m === 'piezas' ? 'Toca una pieza o su nombre' : m === 'recorrido' ? 'La cámara sigue al rover; arrastra para mirar alrededor' : m === 'modelo' ? 'Arrastra para girar · rueda para acercar' : '';
+    hint.textContent = m === 'piezas' ? 'Toca una pieza o su nombre' : m === 'recorrido' ? (R.lander ? 'Arrastra para mirar alrededor' : 'La cámara sigue al rover; arrastra para mirar alrededor') : m === 'modelo' ? 'Arrastra para girar · rueda para acercar' : '';
     renderSide();
   }
   root.querySelectorAll('.rv-tabs button').forEach(b => b.onclick = () => setMode(b.dataset.m));
@@ -477,6 +719,17 @@ export function abrirRover(id, onClose) {
     const back = V3(Math.sin(drive.heading + .6), 0, Math.cos(drive.heading + .6)).multiplyScalar(-VW.back * dirS).add(V3(0, VW.up, 0)).add(g.position); if (cam.position.distanceTo(g.position) > VW.max) cam.position.lerp(back, .03);
     const de = side.querySelector('#rv-dist'); if (de) { de.textContent = dist.toFixed(1) + ' m'; side.querySelector('#rv-time').textContent = (dist / (R.v || .042) / 60).toFixed(1) + ' min'; }
   }
+  // --- módulos fijos: el brazo trabaja, se marcan los pasos y se dibuja el sismograma ---
+  function stepAct(dt) {
+    actT += dt; const r = rover.act(actT, { sun });
+    if (r.step !== actStep) { actStep = r.step; side.querySelectorAll('[data-step]').forEach(li => li.classList.toggle('on', +li.dataset.step === actStep)); }
+    const kv = r.kv.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join(''); if (kv !== actKv) { actKv = kv; const e = side.querySelector('#rv-actkv'); if (e) e.innerHTML = kv; }
+    const cv = rover.seismo && side.querySelector('#rv-seis'); if (cv) { const x = cv.getContext('2d'), { a, i } = rover.seismo(), W = cv.width, Hh = cv.height, n = a.length;
+      x.fillStyle = '#0b0d12'; x.fillRect(0, 0, W, Hh); x.strokeStyle = 'rgba(255,255,255,.08)'; x.beginPath(); for (let k = 1; k < 4; k++) { x.moveTo(0, k * Hh / 4); x.lineTo(W, k * Hh / 4); } x.stroke();
+      x.strokeStyle = '#7ee0a1'; x.lineWidth = 2; x.beginPath(); for (let k = 0; k < n; k++) { const v = a[(i + k) % n], y = Hh / 2 - Math.max(-1, Math.min(1, v)) * Hh * .45; k ? x.lineTo(k / (n - 1) * W, y) : x.moveTo(0, y); } x.stroke();
+      x.fillStyle = 'rgba(255,255,255,.6)'; x.font = '20px system-ui'; x.fillText('SEIS · sismograma', 10, 24); }
+    const tgt = tmpV.set(0, TY * .75, -.9); ctl.target.lerp(tgt, .08);
+  }
   // --- bucle ---
   let last = performance.now();
   function frame(now) {
@@ -485,7 +738,7 @@ export function abrirRover(id, onClose) {
     const w = canvas.clientWidth, h = canvas.clientHeight; if (canvas.width !== Math.floor(w * renderer.getPixelRatio())) { renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
     if (mode === 'piezas') { for (const p of parts) { p.obj.position.copy(p.home).addScaledVector(p.dir, explode * 1.1); } }
     else for (const p of parts) p.obj.position.copy(p.home);
-    if (mode === 'recorrido') stepDrive(dt);
+    if (mode === 'recorrido') { if (rover.act) stepAct(dt); else stepDrive(dt); }
     else { const ing = rover.group.userData.ing; if (ing) { ing.position.set(2.6, 0, -.4); ing.rotation.set(0, 0, 0); ing.userData.rot.forEach((r, i) => r.rotation.y += (i ? 1 : -1) * .5); } }
     if (mode === 'piezas') for (let i = 0; i < parts.length; i++) { const p = parts[i]; const b = new THREE.Box3().setFromObject(p.obj); b.getCenter(tmpV); tmpV.project(cam); const vis = tmpV.z < 1; tags[i].hidden = !vis; tags[i].style.left = (tmpV.x + 1) / 2 * w + 'px'; tags[i].style.top = (1 - tmpV.y) / 2 * h + 'px'; }
     ctl.update(); renderer.render(scene, cam);
@@ -495,6 +748,6 @@ export function abrirRover(id, onClose) {
   root.querySelector('.rv-close').onclick = close; const onKey = e => { if (e.key === 'Escape') { removeEventListener('keydown', onKey); close(); } }; addEventListener('keydown', onKey);
   setMode('modelo');
   UI = { close };
-  window.__rv = { rover, hNoise, THREE, marks };   // para pruebas
+  window.__rv = { rover, hNoise, THREE, marks, setAct: t => { actT = t; } };   // para pruebas
   return true;
 }
