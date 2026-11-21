@@ -101,7 +101,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
     <span><i class="dot" style="background:var(--bad)"></i>Impactos y choques</span>
   </div>
   <div class="legend panel" id="relief" title="Relieve medido por el altímetro láser LOLA de la sonda LRO (NASA)"><span>Relieve</span><button data-k="1">real</button><button data-k="4">×4</button><button data-k="10">×10</button></div>
-  <button class="back panel" id="bFar">🌑 Cara oculta</button><a class="back panel walk" href="paseo/">🚶 Caminar</a>
+  <button class="back panel" id="bFar">🌑 Cara oculta</button><a class="back panel" href="fases/">🌗 Fases y eclipses</a><a class="back panel walk" href="paseo/">🚶 Caminar</a>
 </div>
 
 <aside class="cat panel" aria-label="Catálogo de misiones">
@@ -340,7 +340,7 @@ function openCard(s){
   $('robo').hidden=!I; $('anim').hidden=true;
   const coords=`${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${Math.abs(s.lon).toFixed(2)}° ${s.lon>=0?'E':'O'}`;
   if(!I){ $('cbody').innerHTML=`<p>${NOTE[s.id]||''}</p><div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${coords}</b><span>Quién y cómo</span><b>${s.who}</b></div>
-    <div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`; return; }
+    ${s.id==='luna17'?`<a class="go" href="lunojod/">🎛 Manejar el Lunojod 1 desde la Tierra, con el retraso de la señal →</a>`:`<div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`}`; return; }
   if(I.kind) buildProbe(I.kind); else buildLM(['a15','a16','a17'].includes(s.id), s.id==='a12'); castAll(lm); castAll(stay); setPose(1e9,I.prof);
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
     <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>

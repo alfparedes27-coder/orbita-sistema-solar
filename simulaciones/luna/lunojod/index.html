@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Lunojod 1 · Manejo desde la Tierra</title>
+<meta name="description" content="Maneja el Lunojod 1, el primer rover en otro mundo (URSS, 1970), desde el centro de control en Crimea: con la señal que tarda 1,3 s en llegar a la Luna y una imagen de televisión cada pocos segundos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Centro de control de 1970: paneles verde grisáceo, monitor de TV en el centro, órdenes abajo. "Ver la Luna en vivo" deja ver la escena 3D real detrás. */
+:root{
+  --void:#000; --room:#10140f; --panel:rgba(20,26,22,.92); --line:#2c3a30; --line2:#3e5244;
+  --ink:#e6eadf; --dim:#9fac9c; --faint:#6d7a6b; --acc:#9be37a; --amber:#f2b33d; --red:#ff5a4a;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink);font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none;cursor:grab}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.top{position:fixed;top:calc(8px + var(--top));left:16px;right:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:8}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px}
+.title{padding:6px 12px} .title .kick{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)} .title h1{margin:1px 0 0;font:700 17px var(--f-display)}
+.modes{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+button{font-family:var(--f-body)}
+.modes button,.tb{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:12.5px;cursor:pointer}
+.modes button[aria-pressed=true],.tb[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#0b1608}
+#room{position:fixed;inset:0;padding:calc(64px + var(--top)) 16px calc(16px + var(--bot));overflow:auto;z-index:4;
+  background:radial-gradient(ellipse 90% 70% at 50% 35%,#1c241d 0%,#0d110d 70%,#070907 100%);
+  display:grid;grid-template-columns:250px minmax(0,1fr) 270px;gap:12px;align-content:start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.ph{font:500 10.5px var(--f-data);letter-spacing:.1em;text-transform:uppercase;color:var(--acc);margin:0 0 6px}
+.box{padding:10px 12px}
+.tel{display:grid;grid-template-columns:auto auto;gap:3px 10px;font:500 12.5px var(--f-data)} .tel span{color:var(--dim)} .tel b{font-weight:500;text-align:right}
+.tvbox{padding:10px;display:flex;flex-direction:column;gap:6px}
+.tvframe{position:relative;width:100%;max-width:720px;margin:0 auto;aspect-ratio:4/3;background:#020302;border-radius:14px;border:6px solid #28302a;box-shadow:inset 0 0 40px #000,0 0 0 1px #000;overflow:hidden}
+#tv,#tvo{position:absolute;inset:0;width:100%;height:100%;image-rendering:auto}
+#tv{filter:contrast(1.08) brightness(1.02);border-radius:8px}
+.tvframe::after{content:"";position:absolute;inset:0;border-radius:8px;pointer-events:none;background:radial-gradient(ellipse 80% 75% at 50% 50%,transparent 60%,rgba(0,0,0,.6) 100%),repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.tvbar{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font:500 11.5px var(--f-data);color:var(--dim);max-width:720px;margin:0 auto;width:100%}
+.tvbar b{color:var(--ink);font-weight:500}
+.sig{display:flex;align-items:center;gap:6px} .sig i{width:9px;height:9px;border-radius:50%;background:#2a332b;display:inline-block}
+.sig i.up{background:var(--amber);box-shadow:0 0 8px var(--amber)} .sig i.dn{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.cmd{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;padding:10px 12px}
+.dpad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,50px);gap:5px}
+.dpad button,.ins button{background:#1d2620;border:1px solid var(--line2);color:var(--ink);border-radius:8px;cursor:pointer;font:600 12px var(--f-display);touch-action:none;user-select:none;-webkit-user-select:none;line-height:1.1}
+.dpad button small,.ins button small{display:block;font:500 9.5px var(--f-data);color:var(--dim);letter-spacing:.04em}
+.dpad button.on,.ins button.on{background:var(--amber);color:#1a1000;border-color:var(--amber)} .dpad button.on small{color:#3d2a00}
+.dpad .stop{background:#4a1714;border-color:#7a2a24}
+.ins{display:grid;grid-template-columns:repeat(3,minmax(84px,1fr));gap:5px}
+.ins button{padding:7px 6px;min-height:44px}
+.log{font:500 11.5px var(--f-data);line-height:1.5;max-height:150px;overflow:auto;color:var(--dim)} .log .up{color:var(--amber)} .log .dn{color:var(--acc)} .log .al{color:var(--red)}
+#map{width:100%;aspect-ratio:1;display:block;background:#0b0f0b;border-radius:8px}
+.tasks{list-style:none;margin:0;padding:0;font-size:13px;line-height:1.4} .tasks li{padding:4px 0 4px 24px;position:relative;color:var(--dim)} .tasks li::before{content:"○";position:absolute;left:4px;color:var(--faint)}
+.tasks li.ok{color:var(--ink)} .tasks li.ok::before{content:"✓";color:var(--acc)}
+.sel{display:flex;gap:4px;flex-wrap:wrap} .sel button{background:#1d2620;border:1px solid var(--line2);color:var(--ink);border-radius:6px;padding:5px 7px;font:500 11.5px var(--f-data);cursor:pointer}
+.sel button[aria-pressed=true]{background:var(--acc);color:#0b1608;border-color:var(--acc)}
+.note{font-size:12px;color:var(--dim);line-height:1.45;margin:6px 0 0}
+.horizon{width:100%;height:70px;display:block;margin-top:6px;background:#0b0f0b;border-radius:6px}
+.alarm{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:var(--red);color:#fff;font:600 12px var(--f-data);padding:4px 10px;border-radius:6px;letter-spacing:.06em}
+.card{position:fixed;left:16px;bottom:calc(16px + var(--bot));width:min(380px,calc(100vw - 32px));padding:12px 14px;z-index:9;line-height:1.45}
+.card h3{margin:0 0 4px;font:600 16px var(--f-display)} .card p{margin:4px 0;color:#d8dde0} .card .src{font-size:11.5px;color:var(--faint)}
+.card .x{float:right;background:transparent;border:0;color:var(--dim);font-size:16px;cursor:pointer}
+.pano{position:fixed;left:16px;right:16px;bottom:calc(16px + var(--bot));z-index:10;padding:10px 12px}
+.pano .strip{overflow-x:auto} .pano canvas{display:block;height:180px;width:auto;max-width:none;border-radius:6px;background:#000}
+.pano .x{float:right;background:transparent;border:0;color:var(--dim);font-size:16px;cursor:pointer}
+.parts{position:fixed;right:16px;bottom:calc(16px + var(--bot));z-index:6;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 32px)}
+.tip{position:fixed;transform:translate(-50%,-140%);padding:3px 8px;font:500 12px var(--f-body);pointer-events:none;z-index:7;white-space:nowrap}
+.intro{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(0,0,0,.78);padding:16px;overflow:auto}
+.intro .box{max-width:580px;padding:20px 22px;line-height:1.5}
+.intro h2{margin:0 0 6px;font:700 24px var(--f-display)} .intro .kick{font:500 11px var(--f-data);letter-spacing:.08em;color:var(--acc);text-transform:uppercase}
+.intro ul{padding-left:18px;margin:8px 0} .intro button{margin-top:10px;background:var(--acc);color:#0b1608;border:0;border-radius:8px;padding:11px 16px;font:600 14px var(--f-display);cursor:pointer;width:100%}
+/* En vivo: la escena 3D al fondo; el monitor queda chico en una esquina y las órdenes abajo */
+body.live #room{background:transparent;pointer-events:none;display:block;padding:0}
+body.live #room .col{display:contents}
+body.live #telBox,body.live #mapBox,body.live #taskBox,body.live #logBox,body.live #insBox{display:none}
+body.live .tvbox{position:fixed;right:16px;top:calc(64px + var(--top));width:min(340px,44vw);pointer-events:auto}
+body.live .cmd{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + var(--bot));pointer-events:auto}
+body.parts #room{display:none}
+@media (max-width:980px){
+  #room{grid-template-columns:minmax(0,1fr)}
+  #cTV{order:1} #cL{order:2} #cR{order:3}
+  .title h1{font-size:15px}
+}
+@media (max-width:560px){
+  .dpad{grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,46px)}
+  .title{display:none} .lbl{display:none} .modes button{padding:7px 11px;font-size:15px}
+  body.live .tvbox{width:46vw;padding:6px} body.live .tvbar{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="La superficie de la Luna con el Lunojod 1 y el módulo Luna 17"></canvas>
+<div class="top">
+  <a class="back panel" href="../">← Mapa de la Luna</a>
+  <div class="title panel"><div class="kick">URSS · Luna 17 · 17 de noviembre de 1970</div><h1>Lunojod 1</h1></div>
+  <div class="modes" role="group" aria-label="Vista">
+    <button id="mCtrl" aria-pressed="true" aria-label="Centro de control">🎛<span class="lbl"> Centro de control</span></button>
+    <button id="mLive" aria-pressed="false" aria-label="Ver la Luna en vivo">👁<span class="lbl"> Ver la Luna en vivo</span></button>
+    <button id="mParts" aria-pressed="false" aria-label="El rover por piezas">🔧<span class="lbl"> El rover por piezas</span></button>
+    <button id="bSound" aria-pressed="true" aria-label="Sonido">🔊<span class="lbl"> Sonido</span></button>
+  </div>
+</div>
+
+<main id="room">
+  <div class="col" id="cL">
+    <section class="box panel" id="telBox">
+      <h2 class="ph">Telemetría (llega con 1,3 s de retraso)</h2>
+      <div class="tel">
+        <span>Hora (UTC)</span><b id="tClock">06:28:00</b>
+        <span>Recorrido</span><b id="tOdo">0,0 m</b>
+        <span>Velocidad</span><b id="tV">0,0 km/h</b>
+        <span>Marcha</span><b id="tGear">I (lenta)</b>
+        <span>Rumbo</span><b id="tHdg">180°</b>
+        <span>Cabeceo</span><b id="tPitch">0°</b>
+        <span>Balanceo</span><b id="tRoll">0°</b>
+        <span>Batería</span><b id="tBat">100 %</b>
+        <span>Tapa solar</span><b id="tLid">Abierta</b>
+        <span>Al Luna 17</span><b id="tDist">0 m</b>
+      </div>
+      <canvas class="horizon" id="hz" width="240" height="70" aria-label="Indicador de inclinación"></canvas>
+      <p class="note">El Lunojod se frena solo si se inclina más de 20°, para no volcar.</p>
+    </section>
+    <section class="box panel" id="logBox">
+      <h2 class="ph">Bitácora</h2>
+      <div class="log" id="log" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <div class="col" id="cTV">
+    <section class="tvbox panel">
+      <div class="tvframe"><canvas id="tv" width="480" height="360"></canvas><canvas id="tvo" width="480" height="360"></canvas><div class="alarm" id="alarm" hidden>АВТОСТОП · INCLINACIÓN</div></div>
+      <div class="tvbar"><span>КАДР <b id="tvN">0</b></span><span>Imagen tomada hace <b id="tvAge">—</b></span><span class="sig"><i id="sUp"></i>orden <i id="sDn"></i>imagen</span></div>
+    </section>
+    <section class="cmd panel" id="cmdBox">
+      <div class="dpad" aria-label="Órdenes de manejo">
+        <span></span><button data-c="f" aria-label="Adelante">▲<small>ВПЕРЁД</small></button><span></span>
+        <button data-c="l" aria-label="Girar a la izquierda">◀<small>ВЛЕВО</small></button><button data-c="s" class="stop" aria-label="Parar">■<small>СТОП</small></button><button data-c="r" aria-label="Girar a la derecha">▶<small>ВПРАВО</small></button>
+        <span></span><button data-c="b" aria-label="Atrás">▼<small>НАЗАД</small></button><span></span>
+      </div>
+      <div id="insBox">
+        <div class="ins">
+          <button id="iGear">Marcha II<small>1 ↔ 2 km/h</small></button>
+          <button id="iPano">Panorámica<small>ПАНОРАМА</small></button>
+          <button id="iRif">Análisis<small>RIFMA</small></button>
+          <button id="iProp">Suelo<small>PrOP</small></button>
+          <button id="iLid">Cerrar tapa<small>КРЫШКА</small></button>
+          <button id="iLaser">Láser<small>desde la Tierra</small></button>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;align-items:center;font:500 11.5px var(--f-data);color:var(--dim)">
+          <span>Una imagen cada</span><div class="sel" id="selF"><button data-f="3.2" aria-pressed="true">3,2 s</button><button data-f="5.7">5,7 s</button><button data-f="10.9">10,9 s</button><button data-f="21.1">21,1 s</button></div>
+          <span>Tiempo</span><div class="sel" id="selW"><button data-w="1" aria-pressed="true">×1</button><button data-w="4">×4</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col" id="cR">
+    <section class="box panel" id="mapBox">
+      <h2 class="ph">Mapa del navegante</h2>
+      <canvas id="map" width="270" height="270" aria-label="Mapa con el recorrido del Lunojod"></canvas>
+      <p class="note">El navegante dibujaba el camino con la telemetría. <b style="color:var(--amber)">A</b> es el objetivo del análisis de suelo.</p>
+    </section>
+    <section class="box panel" id="taskBox">
+      <h2 class="ph">Tareas del equipo</h2>
+      <ul class="tasks" id="tasks">
+        <li data-t="ramp">Bajar del Luna 17 por la rampa</li>
+        <li data-t="rif">Llegar al punto A y analizar el suelo (RIFMA)</li>
+        <li data-t="prop">Medir qué tan firme es el suelo (PrOP)</li>
+        <li data-t="pano">Tomar una panorámica detenido</li>
+        <li data-t="m100">Recorrer 100 metros</li>
+        <li data-t="laser">Recibir el eco del láser</li>
+      </ul>
+    </section>
+  </div>
+</main>
+
+<div class="parts" id="partsBar" hidden><button class="tb" id="pExp" aria-pressed="false">Separar piezas</button><button class="tb" id="pLid">Cerrar tapa</button><button class="tb" id="pLander">Ir al Luna 17</button></div>
+<div class="tip panel" id="tip" hidden></div>
+<section class="card panel" id="card" hidden aria-live="polite"><button class="x" id="cardX" aria-label="Cerrar">✕</button><h3 id="cT"></h3><div id="cB"></div></section>
+<section class="pano panel" id="pano" hidden><button class="x" id="panoX" aria-label="Cerrar">✕</button><h2 class="ph" id="panoT">Panorámica</h2><div class="strip"><canvas id="panoC" width="1536" height="240"></canvas></div><p class="note" id="panoN">Las cámaras panorámicas barrían el paisaje de a poco: la imagen se va dibujando de izquierda a derecha.</p></section>
+
+<div class="intro" id="intro"><div class="box panel">
+  <div class="kick">Centro de control · cerca de Simferópol, Crimea · 1970</div>
+  <h2>Maneja un robot que está en la Luna</h2>
+  <p>El 17 de noviembre de 1970 la nave soviética Luna 17 se posó en el Mar de las Lluvias. Encima traía el <b>Lunojod 1</b>, el primer vehículo que rodó por otro mundo. Nadie iba adentro: lo manejaba un equipo de cinco personas desde la Tierra (comandante, conductor, navegante, ingeniero y operador de la antena).</p>
+  <ul>
+    <li><b>La señal tarda 1,3 segundos</b> en llegar a la Luna y otros 1,3 en volver. Cuando aprietas «adelante», el Lunojod recién arranca un segundo después, y tarda otro segundo más en avisarte.</li>
+    <li><b>No hay video:</b> la televisión manda una foto cada pocos segundos. Entre foto y foto manejas a ciegas.</li>
+    <li>Mantén apretada una flecha (o W/A/S/D) para moverte. Al soltar, la orden de parar también tarda en llegar.</li>
+    <li>Con «Ver la Luna en vivo» puedes espiar lo que de verdad está pasando allá. El equipo de 1970 no tenía esa ventaja.</li>
+  </ul>
+  <button id="go">Encender el enlace con la Luna</button>
+</div></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+const $=id=>document.getElementById(id);
+const DELAY=1.28;            // segundos que tarda la luz (y la radio) de la Tierra a la Luna
+const V1=.8/3.6, V2=2/3.6;   // las dos marchas: unos 0,8 y 2 km/h
+const TURN=9*Math.PI/180;    // giro en el lugar (las ruedas de un lado avanzan y las del otro retroceden)
+const TILT=20;               // grados a los que salta el freno automático
+
+/* ============ TERRENO: el Mar de las Lluvias, llano y lleno de cráteres pequeños ============
+   +x = este, −z = norte. El módulo Luna 17 está en el origen. */
+function rng(seed){ let s=seed>>>0; return ()=>((s=Math.imul(s^s>>>15,1|s)+0x6D2B79F5|0,(s^s>>>7)>>>0)/4294967296); }
+const R=rng(19701117);
+const TARGET={x:16,z:34};   // punto A: un cráter joven y claro
+const CRATERS=[{x:TARGET.x+3.5,z:TARGET.z+2,r:2.6,d:.6,bright:1},{x:-38,z:24,r:9,d:2.4},{x:30,z:-22,r:6,d:1.5},{x:-14,z:62,r:14,d:3.4},{x:58,z:48,r:20,d:4.6}];
+for(let i=0;i<2200;i++){ const r=.35*Math.pow(1/(1-R()*.995),.55); const a=R()*Math.PI*2, d=9+Math.pow(R(),.7)*200; const x=Math.cos(a)*d, z=Math.sin(a)*d; if(Math.hypot(x,z)<8+r) continue; if(Math.hypot(x-TARGET.x,z-TARGET.z)<3) continue; CRATERS.push({x,z,r:Math.min(r,8),d:Math.min(r,8)*(.1+R()*.14)}); }
+const CELL=16, grid=new Map();
+for(const c of CRATERS){ const e=c.r*1.6; for(let gx=Math.floor((c.x-e)/CELL);gx<=Math.floor((c.x+e)/CELL);gx++) for(let gz=Math.floor((c.z-e)/CELL);gz<=Math.floor((c.z+e)/CELL);gz++){ const k=gx+','+gz; (grid.get(k)||grid.set(k,[]).get(k)).push(c); } }
+function vnoise(){ const N=256,P=new Float32Array(N*N); for(let i=0;i<P.length;i++)P[i]=R(); return (x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),g=(a,b)=>P[((b&255)*N)+(a&255)];return (g(xi,yi)*(1-u)+g(xi+1,yi)*u)*(1-v)+(g(xi,yi+1)*(1-u)+g(xi+1,yi+1)*u)*v;}; }
+const vn=vnoise(); const fbm=(x,y,o=4)=>{let s=0,a=.5,f=1;for(let i=0;i<o;i++){s+=a*vn(x*f,y*f);a*=.5;f*=2;}return s;};
+function hgt(x,z){
+  let h=Math.sin(x*.017+1.1)*Math.cos(z*.013)*.9+Math.sin(x*.05+z*.037)*.25+(fbm(x*.08,z*.08,3)-.5)*.35;
+  const L=grid.get(Math.floor(x/CELL)+','+Math.floor(z/CELL)); if(L) for(const c of L){ const q=Math.hypot(x-c.x,z-c.z)/c.r; if(q<1) h+=c.d*(q*q-1)+c.d*.12; else if(q<1.6) h+=c.d*.12*Math.pow(1-(q-1)/.6,2); }
+  const r0=Math.hypot(x,z); if(r0<7) h=h*(r0/7)+H0*(1-r0/7);   // el lugar del alunizaje era llano
+  return h;
+}
+const H0=Math.sin(1.1)*.9;   // altura del suelo bajo el Luna 17
+const DECK=1.25;             // altura de la plataforma del Luna 17 donde viajaba el rover
+// superficie que pisan las ruedas: suelo, plataforma y las dos rampas (norte y sur)
+function surf(x,z){ const g=hgt(x,z), ax=Math.abs(x), az=Math.abs(z);
+  if(ax<1.15){ if(az<=1.3) return H0+DECK; if(az<3.7){ const k=(az-1.3)/2.4; return Math.max(g,(H0+DECK)*(1-k)+g*k); } }
+  return g; }
+const SIZE=440, SEG=330;
+const tgeo=new THREE.PlaneGeometry(SIZE,SIZE,SEG,SEG); tgeo.rotateX(-Math.PI/2);
+{ const p=tgeo.attributes.position; for(let i=0;i<p.count;i++) p.setY(i,hgt(p.getX(i),p.getZ(i))); tgeo.computeVertexNormals(); }
+function canvasTex(w,h,draw,srgb=true){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;}
+// regolito del mar: gris oscuro (refleja ~10 % de la luz), grano fino y piedritas
+const regCol=canvasTex(512,512,(x,w,h)=>{const id=x.createImageData(w,h),d=id.data;for(let j=0;j<h;j++)for(let i=0;i<w;i++){const n=fbm(i/20,j/20,5),m=fbm(i/2.5,j/2.5,2),k=(j*w+i)*4,v=82+n*44+m*24+(R()-.5)*18;d[k]=v+2;d[k+1]=v+1;d[k+2]=v-2;d[k+3]=255;}x.putImageData(id,0,0);
+  for(let i=0;i<700;i++){const r=.5+Math.pow(R(),4)*3.5,X=R()*w,Y=R()*h;x.fillStyle=`rgba(${150+R()*50|0},${148+R()*50|0},${145+R()*50|0},.55)`;x.beginPath();x.arc(X,Y,r,0,7);x.fill();x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.arc(X+r*.5,Y+r*.5,r,0,7);x.fill();}});
+regCol.wrapS=regCol.wrapT=THREE.RepeatWrapping; regCol.repeat.set(SIZE/4,SIZE/4);
+const regNrm=(()=>{const W=256,H=256,hf=new Float32Array(W*H);for(let j=0;j<H;j++)for(let i=0;i<W;i++)hf[j*W+i]=fbm(i/5,j/5,4)*1.4+fbm(i/30,j/30,3)*2;
+  for(let k=0;k<40;k++){const cx=R()*W,cy=R()*H,r=2+Math.pow(R(),3)*14;for(let j=-r*1.5|0;j<=r*1.5;j++)for(let i=-r*1.5|0;i<=r*1.5;i++){const q=Math.hypot(i,j)/r,X=((cx+i)%W+W)%W|0,Y=((cy+j)%H+H)%H|0;hf[Y*W+X]+=q<1?(q*q-1)*r*.07:q<1.5?r*.015*(1.5-q):0;}}
+  return canvasTex(W,H,(x)=>{const id=x.createImageData(W,H),d=id.data;for(let j=0;j<H;j++)for(let i=0;i<W;i++){const g=(a,b)=>hf[((b+H)%H)*W+((a+W)%W)];const dx=g(i+1,j)-g(i-1,j),dy=g(i,j+1)-g(i,j-1),l=Math.hypot(dx,dy,1.2),k=(j*W+i)*4;d[k]=(-dx/l*.5+.5)*255;d[k+1]=(dy/l*.5+.5)*255;d[k+2]=(1.2/l*.5+.5)*255;d[k+3]=255;}x.putImageData(id,0,0);},false);})();
+regNrm.wrapS=regNrm.wrapT=THREE.RepeatWrapping; regNrm.repeat.set(SIZE/3,SIZE/3);
+const regMat=new THREE.MeshStandardMaterial({map:regCol,normalMap:regNrm,normalScale:new THREE.Vector2(.85,.85),roughness:1,metalness:0});
+
+/* ============ ESCENA, SOL Y TIERRA ============ */
+const canvas=$('gl'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0);
+const cam=new THREE.PerspectiveCamera(50,1,.05,8000);
+const ground=new THREE.Mesh(tgeo,regMat); ground.receiveShadow=true; scene.add(ground);
+// mancha clara del cráter joven del punto A (el material recién excavado es más claro)
+{ const c=CRATERS[0], m=new THREE.Mesh(new THREE.CircleGeometry(c.r*2.2,40),new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.22,roughness:1,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3}));
+  m.rotation.x=-Math.PI/2; m.position.set(c.x,hgt(c.x,c.z)+.02,c.z); scene.add(m);
+  const geo=m.geometry.attributes.position; for(let i=0;i<geo.count;i++){ const X=geo.getX(i)+c.x, Z=-geo.getY(i)+c.z; geo.setZ(i,hgt(X,Z)-hgt(c.x,c.z)+.03); } }
+// Sol de la mañana lunar: bajo, al este. Aquí recién amanecía cuando alunizó el Luna 17.
+const SUN_AZ=100*Math.PI/180, SUN_EL=20*Math.PI/180;
+const sunDir=new THREE.Vector3(Math.sin(SUN_AZ)*Math.cos(SUN_EL),Math.sin(SUN_EL),-Math.cos(SUN_AZ)*Math.cos(SUN_EL));
+const SUN_I=4.2, sun=new THREE.DirectionalLight(0xfff6ea,SUN_I); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14,near:1,far:120}); sun.shadow.bias=-.0004; sun.shadow.normalBias=.04; scene.add(sun,sun.target);
+const hemi=new THREE.HemisphereLight(0x0d0f14,0x5a5752,.3); scene.add(hemi);
+const SKY=3000;
+const sunDisc=new THREE.Mesh(new THREE.SphereGeometry(SKY*.0047,24,16),new THREE.MeshBasicMaterial({color:0xffffff})); scene.add(sunDisc);
+// La Tierra desde 38,3° N 35° O: 40° sobre el horizonte, hacia el sureste (acimut 131°), y no se mueve.
+const EARTH_DIR=(()=>{const e=40*Math.PI/180,a=131.5*Math.PI/180;return new THREE.Vector3(Math.sin(a)*Math.cos(e),Math.sin(e),-Math.cos(a)*Math.cos(e));})();
+const earthTex=new THREE.TextureLoader().load('../../tex/tierra-dia.webp'); earthTex.colorSpace=THREE.SRGBColorSpace;
+const earth=new THREE.Mesh(new THREE.SphereGeometry(SKY*.01845,48,32),new THREE.MeshStandardMaterial({map:earthTex,roughness:.8,emissive:0x0a1020,emissiveIntensity:.25})); earth.rotation.y=2.4; scene.add(earth);
+{ const g=new THREE.BufferGeometry(),p=[]; for(let i=0;i<1400;i++){const v=new THREE.Vector3().randomDirection(); if(v.y<-.02) v.y*=-1; v.multiplyScalar(SKY*1.25); p.push(v.x,v.y,v.z);} g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.1,sizeAttenuation:false,color:0x9aa0b0}))); }
+// piedras sueltas
+{ const geo=new THREE.DodecahedronGeometry(1,1); { const p=geo.attributes.position; for(let i=0;i<p.count;i++){const v=new THREE.Vector3().fromBufferAttribute(p,i);v.multiplyScalar(.75+R()*.4);p.setXYZ(i,v.x,v.y*.7,v.z);} geo.computeVertexNormals(); }
+  const N=1800, rk=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0x6a6864,roughness:.95,normalMap:regNrm,normalScale:new THREE.Vector2(2,2)}),N), m=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler();
+  let n=0; while(n<N){ const near=R()<.45, c=CRATERS[Math.floor(R()*CRATERS.length)]; const a=R()*Math.PI*2, d=near?c.r*(1+R()*.6):8+R()*180; const x=(near?c.x:0)+Math.cos(a)*d, z=(near?c.z:0)+Math.sin(a)*d; if(Math.abs(x)<2.5&&Math.abs(z)<5) continue;
+    const s=.03+Math.pow(R(),6)*(near&&c.bright?.3:.4); e.set(R()*6,R()*6,R()*6); q.setFromEuler(e); m.compose(new THREE.Vector3(x,hgt(x,z)+s*.25,z),q,new THREE.Vector3(s,s,s)); rk.setMatrixAt(n++,m); }
+  rk.castShadow=true; rk.receiveShadow=true; scene.add(rk); }
+
+/* ============ MATERIALES Y OBJETOS QUE SE PUEDEN TOCAR ============ */
+const things=[];
+function info(obj,title,html){ const t={obj,title,html}; things.push(t); obj.traverse(o=>{ if(o.isMesh) o.userData.thing=t; }); return t; }
+const Mt=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.5,metalness:.3,...o});
+const foilN=canvasTex(256,256,(x,w,h)=>{const id=x.createImageData(w,h),d=id.data;for(let j=0;j<h;j++)for(let i=0;i<w;i++){const a=Math.sin(i*.31+fbm(i/8,j/8,3)*9),b=Math.cos(j*.27+fbm(j/9,i/9,3)*9),k=(j*w+i)*4;d[k]=128+a*60;d[k+1]=128+b*60;d[k+2]=220;d[k+3]=255;}x.putImageData(id,0,0);},false);
+const M_SILV=Mt(0xc4c7cb,{normalMap:foilN,normalScale:new THREE.Vector2(.3,.3),metalness:.85,roughness:.28});
+const M_BODY=Mt(0xb9bcbd,{metalness:.7,roughness:.38});               // tina de aleación de magnesio
+const M_WHITE=Mt(0xe8e7e2,{roughness:.55,metalness:.05});              // radiador de arriba, pintado de blanco
+const M_DARK=Mt(0x26272a,{roughness:.6}), M_GREY=Mt(0x8b8e92,{roughness:.5,metalness:.5});
+const M_MLI=Mt(0x9fa3a6,{normalMap:foilN,normalScale:new THREE.Vector2(.8,.8),metalness:.75,roughness:.35});   // mantas térmicas
+const cells=canvasTex(512,512,(x,w,h)=>{x.fillStyle='#0b1230';x.fillRect(0,0,w,h);for(let j=0;j<32;j++)for(let i=0;i<32;i++){const v=R()*16;x.fillStyle=`rgb(${18+v|0},${32+v|0},${86+v*2|0})`;x.fillRect(i*16+1,j*16+1,14,14);}x.strokeStyle='rgba(180,190,210,.35)';x.lineWidth=1;for(let i=0;i<=8;i++){x.beginPath();x.moveTo(i*64,0);x.lineTo(i*64,h);x.stroke();x.beginPath();x.moveTo(0,i*64);x.lineTo(w,i*64);x.stroke();}});
+const M_CELLS=Mt(0xffffff,{map:cells,metalness:.4,roughness:.25});
+const mesh=canvasTex(128,128,(x,w,h)=>{x.clearRect(0,0,w,h);x.strokeStyle='#fff';x.lineWidth=3;for(let i=-w;i<w*2;i+=16){x.beginPath();x.moveTo(i,0);x.lineTo(i+h,h);x.stroke();x.beginPath();x.moveTo(i,h);x.lineTo(i+h,0);x.stroke();}},false);
+mesh.wrapS=mesh.wrapT=THREE.RepeatWrapping; mesh.repeat.set(10,1.4);
+const M_MESH=new THREE.MeshStandardMaterial({color:0xb7babd,metalness:.85,roughness:.35,alphaMap:mesh,alphaTest:.5,side:THREE.DoubleSide});
+
+/* ============ EL MÓDULO DE ALUNIZAJE LUNA 17 ============ */
+const lander=new THREE.Group(); lander.position.y=H0; scene.add(lander);
+{ const frame=new THREE.Mesh(new THREE.BoxGeometry(1.5,.45,1.5),M_MLI); frame.position.y=.62; lander.add(frame);
+  for(const [x,z] of [[-.78,-.78],[.78,-.78],[-.78,.78],[.78,.78]]){ const s=new THREE.Mesh(new THREE.SphereGeometry(.42,28,18),M_SILV); s.position.set(x,.62,z); lander.add(s); }
+  for(const [x,z,ry] of [[-.85,0,0],[.85,0,0],[0,-.85,Math.PI/2],[0,.85,Math.PI/2]]){ const c=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.75,20),M_GREY); c.rotation.set(Math.PI/2,0,0); c.rotation.y=ry; c.position.set(x,.55,z); if(ry){c.rotation.set(0,0,Math.PI/2);} lander.add(c); }
+  const noz=new THREE.Mesh(new THREE.CylinderGeometry(.18,.32,.4,20,1,true),Mt(0x3a3936,{side:THREE.DoubleSide,metalness:.7})); noz.position.y=.25; lander.add(noz);
+  for(const [x,z] of [[-1,-1],[1,-1],[-1,1],[1,1]]){ const top=new THREE.Vector3(x*.9,.8,z*.9), foot=new THREE.Vector3(x*1.7,.1,z*1.7);
+    const d=foot.clone().sub(top), l=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,d.length(),8),M_SILV); l.position.copy(top).add(foot).multiplyScalar(.5); l.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); lander.add(l);
+    const pad=new THREE.Mesh(new THREE.CylinderGeometry(.28,.22,.1,20),M_SILV); pad.position.copy(foot); lander.add(pad); }
+  for(const x of[-.8,.8]){ const rail=new THREE.Mesh(new THREE.BoxGeometry(.32,.07,2.6),M_GREY); rail.position.set(x,DECK-.035,0); lander.add(rail); }
+  const brace=new THREE.Mesh(new THREE.BoxGeometry(1.9,.05,.12),M_GREY); for(const z of[-1.1,0,1.1]){ const b=brace.clone(); b.position.set(0,DECK-.06,z); lander.add(b); }
+  for(const z of[-.6,.6]) for(const x of[-.9,.9]){ const p=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,DECK-.8,8),M_SILV); p.position.set(x,(DECK+.8)/2,z); lander.add(p); }
+  lander.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  info(frame,'Etapa de alunizaje del Luna 17','<p>La nave que trajo al Lunojod. Despegó el 10 de noviembre de 1970 en un cohete Protón desde Baikonur (Kazajistán) y se posó el 17 de noviembre en el Mar de las Lluvias, a 38,3° N.</p><p>Las cuatro esferas y los cilindros son tanques de combustible del motor que la frenó al bajar. Encima, sobre dos rieles, viajaba el rover, sujeto con pernos que se soltaron con pequeñas cargas explosivas.</p><p class="src">En 2010 la sonda LRO de la NASA fotografió el Luna 17 y las huellas del Lunojod, que siguen ahí.</p>');
+  // rampas al norte y al sur: el equipo eligió por cuál bajar según lo que vieron las cámaras
+  const rampG=new THREE.Group(); lander.add(rampG);
+  for(const s of[-1,1]) for(const x of[-.8,.8]){ const a=new THREE.Vector3(x,DECK-.02,s*1.3), b=new THREE.Vector3(x,.03,s*3.7), d=b.clone().sub(a);
+    const r=new THREE.Mesh(new THREE.BoxGeometry(.32,.03,d.length()),M_MESH); r.position.copy(a).add(b).multiplyScalar(.5); r.lookAt(lander.localToWorld(b.clone())); rampG.add(r);
+    for(const e of[-.15,.15]){ const side=new THREE.Mesh(new THREE.BoxGeometry(.025,.06,d.length()),M_SILV); side.position.set(e,0,0); r.add(side); } }
+  rampG.traverse(o=>{if(o.isMesh){o.castShadow=true;}});
+  info(rampG,'Las rampas','<p>Dos pares de rampas, uno adelante y otro atrás, desplegadas apenas alunizó. Así el equipo podía elegir el lado más despejado. El Lunojod bajó por ellas a las 06:28 UTC del 17 de noviembre (la 1:28 de la madrugada en Ecuador), dos horas y media después de alunizar.</p>');
+}
+
+/* ============ EL LUNOJOD 1 ============
+   Medidas: tina de unos 2,2 m de largo con las ruedas; 8 ruedas de 51 cm; 756 kg. El frente mira hacia −z (local). */
+const rov=new THREE.Group(); rov.rotation.order='YXZ'; scene.add(rov);
+const PARTS=[];   // piezas que se separan en la vista «por piezas»
+function part(obj,ex,title,html){ rov.add(obj); obj.userData.base=obj.position.clone(); obj.userData.ex=new THREE.Vector3(...ex); PARTS.push(obj); if(title) info(obj,title,html); return obj; }
+const WR=.255, wheels=[];
+{ // ruedas: aros de titanio, malla de alambre de acero y tacos; el motor está sellado dentro del cubo
+  const rim=new THREE.TorusGeometry(WR,.012,6,32), tire=new THREE.CylinderGeometry(WR-.004,WR-.004,.19,32,1,true), grou=new THREE.BoxGeometry(.2,.016,.03), hub=new THREE.CylinderGeometry(.085,.085,.15,20), spoke=new THREE.BoxGeometry(.012,WR-.09,.02);
+  const W=new THREE.Group();
+  for(const z of[-1,1]){ const r=new THREE.Mesh(rim,M_SILV); r.rotation.y=Math.PI/2; r.position.x=z*.095; W.add(r);
+    for(let k=0;k<3;k++){ const s=new THREE.Mesh(spoke,M_SILV); s.position.x=z*.09; const a=k/3*Math.PI*2; s.position.y=Math.cos(a)*(WR+.09)/2; s.position.z=Math.sin(a)*(WR+.09)/2; s.rotation.x=-a; W.add(s); } }
+  const t=new THREE.Mesh(tire,M_MESH); t.rotation.z=Math.PI/2; W.add(t);
+  for(let k=0;k<12;k++){ const g=new THREE.Mesh(grou,M_SILV); const a=k/12*Math.PI*2; g.position.set(0,Math.cos(a)*WR,Math.sin(a)*WR); g.rotation.x=-a; W.add(g); }
+  const h=new THREE.Mesh(hub,M_GREY); h.rotation.z=Math.PI/2; W.add(h);
+  const wg=new THREE.Group(); let i=0;
+  for(const side of[-1,1]) for(const z of[-.84,-.28,.28,.84]){ const w=W.clone(); w.position.set(side*.82,WR,z); wg.add(w); wheels.push({w,side}); i++; }
+  // largueros del chasis que unen las ruedas con la tina
+  for(const side of[-1,1]){ const b=new THREE.Mesh(new THREE.BoxGeometry(.08,.08,1.95),M_GREY); b.position.set(side*.7,WR+.02,0); wg.add(b);
+    for(const z of[-.84,-.28,.28,.84]){ const a=new THREE.Mesh(new THREE.BoxGeometry(.18,.05,.05),M_GREY); a.position.set(side*.62,WR+.08,z); wg.add(a); } }
+  part(wg,[0,0,0],'Ocho ruedas con motor propio','<p>Cada rueda mide 51 cm y tiene su propio motor eléctrico y freno, sellados dentro del cubo. El aro es de titanio con una malla de alambre de acero y tacos para agarrarse al polvo.</p><p>Para girar, las ruedas de un lado avanzan y las del otro retroceden, como un tanque: por eso podía dar la vuelta en su lugar. Si una rueda se trababa, el equipo podía soltarla para que girara libre.</p>');
+}
+{ // la tina hermética: por dentro, aire como en la Tierra y ventiladores para repartir el calor
+  const prof=[]; for(let i=0;i<=10;i++){ const t=i/10; prof.push(new THREE.Vector2(.66+.32*Math.pow(t,1.6),.0+t*.55)); }
+  const tub=new THREE.Mesh(new THREE.LatheGeometry(prof,48),M_BODY); tub.scale.z=1.08; tub.position.y=.42;
+  const bottom=new THREE.Mesh(new THREE.CircleGeometry(.66,48),M_BODY); bottom.rotation.x=Math.PI/2; bottom.scale.y=1.08; bottom.position.y=.42;
+  const g=new THREE.Group(); g.add(tub,bottom);
+  const rad=new THREE.Mesh(new THREE.CircleGeometry(.98,48),M_WHITE); rad.rotation.x=-Math.PI/2; rad.scale.y=1.08; rad.position.y=.975; g.add(rad);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.98,.025,8,64),M_SILV); ring.rotation.x=Math.PI/2; ring.scale.y=1.08; ring.position.y=.975; g.add(ring);
+  part(g,[0,.45,0],'La tina hermética','<p>El cuerpo es una tina de aleación de magnesio, cerrada herméticamente. Adentro tenía aire a presión normal y ventiladores, como una pequeña casa: así las baterías, las radios y los aparatos funcionaban como en la Tierra.</p><p>La tapa blanca de arriba es un radiador: de día botaba el calor sobrante al espacio.</p>');
+}
+const lidPivot=new THREE.Group(); lidPivot.position.set(0,.99,1.04);
+{ // tapa redonda con bisagra atrás; por dentro, celdas solares
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(2.2,48,10,0,Math.PI*2,0,.47),M_SILV); dome.position.set(0,-2.2*Math.cos(.47)+.0,-1.04); dome.scale.z=1.08; lidPivot.add(dome);
+  const sol=new THREE.Mesh(new THREE.CircleGeometry(.98,48),M_CELLS); sol.rotation.x=Math.PI/2; sol.scale.y=1.08; sol.position.set(0,-.005,-1.04); lidPivot.add(sol);
+  part(lidPivot,[0,1.35,.5],'La tapa con panel solar','<p>La tapa redonda se abría como la de un baúl. Por dentro está cubierta de celdas solares que cargaban las baterías durante el día lunar, que dura unas dos semanas: daban unos 180 vatios.</p><p>Al llegar la noche lunar (otras dos semanas a −150 °C) el equipo la cerraba como la tapa de una olla y el rover se quedaba quieto, esperando el amanecer.</p>');
+}
+{ // cara delantera: dos cámaras de TV para manejar, como dos ojos
+  const g=new THREE.Group(); g.position.set(0,.8,-1.0);
+  const plate=new THREE.Mesh(new RoundedBoxGeometry(.78,.2,.14,2,.03),M_GREY); g.add(plate);
+  for(const x of[-.2,.2]){ const c=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,.16,20),M_DARK); c.rotation.x=Math.PI/2; c.position.set(x,0,-.1); g.add(c);
+    const lens=new THREE.Mesh(new THREE.CircleGeometry(.045,20),new THREE.MeshPhysicalMaterial({color:0x10141c,roughness:.05,clearcoat:1,metalness:.3})); lens.position.set(x,0,-.181); lens.rotation.y=Math.PI; g.add(lens); }
+  part(g,[0,.45,-.65],'Las cámaras de televisión','<p>Dos cámaras al frente, para ver por dónde iba. No mandaban video: según la calidad, enviaban una imagen cada 3 a 20 segundos. En total llegaron más de 20 000 imágenes.</p><p>El conductor miraba la última foto, calculaba y daba la orden… y ya habían pasado varios segundos. Por eso el Lunojod iba despacio, a 1 o 2 km/h.</p>');
+}
+{ // cuatro cámaras panorámicas a los costados
+  const g=new THREE.Group();
+  for(const [x,z] of [[-.93,-.5],[.93,-.5],[-.98,.35],[.98,.35]]){ const c=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.34,16),M_GREY); c.position.set(x,.82,z); g.add(c);
+    const slit=new THREE.Mesh(new THREE.BoxGeometry(.02,.22,.03),M_DARK); slit.position.set(x+Math.sign(x)*.052,.84,z); g.add(slit);
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(.056,16,8,0,Math.PI*2,0,Math.PI/2),M_GREY); cap.position.set(x,.99,z); g.add(cap); }
+  part(g,[0,.8,0],'Las cámaras panorámicas','<p>Cuatro «telefotómetros», dos a cada lado. Giraban de a poco para barrer el paisaje línea por línea y armar fotos panorámicas de gran detalle. Tomaron 206.</p><p>Con ellas el navegante reconocía cráteres y rocas y dibujaba el mapa del camino.</p>');
+}
+const reflector=new THREE.Group();
+{ // reflector láser francés, al frente
+  reflector.position.set(.42,1.0,-.86); reflector.rotation.x=-.6;
+  const fr=new THREE.Mesh(new THREE.BoxGeometry(.44,.04,.2),M_SILV); reflector.add(fr);
+  const cc=new THREE.Mesh(new THREE.PlaneGeometry(.4,.16),new THREE.MeshPhysicalMaterial({roughness:.02,metalness:.3,clearcoat:1,color:0x9ab0c8,map:canvasTex(256,96,(x)=>{x.fillStyle='#223';x.fillRect(0,0,256,96);for(let i=0;i<7;i++)for(let j=0;j<2;j++){const cx=i*36+20,cy=j*44+24;const g=x.createRadialGradient(cx,cy,2,cx,cy,18);g.addColorStop(0,'#d6e6ff');g.addColorStop(1,'#334');x.fillStyle=g;x.beginPath();x.moveTo(cx,cy-18);x.lineTo(cx+17,cy+12);x.lineTo(cx-17,cy+12);x.fill();}})}));
+  cc.rotation.x=-Math.PI/2; cc.position.y=.021; reflector.add(cc);
+  part(reflector,[.3,.95,-.45],'Reflector láser (de Francia)','<p>Un panel con prismas que devuelven la luz exactamente hacia donde vino. Desde la Tierra le disparaban un láser y medían cuánto tardaba la luz en ir y volver: unos 2,5 segundos.</p><p>Se le perdió el rastro en 1971. En 2010 la sonda LRO encontró al Lunojod en una foto y, con esa posición, un observatorio de Nuevo México le apuntó: «recibimos unos 2000 fotones al primer intento». Hoy se sigue usando.</p>');
+}
+const antHG=new THREE.Group();
+{ // antena dirigida (hélice cónica) que apuntaba a la Tierra, y dos antenas más
+  antHG.position.set(-.55,1.0,-.62);
+  const mast=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.42,8),M_GREY); mast.position.y=.21; antHG.add(mast);
+  const head=new THREE.Group(); head.position.y=.44; antHG.add(head); antHG.userData.head=head;
+  const pts=[]; for(let i=0;i<=160;i++){ const t=i/160, r=.03+t*.1, a=t*Math.PI*2*7; pts.push(new THREE.Vector3(Math.cos(a)*r,Math.sin(a)*r,t*.55)); }
+  const helix=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),320,.006,5),M_SILV); head.add(helix);
+  const disc=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.015,20),M_GREY); disc.rotation.x=Math.PI/2; head.add(disc);
+  const whip=new THREE.Mesh(new THREE.CylinderGeometry(.006,.008,.8,6),M_SILV); whip.position.set(1.1,.4,1.2); antHG.add(whip);
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(.07,.2,16),M_GREY); cone.position.set(1.15,.12,.15); antHG.add(cone);
+  part(antHG,[-.35,1.1,-.25],'Las antenas','<p>La de forma de cono en espiral es la antena dirigida: concentra la señal en un haz angosto y debe apuntar siempre a la Tierra (aquí, 40° sobre el horizonte hacia el sureste). Mira cómo sigue a la Tierra aunque el rover gire. Por ella llegaban las imágenes de TV.</p><p>La varilla larga y el cono pequeño son antenas que reciben las órdenes desde cualquier dirección.</p>');
+}
+{ // fuente de calor de polonio‑210, atrás
+  const g=new THREE.Group(); g.position.set(0,.66,1.12);
+  const c=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.46,20),M_DARK); c.rotation.z=Math.PI/2; g.add(c);
+  for(let i=0;i<7;i++){ const f=new THREE.Mesh(new THREE.CylinderGeometry(.155,.155,.012,20),M_GREY); f.rotation.z=Math.PI/2; f.position.x=-.2+i*.066; g.add(f); }
+  part(g,[0,.45,.65],'Calentador de polonio‑210','<p>Un cilindro con un poco de polonio‑210, un material radiactivo que se calienta solo. Durante la noche lunar, cuando afuera hace −150 °C y no hay Sol para las baterías, su calor se pasaba al interior de la tina para que nada se congelara.</p><p>Gracias a él, el Lunojod sobrevivió 10 noches lunares.</p>');
+}
+const ninth=new THREE.Group();
+{ // novena rueda (odómetro) y penetrómetro PrOP, atrás
+  ninth.position.set(.3,0,1.05);
+  const arm=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,.35),M_GREY); arm.position.set(0,.2,.12); arm.rotation.x=.55; ninth.add(arm);
+  const w=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.04,20),M_SILV); w.rotation.z=Math.PI/2; w.position.set(0,.09,.27); ninth.add(w); ninth.userData.w=w;
+  part(ninth,[.3,0,.65],'Novena rueda (odómetro)','<p>Una ruedita sin motor que el Lunojod arrastraba detrás. Las ruedas grandes patinaban en el polvo, así que sus vueltas no decían la distancia real. Esta rueda libre sí: con ella sabían cuánto habían avanzado de verdad.</p>');
+}
+const prop=new THREE.Group();
+{ prop.position.set(-.35,.62,1.02);
+  const tube=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.36,10),M_GREY); prop.add(tube);
+  const rod=new THREE.Group(); prop.add(rod); prop.userData.rod=rod;
+  const r=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.4,8),M_SILV); r.position.y=-.2; rod.add(r);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.025,.06,10),M_SILV); tip.rotation.x=Math.PI; tip.position.y=-.42; rod.add(tip);
+  for(let k=0;k<4;k++){ const v=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,.004),M_SILV); v.position.y=-.38; v.rotation.y=k*Math.PI/4; rod.add(v); }
+  part(prop,[-.35,.35,.65],'Penetrómetro PrOP','<p>Una varilla con punta de cono y aspas en cruz. Se clavaba en el suelo y giraba: la fuerza que necesitaba decía qué tan firme era el suelo. Lo hizo en 500 lugares.</p><p>Así el equipo sabía si las ruedas se iban a hundir más adelante.</p>');
+}
+const rifma=new THREE.Group();
+{ rifma.position.set(-.38,.52,-.95);
+  const b=new THREE.Mesh(new RoundedBoxGeometry(.24,.18,.2,2,.03),M_MLI); rifma.add(b);
+  const w=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.04,16),M_DARK); w.position.y=-.1; rifma.add(w);
+  part(rifma,[-.25,.3,-.65],'Espectrómetro RIFMA','<p>Bajaba hasta casi tocar el suelo y lo iluminaba con rayos X. Cada elemento químico responde con su propio «color» de rayos X, así se sabía de qué estaba hecho el suelo sin traerlo a la Tierra. Hizo 25 análisis.</p><p>También llevaba un telescopio de rayos X para mirar el cielo y detectores de rayos cósmicos.</p>');
+}
+rov.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+// cámara de TV de manejo (va montada en el frente) y cámara panorámica
+const tvCam=new THREE.PerspectiveCamera(46,4/3,.05,8000); tvCam.position.set(0,.82,-1.12); tvCam.rotation.x=-.16; rov.add(tvCam);
+const panCam=new THREE.PerspectiveCamera(54.6,.8,.05,8000); panCam.position.set(0,1.45,0); rov.add(panCam);
+
+/* ============ HUELLAS DE LAS RUEDAS ============ */
+const trackTex=canvasTex(64,64,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle='rgba(0,0,0,.55)';x.fillRect(6,0,w-12,h);x.fillStyle='rgba(0,0,0,.7)';for(let y=0;y<h;y+=10){x.fillRect(6,y,w-12,4);}});
+const TMAX=3000, trk=new THREE.InstancedMesh(new THREE.PlaneGeometry(.26,.36).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({map:trackTex,transparent:true,depthWrite:false,roughness:1,color:0x777777,polygonOffset:true,polygonOffsetFactor:-2}),TMAX);
+trk.count=0; trk.receiveShadow=true; scene.add(trk); let trkN=0, trkAcc=0;
+function addTrack(){ const m=new THREE.Matrix4(), q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),-P.yaw);
+  for(const side of[-1,1]){ const x=P.x+Math.cos(P.yaw)*side*.82, z=P.z+Math.sin(P.yaw)*side*.82; m.compose(new THREE.Vector3(x,hgt(x,z)+.015,z),q,new THREE.Vector3(1,1,1)); trk.setMatrixAt(trkN%TMAX,m); trkN++; }
+  trk.count=Math.min(trkN,TMAX); trk.instanceMatrix.needsUpdate=true; }
+
+/* ============ ESTADO DEL ROVER Y ÓRDENES CON RETRASO ============ */
+const P={x:0,z:0,yaw:Math.PI,y:H0+DECK,v:0,w:0,odo:0,bat:100,pitch:0,roll:0,spin:0,lid:1,lidT:1,stop:false,ground:false};
+const cmd={f:0,t:0,gear:1};
+let simT=0, warp=1, FI=3.2;
+const queue=[];   // órdenes viajando hacia la Luna
+const hist=[];    // estado del rover cada 0,1 s, para mostrarlo con retraso
+const downQ=[];   // mensajes viajando de vuelta a la Tierra
+const NAME={f:'ADELANTE',b:'ATRÁS',l:'GIRAR IZQUIERDA',r:'GIRAR DERECHA',s:'PARAR',sf:'fin ADELANTE',sb:'fin ATRÁS',sl:'fin GIRO',sr:'fin GIRO',gear:'CAMBIO DE MARCHA',pano:'PANORÁMICA',rif:'ANÁLISIS RIFMA',prop:'PRUEBA DE SUELO',lid:'TAPA'};
+function send(c){ queue.push({t:simT+DELAY,c}); upLed=.35; sfx.send(); if(!/^s[fblr]$/.test(c)) log(`→ ${NAME[c]||c}`,'up'); }
+function down(t,f){ downQ.push({t:simT+DELAY+t,f}); }
+function execute(c){
+  if(c==='f'){cmd.f=1;P.stop=false;} else if(c==='b'){cmd.f=-1;P.stop=false;} else if(c==='l')cmd.t=-1; else if(c==='r')cmd.t=1;
+  else if(c==='sf'&&cmd.f===1)cmd.f=0; else if(c==='sb'&&cmd.f===-1)cmd.f=0; else if(c==='sl'&&cmd.t===-1)cmd.t=0; else if(c==='sr'&&cmd.t===1)cmd.t=0;
+  else if(c==='s'){cmd.f=0;cmd.t=0;}
+  else if(c==='gear'){cmd.gear=cmd.gear===1?2:1; down(0,()=>log(`← Marcha ${cmd.gear===1?'I':'II'} puesta`,'dn'));}
+  else if(c==='lid'){P.lid=P.lid?0:1; down(0,()=>log(`← Tapa ${P.lid?'abriéndose':'cerrándose'}`,'dn'));}
+  else if(c==='pano') doPano();
+  else if(c==='rif') doRif();
+  else if(c==='prop') doProp();
+}
+
+/* ============ SONIDO (sintetizado) ============ */
+let AC=null, master=null, soundOn=true, hum=null;
+function ac(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=.55; master.connect(AC.destination); } if(AC.state==='suspended') AC.resume(); return AC; }
+function tone(f,d,type='sine',v=.12,t0=0,f2){ if(!soundOn) return; const a=ac(),o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0; o.type=type; o.frequency.setValueAtTime(f,t); if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+d); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v,t+.008); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(g).connect(master); o.start(t); o.stop(t+d+.05); }
+let noiseBuf=null; function noise(d,v=.08,f=2000,t0=0){ if(!soundOn) return; const a=ac(); if(!noiseBuf){ noiseBuf=a.createBuffer(1,a.sampleRate,a.sampleRate); const ch=noiseBuf.getChannelData(0); for(let i=0;i<ch.length;i++) ch[i]=Math.random()*2-1; }
+  const s=a.createBufferSource(), bp=a.createBiquadFilter(), g=a.createGain(), t=a.currentTime+t0; s.buffer=noiseBuf; s.loop=true; bp.type='bandpass'; bp.frequency.value=f; bp.Q.value=.8; g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.0001,t+d); s.connect(bp).connect(g).connect(master); s.start(t); s.stop(t+d+.05); }
+const sfx={
+  send(){ noise(.03,.12,3000); tone(1250,.07,'square',.04,.01); tone(1650,.07,'square',.035,.08); },
+  key(){ noise(.025,.1,2500); },
+  scan(d){ if(!soundOn) return; const a=ac(), o=a.createOscillator(), l=a.createOscillator(), lg=a.createGain(), g=a.createGain(), t=a.currentTime; o.type='square'; o.frequency.value=1700; l.type='square'; l.frequency.value=17; lg.gain.value=420; l.connect(lg).connect(o.frequency); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.018,t+.05); g.gain.setValueAtTime(.018,t+d-.05); g.gain.linearRampToValueAtTime(0,t+d); const lp=a.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2600; o.connect(lp).connect(g).connect(master); o.start(t); l.start(t); o.stop(t+d+.05); l.stop(t+d+.05); },
+  alarm(){ for(let i=0;i<3;i++){ tone(880,.16,'square',.06,i*.36); tone(660,.16,'square',.06,i*.36+.18); } },
+  done(){ [523,659,784,1046].forEach((f,i)=>tone(f,.2,'triangle',.09,i*.1)); },
+  laser(){ tone(2200,.4,'sine',.05,0,1800); },
+  echo(){ tone(1500,.12,'sine',.07); tone(1500,.12,'sine',.05,.18); },
+  hum(on){ if(!soundOn) on=false; if(on&&!hum){ const a=ac(), o=a.createOscillator(), g=a.createGain(); o.type='sine'; o.frequency.value=50; g.gain.value=.018; o.connect(g).connect(master); o.start(); const s=a.createBufferSource(); if(!noiseBuf) noise(.01,0.0001); s.buffer=noiseBuf; s.loop=true; const lp=a.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=380; const g2=a.createGain(); g2.gain.value=.03; s.connect(lp).connect(g2).connect(master); s.start(); hum={o,s}; }
+    else if(!on&&hum){ hum.o.stop(); hum.s.stop(); hum=null; } }
+};
+
+/* ============ BITÁCORA Y TAREAS ============ */
+const T0=6*3600+28*60;   // 06:28 UTC, cuando bajó por la rampa
+const clock=t=>{ const s=Math.floor(T0+t)%86400; return [s/3600|0,(s/60|0)%60,s%60].map(n=>String(n).padStart(2,'0')).join(':'); };
+function log(msg,cls=''){ const d=document.createElement('div'); d.className=cls; d.textContent=`${clock(simT)}  ${msg}`; const L=$('log'); L.prepend(d); while(L.children.length>40) L.lastChild.remove(); }
+const done=new Set();
+function task(id){ if(done.has(id)) return; done.add(id); const li=document.querySelector(`#tasks li[data-t="${id}"]`); if(li) li.classList.add('ok'); sfx.done(); log(`✓ Tarea cumplida: ${li?li.textContent:id}`,'dn'); }
+
+/* ============ TELEVISIÓN LENTA ============ */
+const TVW=480, TVH=360, rtTV=new THREE.WebGLRenderTarget(TVW,TVH), bufTV=new Uint8Array(TVW*TVH*4);
+const rtPan=new THREE.WebGLRenderTarget(192,240), bufPan=new Uint8Array(192*240*4);
+const tvx=$('tv').getContext('2d'), tvo=$('tvo').getContext('2d');
+tvx.fillStyle='#000'; tvx.fillRect(0,0,TVW,TVH);
+const frames=[]; let showing=null, frameN=0, nextCap=.4, lastShownAt=null, upLed=0, dnLed=0;
+function shoot(camera,rt,buf,w,h){ // renderiza con menos luz (la imagen no pasa por el ajuste de pantalla) y la vuelve gris con grano
+  rov.updateMatrixWorld(true); const s=sun.intensity; sun.intensity=s*.3;
+  renderer.setRenderTarget(rt); renderer.render(scene,camera); renderer.readRenderTargetPixels(rt,0,0,w,h,buf); renderer.setRenderTarget(null);
+  sun.intensity=s;
+  const img=new ImageData(w,h), d=img.data;
+  for(let y=0;y<h;y++){ const sy=h-1-y; for(let x=0;x<w;x++){ const i=(sy*w+x)*4, o=(y*w+x)*4; const lin=(buf[i]*.3+buf[i+1]*.59+buf[i+2]*.11)/255/.3; let v=Math.pow(1-Math.exp(-lin*1.15),1/2.2)*262+(Math.random()-.5)*16; if(y%2) v*=.93; v=v<0?0:v>255?255:v; d[o]=v; d[o+1]=v; d[o+2]=v*.97; d[o+3]=255; } }
+  return img; }
+function capture(){ const img=shoot(tvCam,rtTV,bufTV,TVW,TVH); frames.push({due:simT+DELAY,taken:simT,img,n:++frameN}); }
+function drawOverlay(){ tvo.clearRect(0,0,TVW,TVH); tvo.strokeStyle='rgba(255,255,255,.5)'; tvo.lineWidth=1.5;
+  // marcas de la trocha de las ruedas: ayudan a ver si el camino cabe
+  tvo.beginPath(); tvo.moveTo(TVW*.08,TVH); tvo.lineTo(TVW*.33,TVH*.62); tvo.moveTo(TVW*.92,TVH); tvo.lineTo(TVW*.67,TVH*.62); tvo.stroke();
+  tvo.beginPath(); for(const y of[.62,.74,.87]){ const k=(1-y)/.38; tvo.moveTo(TVW*(.33-.25*(1-k)),TVH*y); tvo.lineTo(TVW*(.33-.25*(1-k))+12,TVH*y); tvo.moveTo(TVW*(.67+.25*(1-k)),TVH*y); tvo.lineTo(TVW*(.67+.25*(1-k))-12,TVH*y); } tvo.stroke();
+  tvo.fillStyle='rgba(255,255,255,.75)'; tvo.font='500 13px IBM Plex Mono, monospace'; tvo.fillText('ЛУНОХОД-1',12,22); if(showing) tvo.fillText('КАДР '+String(showing.n).padStart(4,'0'),TVW-112,22); }
+drawOverlay();
+
+/* ============ INSTRUMENTOS ============ */
+let panoN=0;
+function doPano(){
+  if(Math.abs(P.v)>.01||cmd.t){ down(0,()=>log('← PANORÁMICA rechazada: el rover se está moviendo','al')); return; }
+  const strip=document.createElement('canvas'); strip.width=1536; strip.height=240; const sx=strip.getContext('2d'); const yaw0=P.yaw;
+  rov.updateMatrixWorld(true); rov.visible=false;   // la panorámica se arma sin el propio rover delante
+  for(let k=0;k<8;k++){ panCam.rotation.set(-.05,-(k*Math.PI/4),0,'YXZ'); const img=shoot(panCam,rtPan,bufPan,192,240); sx.putImageData(img,k*192,0); }
+  panCam.rotation.set(0,0,0); rov.visible=true;
+  const n=++panoN, hd=Math.round(((yaw0*180/Math.PI)%360+360)%360);
+  down(0,()=>{ log(`← Llega la panorámica nº ${n} (360°, empezando hacia ${hd}°)`,'dn'); showPano(strip,n); task('pano'); });
+}
+let panoAnim=null;
+function showPano(strip,n){ const c=$('panoC'), x=c.getContext('2d'); x.fillStyle='#000'; x.fillRect(0,0,c.width,c.height); $('panoT').textContent=`Panorámica nº ${n} · telefotómetro`; $('pano').hidden=false;
+  let col=0; cancelAnimationFrame(panoAnim); sfx.scan(6);
+  const step=()=>{ const to=Math.min(1536,col+5); x.drawImage(strip,col,0,to-col,240,col,0,to-col,240); col=to; if(col<1536) panoAnim=requestAnimationFrame(step); }; step(); }
+$('panoX').onclick=()=>{ $('pano').hidden=true; cancelAnimationFrame(panoAnim); };
+function doRif(){
+  const d=Math.hypot(P.x-TARGET.x,P.z-TARGET.z);
+  rifma.userData.anim=1;
+  down(5,()=>{ if(d<5){ log('← RIFMA: silicio 21 %, hierro 13 %, calcio 7 %, aluminio 6 %, magnesio 5 %, titanio 2 % (basalto de mar, aprox.)','dn'); task('rif'); }
+    else log(`← RIFMA: basalto oscuro. El punto A está a ${d.toFixed(0)} m: acércate a menos de 5 m`,'dn'); });
+}
+function doProp(){ if(!P.ground){ down(0,()=>log('← PrOP: primero hay que estar sobre el suelo','al')); return; }
+  prop.userData.anim=1;
+  down(4,()=>{ log('← PrOP: la punta entró unos 4 cm y el suelo resistió el giro. Firme, como arena compactada: las ruedas no se hundirán','dn'); task('prop'); }); }
+// láser desde un observatorio de la Tierra: va y vuelve a la velocidad de la luz
+let beam=null;
+{ const g=new THREE.CylinderGeometry(.02,.02,1,6,1,true); g.translate(0,.5,0); beam=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0x5dff6a,transparent:true,opacity:0,depthWrite:false})); beam.scale.y=600; scene.add(beam); }
+let laserAt=-1;
+$('iLaser').onclick=()=>{ sfx.laser(); log('→ Disparo láser desde el observatorio de Crimea','up'); laserAt=simT; upLed=.35;
+  downQ.push({t:simT+DELAY*2+.0036,f:()=>{ sfx.echo(); log('← Eco del reflector: 2,56 s ida y vuelta → la Luna está a unos 384 000 km','dn'); task('laser'); }}); };
+
+/* ============ BOTONES ============ */
+const pressed=new Set();
+function startC(c){ if(c==='s'){ send('s'); return; } if(pressed.has(c)) return; pressed.add(c); document.querySelector(`.dpad [data-c="${c}"]`)?.classList.add('on'); send(c); }
+function endC(c){ if(!pressed.has(c)) return; pressed.delete(c); document.querySelector(`.dpad [data-c="${c}"]`)?.classList.remove('on'); send('s'+c); }
+document.querySelectorAll('.dpad button').forEach(b=>{ const c=b.dataset.c;
+  b.addEventListener('pointerdown',e=>{ e.preventDefault(); b.setPointerCapture?.(e.pointerId); startC(c); if(c==='s') b.classList.add('on'); });
+  const up=()=>{ endC(c); if(c==='s') b.classList.remove('on'); }; b.addEventListener('pointerup',up); b.addEventListener('pointercancel',up); b.addEventListener('lostpointercapture',up); });
+const KEYS={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r'};
+addEventListener('keydown',e=>{ if(!$('intro').hidden) return; const c=KEYS[e.code]; if(c){ e.preventDefault(); startC(c); } else if(e.code==='Space'){ e.preventDefault(); send('s'); } });
+addEventListener('keyup',e=>{ const c=KEYS[e.code]; if(c) endC(c); });
+addEventListener('blur',()=>{ for(const c of [...pressed]) endC(c); });
+$('iGear').onclick=()=>{ send('gear'); $('iGear').firstChild.textContent=cmdGearNext()===2?'Marcha I':'Marcha II'; };
+let gearUI=1; function cmdGearNext(){ gearUI=gearUI===1?2:1; return gearUI; }
+$('iPano').onclick=()=>send('pano'); $('iRif').onclick=()=>send('rif'); $('iProp').onclick=()=>send('prop');
+let lidUI=1; $('iLid').onclick=()=>{ send('lid'); lidUI^=1; $('iLid').firstChild.textContent=lidUI?'Cerrar tapa':'Abrir tapa'; };
+document.querySelectorAll('#selF button').forEach(b=>b.onclick=()=>{ FI=+b.dataset.f; document.querySelectorAll('#selF button').forEach(x=>x.setAttribute('aria-pressed',x===b)); sfx.key(); log(`Calidad de TV: una imagen cada ${b.textContent}`); });
+document.querySelectorAll('#selW button').forEach(b=>b.onclick=()=>{ warp=+b.dataset.w; document.querySelectorAll('#selW button').forEach(x=>x.setAttribute('aria-pressed',x===b)); sfx.key(); });
+
+/* ============ VISTAS ============ */
+let mode='ctrl';
+const orbit={yaw:-.6,pitch:.35,dist:9,tx:0,ty:0,tz:0};
+function setMode(m){ mode=m; document.body.classList.toggle('live',m==='live'); document.body.classList.toggle('parts',m==='parts');
+  $('mCtrl').setAttribute('aria-pressed',m==='ctrl'); $('mLive').setAttribute('aria-pressed',m==='live'); $('mParts').setAttribute('aria-pressed',m==='parts');
+  $('partsBar').hidden=m!=='parts'; if(m==='parts'){ orbit.dist=4.6; orbit.pitch=.32; } else if(m==='live'){ orbit.dist=9; } else { $('card').hidden=true; setExplode(false); }
+  sfx.hum(m==='ctrl'); sfx.key(); resize(); }
+$('mCtrl').onclick=()=>setMode('ctrl'); $('mLive').onclick=()=>setMode('live'); $('mParts').onclick=()=>setMode('parts');
+$('bSound').onclick=()=>{ soundOn=!soundOn; $('bSound').setAttribute('aria-pressed',soundOn); sfx.hum(mode==='ctrl'); };
+let explode=0, explodeT=0;
+function setExplode(on){ explodeT=on?1:0; $('pExp').setAttribute('aria-pressed',on); $('pExp').textContent=on?'Juntar piezas':'Separar piezas'; }
+$('pExp').onclick=()=>{ setExplode(explodeT===0); sfx.key(); };
+$('pLid').onclick=()=>{ P.lid=P.lid?0:1; lidUI=P.lid; $('pLid').textContent=P.lid?'Cerrar tapa':'Abrir tapa'; $('iLid').firstChild.textContent=P.lid?'Cerrar tapa':'Abrir tapa'; sfx.key(); };
+let focusLander=false; $('pLander').onclick=()=>{ focusLander=!focusLander; $('pLander').textContent=focusLander?'Ir al Lunojod':'Ir al Luna 17'; orbit.dist=focusLander?8:4.6; sfx.key(); };
+// arrastrar para girar la cámara, rueda para acercar
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY,moved:0}; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove',e=>{ if(drag){ const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.moved+=Math.abs(dx)+Math.abs(dy); orbit.yaw-=dx*.006; orbit.pitch=Math.max(.04,Math.min(1.35,orbit.pitch+dy*.005)); drag.x=e.clientX; drag.y=e.clientY; } else hover(e); });
+canvas.addEventListener('pointerup',e=>{ if(drag&&drag.moved<6) pick(e); drag=null; });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); orbit.dist=Math.max(2.4,Math.min(40,orbit.dist*Math.exp(e.deltaY*.001))); },{passive:false});
+const ray=new THREE.Raycaster(), mv=new THREE.Vector2();
+function hit(e){ mv.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1); ray.setFromCamera(mv,cam); const h=ray.intersectObjects([rov,lander],true).find(i=>i.object.userData.thing); return h&&h.object.userData.thing; }
+function hover(e){ const t=mode!=='ctrl'&&hit(e); const tip=$('tip'); if(t){ tip.hidden=false; tip.textContent=t.title; tip.style.left=e.clientX+'px'; tip.style.top=e.clientY+'px'; canvas.style.cursor='pointer'; } else { tip.hidden=true; canvas.style.cursor='grab'; } }
+function pick(e){ const t=hit(e); if(!t) return; $('cT').textContent=t.title; $('cB').innerHTML=t.html; $('card').hidden=false; sfx.key(); }
+$('cardX').onclick=()=>{ $('card').hidden=true; };
+function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize();
+$('go').onclick=()=>{ $('intro').hidden=true; ac(); sfx.hum(true); log('Enlace establecido con el Lunojod 1. El rover está sobre el Luna 17, mirando al sur.','dn'); log('Para bajar por la rampa: mantén ▲ ADELANTE.'); };
+
+/* ============ FÍSICA DEL ROVER ============ */
+const SAMP=[[-.82,-.84],[.82,-.84],[-.82,.84],[.82,.84]];
+function probe(x,z,yaw){ const c=Math.cos(yaw), s=Math.sin(yaw), h=SAMP.map(([lx,lz])=>surf(x+c*lx-s*lz,z+s*lx+c*lz)); // lx: derecha, lz: atrás
+  return {y:(h[0]+h[1]+h[2]+h[3])/4, pitch:Math.atan2((h[0]+h[1])-(h[2]+h[3]),2*1.68), roll:Math.atan2((h[1]+h[3])-(h[0]+h[2]),2*1.64)}; }
+function blocked(x,z,yOn){ const ax=Math.abs(x), az=Math.abs(z), gnd=hgt(x,z);
+  const onTop=yOn>gnd+.12;
+  if(az<3.75&&ax<1.95){ if(onTop) return ax>.42; return az<2.0||ax>.42&&az<3.3; }   // patas y tanques del Luna 17, o salirse de las rampas
+  return Math.hypot(x,z)>SIZE/2-12; }
+function physics(dt){
+  const vT=cmd.f*(cmd.gear===1?V1:V2);
+  P.v+=Math.sign(vT-P.v)*Math.min(Math.abs(vT-P.v),dt*.8);
+  P.w=cmd.t*TURN*(cmd.f?.55:1);
+  if(P.stop&&P.v>0) P.v=0;
+  if(P.bat<=0){ P.v=0; P.w=0; }
+  const yaw=P.yaw+P.w*dt, nx=P.x+Math.sin(yaw)*P.v*dt, nz=P.z-Math.cos(yaw)*P.v*dt;
+  if(!blocked(nx,nz,P.y)){ const pr=probe(nx,nz,yaw);
+    const d=Math.hypot(nx-P.x,nz-P.z); P.x=nx; P.z=nz; P.yaw=yaw; P.odo+=d; P.y+= (pr.y-P.y)*Math.min(1,dt*12); P.pitch=pr.pitch; P.roll=pr.roll; P.spin+=P.v*dt/WR;
+    if(P.ground){ trkAcc+=d; if(trkAcc>.32){ trkAcc=0; addTrack(); } }
+    // freno automático por inclinación: solo deja retroceder
+    if(P.ground&&P.v>0&&(Math.abs(P.roll)>TILT*Math.PI/180||P.pitch>TILT*Math.PI/180)){ P.stop=true; P.v=0; cmd.f=0; down(0,()=>{ log('← АВТОСТОП: inclinación peligrosa. Retrocede (▼) y busca otro camino','al'); sfx.alarm(); alarmT=4; }); }
+  } else if(Math.abs(P.v)>0){ P.v=0; cmd.f=0; down(0,()=>log('← Bloqueado por el Luna 17: retrocede o gira','al')); }
+  P.ground=P.y<hgt(P.x,P.z)+.12&&Math.hypot(P.x,P.z)>3.2;
+  if(P.ground&&Math.hypot(P.x,P.z)>4.5) task('ramp');
+  if(P.odo>=100) task('m100');
+  P.lidT+=(P.lid-P.lidT)*Math.min(1,dt*.6);
+  P.bat=Math.max(0,Math.min(100,P.bat-(Math.abs(P.v)>0||P.w?.012:.002)*dt+(P.lidT>.9?.008:0)*dt));
+  if(P.bat<=0&&!P.batWarn){ P.batWarn=1; down(0,()=>log('← Batería agotada: abre la tapa para cargar con el Sol','al')); } if(P.bat>5) P.batWarn=0;
+}
+let alarmT=0, hAcc=0;
+
+/* ============ BUCLE ============ */
+const clk=new THREE.Clock(); let anyPanel=0;
+function placeRover(){
+  rov.position.set(P.x,P.y,P.z); rov.rotation.set(P.pitch,-P.yaw,P.roll);
+  for(const {w} of wheels) w.rotation.x=-P.spin;
+  ninth.userData.w.rotation.x=-P.spin*2.8;
+  lidPivot.rotation.x=1.72*P.lidT;
+  // la antena dirigida sigue a la Tierra
+  rov.updateMatrixWorld(true); const head=antHG.userData.head, hp=head.getWorldPosition(new THREE.Vector3()); head.lookAt(hp.add(EARTH_DIR));
+  for(const p of PARTS){ p.position.copy(p.userData.base).addScaledVector(p.userData.ex,explode); }
+  // animaciones de instrumentos
+  for(const o of[rifma,prop]){ const a=o.userData.anim||0; if(a>0){ o.userData.anim=Math.max(0,a-.004*warp); const k=Math.sin(Math.min(1,a)*Math.PI);
+    if(o===prop) prop.userData.rod.position.y=-.25*k, prop.userData.rod.rotation.y+=k*.2; else rifma.position.y=rifma.userData.base.y-.28*k+explode*rifma.userData.ex.y; } }
+}
+function telemetry(){
+  const t=simT-DELAY; let s=hist[0]; for(let i=hist.length-1;i>=0;i--){ if(hist[i].t<=t){ s=hist[i]; break; } }
+  if(!s) return;
+  $('tClock').textContent=clock(simT);
+  $('tOdo').textContent=s.odo.toFixed(1).replace('.',',')+' m';
+  $('tV').textContent=(Math.abs(s.v)*3.6).toFixed(1).replace('.',',')+' km/h';
+  $('tGear').textContent=s.gear===1?'I (lenta)':'II (rápida)';
+  $('tHdg').textContent=Math.round(((s.yaw*180/Math.PI)%360+360)%360)+'°';
+  const deg=a=>{ const v=Math.round(a*180/Math.PI); return (v===0?0:v)+'°'; }; $('tPitch').textContent=deg(s.pitch); $('tRoll').textContent=deg(s.roll);
+  $('tBat').textContent=s.bat.toFixed(0)+' %'; $('tLid').textContent=s.lid>.9?'Abierta':s.lid<.1?'Cerrada':'Moviéndose';
+  $('tDist').textContent=Math.hypot(s.x,s.z).toFixed(0)+' m';
+  drawHorizon(s); drawMap(s);
+}
+const hz=$('hz').getContext('2d');
+function drawHorizon(s){ const W=240,H=70; hz.clearRect(0,0,W,H);
+  for(const [cx,ang,lab] of [[60,s.roll,'balanceo'],[180,s.pitch,'cabeceo']]){ const bad=Math.abs(ang)>TILT*Math.PI/180*.8;
+    hz.save(); hz.translate(cx,32); hz.strokeStyle='#3e5244'; hz.beginPath(); hz.arc(0,0,24,0,7); hz.stroke(); hz.rotate(-ang); hz.strokeStyle=bad?'#ff5a4a':'#9be37a'; hz.lineWidth=3; hz.beginPath(); hz.moveTo(-20,0); hz.lineTo(20,0); hz.moveTo(0,0); hz.lineTo(0,-8); hz.stroke(); hz.restore();
+    hz.fillStyle='#9fac9c'; hz.font='10px IBM Plex Mono, monospace'; hz.textAlign='center'; hz.fillText(lab,cx,67); } }
+const mp=$('map').getContext('2d'), track=[];
+function drawMap(s){ const W=270, sc=2.2, cx=W/2, cy=W/2, ox=s.x, oz=s.z; mp.fillStyle='#0b0f0b'; mp.fillRect(0,0,W,W);
+  const X=x=>cx+(x-ox)*sc, Y=z=>cy+(z-oz)*sc;
+  mp.strokeStyle='#1a241b'; mp.lineWidth=1; for(let g=-200;g<=200;g+=10){ mp.beginPath(); mp.moveTo(X(g),0); mp.lineTo(X(g),W); mp.moveTo(0,Y(g)); mp.lineTo(W,Y(g)); mp.stroke(); }
+  mp.strokeStyle='#4d5e4f'; for(const c of CRATERS){ if(c.r<1.6) continue; const x=X(c.x), y=Y(c.z); if(x<-30||x>W+30||y<-30||y>W+30) continue; mp.beginPath(); mp.arc(x,y,c.r*sc,0,7); mp.stroke(); }
+  mp.fillStyle='#8a978a'; mp.fillRect(X(-1.3),Y(-1.3),2.6*sc,2.6*sc); mp.fillStyle='#6d7a6b'; mp.fillRect(X(-.5),Y(-3.7),1*sc,7.4*sc);
+  mp.fillStyle='#f2b33d'; mp.font='600 13px IBM Plex Mono, monospace'; mp.textAlign='center'; mp.fillText('A',X(TARGET.x),Y(TARGET.z)+5); mp.strokeStyle='#f2b33d'; mp.beginPath(); mp.arc(X(TARGET.x),Y(TARGET.z),5*sc,0,7); mp.stroke();
+  if(track.length){ mp.strokeStyle='#9be37a'; mp.lineWidth=2; mp.beginPath(); track.forEach(([x,z],i)=>i?mp.lineTo(X(x),Y(z)):mp.moveTo(X(x),Y(z))); mp.stroke(); }
+  mp.save(); mp.translate(cx,cy); mp.rotate(s.yaw); mp.fillStyle='#e6eadf'; mp.beginPath(); mp.moveTo(0,-9); mp.lineTo(6,7); mp.lineTo(-6,7); mp.fill(); mp.restore();
+  mp.fillStyle='#9fac9c'; mp.font='10px IBM Plex Mono, monospace'; mp.textAlign='left'; mp.fillText('N ↑   10 m por cuadro',8,W-8);
+  const dA=Math.hypot(TARGET.x-s.x,TARGET.z-s.z), bA=Math.round(((Math.atan2(TARGET.x-s.x,-(TARGET.z-s.z))*180/Math.PI)+360)%360); mp.textAlign='right'; mp.fillText(`A: ${dA.toFixed(0)} m · ${bA}°`,W-8,14); }
+function loop(){
+  requestAnimationFrame(loop);
+  const rdt=Math.min(.1,clk.getDelta()); const dt=$('intro').hidden?rdt*warp:0; simT+=dt;
+  if($('intro').hidden){
+    while(queue.length&&queue[0].t<=simT){ const q=queue.shift(); dnLed=0; execute(q.c); }
+    for(let i=downQ.length-1;i>=0;i--) if(downQ[i].t<=simT){ const m=downQ.splice(i,1)[0]; dnLed=.35; m.f(); }
+    let rem=dt; while(rem>0){ const h=Math.min(rem,.05); physics(h); rem-=h; }
+    hAcc+=dt; if(hAcc>=.1){ hAcc=0; hist.push({t:simT,x:P.x,z:P.z,yaw:P.yaw,v:P.v,odo:P.odo,pitch:P.pitch,roll:P.roll,bat:P.bat,lid:P.lidT,gear:cmd.gear}); if(hist.length>200) hist.shift();
+      const d=hist.find(h=>h.t>=simT-DELAY-.05); if(d&&(!track.length||Math.hypot(track[track.length-1][0]-d.x,track[track.length-1][1]-d.z)>.4)){ track.push([d.x,d.z]); if(track.length>3000) track.shift(); } }
+  }
+  explode+=(explodeT-explode)*Math.min(1,rdt*3);
+  placeRover();
+  // sol, sombras y cielo siguen al rover
+  const c=new THREE.Vector3(P.x,P.y,P.z); sun.position.copy(c).addScaledVector(sunDir,60); sun.target.position.copy(c);
+  sunDisc.position.copy(c).addScaledVector(sunDir,SKY); earth.position.copy(c).addScaledVector(EARTH_DIR,SKY);
+  // televisión: tomar, enviar y mostrar con retraso
+  if($('intro').hidden&&simT>=nextCap){ capture(); nextCap=simT+FI; }
+  while(frames.length&&frames[0].due<=simT){ showing=frames.shift(); showing.row=0; sfx.scan(.75/Math.max(1,warp*.6)); }
+  if(showing&&showing.row<TVH){ const to=Math.min(TVH,showing.row+Math.ceil(TVH*rdt/.75*Math.max(1,warp*.6))); tvx.putImageData(showing.img,0,0,0,showing.row,TVW,to-showing.row); showing.row=to; if(to>=TVH) lastShownAt=showing.taken; drawOverlay(); $('tvN').textContent=showing.n; }
+  $('tvAge').textContent=lastShownAt==null?'—':(simT-lastShownAt).toFixed(1).replace('.',',')+' s';
+  upLed-=rdt; dnLed-=rdt; if(queue.length) upLed=Math.max(upLed,.05); $('sUp').className=upLed>0?'up':''; $('sDn').className=dnLed>0||(showing&&showing.row<TVH)?'dn':'';
+  alarmT-=rdt; $('alarm').hidden=alarmT<=0;
+  if(++anyPanel%6===0) telemetry();
+  // láser
+  if(laserAt>=0){ const t=simT-laserAt; const on=t>DELAY&&t<DELAY+.5; beam.material.opacity=on?.7*(1-(t-DELAY)/.5):0; if(on){ const p=reflector.getWorldPosition(new THREE.Vector3()); beam.position.copy(p); beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),EARTH_DIR); } }
+  // escena en vivo
+  if(mode!=='ctrl'){
+    const tgt=focusLander&&mode==='parts'?new THREE.Vector3(0,H0+.9,0):new THREE.Vector3(P.x,P.y+.7,P.z);
+    orbit.tx+=(tgt.x-orbit.tx)*Math.min(1,rdt*4); orbit.ty+=(tgt.y-orbit.ty)*Math.min(1,rdt*4); orbit.tz+=(tgt.z-orbit.tz)*Math.min(1,rdt*4);
+    const cy=Math.cos(orbit.pitch); cam.position.set(orbit.tx+Math.sin(orbit.yaw)*cy*orbit.dist,orbit.ty+Math.sin(orbit.pitch)*orbit.dist,orbit.tz+Math.cos(orbit.yaw)*cy*orbit.dist);
+    const gy=hgt(cam.position.x,cam.position.z)+.4; if(cam.position.y<gy) cam.position.y=gy;
+    cam.lookAt(orbit.tx,orbit.ty,orbit.tz);
+    sunDisc.position.copy(cam.position).addScaledVector(sunDir,SKY); earth.position.copy(cam.position).addScaledVector(EARTH_DIR,SKY);
+    renderer.render(scene,cam);
+  }
+}
+placeRover(); loop();
+window.__lunojod={P,cmd,send,setMode,frames,hist,get simT(){return simT;},task,done,TARGET};
+</script>
+</body>
+</html>

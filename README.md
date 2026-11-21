@@ -36,6 +36,9 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
   manijas EJECT y de aborto), pantallas con encendido y páginas extra, y todos los sonidos sintetizados con Web Audio.
 - `simulaciones/marte/rovers.js`: «Explorar el rover»: modelo 3D detallado, despiece por piezas con explicación, recorrido animado
   con suspensión rocker‑bogie y ficha de lanzamiento y llegada. Se añaden rovers de dos en dos.
+- `simulaciones/luna/`: mapa 3D de la Luna con relieve LOLA y la cara oculta; `paseo/` (caminata del Apolo 11 y rover del Apolo 17),
+  `lunojod/` (el Lunojod 1 manejado desde la Tierra con 1,3 s de retraso y TV de una imagen cada pocos segundos) y
+  `fases/` (la Luna de cada noche desde Ecuador, por qué cambia y los próximos eclipses, todo calculado con Astronomy Engine).
 - `tools/hornear_osm.py`: descarga los edificios de OpenStreetMap y los guarda en `edificios-osm.bin` (formato compacto OSB2);
   un flujo de GitHub Actions lo ejecuta una vez al mes.
 - `datos/incrustado.js`: copia de datos y texturas para abrir `index.html` con doble clic (sin servidor). En la web no se descarga.
