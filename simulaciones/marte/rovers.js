@@ -242,6 +242,102 @@ function buildMER(kind) {
   return { group: g, parts, wheels, susp, WR, geo: { X, zF, zM, zR, lift: .02 }, spirit: SP };
 }
 
+// ---------- suspensión rocker‑bogie genérica (balancín + bogie a cada lado) ----------
+function rockerBogie(g, part, o) {
+  const { WR, X, zF, zM, zR, PY, PZ, BY, BZ, r, wheelFn, info, m = M.alu } = o, wheels = [], susp = {};
+  for (const s of [-1, 1]) {
+    const rocker = new THREE.Group(); rocker.position.set(s * X, PY, PZ);
+    const fr = V3(0, WR - PY, zF - PZ), bg = V3(0, BY - PY, BZ - PZ);
+    rocker.add(rod(V3(0, 0, 0), fr, r, m)); rocker.add(rod(V3(0, 0, 0), bg, r, m)); rocker.add(at(cyl(r * 1.8, r * 1.8, r * 3, M.aluDark), 0, 0, 0, 0, 0, Math.PI / 2));
+    const wf = wheelFn(); wf.position.copy(fr); rocker.add(wf); wheels.push({ obj: wf, side: s, z: zF });
+    const bogie = new THREE.Group(); bogie.position.copy(bg); rocker.add(bogie);
+    const bm = V3(0, WR - BY, zM - BZ), br = V3(0, WR - BY, zR - BZ);
+    bogie.add(rod(V3(0, 0, 0), bm, r * .9, m)); bogie.add(rod(V3(0, 0, 0), br, r * .9, m));
+    const wm = wheelFn(); wm.position.copy(bm); bogie.add(wm); wheels.push({ obj: wm, side: s, z: zM });
+    const wr = wheelFn(); wr.position.copy(br); bogie.add(wr); wheels.push({ obj: wr, side: s, z: zR });
+    susp[s < 0 ? 'L' : 'R'] = { rocker, bogie };
+    part(s < 0 ? 'suspL' : 'suspR', `Suspensión y ruedas (${s < 0 ? 'izquierda' : 'derecha'})`, rocker, V3(s, -.1, 0), info);
+  }
+  g.add(at(cyl(r, r, 2 * X, m), 0, PY, PZ, 0, 0, Math.PI / 2));
+  return { wheels, susp };
+}
+function plainWheel(r, w, n, m = M.alu) {
+  const g = new THREE.Group(); const rim = cyl(r, r, w, m, 28); rim.rotation.z = Math.PI / 2; g.add(rim);
+  const hub = cyl(r * .35, r * .35, w + .01, M.dark, 14); hub.rotation.z = Math.PI / 2; g.add(hub);
+  for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2; const cl = box(w * 1.02, r * .07, r * .09, M.aluDark); cl.position.set(0, Math.cos(a) * r * 1.02, Math.sin(a) * r * 1.02); cl.rotation.x = -a; g.add(cl); }
+  g.userData.r = r; return g;
+}
+
+// ---------- Sojourner (Mars Pathfinder, 1997): el primer rover en Marte, del tamaño de un horno microondas ----------
+function buildSojourner() {
+  const g = new THREE.Group(), parts = [];
+  const part = (id, name, obj, dir, info) => { obj.userData.part = id; parts.push({ id, name, obj, dir, info, home: obj.position.clone() }); g.add(obj); return obj; };
+  const body = new THREE.Group();
+  body.add(at(box(.3, .11, .42, M.gold, .01), 0, .19, 0));
+  body.add(at(box(.31, .02, .43, M.white), 0, .25, 0));
+  part('cuerpo', 'Caja electrónica caliente', body, V3(0, -.25, 0),
+    'Dentro iba una computadora Intel 80C85 de 2 MHz con 64 KB de memoria: mil veces menos que una calculadora gráfica de hoy. También una batería que no se recargaba, de reserva. Está forrada de aerogel, un sólido tan liviano que casi es aire, para guardar el calor en noches de −100 °C.');
+  const sol = new THREE.Group();
+  sol.add(flatShape([[-.24, -.31], [.24, -.31], [.24, .31], [-.24, .31]], M_CELLS, .27, .012));
+  sol.add(at(box(.5, .012, .012, M.alu), 0, .275, -.31)); sol.add(at(box(.5, .012, .012, M.alu), 0, .275, .31));
+  part('solar', 'Panel solar', sol, V3(0, .4, 0), 'Un panel de 0,22 m² de celdas de arseniuro de galio: daba como máximo unos 15 vatios, lo que gasta una bombilla pequeña. Con eso hacía todo: andar, pensar, calentar y hablar. Por eso se movía a solo 1 cm por segundo.');
+  const cams = new THREE.Group();
+  for (const x of [-.06, .06]) { cams.add(at(cyl(.016, .016, .03, M.dark, 10), x, .2, -.225, Math.PI / 2)); cams.add(at(cyl(.01, .01, .006, M.lens, 10), x, .2, -.24, Math.PI / 2)); }
+  cams.add(at(cyl(.014, .014, .025, M.dark, 10), .08, .2, .22, Math.PI / 2));
+  for (const x of [-.12, .12]) cams.add(at(box(.02, .02, .03, M.red), x, .16, -.22));
+  part('camaras', 'Cámaras y láseres', cams, V3(0, .1, -.4), 'Adelante, dos cámaras en blanco y negro que veían en 3D; atrás, una cámara a color. Junto a ellas, cinco láseres dibujaban rayas en el suelo: si una raya se doblaba, había una piedra o un pozo, y el rover lo esquivaba solo.');
+  const apxs = new THREE.Group(); apxs.position.set(0, .17, .24);
+  apxs.add(at(box(.03, .03, .1, M.alu), 0, 0, .05)); apxs.add(at(cyl(.035, .035, .05, M.gold, 14), 0, -.04, .11));
+  part('apxs', 'Espectrómetro APXS', apxs, V3(0, -.1, .4), 'En la cola, en un brazo que bajaba hasta tocar la roca. Usaba un poquito de curio‑244 radiactivo para bombardear la piedra y medir de qué elementos estaba hecha. Analizó rocas con nombres de dibujos animados: Barnacle Bill, Yogi y Scooby‑Doo.');
+  const ant = at(cyl(.004, .004, .28, M.dark, 6), -.1, .4, .14);
+  part('antena', 'Antena de radio', ant, V3(-.2, .4, .2), 'No hablaba con la Tierra: le mandaba todo por radio al módulo Pathfinder, a menos de 12 m, con un módem de 9.600 baudios, como el de una computadora de los 90. El módulo lo reenviaba a la Tierra.');
+  const { wheels, susp } = rockerBogie(g, part, { WR: .065, X: .21, zF: -.25, zM: .02, zR: .26, PY: .19, PZ: -.08, BY: .14, BZ: .14, r: .009, wheelFn: () => plainWheel(.065, .079, 14),
+    info: 'Fue el estreno de la suspensión rocker‑bogie que luego usaron todos los rovers de la NASA. Seis ruedas de aluminio de 13 cm con tacos de acero, cada una con su motor. Podía subir piedras de 8 cm, más altas que la mitad de su rueda.' });
+  // módulo Pathfinder con sus tres pétalos abiertos, las bolsas desinfladas y la cámara IMP
+  const lander = new THREE.Group(); lander.position.set(-1.6, 0, .9); lander.rotation.y = .5;
+  lander.add(at(cyl(.42, .5, .25, M.white, 3), 0, .2, 0));
+  for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2 + Math.PI / 6; const p = flatShape([[0, 0], [.85, -.5], [.85, .5]], M_CELLS, .06, .02); p.rotation.y = -a; p.position.set(Math.cos(a) * .3, 0, Math.sin(a) * .3); lander.add(p);
+    const bag = new THREE.Mesh(new THREE.SphereGeometry(.28, 10, 8), Mt(0xd9d2c0, { roughness: .9 })); bag.scale.set(1.2, .35, .9); bag.position.set(Math.cos(a + .5) * .9, .08, Math.sin(a + .5) * .9); lander.add(bag); }
+  lander.add(rod(V3(0, .3, 0), V3(0, .95, 0), .015, M.alu)); lander.add(at(box(.14, .08, .08, M.white, .01), 0, 1.0, 0));
+  lander.add(rod(V3(.25, .3, .1), V3(.25, 1.1, .1), .006, M.alu));
+  const ramp = at(box(.3, .01, .6, M.aluDark), .55, .05, -.6, .1, .8); lander.add(ramp);
+  part('pathfinder', 'Módulo Mars Pathfinder', lander, V3(-.3, 0, .2), 'La base donde viajó Sojourner. Llegó el 4 de julio de 1997 envuelta en bolsas de aire, el primer aterrizaje rebotando en Marte; luego abrió sus tres pétalos con paneles solares. Su cámara en un mástil fotografió al rover y el paisaje; su veleta midió el clima. Se rebautizó Estación Memorial Carl Sagan.');
+  shadows(g);
+  return { group: g, parts, wheels, susp, WR: .065, geo: { X: .21, zF: -.25, zM: .02, zR: .26, lift: .01 } };
+}
+
+// ---------- Zhurong (Tianwen‑1, China, 2021): alas solares de mariposa y suspensión activa ----------
+function buildZhurong() {
+  const g = new THREE.Group(), parts = [];
+  const part = (id, name, obj, dir, info) => { obj.userData.part = id; parts.push({ id, name, obj, dir, info, home: obj.position.clone() }); g.add(obj); return obj; };
+  const body = new THREE.Group();
+  body.add(at(box(1.3, .42, 1.55, M.blanket, .03), 0, .78, 0));
+  body.add(at(box(1.34, .04, 1.6, M.alu), 0, 1.0, 0));
+  for (const z of [-.3, .3]) { body.add(at(cyl(.2, .2, .03, M.alu, 28), 0, 1.03, z)); body.add(at(cyl(.17, .17, .035, new THREE.MeshPhysicalMaterial({ color: 0x9fb5c8, roughness: .05, clearcoat: 1, transmission: 0, metalness: .2 }), 28), 0, 1.035, z)); }
+  part('cuerpo', 'Cuerpo y ventanas de calor', body, V3(0, -.5, 0), 'Las dos ventanas redondas de arriba son un truco chino: debajo hay 10 recipientes con n‑undecano, una cera que se derrite de día con el Sol y, al volverse sólida de noche, suelta su calor. Así Zhurong se calentaba sin plutonio. Pesa 240 kg en total.');
+  const wings = new THREE.Group();
+  for (const s of [-1, 1]) for (const z of [-.4, .4]) { const w = new THREE.Group(); w.position.set(s * .67, 1.0, z); w.rotation.z = s * .5; const p = flatShape([[0, -.38], [s * .9, -.34], [s * .9, .34], [0, .38]], M_CELLS, 0, .02); w.add(p); w.add(at(box(.02, .03, .76, M.alu), s * .01, .01, 0)); wings.add(w); }
+  part('solar', 'Cuatro alas solares de mariposa', wings, V3(0, .8, 0), 'Cuatro paneles que se abren como alas de mariposa y pueden girar e inclinarse para mirar al Sol. Si se llenaban de polvo, el rover las ladeaba y las sacudía para limpiarlas. En 2022 el polvo de una tormenta y el invierno lo dejaron dormido.');
+  const mast = new THREE.Group(); mast.position.set(0, 1.02, -.62);
+  mast.add(rod(V3(0, 0, 0), V3(0, .72, 0), .04, M.white));
+  mast.add(at(box(.5, .16, .2, M.white, .02), 0, .8, 0));
+  for (const x of [-.18, .18]) { mast.add(at(cyl(.035, .035, .05, M.dark, 12), x, .8, -.12, Math.PI / 2)); mast.add(at(cyl(.022, .022, .01, M.lens, 12), x, .8, -.145, Math.PI / 2)); }
+  mast.add(at(cyl(.06, .06, .12, M.dark, 16), 0, .82, -.14, Math.PI / 2)); mast.add(at(cyl(.045, .045, .01, M.lens, 16), 0, .82, -.2, Math.PI / 2));
+  part('mastil', 'Mástil: NaTeCam y MarSCoDe', mast, V3(0, .8, -.3), 'Como un cuello con cabeza. Las dos cámaras NaTeCam ven en 3D para manejar y hacer mapas del terreno. En el centro, MarSCoDe dispara un láser a rocas a varios metros y lee la luz de la chispa para saber de qué están hechas, como ChemCam de Curiosity.');
+  const hga = new THREE.Group(); hga.position.set(.35, 1.02, .55);
+  hga.add(rod(V3(0, 0, 0), V3(0, .25, 0), .03, M.alu)); hga.add(at(cyl(.26, .26, .03, M.alu, 28), 0, .3, 0, .5));
+  part('antena', 'Antena', hga, V3(.5, .7, .4), 'Su plato apunta al orbitador Tianwen‑1, que pasa por encima y reenvía los datos a China. El rover y el orbitador llegaron juntos a Marte el 10 de febrero de 2021 y esperaron tres meses en órbita antes de bajar.');
+  const radar = at(box(.9, .08, .3, M.dark), 0, .52, .6);
+  part('radar', 'Radar RoPeR', radar, V3(0, -.7, .6), 'Un radar que mira bajo las ruedas, hasta unos 100 m de profundidad. Encontró capas inclinadas enterradas que parecen depósitos de una antigua playa: la orilla de un océano que habría cubierto el norte de Marte.');
+  const met = new THREE.Group(); met.position.set(-.45, 1.02, .5);
+  met.add(rod(V3(0, 0, 0), V3(0, .35, 0), .015, M.alu)); met.add(at(box(.08, .06, .06, M.white), 0, .38, 0)); met.add(at(box(.1, .06, .1, M.gold), .2, .03, -.2));
+  part('clima', 'Clima, micrófono y magnetómetro', met, V3(-.6, .6, .3), 'La estación MCS mide viento, temperatura y presión, y tiene un micrófono para oír Marte. El magnetómetro RoMAG busca restos del campo magnético que Marte perdió hace miles de millones de años.');
+  const { wheels, susp } = rockerBogie(g, part, { WR: .15, X: .78, zF: -.82, zM: 0, zR: .82, PY: .56, PZ: -.15, BY: .38, BZ: .4, r: .035, wheelFn: () => plainWheel(.15, .2, 18),
+    info: 'Una suspensión activa: además de balancearse, cada lado puede levantar o bajar el cuerpo. Así Zhurong puede «gatear» como una oruga para salir si se hunde en arena, o agacharse para que la suspensión no se mueva al aterrizar. En el recorrido verás cómo sube el cuerpo de vez en cuando.' });
+  shadows(g);
+  return { group: g, parts, wheels, susp, WR: .15, geo: { X: .78, zF: -.82, zM: 0, zR: .82, lift: .02 }, crawl: true };
+}
+
 // ---------- fichas: lanzamiento, viaje, llegada (datos NASA/JPL) ----------
 const ROVERS = {
   m2020: { name: 'Perseverance', sub: 'Mars 2020 · NASA/JPL', build: () => buildMSL('perse'), mass: '1.025 kg', size: '3,0 m de largo · 2,7 m de ancho · 2,2 m de alto', speed: 'hasta 152 m/h (0,042 m/s)',
@@ -260,6 +356,17 @@ const ROVERS = {
     launch: [['Despegue', '10 de junio de 2003, 17:58 UTC'], ['Cohete', 'Delta II 7925'], ['Plataforma', 'SLC‑17A, Cabo Cañaveral, Florida'], ['Viaje', '208 días'], ['Llegada', '4 de enero de 2004, 04:35 UTC'], ['Lugar', 'Cráter Gusev (14,57° S, 175,47° E)'], ['Misión prevista', '90 soles (unos 3 meses)'], ['Estado', 'Terminada: trabajó más de 6 años; atascada en arena desde 2009, último contacto el 22 de marzo de 2010. Recorrió 7,73 km']],
     edl: [['Entrada', 'a 128 km de altura y unos 19.000 km/h, protegido por un escudo térmico'], ['Paracaídas', 'de 15 m, a unos 8,6 km de altura'], ['Brida', 'el módulo baja colgado de una cuerda de 20 m bajo la cápsula'], ['Bolsas de aire', 'se inflan segundos antes; tres retrocohetes frenan y se corta la cuerda'], ['Rebotes', 'cae envuelto en bolsas, rebota unas dos docenas de veces y rueda cientos de metros; luego se abren los pétalos y el rover baja']],
     firsts: ['El primero de los gemelos en llegar', 'Subió a la cima de Husband Hill, en las colinas Columbia', 'Con una rueda rota descubrió sílice de aguas termales', 'Encontró carbonatos (roca Comanche): señal de agua poco ácida'] },
+  mpf: { name: 'Sojourner', sub: 'Mars Pathfinder · NASA/JPL', build: buildSojourner, mass: '10,6 kg', size: '65 cm de largo · 48 cm de ancho · 30 cm de alto', speed: '1 cm/s (36 m por hora)', v: .01, noSim: true, edlTitle: 'El aterrizaje rebotando',
+    view: { ty: .18, cam: [1.5, .8, 1.6], drv: [1.2, .6, 1.4], back: 1.4, up: .55, max: 2.4 },
+    driveNote: 'En 83 días recorrió unos 100 m en total, siempre a menos de 12 m del módulo, para no perder la señal de radio.',
+    launch: [['Despegue', '4 de diciembre de 1996'], ['Cohete', 'Delta II 7925'], ['Plataforma', 'LC‑17B, Cabo Cañaveral, Florida'], ['Viaje', '7 meses'], ['Llegada', '4 de julio de 1997'], ['Lugar', 'Ares Vallis, en Chryse Planitia (19,13° N, 326,78° E)'], ['Misión prevista', '7 soles (una semana)'], ['Estado', 'Terminada: trabajó 83 soles; última señal del módulo el 27 de septiembre de 1997']],
+    edl: [['Entrada directa', 'sin entrar antes en órbita, a unos 27.000 km/h'], ['Paracaídas', 'frena la cápsula; el módulo baja colgado de una cuerda'], ['Bolsas de aire', 'se inflan alrededor del módulo; tres retrocohetes frenan casi del todo'], ['Rebotes', 'cae, rebota más de una docena de veces y rueda hasta detenerse: el primer aterrizaje con bolsas en Marte'], ['Pétalos', 'se desinflan las bolsas, se abren los tres pétalos y Sojourner baja por una rampa']],
+    firsts: ['El primer rover en otro planeta', 'Estrenó la suspensión rocker‑bogie', 'Estrenó el aterrizaje con bolsas de aire', 'Tenía que durar una semana y duró casi tres meses'] },
+  zhurong: { name: 'Zhurong', sub: 'Tianwen‑1 · Administración Espacial Nacional de China', build: buildZhurong, mass: '240 kg', size: '2,6 m de largo · 3 m de ancho con las alas · 1,85 m de alto', speed: 'unos 200 m por hora como máximo', v: .055, noSim: true, edlTitle: 'Los nueve minutos de terror',
+    view: { ty: .85, cam: [4.6, 2.4, 4.8], drv: [4, 2.1, 5.2], back: 5.2, up: 2.2, max: 8 },
+    launch: [['Despegue', '23 de julio de 2020, 04:41 UTC'], ['Cohete', 'Larga Marcha 5'], ['Plataforma', 'LC‑101, Wenchang, isla de Hainan (China)'], ['Órbita de Marte', '10 de febrero de 2021, junto al orbitador Tianwen‑1'], ['Llegada', '14 de mayo de 2021, 23:18 UTC'], ['Bajó del módulo', '22 de mayo de 2021, por una rampa'], ['Lugar', 'Utopia Planitia (25,1° N, 109,9° E)'], ['Misión prevista', '90 soles (unos 3 meses)'], ['Estado', 'Dormido desde mayo de 2022: no despertó tras el invierno. Recorrió 1.921 m']],
+    edl: [['Separación', 'la cápsula se suelta del orbitador, que la llevó tres meses en órbita'], ['Entrada', 'escudo térmico contra la atmósfera'], ['Paracaídas', 'se abre y luego se suelta el escudo'], ['Retrocohete', 'un motor frena, el módulo se queda flotando, busca un lugar sin rocas con láser y cámaras, y baja'], ['Primer intento', 'China fue el segundo país en manejar un rover en Marte, y lo logró en su primer intento']],
+    firsts: ['Primer rover chino en Marte, a la primera', 'Una cámara suelta en el suelo le sacó una foto de grupo con el módulo', 'Su radar vio una antigua playa enterrada', 'Se calentaba con cera que se derrite de día'] },
 };
 export const ROVER_IDS = Object.keys(ROVERS);
 
@@ -294,7 +401,8 @@ export function abrirRover(id, onClose) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0xd9a77c); scene.fog = new THREE.Fog(0xd9a77c, 14, 48);
   const cam = new THREE.PerspectiveCamera(38, 1, .05, 200); cam.position.set(5.5, 2.8, 5.8);
-  const TY = R.small ? .55 : .9; if (R.small) cam.position.set(3.2, 1.7, 3.4);
+  const VW = R.view || (R.small ? { ty: .55, cam: [3.2, 1.7, 3.4], drv: [2.8, 1.5, 3.6], back: 3.6, up: 1.5, max: 5.5 } : { ty: .9, cam: [5.5, 2.8, 5.8], drv: [4.5, 2.4, 6], back: 6, up: 2.6, max: 9 });
+  const TY = VW.ty; cam.position.set(...VW.cam);
   const ctl = new OrbitControls(cam, canvas); ctl.enableDamping = true; ctl.target.set(0, TY, 0); ctl.minDistance = 1.5; ctl.maxDistance = 30; ctl.maxPolarAngle = 1.52; ctl.autoRotate = true; ctl.autoRotateSpeed = .8;
   scene.add(new THREE.HemisphereLight(0xffe2c8, 0x7a4426, 1.1));
   const sun = new THREE.DirectionalLight(0xfff1dc, 2.6); sun.position.set(6, 9, 4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, far: 60 }); sun.shadow.bias = -.0006; sun.shadow.normalBias = .03; scene.add(sun);
@@ -315,8 +423,8 @@ export function abrirRover(id, onClose) {
   function renderSide() {
     if (mode === 'modelo') side.innerHTML = `<div class="kv"><span>Masa</span><b>${R.mass}</b><span>Tamaño</span><b>${R.size}</b><span>Velocidad</span><b>${R.speed}</b></div><p>Arrastra para girarlo y acércate con la rueda o pellizcando. En <b>Piezas</b> se separa en sus partes; en <b>Recorrido</b> lo ves andar.</p><ul class="rv-firsts">${R.firsts.map(f => `<li>${f}</li>`).join('')}</ul>`;
     if (mode === 'piezas') side.innerHTML = (selected ? `<h3>${selected.name}</h3><p>${selected.info}</p>` : `<h3>Despiece</h3><p>Mueve el control de abajo para separar las piezas y toca el nombre de cada una para saber qué hace.</p>`) + `<div class="rv-list">${parts.map(p => `<button data-p="${p.id}" ${selected === p ? 'aria-pressed="true"' : ''}>${p.name}</button>`).join('')}</div>`;
-    if (mode === 'recorrido') side.innerHTML = `<h3>Conduciendo</h3><p>El rover avanza a <b>${R.speed}</b>; aquí lo ves <b>6 veces más rápido</b>. Mira cómo cada rueda sigue el suelo y los balancines se inclinan: ninguna rueda se despega.</p><p>En la realidad recorre unos 100 m en un buen día: los conductores en la Tierra planean la ruta con las fotos del día anterior, y el rover la sigue solo, frenando si ve una piedra o una pendiente peligrosa.</p>${rover.spirit ? '<p><b>Spirit anda en reversa</b>: su rueda delantera derecha se trabó en 2006 y la arrastra. Mira el surco claro que deja: así destapó la sílice de aguas termales.</p>' : R.small ? '<p>Las bolitas grises del suelo son los «arándanos» de hematita que encontró Opportunity en Meridiani: se formaron dentro de rocas empapadas en agua y quedaron sueltas cuando el viento gastó la roca.</p>' : ''}<div class="kv"><span>Distancia</span><b id="rv-dist">0 m</b><span>Tiempo real equivalente</span><b id="rv-time">0 min</b></div>${rover.group.userData.ing ? '<p>Ingenuity vuela alrededor: en Marte voló hasta 24 m de alto y 700 m de distancia en un solo vuelo.</p>' : ''}`;
-    if (mode === 'lanzamiento') side.innerHTML = `<h3>Despegue y viaje</h3><div class="kv">${R.launch.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div><h3>Los siete minutos de terror</h3><div class="kv">${R.edl.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div><a class="go" href="../cabo-canaveral/marte/#${id}/llegada">Ver la animación del aterrizaje →</a><a class="go alt" href="../cabo-canaveral/marte/#${id}">Ver el despegue en Cabo Cañaveral →</a>`;
+    if (mode === 'recorrido') side.innerHTML = `<h3>Conduciendo</h3><p>El rover avanza a <b>${R.speed}</b>; aquí lo ves <b>6 veces más rápido</b>. Mira cómo cada rueda sigue el suelo y los balancines se inclinan: ninguna rueda se despega.</p><p>En la realidad recorre unos 100 m en un buen día: los conductores en la Tierra planean la ruta con las fotos del día anterior, y el rover la sigue solo, frenando si ve una piedra o una pendiente peligrosa.</p>${rover.spirit ? '<p><b>Spirit anda en reversa</b>: su rueda delantera derecha se trabó en 2006 y la arrastra. Mira el surco claro que deja: así destapó la sílice de aguas termales.</p>' : id === 'merb' ? '<p>Las bolitas grises del suelo son los «arándanos» de hematita que encontró Opportunity en Meridiani: se formaron dentro de rocas empapadas en agua y quedaron sueltas cuando el viento gastó la roca.</p>' : ''}<div class="kv"><span>Distancia</span><b id="rv-dist">0 m</b><span>Tiempo real equivalente</span><b id="rv-time">0 min</b></div>${R.driveNote ? `<p>${R.driveNote}</p>` : ''}${rover.group.userData.ing ? '<p>Ingenuity vuela alrededor: en Marte voló hasta 24 m de alto y 700 m de distancia en un solo vuelo.</p>' : ''}`;
+    if (mode === 'lanzamiento') side.innerHTML = `<h3>Despegue y viaje</h3><div class="kv">${R.launch.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div><h3>${R.edlTitle || 'Los siete minutos de terror'}</h3><div class="kv">${R.edl.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div>${R.noSim ? '' : `<a class="go" href="../cabo-canaveral/marte/#${id}/llegada">Ver la animación del aterrizaje →</a><a class="go alt" href="../cabo-canaveral/marte/#${id}">Ver el despegue en Cabo Cañaveral →</a>`}`;
     side.querySelectorAll('[data-p]').forEach(b => b.onclick = () => selectPart(parts.find(p => p.id === b.dataset.p)));
   }
   function setMode(m) {
@@ -325,7 +433,7 @@ export function abrirRover(id, onClose) {
     if (m !== 'piezas') { explode = 0; range.value = 0; if (selected) { const q = selected; selected = null; parts.forEach(pp => pp.obj.traverse(o => { if (o.isMesh && o.userData.m0) { o.material = o.userData.m0; o.userData.m0 = null; } })); } tags.forEach(t => t.classList.remove('sel')); }
     if (m === 'piezas' && explode === 0) { range.value = 60; explode = .6; }
     if (m !== 'recorrido') { rover.group.position.set(0, hNoise(0, 0), 0); rover.group.rotation.set(0, 0, 0); poseSuspension(0, 0, 0, 0, 0, 0); drive.s = 0; drive.x = drive.z = drive.heading = 0; dist = 0; ctl.target.set(0, TY, 0); marks.count = 0; markN = 0; terrain.visible = m !== 'piezas'; scene.fog.near = 14; }
-    else { terrain.visible = true; cam.position.set(...(R.small ? [2.8, 1.5, 3.6] : [4.5, 2.4, 6])); }
+    else { terrain.visible = true; cam.position.set(...VW.drv); }
     hint.textContent = m === 'piezas' ? 'Toca una pieza o su nombre' : m === 'recorrido' ? 'La cámara sigue al rover; arrastra para mirar alrededor' : m === 'modelo' ? 'Arrastra para girar · rueda para acercar' : '';
     renderSide();
   }
@@ -352,7 +460,7 @@ export function abrirRover(id, onClose) {
     const WR = rover.WR, L = s => h[s + ':' + G.zF], Mw = s => h[s + ':' + G.zM], Rw = s => h[s + ':' + G.zR], LB = (G.zM + G.zR) / 2 - G.zF;
     const bog = s => Math.atan2(Mw(s) - Rw(s), G.zR - G.zM), rock = s => Math.atan2(L(s) - (Mw(s) + Rw(s)) / 2, LB);
     const hL = (L(-1) + Mw(-1) + Rw(-1)) / 3, hR = (L(1) + Mw(1) + Rw(1)) / 3, hF = (L(-1) + L(1)) / 2, hB = (Mw(-1) + Mw(1) + Rw(-1) + Rw(1)) / 4;
-    g.position.y = (hL + hR) / 2 + G.lift;
+    g.position.y = (hL + hR) / 2 + G.lift + (rover.crawl ? Math.max(0, Math.sin(drive.s * .35)) * .12 : 0);
     poseSuspension(rock(-1), bog(-1), rock(1), bog(1), Math.atan2(hF - hB, LB) * .9, Math.atan2(hR - hL, 2 * G.X));
     for (const w of rover.wheels) if (!(rover.spirit && w.side > 0 && w.z === G.zF)) w.obj.rotation.x += v * dt / WR * dirS;
     // surco claro de la rueda trabada de Spirit
@@ -366,7 +474,7 @@ export function abrirRover(id, onClose) {
     const ing = g.userData.ing; if (ing) { const t = drive.s * .5; ing.position.set(Math.cos(t) * 4.5 + 0, 2.2 + Math.sin(t * 1.7) * .6, Math.sin(t) * 4.5); ing.rotation.y = -t; ing.rotation.z = .12; ing.userData.rot.forEach((r, i) => r.rotation.y += (i ? 1 : -1) * .5); }
     // cámara: sigue al rover
     const tgt = tmpV.set(g.position.x, g.position.y + TY, g.position.z); ctl.target.lerp(tgt, .08);
-    const back = V3(Math.sin(drive.heading + .6), 0, Math.cos(drive.heading + .6)).multiplyScalar(R.small ? -3.6 * dirS : -6).add(V3(0, R.small ? 1.5 : 2.6, 0)).add(g.position); if (cam.position.distanceTo(g.position) > (R.small ? 5.5 : 9)) cam.position.lerp(back, .03);
+    const back = V3(Math.sin(drive.heading + .6), 0, Math.cos(drive.heading + .6)).multiplyScalar(-VW.back * dirS).add(V3(0, VW.up, 0)).add(g.position); if (cam.position.distanceTo(g.position) > VW.max) cam.position.lerp(back, .03);
     const de = side.querySelector('#rv-dist'); if (de) { de.textContent = dist.toFixed(1) + ' m'; side.querySelector('#rv-time').textContent = (dist / (R.v || .042) / 60).toFixed(1) + ' min'; }
   }
   // --- bucle ---

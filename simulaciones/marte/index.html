@@ -339,7 +339,8 @@ function openCard(s){
   $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.k;openCard(s);});
   $('robo').hidden=!I;
   if(!I){ $('cbody').innerHTML=`<div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${fc(s)}</b></div>
-    <div class="soon">La ficha completa de ${s.name} (modelo 3D, cómo funciona, historia y animación del aterrizaje) se agregará en las próximas tandas.</div>`; return; }
+    ${ROVER_IDS.includes(s.id)?`<button class="go" id="explore">Explorar ${s.id==='mpf'?'el rover Sojourner':'el rover'} en 3D: piezas, recorrido y lanzamiento →</button>`:`<div class="soon">La ficha completa de ${s.name} (modelo 3D, cómo funciona, historia y animación del aterrizaje) se agregará en las próximas tandas.</div>`}`;
+    const ex0=$('explore'); if(ex0) ex0.onclick=()=>{ abrirRover(s.id); history.replaceState(null,'','#'+s.id+'/rover'); }; return; }
   buildRobot(s.model); castAll(robot);
   let h=ROVER_IDS.includes(s.id)?`<button class="go" id="explore">Explorar el rover en 3D: piezas, recorrido y lanzamiento →</button>`:'';
   if(tab==='how') h=I.how;
