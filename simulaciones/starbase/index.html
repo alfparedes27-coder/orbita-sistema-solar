@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Starbase · SpaceX</title>
+<meta name="description" content="Starbase, Texas, en 3D: todos los cohetes de SpaceX en fila con su historia, la torre que los atrapa, una galería para recorrer a pie con motores, cápsula, trajes y tecnologías, y la línea del tiempo de Tesla en el estacionamiento.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --void:#000; --panel:rgba(10,13,20,.92); --line:#222b3e; --line2:#33405c;
+  --ink:#eef0f5; --dim:#9ba4b8; --faint:#646e86; --acc:#7cc4ff; --warm:#ffb547;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:#000;color:var(--ink);font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none}
+button{font-family:var(--f-body)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+.top{position:fixed;top:calc(10px + var(--top));left:16px;right:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:8;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12.5px;padding:8px 11px}
+.title{padding:6px 13px}
+.title .kick{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.title h1{margin:1px 0 0;font:700 17px var(--f-display)}
+.modes{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.tb{background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:8px;padding:8px 11px;font-size:12.5px;cursor:pointer}
+.tb:hover{border-color:var(--acc)}
+.tb[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#04121f}
+/* índice a la izquierda */
+.idx{position:fixed;left:16px;top:calc(66px + var(--top));bottom:calc(16px + var(--bot));width:250px;z-index:7;overflow-y:auto;padding:10px 10px 12px}
+.idx h3{margin:10px 4px 6px;font:500 10.5px var(--f-data);letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+.idx h3:first-child{margin-top:2px}
+.idx button{display:flex;width:100%;justify-content:space-between;gap:8px;align-items:baseline;text-align:left;background:none;border:0;border-radius:7px;color:var(--ink);padding:6px 8px;cursor:pointer;font-size:13px}
+.idx button small{color:var(--faint);font:500 11px var(--f-data);white-space:nowrap}
+.idx button:hover,.idx button[aria-current=true]{background:#152036}
+/* ficha a la derecha */
+.card{position:fixed;right:16px;top:calc(66px + var(--top));bottom:calc(16px + var(--bot));width:380px;z-index:9;display:flex;flex-direction:column;overflow:hidden}
+.card .hd{padding:14px 16px 10px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start}
+.card .hd div{flex:1}
+.card .k{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--warm)}
+.card h2{margin:3px 0 0;font:700 21px/1.15 var(--f-display)}
+.card .x{background:none;border:1px solid var(--line2);color:var(--dim);border-radius:8px;width:30px;height:30px;cursor:pointer}
+.card .bd{flex:1;overflow-y:auto;padding:12px 16px 18px;line-height:1.55;font-size:13.5px}
+.card .bd p{margin:0 0 10px;color:#d2d7e2}
+.card .bd a{color:var(--acc)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13px;margin:0 0 12px}
+.kv dt{color:var(--dim)} .kv dd{margin:0}
+.src{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--dim)}
+.src ul{margin:4px 0 0;padding-left:16px} .src a{word-break:break-word}
+.go{display:block;margin:8px 0 0;padding:9px 12px;border-radius:8px;background:var(--acc);color:#04121f!important;text-decoration:none;font:600 13px var(--f-display);text-align:center;border:0;cursor:pointer;width:100%}
+.note{font-size:12px;color:var(--dim);border-left:2px solid var(--line2);padding-left:10px;margin:8px 0}
+/* etiquetas */
+#lbl{position:fixed;inset:0;pointer-events:none;z-index:5}
+.lb{position:absolute;left:0;top:0;transform:translate(-50%,-100%);white-space:nowrap;font:600 12px var(--f-display);color:#fff;background:rgba(8,12,20,.7);border:1px solid rgba(255,255,255,.25);border-radius:7px;padding:3px 8px;pointer-events:auto;cursor:pointer}
+.lb small{font:500 10px var(--f-data);color:var(--dim);margin-left:5px}
+.lb:hover{border-color:var(--acc)}
+/* caminar: cruz y mandos táctiles */
+#cross{position:fixed;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;z-index:6;pointer-events:none}
+#cross::before,#cross::after{content:"";position:absolute;background:rgba(255,255,255,.8)}
+#cross::before{left:6px;top:0;width:2px;height:14px} #cross::after{top:6px;left:0;height:2px;width:14px}
+.pad{position:fixed;left:calc(16px + 266px);bottom:calc(16px + var(--bot));z-index:8;display:grid;grid-template-columns:repeat(3,46px);gap:6px}
+.pad button{height:46px;border-radius:10px;background:var(--panel);border:1px solid var(--line2);color:var(--ink);font-size:18px;touch-action:none;user-select:none;-webkit-user-select:none}
+.pad .run{grid-column:3;grid-row:1;font-size:11px}
+.hint{position:fixed;left:50%;transform:translateX(-50%);top:calc(66px + var(--top));z-index:6;padding:7px 12px;font-size:12.5px;color:var(--dim);white-space:nowrap}
+.load{position:fixed;inset:0;display:grid;place-items:center;z-index:20;background:#000;font:500 13px var(--f-data);color:var(--dim)}
+@media (max-width:900px){
+  .idx{display:none} .idx.open{display:block;top:auto;bottom:0;left:0;right:0;width:auto;height:50vh;border-radius:14px 14px 0 0}
+  .card{left:0;right:0;top:auto;bottom:0;width:auto;height:52vh;border-radius:14px 14px 0 0}
+  .pad{left:16px;bottom:calc(16px + var(--bot))}
+  .hint{display:none} .modes .tb{padding:7px 9px;font-size:12px}
+}
+@media (min-width:901px){ .tb.mob{display:none} }
+</style>
+</head>
+<body>
+<div class="load" id="load">Construyendo Starbase…</div>
+<canvas id="gl" aria-label="Starbase en 3D"></canvas>
+<div id="lbl"></div>
+<div id="cross" hidden></div>
+<div class="top">
+  <a class="back panel" href="../">← Simulaciones</a>
+  <div class="title panel"><div class="kick">Boca Chica, Texas · SpaceX</div><h1>Starbase</h1></div>
+  <div class="modes">
+    <button class="tb mob" id="bIdx">☰ Índice</button>
+    <button class="tb" id="bDrone" aria-pressed="true">🛸 Dron</button>
+    <button class="tb" id="bWalk" aria-pressed="false">🚶 Caminar</button>
+    <button class="tb" id="bIn">🏭 Entrar a la galería</button>
+  </div>
+</div>
+<nav class="idx panel" id="idx" aria-label="Índice"></nav>
+<section class="card panel" id="card" hidden aria-live="polite">
+  <div class="hd"><div><div class="k" id="ck"></div><h2 id="cn"></h2></div><button class="x" id="cx" aria-label="Cerrar">✕</button></div>
+  <div class="bd" id="cb"></div>
+</section>
+<div class="pad" id="pad" hidden>
+  <span></span><button data-k="f" aria-label="Adelante">▲</button><button class="run" data-k="run" aria-label="Correr">Correr</button>
+  <button data-k="l" aria-label="Izquierda">◀</button><button data-k="b" aria-label="Atrás">▼</button><button data-k="r" aria-label="Derecha">▶</button>
+</div>
+<div class="hint panel" id="hint">Arrastra para girar · toca un cohete o una etiqueta para ver su historia</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+const $=id=>document.getElementById(id);
+const V3=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
+/* ================= DATOS (verificados; fuentes en cada ficha) ================= */
+const SRC={wf1:['Falcon 1 (resumen con referencias)','https://en.wikipedia.org/wiki/Falcon_1'],wproto:['Prototipos de Falcon 9','https://en.wikipedia.org/wiki/Falcon_9_prototypes'],wv10:['Falcon 9 v1.0','https://en.wikipedia.org/wiki/Falcon_9_v1.0'],wv11:['Falcon 9 v1.1','https://en.wikipedia.org/wiki/Falcon_9_v1.1'],nsfcrs7:['NASASpaceflight · CRS‑7','https://www.nasaspaceflight.com/2015/06/falcon-9-crs-7-dragon-commute-orbit/'],wft:['Falcon 9 Full Thrust / Block 5','https://en.wikipedia.org/wiki/Falcon_9_Full_Thrust'],sland:['Space.com · Primer aterrizaje en el mar','https://www.space.com/32517-spacex-sticks-rocket-landing-sea-dragon-launch.html'],pbs:['PBS · Primer cohete reutilizado','https://www.pbs.org/newshour/science/spacex-makes-history-launch-landing-used-rocket'],upi:['UPI · Récord de 37 vuelos (2026)','https://www.upi.com/Top_News/US/2026/08/25/Falcon-9-booster-sets-reuse-record/7011787681645/'],sfn:['Spaceflight Now · NROL‑136 (21 nov 2026)','https://spaceflightnow.com/2026/11/21/live-coverage-spacex-to-launch-intelligence-gathering-satellites-for-the-national-reconnaissance-office-3'],wfh:['Falcon Heavy','https://en.wikipedia.org/wiki/Falcon_Heavy'],roman:['NASA · Lanzamiento del telescopio Roman','https://science.nasa.gov/blogs/roman/2026/08/30/nasas-roman-space-telescope-launches/'],whop:['Starhopper','https://en.wikipedia.org/wiki/Starhopper'],tchop:['TechCrunch · Salto de 150 m','https://techcrunch.com/2019/08/27/spacex-starhopper-hops-to-around-500-feet-and-flies-for-just-under-a-minute-in-new-test-flight/'],wsn:['Vuelos de prueba de las naves Starship','https://en.wikipedia.org/wiki/List_of_Starship_upper_stage_flight_tests'],wss:['SpaceX Starship','https://en.wikipedia.org/wiki/SpaceX_Starship'],wssl:['Lista de lanzamientos de Starship','https://en.wikipedia.org/wiki/List_of_Starship_launches'],f5:['Space.com · Primera captura (vuelo 5)','https://www.space.com/spacex-starship-flight-5-launch-super-heavy-booster-catch-success-video'],f15:['Aviation Week · Vuelo 15: primera nave capturada','https://aviationweek.com/space/operations-safety/starship-flight-15-ends-first-ship-tower-catch'],hls:['Starship HLS','https://en.wikipedia.org/wiki/Starship_HLS'],wd2:['Dragon 2','https://en.wikipedia.org/wiki/SpaceX_Dragon_2'],crew13:['Crew‑13','https://en.wikipedia.org/wiki/SpaceX_Crew-13'],wmer:['Motor Merlin','https://en.wikipedia.org/wiki/SpaceX_Merlin'],wrap:['Motor Raptor','https://en.wikipedia.org/wiki/SpaceX_Raptor'],grid:['Spaceflight Now · Aletas de titanio (2017)','https://spaceflightnow.com/2017/06/25/falcon-9-rocket-launching-sunday-sports-fin-upgrade/'],asds:['Barcazas autónomas','https://en.wikipedia.org/wiki/Autonomous_spaceport_drone_ship'],fair:['Recuperación de cofias','https://en.wikipedia.org/wiki/SpaceX_fairing_recovery_program'],pica:['NASA · Escudo PICA usado por SpaceX','https://www.nasa.gov/image-article/phenolic-impregnated-carbon-ablator-pica-heat-shield-technology-used-by-spacex/'],tiles:['Space.com · Losetas hexagonales','https://www.space.com/spacex-starship-hexagon-heat-shield-tile-test.html'],sdraco:['SuperDraco','https://en.wikipedia.org/wiki/SuperDraco'],slink:['Starlink','https://en.wikipedia.org/wiki/Starlink'],slq3:['Broadband Breakfast · Starlink 3.er trimestre 2026','https://broadbandbreakfast.com/starlink-reaches-13-6-million-subscribers-globally-as-spacex-revenue-jumps-161/'],slec:['Expreso · Starlink en Ecuador','https://www.expreso.ec/actualidad/economia/starlink-inicia-operaciones-ecuador-apertura-servicio-galapagos-155600.html'],npr:['NPR · Primera captura del propulsor','https://www.npr.org/2024/10/13/nx-s1-5151788/spacex-starship-booster-caught-first-launch'],ttx:['Texas Tribune · Starbase se vuelve ciudad','https://www.texastribune.org/2025/05/03/spacex-starbase-texas-vote-elon-musk'],smsuit:['Smithsonian · Los trajes de SpaceX','https://www.smithsonianmag.com/blogs/air-space-museum/2020/05/27/spacex-dragon-launch-and-entry-suits/'],popsci:['Popular Science · El traje EVA','https://www.popsci.com/science/spacex-eva-suits'],tsl:['Tesla, Inc.','https://en.wikipedia.org/wiki/Tesla,_Inc.'],trd:['Tesla · Comienza la producción del Roadster (2008)','https://ir.tesla.com/press-release/tesla-motors-begins-regular-production-2008-tesla-roadster'],tms:['Model S','https://en.wikipedia.org/wiki/Tesla_Model_S'],tmx:['Model X','https://en.wikipedia.org/wiki/Tesla_Model_X'],tm3:['Model 3','https://en.wikipedia.org/wiki/Tesla_Model_3'],tmy:['Model Y','https://en.wikipedia.org/wiki/Tesla_Model_Y'],tsemi:['Semi','https://en.wikipedia.org/wiki/Tesla_Semi'],tct:['Cybertruck','https://en.wikipedia.org/wiki/Tesla_Cybertruck'],tr2:['Roadster (2.ª generación)','https://en.wikipedia.org/wiki/Tesla_Roadster_(second_generation)'],tcc:['Cybercab','https://en.wikipedia.org/wiki/Tesla_Cybercab'],rspace:['Space.com · El Roadster en el espacio','https://www.space.com/39619-spacex-falcon-heavy-roadster-to-asteroid-belt.html']};
+const R=(o)=>o;
+const INFO={
+ f1:R({grp:'cohete',name:'Falcon 1',yrs:'2006–2009',
+  data:[['Altura','21 m'],['Diámetro','1,7 m'],['Masa al despegue','28 t'],['Motores','1 Merlin (1.ª etapa) y 1 Kestrel (2.ª)'],['Carga a órbita baja','180 kg (demostrado)'],['Vuelos','5: 2 éxitos y 3 fallos']],
+  hist:`<p>El primer cohete de SpaceX, fundada en 2002. Los tres primeros intentos fallaron: en 2006 una fuga provocó un incendio, en 2007 no alcanzó la órbita y en agosto de 2008 las dos etapas chocaron al separarse. La empresa casi no tenía dinero para otro intento.</p><p>El <b>28 de septiembre de 2008</b>, en el cuarto intento, puso en órbita una carga de prueba de 165 kg: el primer cohete de combustible líquido desarrollado por una empresa privada en llegar a órbita. En 2009 lanzó el satélite RazakSAT de Malasia y se retiró para dar paso al Falcon 9.</p>`,src:['wf1']}),
+ v10:R({grp:'cohete',name:'Falcon 9 v1.0',yrs:'2010–2013',
+  data:[['Altura','54,9 m (con Dragon)'],['Diámetro','3,7 m'],['Masa al despegue','333 t'],['Motores','9 Merlin 1C en cuadrícula de 3 × 3'],['Vuelos','5, todos con la cápsula Dragon']],
+  hist:`<p>Voló por primera vez el 4 de junio de 2010. El 8 de diciembre de 2010 llevó la primera Dragon, que dio dos vueltas a la Tierra y amerizó en el Pacífico: la primera cápsula de una empresa privada recuperada desde órbita.</p><p>El 25 de mayo de 2012 una Dragon lanzada por este cohete se convirtió en la primera nave privada en llegar a la Estación Espacial Internacional. Sus 9 motores en cuadrícula de 3 × 3 se reemplazaron luego por la «octaweb».</p>`,src:['wv10']}),
+ grass:R({grp:'cohete',name:'Grasshopper',yrs:'2012–2013',
+  data:[['Altura','32 m'],['Motor','1 Merlin 1D'],['Vuelos','8 saltos'],['Altura máxima','744 m (7 oct 2013)']],
+  hist:`<p>Un tanque de Falcon 9 con patas de acero, hecho para aprender algo que nadie había hecho con un cohete orbital: <b>despegar y volver a aterrizar de pie</b> usando el motor. Entre 2012 y 2013 dio 8 saltos, cada vez más altos, hasta 744 m.</p><p>Su sucesor, el F9R Dev1, subió hasta unos 1.000 m; en agosto de 2014 un sensor falló y el sistema de seguridad lo destruyó en el aire, sin heridos. Lo aprendido llevó al primer aterrizaje de un Falcon 9 en 2015.</p>`,src:['wproto']}),
+ v11:R({grp:'cohete',name:'Falcon 9 v1.1',yrs:'2013–2016',
+  data:[['Altura','68,4 m'],['Diámetro','3,7 m'],['Masa al despegue','506 t'],['Motores','9 Merlin 1D en «octaweb» + 1 Merlin Vacuum'],['Carga a órbita baja','13,2 t'],['Vuelos','15: 14 éxitos y 1 fallo']],
+  hist:`<p>Más largo y con motores nuevos dispuestos en «octaweb»: 8 en anillo alrededor de uno central, más fácil de fabricar y más seguro si falla uno. Con esta versión empezaron los intentos de aterrizar sobre una barcaza en el mar, todos fallidos al principio.</p><p>El 28 de junio de 2015 la misión CRS‑7 explotó a los dos minutos: un soporte de la segunda etapa llevaba un perno industrial en vez de uno aeroespacial, se rompió y un tanque de helio se soltó. Fue una lección dura sobre el control de calidad.</p>`,src:['wv11','nsfcrs7']}),
+ b5:R({grp:'cohete',name:'Falcon 9 Block 5',yrs:'2015 (Full Thrust) · 2018 (Block 5) – hoy',
+  data:[['Altura','~70 m'],['Diámetro','3,7 m'],['Masa al despegue','549 t'],['Motores','9 Merlin 1D + 1 Merlin Vacuum'],['Empuje','~7.600 kN'],['Carga a órbita baja','22,8 t desechable; ~17,4 t reutilizable'],['Lanzamientos','700 el 30–31 oct 2026'],['Récord de reutilización','37 vuelos de un mismo propulsor (B1067, ago 2026)'],['Aterrizajes Falcon','~680 al 21 nov 2026']],
+  hist:`<p>El cohete que cambió la industria. El <b>21 de diciembre de 2015</b> (hora de Florida) una primera etapa volvió del espacio y aterrizó de pie en Cabo Cañaveral: la primera vez para un cohete orbital. El 8 de abril de 2016 lo logró sobre la barcaza «Of Course I Still Love You», y el 30 de marzo de 2017 ese mismo propulsor volvió a volar.</p><p>La versión Block 5, desde 2018, se diseñó para volar muchas veces con revisiones mínimas: hoy un propulsor ha volado 37 veces. También tuvo fallos: el 1 de septiembre de 2016 uno explotó en la plataforma mientras cargaba combustible (Amos‑6), y en julio de 2024 falló una segunda etapa.</p><p>Las manchas oscuras de este modelo son hollín de la reentrada: así se ven los propulsores después de volar.</p>`,src:['wft','sland','pbs','upi','sfn']}),
+ fh:R({grp:'cohete',name:'Falcon Heavy',yrs:'2018–hoy',
+  data:[['Altura','70 m'],['Ancho','3 núcleos de 3,7 m'],['Masa al despegue','1.420 t'],['Motores','27 Merlin 1D + 1 Merlin Vacuum'],['Empuje','22,8 MN'],['Carga','63,8 t a órbita baja; 16,8 t hacia Marte'],['Vuelos','14, todos con éxito'],['Laterales aterrizados','24 de 24']],
+  hist:`<p>Tres primeras etapas de Falcon 9 unidas. En su primer vuelo, el <b>6 de febrero de 2018</b>, llevó como carga de prueba un auto eléctrico rojo con un maniquí llamado «Starman», que hoy da vueltas alrededor del Sol. Los dos propulsores laterales aterrizaron al mismo tiempo, uno junto al otro.</p><p>Ha lanzado misiones científicas como la sonda Psyche (2023), Europa Clipper hacia Júpiter (2024) y el telescopio espacial Roman de la NASA (agosto de 2026).</p>`,src:['wfh','roman','rspace']}),
+ hop:R({grp:'cohete',name:'Starhopper',yrs:'2019',
+  data:[['Material','acero inoxidable'],['Motor','1 Raptor (su primer vuelo)'],['Salto máximo','150 m, 57 s (27 ago 2019)']],
+  hist:`<p>Parecía un tanque de agua con patas, y en parte lo era: se construyó al aire libre en Boca Chica, Texas, con acero inoxidable soldado. Fue el primer vehículo en volar con el motor Raptor.</p><p>El 27 de agosto de 2019 saltó 150 m y aterrizó a unos 100 m de donde despegó. Después se quedó en Starbase como tanque de agua y estación meteorológica.</p>`,src:['whop','tchop']}),
+ sn15:R({grp:'cohete',name:'Starship SN15',yrs:'2021',
+  data:[['Material','acero inoxidable'],['Diámetro','9 m'],['Vuelo','subió a 10 km'],['Aterrizaje','5 may 2021: el primero exitoso']],
+  hist:`<p>Antes de SN15 hubo una serie de prototipos que subían hasta 10–12,5 km, caían «de panza» como un paracaídas usando sus aletas, y en el último segundo se ponían de pie para aterrizar. SN8 (dic 2020), SN9, SN10 y SN11 explotaron en el intento.</p><p>El <b>5 de mayo de 2021</b> SN15 lo logró. Estuvo en exhibición en el «Rocket Garden» de Starbase hasta que se desguazó en 2023.</p>`,src:['wsn']}),
+ ss:R({grp:'cohete',name:'Starship + Super Heavy (V3)',yrs:'2023–hoy',
+  data:[['Altura','124,4 m (V3)'],['Diámetro','9 m'],['Masa al despegue','~5.000 t'],['Motores','33 Raptor en el propulsor + 6 en la nave'],['Empuje','~80 MN'],['Carga a órbita baja','~100 t (V3, reutilizable)'],['Vuelos de prueba','15 (al 21 nov 2026)'],['Capturas','3 propulsores y 1 nave atrapados por la torre']],
+  hist:`<p>El cohete más grande y potente jamás construido, hecho para ser <b>totalmente reutilizable</b>. El primer vuelo, el 20 de abril de 2023, terminó en explosión; cada vuelo siguiente fue un paso más.</p><p>El <b>13 de octubre de 2024</b> (vuelo 5) la torre atrapó al propulsor con sus brazos, los «palillos», al volver del espacio. El 28 de septiembre de 2026 (vuelo 14) llegó por primera vez a órbita y soltó 26 satélites Starlink V3. Y en el vuelo 15, el 14 de noviembre de 2026, la torre atrapó por primera vez a la <b>nave</b> al regresar de órbita, después de 14 vueltas a la Tierra. En ese mismo vuelo el propulsor se quedó sin combustible para su captura y se destruyó sobre el Golfo de México.</p><p>Una versión de Starship será el módulo lunar del programa Artemis de la NASA. Todavía falta demostrar el reabastecimiento de combustible entre naves en órbita.</p>`,src:['wss','wssl','f5','f15','hls']}),
+ tower:R({grp:'cohete',name:'Torre de lanzamiento «Mechazilla»',yrs:'Starbase',
+  data:[['Altura','~146 m'],['Brazos','2 «palillos» que suben, bajan y se cierran'],['Primera captura','13 oct 2024 (propulsor)'],['Primera nave atrapada','14 nov 2026']],
+  hist:`<p>La torre no solo sostiene el cohete antes del despegue: sus dos brazos gigantes, apodados «palillos» (chopsticks), lo levantan para apilarlo y lo <b>atrapan en el aire</b> cuando vuelve. Así el propulsor no necesita patas de aterrizaje, que pesan, y queda listo para volver a apilarse.</p><p>Debajo está la mesa de lanzamiento, un anillo de acero sobre columnas donde se apoya el propulsor con sus 33 motores.</p>`,src:['npr','f15']}),
+ dragon:R({grp:'edificio',name:'Crew Dragon',yrs:'2020–hoy',
+  data:[['Altura','4,5 m la cápsula; 8,1 m con el tronco'],['Diámetro','4 m'],['Tripulación','hasta 4'],['Motores','8 SuperDraco + 16 Draco'],['Vuelos tripulados','21 (al 21 nov 2026)'],['Cápsulas','Endeavour, Resilience, Endurance, Freedom y Grace']],
+  hist:`<p>La primera nave privada en llevar astronautas a la Estación Espacial: Bob Behnken y Doug Hurley, el 30 de mayo de 2020 (Demo‑2). Desde entonces lleva tripulaciones de la NASA y misiones privadas: Inspiration4 (2021), la primera totalmente privada; Polaris Dawn (2024), que subió a unos 1.400 km e hizo la primera caminata espacial comercial; y Fram2 (2025), la primera tripulada que pasó sobre los polos.</p><p>Su escudo térmico es de <b>PICA‑X</b> (ver la pieza cercana) y vuelve al mar con 4 paracaídas.</p>`,src:['wd2','crew13']}),
+ merlin:R({grp:'edificio',name:'Motor Merlin 1D',yrs:'2013–hoy',
+  data:[['Empuje','845 kN a nivel del mar'],['Combustible','queroseno RP‑1 y oxígeno líquido'],['Ciclo','generador de gas'],['Relación empuje/peso','~184'],['Masa','~470 kg']],
+  hist:`<p>El caballo de batalla de SpaceX: 9 de estos motores mueven cada Falcon 9 y 27 cada Falcon Heavy. Su inyector de «pivote» (pintle) es del mismo tipo que el del motor de descenso del módulo lunar del Apollo, una idea simple y robusta.</p><p>Es uno de los motores con mejor relación empuje/peso jamás hecha: empuja unas 184 veces su propio peso.</p>`,src:['wmer']}),
+ mvac:R({grp:'edificio',name:'Merlin Vacuum',yrs:'2010–hoy',
+  data:[['Empuje en vacío','981 kN'],['Impulso específico','348 s'],['Uso','segunda etapa de Falcon 9 y Falcon Heavy']],
+  hist:`<p>La versión del Merlin para el vacío del espacio. Su enorme tobera oscura deja que los gases se expandan mucho más, porque afuera no hay aire que los frene. Es el motor de queroseno más eficiente de Estados Unidos.</p>`,src:['wmer']}),
+ raptor:R({grp:'edificio',name:'Raptor 2 y Raptor 3',yrs:'2019–hoy',
+  data:[['Combustible','metano y oxígeno líquidos'],['Ciclo','combustión por etapas de flujo completo'],['Presión récord','350 bar (2023)'],['Raptor 2','230 tf · 1.630 kg'],['Raptor 3','250 tf · 1.525 kg (vuela desde may 2026)']],
+  hist:`<p>El motor de Starship. Quema metano, que se podría fabricar en Marte con agua y dióxido de carbono. Usa el ciclo más complejo que existe: <b>todo</b> el combustible y todo el oxígeno pasan por turbinas antes de entrar a la cámara, lo que da muchísima presión.</p><p>Compara los dos modelos: el Raptor 2 (izquierda) tiene tuberías y sensores por fuera; el Raptor 3 (derecha) los lleva integrados en su propio cuerpo. Es más liviano, más potente y más fácil de fabricar.</p>`,src:['wrap']}),
+ grid:R({grp:'edificio',name:'Aletas de rejilla y patas de aterrizaje',yrs:'2017–hoy',
+  data:[['Aletas','4 por propulsor, de titanio fundido en una sola pieza'],['Desde','25 jun 2017'],['Patas','4, de fibra de carbono con panal de aluminio'],['Aterrizajes','~680 de propulsores Falcon']],
+  hist:`<p>Al caer, el propulsor se guía con estas <b>aletas de rejilla</b>, como timones. Las primeras eran de aluminio y algunas se quemaban; las de titanio se pueden reutilizar sin retoques.</p><p>Las patas se despliegan unos segundos antes de tocar el suelo. Al final el motor central se enciende y frena el cohete hasta pararlo justo en el piso: un «aterrizaje suicida» calculado al milímetro por la computadora.</p>`,src:['grid','wft']}),
+ asds:R({grp:'edificio',name:'Barcazas autónomas',yrs:'2015–hoy',
+  data:[['Of Course I Still Love You','Pacífico (Long Beach)'],['Just Read the Instructions','Florida'],['A Shortfall of Gravitas','Florida, desde 2021'],['Primer aterrizaje','8 abr 2016 (CRS‑8)']],
+  hist:`<p>Cuando el propulsor no tiene combustible para volver a tierra, aterriza en una barcaza en el océano, a cientos de km. Las barcazas se mantienen en su lugar solas, con motores, sin nadie a bordo durante el aterrizaje.</p><p>Sus nombres vienen de naves de las novelas de ciencia ficción de Iain M. Banks.</p>`,src:['asds']}),
+ fairing:R({grp:'edificio',name:'Cofia (fairing)',yrs:'—',
+  data:[['Altura','~13 m'],['Diámetro','5,2 m'],['Costo','~6 millones de dólares el par'],['Récord','40 vuelos de una misma mitad']],
+  hist:`<p>La «nariz» del Falcon que protege los satélites al atravesar el aire. Al llegar al espacio se abre en dos mitades. Cada mitad baja con su propio paracaídas: entre 2019 y 2021 SpaceX intentó atraparlas con redes gigantes en barcos; hoy las recoge del agua y las vuelve a usar.</p>`,src:['fair']}),
+ tiles:R({grp:'edificio',name:'Losetas del escudo térmico de Starship',yrs:'—',
+  data:[['Forma','hexágonos'],['Por qué','no dejan un camino recto para el gas caliente'],['Prueba','resistieron unos 1.650 K']],
+  hist:`<p>La nave Starship vuelve del espacio a más de 25 veces la velocidad del sonido y el aire se pone al rojo blanco. Su lado de abajo está cubierto de miles de losetas negras hexagonales. Con forma de hexágono, las juntas no forman una línea recta por donde el plasma pueda colarse.</p><p>Al lado está la referencia de la Dragon: un escudo de <b>PICA‑X</b>, un material que se va quemando de a poco y se lleva el calor. SpaceX lo desarrolló con la NASA y aguanta unos 2.000 °C.</p>`,src:['tiles','pica']}),
+ starlink:R({grp:'edificio',name:'Starlink (maqueta)',yrs:'2019–hoy',
+  data:[['Primer lanzamiento','24 may 2019, 60 satélites'],['En órbita','~11.100 (30 sep 2026)'],['Usuarios','13,6 millones (3.er trimestre 2026)'],['Enlaces','láser entre satélites'],['En Ecuador','desde el 1 abr 2023, empezando por Galápagos']],
+  hist:`<p>Una constelación de miles de satélites a baja altura que dan internet en cualquier lugar, incluso en el mar o en la selva. Los satélites se pasan los datos entre ellos con <b>láseres</b>, sin tocar el suelo. En Ecuador funciona desde 2023 y desde septiembre de 2026 hay servicio directo al celular con CNT.</p><p>Es también lo que paga gran parte de los cohetes de SpaceX. La maqueta muestra un satélite con sus paneles solares abiertos, a escala reducida.</p>`,src:['slink','slq3','slec']}),
+ sdraco:R({grp:'edificio',name:'SuperDraco',yrs:'2015–hoy',
+  data:[['Empuje','~71 kN cada uno'],['Cantidad','8 en la Crew Dragon, en 4 pares'],['Fabricación','cámara impresa en 3D en Inconel'],['Encendido','empuje máximo en ~0,1 s']],
+  hist:`<p>El primer motor de vuelo con la cámara totalmente impresa en 3D. Están en los costados de la Crew Dragon y son su sistema de escape: si el cohete falla en el despegue, en una fracción de segundo empujan la cápsula lejos del peligro. Se probaron en la plataforma el 6 de mayo de 2015.</p>`,src:['sdraco']}),
+ suits:R({grp:'edificio',name:'Trajes de SpaceX',yrs:'2020–hoy',
+  data:[['Traje de cabina (IVA)','desde Demo‑2, 30 may 2020'],['Traje de caminata (EVA)','primera caminata privada, 12 sep 2024'],['Conexión','un solo umbilical en el muslo']],
+  hist:`<p>A la izquierda, el traje de cabina de la Crew Dragon, diseñado al principio por un diseñador de vestuario de cine y hecho a medida de cada astronauta. A la derecha, la versión para caminatas de Polaris Dawn, con pantalla en el casco y un visor de cobre que refleja el Sol.</p><p>Los dos están explicados pieza por pieza en la <a href="../jpl/trajes/#spacex">sala de trajes del JPL →</a></p>`,src:['smsuit','popsci']}),
+ timeline:R({grp:'edificio',name:'Línea del tiempo',yrs:'2002–2026',
+  data:[['2002','se funda SpaceX'],['2008','Falcon 1 llega a órbita'],['2012','Dragon llega a la Estación Espacial'],['2015','primer aterrizaje de un Falcon 9'],['2017','primer propulsor reutilizado'],['2018','primer Falcon Heavy'],['2019','primeros 60 Starlink'],['2020','primeros astronautas en Crew Dragon'],['2024','primera captura con los palillos; primera caminata privada'],['2025','Starbase se vuelve ciudad'],['2026','Starship llega a órbita; primera nave atrapada']],
+  hist:`<p>SpaceX fue fundada en 2002 por Elon Musk, con la meta de abaratar los viajes al espacio reutilizando los cohetes, y a largo plazo llevar personas a Marte. Starbase, en Boca Chica (Texas), donde se construye Starship, se convirtió en ciudad en mayo de 2025.</p>`,src:['ttx','wft','wss']}),
+};
+const TESLA=[
+ ['Roadster','2008','El primer auto de Tesla: un deportivo eléctrico con baterías de litio como las de los portátiles. Hasta ~394 km de autonomía; unas 2.400 unidades hasta 2012. Uno rojo se lanzó al espacio en 2018 y hoy orbita alrededor del Sol, más allá de Marte.',['trd','rspace']],
+ ['Model S','2012','Sedán de lujo; la versión Plaid llegó a 0–97 km/h en 1,98 s. Autonomía de hasta ~660 km. Las últimas unidades se fabricaron en mayo de 2026.',['tms']],
+ ['Model X','2015','SUV de 7 plazas con puertas traseras que abren hacia arriba («alas de halcón»). Hasta ~566 km. En enero de 2026 se anunció su fin.',['tmx']],
+ ['Model 3','2017','El primer eléctrico en superar el millón de unidades vendidas (2021). Hasta ~584 km.',['tm3']],
+ ['Model Y','2020','El auto más vendido del mundo en 2023, de cualquier tipo: ~1,21 millones en un año. 0–100 km/h en 3,5 s (Performance).',['tmy']],
+ ['Semi','2022','Camión de carga eléctrico: hasta ~800 km. Primeras entregas a PepsiCo; producción en serie anunciada en 2026.',['tsemi']],
+ ['Cybertruck','2023','Camioneta con carrocería de acero inoxidable, el mismo tipo de material que usa Starship. Hasta ~547 km.',['tct']],
+ ['Cybercab','2026','Taxi autónomo sin volante ni pedales. Producción desde abril de 2026 y viajes pagados en Austin desde septiembre.',['tcc']],
+ ['Roadster (2.ª generación)','~2028','Presentado en 2017; la versión de producción se mostró en octubre de 2026. Aún no se entrega.',['tr2']],
+];
+
+
+/* ================= RENDER ================= */
+const canvas=$('gl');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',logarithmicDepthBuffer:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=.5;
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,.1,20000);
+const controls=new OrbitControls(camera,canvas); controls.enableDamping=true; controls.dampingFactor=.08; controls.maxPolarAngle=Math.PI*.495; controls.minDistance=3; controls.maxDistance=900;
+
+// cielo físico (dispersión de Rayleigh y Mie) y sol de la tarde sobre el Golfo
+const sky=new Sky(); sky.scale.setScalar(15000); scene.add(sky);
+const su=sky.material.uniforms; su.turbidity.value=5; su.rayleigh.value=1.4; su.mieCoefficient.value=.004; su.mieDirectionalG.value=.82;
+const sunDir=new THREE.Vector3().setFromSphericalCoords(1,THREE.MathUtils.degToRad(90-38),THREE.MathUtils.degToRad(215)); su.sunPosition.value.copy(sunDir);
+const pmrem=new THREE.PMREMGenerator(renderer);
+{ const es=new THREE.Scene(); const s2=new Sky(); s2.scale.setScalar(15000); s2.material.uniforms.sunPosition.value.copy(sunDir); for(const k of['turbidity','rayleigh','mieCoefficient','mieDirectionalG']) s2.material.uniforms[k].value=su[k].value; es.add(s2); scene.environment=pmrem.fromScene(es).texture; }
+const sun=new THREE.DirectionalLight(0xfff1dc,3.2); sun.position.copy(sunDir).multiplyScalar(400); sun.castShadow=true;
+sun.shadow.mapSize.set(4096,4096); const sc=sun.shadow.camera; sc.left=-230; sc.right=230; sc.top=230; sc.bottom=-230; sc.near=50; sc.far=1200; sun.shadow.bias=-.0003; sun.shadow.normalBias=.4;
+sun.target.position.set(-20,0,-60); scene.add(sun,sun.target);
+scene.add(new THREE.HemisphereLight(0xbfd8ff,0x8a7a5e,.35));
+scene.fog=new THREE.Fog(0xd6dde6,700,4500);
+
+/* ================= TEXTURAS ================= */
+const rnd=(()=>{ let s=7; return ()=>{ s=(s*16807)%2147483647; return s/2147483647; }; })();
+function ctex(w,h,draw,{srgb=true,rep=[1,1]}={}){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); if(srgb) t.colorSpace=THREE.SRGBColorSpace; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(...rep); t.anisotropy=8; return t; }
+function normalFrom(w,h,hf,strength=2){ const H=new Float32Array(w*h); for(let y=0;y<h;y++)for(let x=0;x<w;x++) H[y*w+x]=hf(x,y);
+  return ctex(w,h,(g)=>{ const im=g.createImageData(w,h); for(let y=0;y<h;y++)for(let x=0;x<w;x++){ const at=(a,b)=>H[((b+h)%h)*w+((a+w)%w)]; const dx=(at(x+1,y)-at(x-1,y))*strength, dy=(at(x,y+1)-at(x,y-1))*strength, l=Math.hypot(dx,dy,1), k=(y*w+x)*4;
+    im.data[k]=(-dx/l*.5+.5)*255; im.data[k+1]=(-dy/l*.5+.5)*255; im.data[k+2]=(1/l*.5+.5)*255; im.data[k+3]=255; } g.putImageData(im,0,0); },{srgb:false}); }
+const sandTex=ctex(512,512,(g,w,h)=>{ g.fillStyle='#c9b48e'; g.fillRect(0,0,w,h); for(let i=0;i<26000;i++){ const v=rnd(); g.fillStyle=`rgba(${150+v*90|0},${130+v*80|0},${95+v*60|0},.35)`; g.fillRect(rnd()*w,rnd()*h,1+rnd()*2,1+rnd()*2); }
+  for(let i=0;i<40;i++){ const x=rnd()*w,y=rnd()*h,r=20+rnd()*90,gr=g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,`rgba(${rnd()<.5?'120,105,80':'225,210,180'},.18)`); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(x-r,y-r,r*2,r*2); } },{rep:[140,140]});
+const concTex=ctex(512,512,(g,w,h)=>{ g.fillStyle='#a9a7a1'; g.fillRect(0,0,w,h); for(let i=0;i<14000;i++){ const v=rnd(); g.fillStyle=`rgba(${120+v*80|0},${120+v*78|0},${118+v*75|0},.25)`; g.fillRect(rnd()*w,rnd()*h,1.5,1.5); } g.strokeStyle='rgba(60,60,60,.35)'; g.lineWidth=2; g.strokeRect(0,0,w,h); },{rep:[60,60]});
+const brushed=normalFrom(256,256,(x,y)=>Math.sin(x*1.7+Math.sin(y*.05)*2)*.3+((x*7919+y*13)%97)/97*.15,1.2);
+const corrN=normalFrom(64,64,(x)=>Math.sin(x/64*Math.PI*2*4)*.5,3);
+const hexN=normalFrom(256,256,(x,y)=>{ const s=32,hx=x/s,hy=y/(s*.866); const r=Math.floor(hy), q=Math.floor(hx-(r%2)*.5); const cx=(q+.5+(r%2)*.5)*s, cy=(r+.5)*s*.866; const d=Math.hypot(x-cx,y-cy)/s; return d>.47?-1:0; },2.5);
+const soot=ctex(64,512,(g,w,h)=>{ const gr=g.createLinearGradient(0,h,0,0); gr.addColorStop(0,'#3b3836'); gr.addColorStop(.12,'#6a6560'); gr.addColorStop(.35,'#c9c6c0'); gr.addColorStop(.7,'#eceae5'); gr.addColorStop(1,'#cfcac2'); g.fillStyle=gr; g.fillRect(0,0,w,h);
+  for(let i=0;i<160;i++){ g.fillStyle=`rgba(40,36,32,${.05+rnd()*.12})`; const x=rnd()*w, y=h*(.25+rnd()*.75); g.fillRect(x,y-80*rnd(),1+rnd()*3,40+rnd()*160); } },{rep:[1,1]});
+
+/* ================= MATERIALES ================= */
+const P=(o)=>new THREE.MeshPhysicalMaterial(o);
+const M={
+  white:P({color:0xf3f3f1,roughness:.42,clearcoat:.25,clearcoatRoughness:.4}),
+  sooty:P({color:0xffffff,map:soot,roughness:.6}),
+  black:P({color:0x1c1d20,roughness:.55,clearcoat:.2}),
+  carbon:P({color:0x18191b,roughness:.38,clearcoat:.5,normalMap:corrN,normalScale:new THREE.Vector2(.08,.08)}),
+  bell:P({color:0x4a4d52,metalness:.85,roughness:.38}),
+  bellIn:P({color:0x2a2420,metalness:.6,roughness:.6,side:THREE.BackSide}),
+  copper:P({color:0xb8734a,metalness:1,roughness:.35}),
+  niob:P({color:0x2f3034,metalness:.8,roughness:.45}),
+  steel:P({color:0xa9adb3,metalness:1,roughness:.24,normalMap:brushed,normalScale:new THREE.Vector2(.25,.25),envMapIntensity:1.1}),
+  tile:P({color:0x151618,roughness:.85,normalMap:hexN,normalScale:new THREE.Vector2(.9,.9)}),
+  ti:P({color:0x8a8c92,metalness:.9,roughness:.42}),
+  tower:P({color:0x9c9fa5,metalness:.7,roughness:.5}),
+  conc:P({color:0xffffff,map:concTex,roughness:.85}),
+  sand:new THREE.MeshStandardMaterial({color:0xffffff,map:sandTex,roughness:1}),
+  water:P({color:0x2a5f78,roughness:.08,metalness:.1,clearcoat:1,transparent:true,opacity:.92}),
+  wall:P({color:0xc3c8cf,roughness:.55,metalness:.3,normalMap:corrN,normalScale:new THREE.Vector2(.6,.6),side:THREE.DoubleSide}),
+  floorIn:P({color:0x5f6266,roughness:.25,clearcoat:.6,clearcoatRoughness:.25,map:concTex}),
+  glass:P({color:0x9fc3dc,roughness:.05,metalness:.2,transparent:true,opacity:.35}),
+  light:new THREE.MeshBasicMaterial({color:0xfff8ea}),
+  ped:P({color:0x20242c,roughness:.35,metalness:.4,clearcoat:.5}),
+  asphalt:P({color:0x2b2c2f,roughness:.92}),
+  paint:new THREE.MeshBasicMaterial({color:0xe9e9e4}),
+  pica:P({color:0x3b2e26,roughness:.9,normalMap:brushed,normalScale:new THREE.Vector2(1.2,1.2)}),
+  pv:P({color:0x1c2a55,metalness:.6,roughness:.25,clearcoat:.8}),
+  red:P({color:0xb3261e,roughness:.5}),
+  gold:P({color:0xd2a13c,metalness:1,roughness:.3}),
+};
+const mesh=(g,m,parent,x=0,y=0,z=0,cast=true)=>{ const o=new THREE.Mesh(g,m); o.position.set(x,y,z); o.castShadow=cast; o.receiveShadow=true; parent&&parent.add(o); return o; };
+const cyl=(r1,r2,h,m,parent,y,seg=48,open=false)=>mesh(new THREE.CylinderGeometry(r1,r2,h,seg,1,open),m,parent,0,y+h/2,0);
+const box=(w,h,d,m,parent,x,y,z)=>mesh(new THREE.BoxGeometry(w,h,d),m,parent,x,y,z);
+function rod(a,b,r,m,parent,seg=10){ const d=b.clone().sub(a), o=mesh(new THREE.CylinderGeometry(r,r,d.length(),seg),m,parent); o.position.copy(a).add(b).multiplyScalar(.5); o.quaternion.setFromUnitVectors(V3(0,1,0),d.normalize()); return o; }
+// ojiva (nariz) por perfil de revolución
+function ogive(r,h,m,parent,y,seg=48){ const pts=[]; for(let i=0;i<=24;i++){ const t=i/24; pts.push(new THREE.Vector2(r*Math.sqrt(1-t*t)*(1-.02*t)+.001,t*h)); } return mesh(new THREE.LatheGeometry(pts,seg),m,parent,0,y,0); }
+// tobera de motor (perfil de campana)
+function bellGeo(rT,rE,h,seg=40){ const pts=[]; for(let i=0;i<=20;i++){ const t=i/20; pts.push(new THREE.Vector2(rT+(rE-rT)*Math.pow(t,.62),h*(1-t))); } return new THREE.LatheGeometry(pts,seg); }
+function engine(parent,x,y,z,rE,h,mat=M.bell){ const g=new THREE.Group(); g.position.set(x,y,z); parent.add(g); mesh(bellGeo(rE*.35,rE,h),mat,g,0,-h,0); const inn=mesh(bellGeo(rE*.33,rE*.97,h*.98),M.bellIn,g,0,-h*.98,0); inn.castShadow=false; return g; }
+function gridFin(parent,w=1.5,h=1.2){ const g=new THREE.Group(); parent.add(g); const t=.05;
+  box(w,t*1.6,.18,M.ti,g,0,h/2,0); box(w,t*1.6,.18,M.ti,g,0,-h/2,0); box(t*1.6,h,.18,M.ti,g,-w/2,0,0); box(t*1.6,h,.18,M.ti,g,w/2,0,0);
+  for(let i=-3;i<=3;i++){ const a=mesh(new THREE.BoxGeometry(t,Math.hypot(w,h)*.9,.16),M.ti,g,i*w/8,0,0); a.rotation.z=.75; const b=mesh(new THREE.BoxGeometry(t,Math.hypot(w,h)*.9,.16),M.ti,g,i*w/8,0,0); b.rotation.z=-.75; }
+  // recorte: las diagonales se salen un poco del marco; queda como rejilla
+  return g; }
+const tag=(o,key)=>{ o.traverse(c=>{ c.userData.key=key; }); return o; };
+
+/* ================= TERRENO, MAR Y CAMINOS ================= */
+const ground=mesh(new THREE.PlaneGeometry(9000,9000),M.sand,scene,0,0,0,false); ground.rotation.x=-Math.PI/2;
+const sea=mesh(new THREE.PlaneGeometry(6000,9000),M.water,scene,3400,.15,0,false); sea.rotation.x=-Math.PI/2;
+const beach=mesh(new THREE.PlaneGeometry(80,9000),P({color:0xe2d2ae,roughness:1}),scene,370,.05,0,false); beach.rotation.x=-Math.PI/2;
+const apron=mesh(new THREE.PlaneGeometry(330,46),M.conc,scene,-25,.04,0,false); apron.rotation.x=-Math.PI/2;
+const padC=mesh(new THREE.CircleGeometry(48,64),M.conc,scene,100,.05,-8,false); padC.rotation.x=-Math.PI/2;
+const road=mesh(new THREE.PlaneGeometry(14,95),M.asphalt,scene,-40,.06,-70.5,false); road.rotation.x=-Math.PI/2;
+// matorrales bajos de la costa
+{ const g=new THREE.IcosahedronGeometry(1,0), m=new THREE.MeshStandardMaterial({color:0x6f7a45,roughness:1}); const im=new THREE.InstancedMesh(g,m,900), mt=new THREE.Matrix4();
+  for(let i=0;i<900;i++){ let x,z; do{ x=(rnd()-.5)*900; z=(rnd()-.5)*900; }while((Math.abs(z)<40&&x>-200&&x<170)||(x>-110&&x<20&&z>-190&&z<-85)||Math.hypot(x-100,z+8)<60||x>330);
+    const s=.5+rnd()*1.6; mt.compose(V3(x,s*.3,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rnd()*6,0)),V3(s*1.6,s*.6,s*1.4)); im.setMatrixAt(i,mt); } im.receiveShadow=true; scene.add(im); }
+
+/* ================= COHETES ================= */
+const ROCK=[]; const LBL=[];
+function stand(parent,r=3){ cyl(r,r+.3,.5,M.conc,parent,0,24); }
+function addRocket(key,x,build,labelY){ const g=new THREE.Group(); g.position.set(x,0,0); scene.add(g); const h=build(g); tag(g,key); ROCK.push({key,g,h}); LBL.push({key,pos:V3(x,(labelY||h)+4,0)}); return g; }
+// Falcon 1
+addRocket('f1',-160,g=>{ stand(g,1.6); const y0=.5; engine(g,0,y0+1.4,0,.5,1.3); cyl(.85,.85,13.5,M.white,g,y0+1.4); cyl(.85,.85,1.2,M.black,g,y0+14.9); cyl(.85,.85,2.2,M.white,g,y0+16.1); cyl(.75,.85,.3,M.white,g,y0+18.3); ogive(.75,2.6,M.white,g,y0+18.6); return 21.7; });
+// Falcon 9 v1.0 con Dragon
+addRocket('v10',-135,g=>{ stand(g); const y0=.5; for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++) engine(g,i*1.1,y0+1.6,j*1.1,.5,1.5);
+  cyl(1.83,1.83,31,M.white,g,y0+1.6); cyl(1.83,1.83,4.5,M.white,g,y0+32.6); cyl(1.83,1.83,8.5,M.white,g,y0+37.1);
+  cyl(1.83,1.83,2.8,M.white,g,y0+45.6); cyl(1.2,1.83,3,M.white,g,y0+48.4); ogive(1.2,2.2,M.black,g,y0+51.4); for(const s of[-1,1]){ box(.05,2.6,1.3,M.pv,g,s*1.86,y0+47,0); } return 54.9; });
+// Grasshopper
+addRocket('grass',-110,g=>{ const y0=4.2; engine(g,0,y0+.2,0,.5,1.5); cyl(1.83,1.83,26,M.white,g,y0); cyl(1.83,.4,1.2,M.white,g,y0+26);
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, c=Math.cos(a), s=Math.sin(a), f=V3(c*6,.2,s*6); rod(V3(c*1.7,y0+4,s*1.7),f,.14,M.steel,g); rod(V3(c*1.7,y0+.3,s*1.7),f,.1,M.steel,g); rod(V3(c*1.7,y0+8,s*1.7),f,.08,M.steel,g); cyl(.6,.7,.25,M.steel,g,0).position.set(f.x,.12,f.z); } return 32; });
+// Falcon 9 v1.1
+addRocket('v11',-85,g=>{ stand(g); const y0=.5; engine(g,0,y0+1.7,0,.5,1.6); for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; engine(g,Math.cos(a)*1.25,y0+1.7,Math.sin(a)*1.25,.46,1.6); }
+  cyl(1.83,1.83,40,M.white,g,y0+1.7); cyl(1.83,1.83,6,M.white,g,y0+41.7); cyl(1.83,1.83,8,M.white,g,y0+47.7); cyl(2.6,2.6,6.5,M.white,g,y0+55.7); ogive(2.6,6.4,M.white,g,y0+62.2); cyl(2.6,1.83,.8,M.white,g,y0+54.9); return 68.4; });
+// Falcon 9 Block 5: volado, con hollín, patas desplegadas
+addRocket('b5',-55,g=>{ const y0=2.2; engine(g,0,y0+1.7,0,.5,1.6); for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; engine(g,Math.cos(a)*1.25,y0+1.7,Math.sin(a)*1.25,.46,1.6); }
+  cyl(1.85,1.85,.6,M.black,g,y0+1.1); cyl(1.83,1.83,40.5,M.sooty,g,y0+1.7); cyl(1.84,1.84,6.6,M.carbon,g,y0+42.2);
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, gf=gridFin(g); gf.position.set(Math.cos(a)*2.55,y0+46.8,Math.sin(a)*2.55); gf.rotation.y=-a+Math.PI/2; }
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, c=Math.cos(a), s=Math.sin(a), f=V3(c*7.2,.25,s*7.2); rod(V3(c*1.95,y0+9.5,s*1.95),f,.38,M.carbon,g,8); rod(V3(c*1.95,y0+.8,s*1.95),V3(c*5.4,1.8,s*5.4),.16,M.carbon,g,8); cyl(.75,.85,.3,M.carbon,g,0).position.set(f.x,.15,f.z); }
+  cyl(1.83,1.83,8.6,M.white,g,y0+48.8); cyl(2.6,1.83,.9,M.white,g,y0+57.4); cyl(2.6,2.6,6.2,M.white,g,y0+58.3); ogive(2.6,6.6,M.white,g,y0+64.5); return 73.3; },72);
+// Falcon Heavy
+addRocket('fh',-15,g=>{ stand(g,8); const y0=.5;
+  for(const sx of[-3.9,0,3.9]){ const c=new THREE.Group(); c.position.x=sx; g.add(c); engine(c,0,y0+1.7,0,.5,1.6); for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; engine(c,Math.cos(a)*1.25,y0+1.7,Math.sin(a)*1.25,.46,1.6); }
+    cyl(1.83,1.83,40.5,M.white,c,y0+1.7); if(sx){ cyl(1.84,1.84,5,M.carbon,c,y0+42.2); ogive(1.84,4.6,M.carbon,c,y0+47.2); for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, gf=gridFin(c); gf.position.set(Math.cos(a)*2.55,y0+44.5,Math.sin(a)*2.55); gf.rotation.y=-a+Math.PI/2; }
+      for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4; const l=box(.7,10,.35,M.carbon,c,Math.cos(a)*1.95,y0+7.5,Math.sin(a)*1.95); l.rotation.y=-a; } }
+    else { cyl(1.84,1.84,6.6,M.carbon,c,y0+42.2); for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, gf=gridFin(c); gf.position.set(Math.cos(a)*2.55,y0+46.8,Math.sin(a)*2.55); gf.rotation.y=-a+Math.PI/2; }
+      cyl(1.83,1.83,8.6,M.white,c,y0+48.8); cyl(2.6,1.83,.9,M.white,c,y0+57.4); cyl(2.6,2.6,6.2,M.white,c,y0+58.3); ogive(2.6,6.6,M.white,c,y0+64.5); } }
+  for(const s of[-1,1]) for(const y of[6,40]) rod(V3(s*1.9,y0+y,0),V3(s*2.1,y0+y,0),.25,M.black,g); return 71.6; });
+// Starhopper
+addRocket('hop',25,g=>{ const y0=5; for(let i=0;i<3;i++){ const a=i/3*Math.PI*2, c=Math.cos(a), s=Math.sin(a); rod(V3(c*4,y0+1,s*4),V3(c*6.2,.3,s*6.2),.35,M.steel,g); rod(V3(c*4.3,y0+4,s*4.3),V3(c*6.2,.3,s*6.2),.25,M.steel,g); cyl(.8,.9,.3,M.steel,g,0).position.set(c*6.2,.15,s*6.2); }
+  engine(g,0,y0+.3,0,.65,1.7,M.copper); cyl(4.5,4.5,13,M.steel,g,y0); const cone=mesh(new THREE.ConeGeometry(4.5,4,48,1,true),M.steel,g,0,y0+15,0); cyl(1.2,1.2,1.2,M.steel,g,y0+17); return 22; });
+// SN15
+addRocket('sn15',60,g=>{ const y0=2.5; for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; rod(V3(Math.cos(a)*3.8,y0+.5,Math.sin(a)*3.8),V3(Math.cos(a)*4.3,.1,Math.sin(a)*4.3),.25,M.steel,g); }
+  for(let i=0;i<3;i++){ const a=i/3*Math.PI*2; engine(g,Math.cos(a)*1.4,y0+.1,Math.sin(a)*1.4,.65,1.6,M.copper); }
+  cyl(4.5,4.5,36,M.steel,g,y0); const t1=mesh(new THREE.CylinderGeometry(4.53,4.53,36,48,1,true,Math.PI*.5,Math.PI),M.tile,g,0,y0+18,0);
+  ogive(4.5,13,M.steel,g,y0+36);
+  for(const s of[-1,1]){ const af=box(.35,9,4.2,M.steel,g,s*5.4,y0+5,0); af.rotation.z=s*.05; const ff=box(.3,5.5,2.6,M.steel,g,s*4.3,y0+41.5,0); ff.rotation.z=-s*.25; } return 51.5; });
+
+/* ---- torre, mesa de lanzamiento y Starship V3 ---- */
+{ const base=new THREE.Group(); base.position.set(110,0,-8); scene.add(base); tag(base,'tower');
+  // mesa de lanzamiento (OLM)
+  const OLM=new THREE.Group(); base.add(OLM); OLM.position.z=6;
+  for(let i=0;i<6;i++){ const a=i/6*Math.PI*2+.3; const c=box(2.4,20,2.4,M.conc,OLM,Math.cos(a)*9,10,Math.sin(a)*9); }
+  const ring=mesh(new THREE.TorusGeometry(7.2,1.6,16,64),M.tower,OLM,0,21,0); ring.rotation.x=Math.PI/2;
+  cyl(10,10,1.5,M.tower,OLM,18.5,48,true);
+  // torre de celosía de ~146 m
+  const H=146, S=13, lv=24; const beam=new THREE.BoxGeometry(1,1,1); const im=new THREE.InstancedMesh(beam,M.tower,lv*16+4); let n=0; const mt=new THREE.Matrix4(), q=new THREE.Quaternion();
+  const put=(a,b,w)=>{ const d=b.clone().sub(a), L=d.length(); q.setFromUnitVectors(V3(0,1,0),d.clone().normalize()); mt.compose(a.clone().add(b).multiplyScalar(.5),q,V3(w,L,w)); im.setMatrixAt(n++,mt); };
+  const T=V3(0,0,-18); const cr=[[-S/2,-S/2],[S/2,-S/2],[S/2,S/2],[-S/2,S/2]];
+  for(const [x,z] of cr) put(V3(T.x+x,0,T.z+z),V3(T.x+x,H,T.z+z),1.2);
+  for(let k=0;k<lv;k++){ const y0=k*H/lv, y1=(k+1)*H/lv; for(let f=0;f<4;f++){ const [ax,az]=cr[f], [bx,bz]=cr[(f+1)%4];
+    put(V3(T.x+ax,y1,T.z+az),V3(T.x+bx,y1,T.z+bz),.55); put(V3(T.x+ax,y0,T.z+az),V3(T.x+bx,y1,T.z+bz),.4); put(V3(T.x+bx,y0,T.z+bz),V3(T.x+ax,y1,T.z+az),.4); } }
+  im.count=n; im.castShadow=true; im.receiveShadow=true; base.add(im); tag(im,'tower');
+  cyl(1,1,8,M.tower,base,H).position.set(T.x,H+4,T.z);
+  // palillos (chopsticks) abiertos a los lados del cohete
+  const car=box(15,6,4,M.tower,base,T.x,96,T.z+S/2+2);
+  for(const s of[-1,1]){ const arm=new THREE.Group(); arm.position.set(T.x+s*6,96,T.z+S/2+3); base.add(arm); arm.rotation.y=s*.12;
+    box(2,4.5,34,M.tower,arm,0,0,17); box(2.2,.6,32,M.steel,arm,-s*1.05,-1.6,17); }
+  // brazo de abastecimiento de la nave
+  box(3,3,16,M.tower,base,T.x+2,118,T.z+S/2+8);
+  // Starship V3: propulsor Super Heavy + anillo de separación + nave
+  const st=new THREE.Group(); st.position.set(0,22,6); base.add(st);
+  for(let i=0;i<33;i++){ const r=i<3?1.4:i<13?3.6:6.6, n0=i<3?3:i<13?10:20, k=i<3?i:i<13?i-3:i-13, a=k/n0*Math.PI*2; engine(st,Math.cos(a)*r,.6,Math.sin(a)*r,.62,1.4,M.copper); }
+  cyl(4.5,4.5,71,M.steel,st,.6); const hs=cyl(4.55,4.55,1.8,M.black,st,71.6,48,true);
+  for(let i=0;i<3;i++){ const a=i/3*Math.PI*2+.4, gf=gridFin(st,4,3.2); gf.position.set(Math.cos(a)*5.9,66,Math.sin(a)*5.9); gf.rotation.y=-a+Math.PI/2; }
+  const ship=new THREE.Group(); ship.position.y=73.4; st.add(ship);
+  cyl(4.5,4.5,38.6,M.steel,ship,0); mesh(new THREE.CylinderGeometry(4.53,4.53,38.6,48,1,true,Math.PI*.5,Math.PI),M.tile,ship,0,19.3,0); ogive(4.5,13,M.steel,ship,38.6);
+  for(const s of[-1,1]){ const af=box(.4,10,4.6,M.steel,ship,s*5.5,6,0); const ff=box(.35,6,2.8,M.steel,ship,s*4.4,43,0); ff.rotation.z=-s*.25; }
+  LBL.push({key:'ss',pos:V3(110,152,-2)}); LBL.push({key:'tower',pos:V3(110,150,-26)});
+  ROCK.push({key:'ss',g:base,h:146,center:V3(110,73,-2)}); ROCK.push({key:'tower',g:base,h:146,center:V3(110,73,-26)});
+  tag(st,'ss'); }
+
+/* ================= LA GALERÍA (Starfactory) ================= */
+const B={x0:-85,x1:5,z0:-162,z1:-118,h:24,door:[-47,-33]};
+const hall=new THREE.Group(); scene.add(hall);
+{ const t=.6, W=B.x1-B.x0, D=B.z1-B.z0, cx=(B.x0+B.x1)/2, cz=(B.z0+B.z1)/2;
+  const fl=mesh(new THREE.PlaneGeometry(W,D),M.floorIn,hall,cx,.08,cz,false); fl.rotation.x=-Math.PI/2; M.floorIn.map=concTex.clone(); M.floorIn.map.needsUpdate=true; M.floorIn.map.repeat.set(12,6);
+  box(t,B.h,D,M.wall,hall,B.x0,B.h/2,cz); box(t,B.h,D,M.wall,hall,B.x1,B.h/2,cz); box(W,B.h,t,M.wall,hall,cx,B.h/2,B.z0);
+  // fachada con puerta de vidrio
+  const dl=B.door[0]-B.x0, dr=B.x1-B.door[1]; box(dl,B.h,t,M.wall,hall,B.x0+dl/2,B.h/2,B.z1); box(dr,B.h,t,M.wall,hall,B.door[1]+dr/2,B.h/2,B.z1);
+  box(B.door[1]-B.door[0],B.h-11,t,M.wall,hall,(B.door[0]+B.door[1])/2,11+(B.h-11)/2,B.z1);
+  const gl=box(B.door[1]-B.door[0],11,.1,M.glass,hall,(B.door[0]+B.door[1])/2,5.5,B.z1+.4); gl.castShadow=false; gl.userData.noPick=true; gl.userData.glass=true;
+  // techo con cerchas y franjas de luz
+  box(W+1,.6,D+1,M.wall,hall,cx,B.h+.3,cz);
+  for(let i=0;i<9;i++){ const x=B.x0+5+i*10; box(.5,1.6,D,M.tower,hall,x,B.h-1,cz); const ls=mesh(new THREE.BoxGeometry(.6,.15,D-6),M.light,hall,x+5,B.h-.6,cz,false); }
+  for(let i=0;i<5;i++){ const L=new THREE.PointLight(0xfff4e4,900,60,1.6); L.position.set(B.x0+10+i*18,B.h-3,cz); hall.add(L); }
+  // letrero (texto, sin logotipos)
+  const sign=mesh(new THREE.PlaneGeometry(26,3),new THREE.MeshBasicMaterial({map:ctex(1024,118,(g,w,h)=>{ g.fillStyle='#10141c'; g.fillRect(0,0,w,h); g.fillStyle='#eef2f8'; g.font='600 64px Jost, sans-serif'; g.textAlign='center'; g.fillText('STARFACTORY · GALERÍA',w/2,80); })}),hall,(B.door[0]+B.door[1])/2,15,B.z1+.4,false);
+  LBL.push({key:'hall',pos:V3(-40,27,B.z1)}); }
+// pedestal con nombre
+function pedestal(x,z,w,d,key,h=.6){ const p=mesh(new RoundedBoxGeometry(w,h,d,3,.08),M.ped,hall,x,h/2,z); tag(p,key); return p; }
+const EX={}; const exhibit=(key,x,z,view)=>{ EX[key]={pos:V3(x,0,z),view}; };
+// Crew Dragon (pieza central) y escudo PICA‑X
+{ const g=new THREE.Group(); g.position.set(-40,1.2,-142); hall.add(g); pedestal(-40,-142,7,7,'dragon',1.2);
+  cyl(2,2,3.6,M.white,g,0); for(const s of[-1,1]){ const pv=mesh(new THREE.CylinderGeometry(2.02,2.02,3.2,48,1,true,s>0?.3:Math.PI+.3,1.6),M.pv,g,0,1.8,0); }
+  cyl(2.05,2.05,.35,M.pica,g,3.6); const cap=cyl(1.25,2,2.9,M.white,g,3.95); cyl(1.25,1.25,.4,M.white,g,6.85);
+  const nose=mesh(new THREE.SphereGeometry(1.25,40,16,0,Math.PI*2,0,Math.PI*.38),M.white,g,0,7.15,0); nose.scale.y=.6;
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+.4; const w=mesh(new THREE.CircleGeometry(.22,20),M.black,g,Math.cos(a)*1.75,5.2,Math.sin(a)*1.75,false); w.lookAt(V3(Math.cos(a)*5,5.2,Math.sin(a)*5).add(g.position)); w.rotation.x+=-.25; }
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4; const pod=box(.7,.9,.35,M.black,g,Math.cos(a)*1.55,6.2,Math.sin(a)*1.55); pod.rotation.y=-a+Math.PI/2; pod.rotation.x=.3; }
+  tag(g,'dragon'); exhibit('dragon',-40,-142,[0,4,12]);
+  const sh=new THREE.Group(); sh.position.set(-29,2.4,-150); hall.add(sh); const disc=mesh(new THREE.CylinderGeometry(1.8,1.8,.25,48),M.pica,sh); disc.rotation.x=1.2; pedestal(-29,-150,3,2,'tiles',.6); tag(sh,'tiles'); }
+// motores
+function stand1(x,z,key){ return pedestal(x,z,3.4,3.4,key,.8); }
+{ // Merlin 1D
+  const g=new THREE.Group(); g.position.set(-76,3.4,-150); hall.add(g); stand1(-76,-150,'merlin'); engine(g,0,0,0,.55,2.2); cyl(.32,.32,.9,M.bell,g,0); cyl(.22,.22,.7,M.copper,g,.9);
+  rod(V3(.35,.3,0),V3(.6,1.4,.3),.09,M.bell,g); rod(V3(-.3,.2,.2),V3(-.55,1.2,-.2),.07,M.copper,g); mesh(new THREE.TorusGeometry(.42,.05,8,24),M.copper,g,0,-.4,0).rotation.x=Math.PI/2; tag(g,'merlin'); exhibit('merlin',-76,-150,[6,2.6,6]);
+  // Merlin Vacuum
+  const v=new THREE.Group(); v.position.set(-76,6.4,-138); hall.add(v); stand1(-76,-138,'mvac'); engine(v,0,0,0,.55,1.4); const ext=mesh(bellGeo(.56,1.6,3.6),M.niob,v,0,-5,0); ext.material=M.niob; cyl(.32,.32,.9,M.bell,v,0); tag(v,'mvac'); exhibit('mvac',-76,-138,[7,3,6]);
+  // Raptor 2 y Raptor 3
+  for(const [x,clean] of [[-79,false],[-71,true]]){ const r=new THREE.Group(); r.position.set(x,3.9,-131); hall.add(r); pedestal(x,-131,3.4,3.4,'raptor',.8);
+    engine(r,0,0,0,.65,2.1,M.copper); cyl(.45,.5,.8,clean?M.steel:M.bell,r,0); cyl(.35,.42,1.1,M.steel,r,.8); cyl(.25,.3,.5,M.steel,r,1.9);
+    if(!clean){ for(let i=0;i<7;i++){ const a=i/7*6.28; rod(V3(Math.cos(a)*.5,.1,Math.sin(a)*.5),V3(Math.cos(a+1.2)*.48,1.8,Math.sin(a+1.2)*.48),.05,i%2?M.copper:M.bell,r,6); } box(.3,.4,.3,M.black,r,.55,1.2,0); box(.25,.3,.3,M.black,r,-.5,.7,.2); }
+    else { mesh(new THREE.TorusGeometry(.47,.08,10,30),M.steel,r,0,.8,0).rotation.x=Math.PI/2; } tag(r,'raptor'); }
+  exhibit('raptor',-75,-131,[0,2.6,10]); }
+// aletas de rejilla, pata de aterrizaje y SuperDraco
+{ const g=new THREE.Group(); g.position.set(-60,2.4,-156); hall.add(g); const gf=gridFin(g,1.9,1.5); pedestal(-60,-156,3,1.5,'grid',.6);
+  const leg=new THREE.Group(); leg.position.set(-52,.9,-156); hall.add(leg); const lb=box(10,.6,.9,M.carbon,leg,0,0,0); lb.rotation.z=.08; rod(V3(-4.6,-.6,0),V3(-4.6,.1,0),.3,M.ti,leg); box(1.4,.3,1.4,M.carbon,leg,4.8,-.5,0);
+  tag(g,'grid'); tag(leg,'grid'); exhibit('grid',-56,-156,[0,2.5,8]);
+  const sd=new THREE.Group(); sd.position.set(-63,2.1,-125); hall.add(sd); pedestal(-63,-125,2.4,2.4,'sdraco',.7); for(const s of[-1,1]){ engine(sd,s*.3,1.1,0,.22,.9,M.bell); cyl(.12,.15,.4,M.ti,sd,1.1).position.x=s*.3; } tag(sd,'sdraco'); exhibit('sdraco',-63,-125,[3,2,4]); }
+// pared de losetas hexagonales
+{ const g=new THREE.Group(); g.position.set(-22,0,-160.6); hall.add(g); box(8,6,.3,M.steel,g,0,4,0); const tl=box(7.4,5.4,.12,M.tile,g,0,4,.2); tl.material=M.tile.clone(); tl.material.normalMap=hexN.clone(); tl.material.normalMap.needsUpdate=true; tl.material.normalMap.repeat.set(7,5);
+  tag(g,'tiles'); exhibit('tiles',-25,-152,[0,2,9]); }
+// cofia, Starlink colgado, trajes, barcaza y línea del tiempo
+{ const f=new THREE.Group(); f.position.set(-6,.6,-150); hall.add(f); pedestal(-6,-150,6,6,'fairing',.6);
+  const half=mesh(new THREE.CylinderGeometry(2.6,2.6,6.5,48,1,true,0,Math.PI),M.white,f,0,3.25,0); half.material=M.white.clone(); half.material.side=THREE.DoubleSide;
+  const nose=mesh(new THREE.LatheGeometry(Array.from({length:21},(_,i)=>{ const t=i/20; return new THREE.Vector2(2.6*Math.sqrt(1-t*t)+.001,t*6.6); }),48,0,Math.PI),half.material,f,0,6.5,0); tag(f,'fairing'); exhibit('fairing',-6,-150,[-9,5,10]);
+  const s=new THREE.Group(); s.position.set(-40,15,-133); hall.add(s); box(1.6,.25,3,M.ti,s,0,0,0); for(const k of[-1,1]){ const p=box(7,.08,2.4,M.pv,s,k*4.4,.0,0); rod(V3(k*.8,0,0),V3(k*1,0,0),.06,M.ti,s); }
+  for(const [a,b] of [[-3,-1],[3,1]]) rod(V3(a,0,0),V3(a,9,0),.02,M.tower,s,4); tag(s,'starlink'); exhibit('starlink',-40,-133,[0,6,9]);
+  // trajes
+  const suitFig=(x,eva)=>{ const g=new THREE.Group(); g.position.set(x,.6,-126); hall.add(g); const W=M.white;
+    cyl(.17,.2,.62,W,g,.92); box(.36,.5,.22,W,g,0,1.32,0).geometry=new RoundedBoxGeometry(.38,.5,.24,3,.08); box(.05,.32,.2,M.black,g,.18,1.34,0); box(.05,.32,.2,M.black,g,-.18,1.34,0);
+    for(const sx of[-1,1]){ const L=mesh(new THREE.CapsuleGeometry(.075,.72,6,14),W,g,sx*.1,.48,0); const A=mesh(new THREE.CapsuleGeometry(.06,.52,6,14),W,g,sx*.25,1.22,0); A.rotation.z=sx*.12; const hnd=mesh(new THREE.SphereGeometry(.055,14,10),M.black,g,sx*.29,.9,0); box(.1,.1,.24,W,g,sx*.1,.06,.03); }
+    const hl=mesh(new THREE.SphereGeometry(.15,32,20),W,g,0,1.74,0); const vs=mesh(new THREE.SphereGeometry(.152,32,20,Math.PI*.15,Math.PI*.7,Math.PI*.3,Math.PI*.35),eva?M.copper:P({color:0x0a0c10,roughness:.05,metalness:.6}),g,0,1.74,0);
+    if(eva){ box(.05,.04,.07,M.black,g,-.16,1.82,.04); }
+    box(.08,.06,.05,M.black,g,-.12,.82,.09); pedestal(x,-126,1.2,1.2,'suits',.6); tag(g,'suits'); };
+  suitFig(-17.5,false); suitFig(-15.5,true); exhibit('suits',-16.5,-126,[0,1.8,4.5]);
+  const bg=new THREE.Group(); bg.position.set(-58,1,-137); hall.add(bg); pedestal(-58,-137,7,4,'asds',1); box(6,.35,3,P({color:0x3c4048,roughness:.7}),bg,0,.2,0);
+  const circ=mesh(new THREE.RingGeometry(.9,1.05,40),M.paint,bg,0,.38,0,false); circ.rotation.x=-Math.PI/2; const x1=box(1.4,.01,.12,M.paint,bg,0,.38,0); x1.rotation.y=.785; const x2=box(1.4,.01,.12,M.paint,bg,0,.38,0); x2.rotation.y=-.785;
+  cyl(.18,.18,3.4,M.sooty,bg,.38); for(let i=0;i<4;i++){ const a=i*Math.PI/2+.78; rod(V3(Math.cos(a)*.18,1,Math.sin(a)*.18),V3(Math.cos(a)*.7,.4,Math.sin(a)*.7),.03,M.carbon,bg,6); } tag(bg,'asds'); exhibit('asds',-58,-137,[5,3,5]);
+  const tlTex=ctex(2048,640,(g,w,h)=>{ g.fillStyle='#0f141d'; g.fillRect(0,0,w,h); g.fillStyle='#7cc4ff'; g.font='600 44px Jost, sans-serif'; g.fillText('SPACEX · LÍNEA DEL TIEMPO',60,80); g.strokeStyle='#ffb547'; g.lineWidth=6; g.beginPath(); g.moveTo(60,320); g.lineTo(w-60,320); g.stroke();
+    const T=INFO.timeline.data; T.forEach(([y,t],i)=>{ const x=80+i*(w-160)/(T.length-1); g.fillStyle='#ffb547'; g.beginPath(); g.arc(x,320,12,0,7); g.fill(); g.fillStyle='#fff'; g.font='600 40px Jost, sans-serif'; g.textAlign='center'; g.fillText(y,x,i%2?270:400);
+      g.fillStyle='#b9c3d6'; g.font='400 22px "IBM Plex Sans", sans-serif'; const words=t.split(' '); let line='',yy=i%2?150:450; const lines=[]; for(const wd of words){ if((line+' '+wd).length>16){ lines.push(line); line=wd; } else line=line?line+' '+wd:wd; } lines.push(line); lines.forEach((l,k)=>g.fillText(l,x,yy+k*28)); g.textAlign='left'; }); });
+  const tw=mesh(new THREE.PlaneGeometry(34,10.6),new THREE.MeshBasicMaterial({map:tlTex}),hall,B.x0+.4,7,-140,false); tw.rotation.y=Math.PI/2; tag(tw,'timeline'); exhibit('timeline',-78,-140,[6,1.7,0]); }
+
+/* ================= ESTACIONAMIENTO: línea del tiempo de Tesla ================= */
+{ const lot=new THREE.Group(); scene.add(lot); const x0=-84, z0=-104;
+  const asph=mesh(new THREE.PlaneGeometry(40,22),M.asphalt,lot,x0+18,.07,z0,false); asph.rotation.x=-Math.PI/2;
+  TESLA.forEach((t,i)=>{ const x=x0+2+i*4.2; const ln=box(.12,.01,5.2,M.paint,lot,x-2.1,.09,z0+2); ln.castShadow=false;
+    const g=new THREE.Group(); g.position.set(x,0,z0-3.5); lot.add(g); box(.18,2.6,.18,M.ti,g,0,1.3,0);
+    const tx=ctex(512,512,(c,w,h)=>{ c.fillStyle='#0e131c'; c.fillRect(0,0,w,h); c.fillStyle='#ffb547'; c.font='600 64px Jost, sans-serif'; c.fillText(t[1],30,90); c.fillStyle='#fff'; c.font='600 52px Jost, sans-serif';
+      const nm=t[0].split(' ('); c.fillText(nm[0],30,160); if(nm[1]) { c.font='500 30px Jost, sans-serif'; c.fillText('('+nm[1],30,200); }
+      c.fillStyle='#aeb8cb'; c.font='400 25px "IBM Plex Sans", sans-serif'; const words=t[2].split(' '); let line='',y=250; for(const wd of words){ if(c.measureText(line+' '+wd).width>450){ c.fillText(line,30,y); y+=32; line=wd; } else line=line?line+' '+wd:wd; } if(y<500) c.fillText(line,30,y); });
+    const pnl=mesh(new THREE.PlaneGeometry(2.2,2.2),new THREE.MeshStandardMaterial({map:tx,roughness:.5,emissive:0xffffff,emissiveMap:tx,emissiveIntensity:.25}),g,0,3.6,.1); box(2.4,2.4,.15,M.black,g,0,3.6,0);
+    tag(g,'tesla'+i); EX['tesla'+i]={pos:V3(x,0,z0-3.5),view:[0,3.3,5]}; });
+  LBL.push({key:'tesla0',pos:V3(x0+18,7.5,z0-3.5),text:'Estacionamiento · Tesla'}); }
+
+/* ================= INTERFAZ ================= */
+const NAME=k=>k.startsWith('tesla')?'Tesla '+TESLA[+k.slice(5)][0]:k==='hall'?'Galería Starfactory':INFO[k].name;
+const idx=$('idx'); const groups=[['Cohetes (de izquierda a derecha)',['f1','v10','grass','v11','b5','fh','hop','sn15','ss','tower']],['Galería · entra caminando',['dragon','merlin','mvac','raptor','grid','sdraco','tiles','fairing','starlink','suits','asds','timeline']],['Estacionamiento · Tesla',TESLA.map((_,i)=>'tesla'+i)]];
+idx.innerHTML=groups.map(([t,ks])=>`<h3>${t}</h3>`+ks.map(k=>`<button data-k="${k}"><span>${k.startsWith('tesla')?TESLA[+k.slice(5)][0]:INFO[k].name}</span><small>${k.startsWith('tesla')?TESLA[+k.slice(5)][1]:INFO[k].yrs.split(' ')[0]}</small></button>`).join('')).join('');
+idx.onclick=e=>{ const b=e.target.closest('button'); if(b){ goTo(b.dataset.k); if(innerWidth<=900) idx.classList.remove('open'); } };
+$('bIdx').onclick=()=>idx.classList.toggle('open');
+const lblBox=$('lbl'); LBL.forEach(l=>{ const d=document.createElement('div'); d.className='lb'; const I=INFO[l.key]; d.innerHTML=l.text||(l.key==='hall'?'Galería Starfactory <small>entra caminando</small>':`${I.name}<small>${I.yrs.split(' ')[0]}</small>`); d.onclick=()=>{ if(l.key==='hall') enterHall(); else goTo(l.key); }; lblBox.appendChild(d); l.el=d; });
+function showCard(k){ let kick,name,html;
+  if(k.startsWith('tesla')){ const t=TESLA[+k.slice(5)]; kick='Tesla · '+t[1]; name=t[0]; html=`<p>${t[2]}</p><p class="note">Tesla fue fundada en 2003 por Martin Eberhard y Marc Tarpenning; Elon Musk fue el principal inversor desde 2004 y luego su director. Aquí ves la línea del tiempo de sus vehículos con sus datos; no incluimos modelos 3D de los autos porque sus diseños son obra protegida de la marca.</p><div class="src">Fuentes<ul>${[...t[3],'tsl'].map(s=>`<li><a href="${SRC[s][1]}" target="_blank" rel="noopener">${SRC[s][0]}</a></li>`).join('')}</ul></div>`; }
+  else { const I=INFO[k]; kick=(I.grp==='cohete'?'Cohete · ':'Galería · ')+I.yrs; name=I.name;
+    html=`<dl class="kv">${I.data.map(d=>`<dt>${d[0]}</dt><dd>${d[1]}</dd>`).join('')}</dl>${I.hist}${I.grp==='cohete'?'':`<button class="go" id="goWalk">🚶 Ir caminando hasta aquí</button>`}<div class="src">Fuentes<ul>${I.src.map(s=>`<li><a href="${SRC[s][1]}" target="_blank" rel="noopener">${SRC[s][0]}</a></li>`).join('')}</ul></div>`; }
+  $('ck').textContent=kick; $('cn').textContent=name; $('cb').innerHTML=html; $('cb').scrollTop=0; $('card').hidden=false;
+  const gw=$('goWalk'); if(gw) gw.onclick=()=>walkTo(k);
+  idx.querySelectorAll('button').forEach(b=>b.setAttribute('aria-current',b.dataset.k===k));
+  try{ history.replaceState(null,'','#'+k); }catch(e){} }
+$('cx').onclick=()=>{ $('card').hidden=true; };
+
+/* ================= CÁMARA: dron y caminar ================= */
+let mode='drone', fly=null;
+const W={pos:V3(-40,1.7,-60),yaw:Math.PI,pitch:0,keys:{},run:false};
+function setMode(m){ mode=m; $('bDrone').setAttribute('aria-pressed',m==='drone'); $('bWalk').setAttribute('aria-pressed',m==='walk'); controls.enabled=m==='drone'; $('pad').hidden=m!=='walk'; $('cross').hidden=m!=='walk';
+  $('hint').textContent=m==='walk'?'W A S D o flechas para caminar · arrastra para mirar · Shift para correr · toca una pieza':'Arrastra para girar · toca un cohete o una etiqueta para ver su historia';
+  if(m==='walk'){ fly=null; camera.position.copy(W.pos); } }
+function droneTo(target,dist,elev=.25,az=0){ const dir=V3(Math.sin(az),elev,Math.cos(az)).normalize(); fly={t:0,p0:camera.position.clone(),t0:controls.target.clone(),p1:target.clone().add(dir.multiplyScalar(dist)),t1:target.clone()}; }
+function goTo(k){ showCard(k); const r=ROCK.find(o=>o.key===k);
+  if(r){ setMode('drone'); const c=r.center||V3(r.g.position.x,r.h*.5,0); droneTo(c,Math.max(30,r.h*1.15),.18,k==='tower'?.5:0); return; }
+  walkTo(k); }
+function walkTo(k){ const e=EX[k]; if(!e) return; setMode('walk'); const v=e.view; W.pos.set(e.pos.x+v[0],1.7,e.pos.z+v[2]); const look=V3(e.pos.x,v[1],e.pos.z); const d=look.clone().sub(W.pos); W.yaw=Math.atan2(-d.x,-d.z); W.pitch=Math.atan2(d.y,Math.hypot(d.x,d.z))*.6; camera.position.copy(W.pos); }
+function enterHall(){ setMode('walk'); W.pos.set(-40,1.7,-121); W.yaw=0; W.pitch=.05; $('card').hidden=true; }
+$('bDrone').onclick=()=>{ setMode('drone'); droneTo(V3(-20,30,-30),260,.35); };
+$('bWalk').onclick=()=>{ if(mode!=='walk'){ W.pos.set(-30,1.7,30); W.yaw=0; W.pitch=.25; setMode('walk'); } };
+$('bIn').onclick=enterHall;
+addEventListener('keydown',e=>{ W.keys[e.key.toLowerCase()]=true; if(e.key==='Shift') W.run=true; });
+addEventListener('keyup',e=>{ W.keys[e.key.toLowerCase()]=false; if(e.key==='Shift') W.run=false; });
+$('pad').querySelectorAll('button').forEach(b=>{ const k=b.dataset.k; const on=v=>e=>{ e.preventDefault(); if(k==='run'){ if(v) { W.run=!W.run; b.setAttribute('aria-pressed',W.run); } return; } W.keys['pad'+k]=v; };
+  b.addEventListener('pointerdown',on(true)); b.addEventListener('pointerup',on(false)); b.addEventListener('pointerleave',on(false)); b.addEventListener('pointercancel',on(false)); });
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY,x0:e.clientX,y0:e.clientY}; if(mode==='walk') canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove',e=>{ if(!drag||mode!=='walk') return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY; W.yaw-=dx*.0045; W.pitch=THREE.MathUtils.clamp(W.pitch-dy*.0045,-1.2,1.2); });
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+canvas.addEventListener('pointerup',e=>{ if(!drag) return; const moved=Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0); drag=null; if(moved>6) return;
+  ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1); ray.setFromCamera(ndc,camera); ray.far=mode==='walk'?60:3000;
+  const hits=ray.intersectObjects(scene.children,true).filter(h=>!h.object.userData.glass&&h.object!==sky);
+  const h=hits[0]; if(h&&h.object.userData.key){ const k=h.object.userData.key; if(mode==='walk') showCard(k); else goTo(k); } });
+// colisiones: paredes de la galería (con la puerta abierta)
+function blocked(p){ const m=.5; const inX=p.x>B.x0-m&&p.x<B.x1+m, inZ=p.z>B.z0-m&&p.z<B.z1+m; if(!inX||!inZ) return false;
+  const nearW=p.x<B.x0+m||p.x>B.x1-m||p.z<B.z0+m; const nearF=p.z>B.z1-m; if(nearW) return true; if(nearF) return !(p.x>B.door[0]+.6&&p.x<B.door[1]-.6); return false; }
+function stepWalk(dt){ const f=(W.keys.w||W.keys.arrowup||W.keys.padf?1:0)-(W.keys.s||W.keys.arrowdown||W.keys.padb?1:0), s=(W.keys.d||W.keys.arrowright||W.keys.padr?1:0)-(W.keys.a||W.keys.arrowleft||W.keys.padl?1:0);
+  const sp=(W.run?11:4)*dt, fw=V3(-Math.sin(W.yaw),0,-Math.cos(W.yaw)), rt=V3(Math.cos(W.yaw),0,-Math.sin(W.yaw));
+  const mv=fw.multiplyScalar(f*sp).add(rt.multiplyScalar(s*sp)); const nx=W.pos.clone(); nx.x+=mv.x; if(!blocked(nx)) W.pos.x=nx.x; const nz=W.pos.clone(); nz.z+=mv.z; if(!blocked(nz)) W.pos.z=nz.z;
+  camera.position.copy(W.pos); camera.rotation.set(W.pitch,W.yaw,0,'YXZ'); }
+
+function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize();
+const clock=new THREE.Clock(), tmp=V3();
+function tick(){ const raw=clock.getDelta(), dt=Math.min(.05,raw);
+  if(mode==='drone'){ if(fly){ fly.t=Math.min(1,fly.t+Math.min(raw,.5)/1.6); const k=fly.t*fly.t*(3-2*fly.t); camera.position.lerpVectors(fly.p0,fly.p1,k); controls.target.lerpVectors(fly.t0,fly.t1,k); if(fly.t>=1) fly=null; } controls.update(); }
+  else stepWalk(dt);
+  renderer.render(scene,camera);
+  const w=innerWidth,h=innerHeight, inHall=mode==='walk'&&W.pos.z<B.z1&&W.pos.z>B.z0&&W.pos.x>B.x0&&W.pos.x<B.x1;
+  for(const l of LBL){ tmp.copy(l.pos).project(camera); const d=camera.position.distanceTo(l.pos); const vis=tmp.z<1&&Math.abs(tmp.x)<1.1&&Math.abs(tmp.y)<1.1&&!inHall&&(mode==='drone'||d<160);
+    l.el.style.display=vis?'':'none'; if(vis) l.el.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px) translate(-50%,-100%)`; }
+  requestAnimationFrame(tick); }
+camera.position.set(60,60,260); controls.target.set(-20,35,-20);
+$('load').hidden=true;
+const hk=location.hash.slice(1); if(hk&&(INFO[hk]||hk.startsWith('tesla'))) goTo(hk); else droneTo(V3(-20,32,-20),250,.32,.15);
+tick();
+</script>
+</body>
+</html>
