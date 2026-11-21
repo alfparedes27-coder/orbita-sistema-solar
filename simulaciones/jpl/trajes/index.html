@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Sala de trajes espaciales · JPL</title>
+<meta name="description" content="La línea del tiempo de los trajes espaciales en 3D: cada traje en su pedestal, pieza por pieza, con sus capas, sus datos reales y una simulación de cómo se presuriza.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Sala de museo: los trajes en fila sobre pedestales, ordenados por año. Panel a la derecha (abajo en el teléfono) con piezas, capas, datos e historia. */
+:root{
+  --void:#05070b; --panel:rgba(11,15,24,.93); --line:#1f2840; --line2:#2e3b5a;
+  --ink:#eceef4; --dim:#9aa3b8; --faint:#5f6983; --acc:#ffb547; --blue:#5fb4ff; --red:#ff6a5c; --ok:#7ee2a8;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px); --pw:400px;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink);font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none}
+button{font-family:var(--f-body)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+.top{position:fixed;top:calc(10px + var(--top));left:16px;right:calc(var(--pw) + 28px);display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:8;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12.5px;padding:8px 11px}
+.back:hover{color:var(--ink)}
+.title{padding:6px 13px}
+.title .kick{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.title h1{margin:1px 0 0;font:700 17px var(--f-display)}
+.count{margin-left:auto;padding:7px 11px;font:500 12px var(--f-data);color:var(--dim)}
+.count b{color:var(--ok);font-weight:500}
+
+/* fila de trajes (abajo) */
+.line{position:fixed;left:16px;right:calc(var(--pw) + 28px);bottom:calc(12px + var(--bot));z-index:8;display:flex;gap:6px;overflow-x:auto;padding:7px;scrollbar-width:thin}
+.chip{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 10px;border-radius:9px;border:1px solid var(--line2);background:transparent;color:var(--ink);cursor:pointer;text-align:left}
+.chip small{font:500 10.5px var(--f-data);color:var(--dim)}
+.chip b{font:600 13px var(--f-display);white-space:nowrap}
+.chip.soon{border-style:dashed;color:var(--faint)} .chip.soon b{color:var(--faint);font-weight:500}
+.chip[aria-current=true]{border-color:var(--acc);background:rgba(255,181,71,.13)}
+.chip:hover{border-color:var(--acc)}
+
+/* panel de la derecha */
+.side{position:fixed;top:calc(10px + var(--top));right:16px;bottom:calc(12px + var(--bot));width:var(--pw);z-index:9;display:flex;flex-direction:column;overflow:hidden}
+.sh{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.sh .k{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.sh h2{margin:3px 0 4px;font:700 22px/1.15 var(--f-display)}
+.sh p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.5}
+.acts{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line)}
+.tb{background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:12.5px;cursor:pointer}
+.tb:hover{border-color:var(--acc)}
+.tb[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#1a1100}
+.tb.go{border-color:var(--acc);color:var(--acc)}
+.tabs{display:flex;gap:2px;padding:8px 12px 0}
+.tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;color:var(--dim);padding:8px 4px;font:600 12.5px var(--f-display);letter-spacing:.04em;cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--acc)}
+.body{flex:1;overflow-y:auto;padding:12px 16px 18px;line-height:1.55;font-size:13.5px}
+.body p{margin:0 0 10px;color:#cfd4e0}
+.body h4{margin:14px 0 6px;font:600 14px var(--f-display);color:var(--ink)}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.plist li button{width:100%;display:grid;grid-template-columns:26px 1fr;gap:2px 10px;align-items:start;text-align:left;background:transparent;border:1px solid var(--line);border-radius:9px;padding:8px 10px;color:var(--ink);cursor:pointer}
+.plist li button:hover{border-color:var(--line2)}
+.plist li button[aria-current=true]{border-color:var(--acc);background:rgba(255,181,71,.08)}
+.plist .n{grid-row:span 2;width:22px;height:22px;border-radius:50%;background:#1b2436;border:1px solid var(--line2);display:grid;place-items:center;font:600 11px var(--f-data)}
+.plist li button[aria-current=true] .n{background:var(--acc);color:#1a1100;border-color:var(--acc)}
+.plist b{font:600 13.5px var(--f-display)}
+.plist .d{grid-column:2;color:#c8cedb;font-size:13px}
+.plist li button:not([aria-current=true]) .d{display:none}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;margin:0 0 12px}
+.kv dt{color:var(--dim)} .kv dd{margin:0}
+.src{margin:14px 0 0;padding:10px 0 0;border-top:1px solid var(--line);font-size:12px;color:var(--dim)}
+.src a{color:var(--blue);word-break:break-word}
+.src ul{margin:4px 0 0;padding-left:16px}
+.warn{font-size:12px;color:var(--dim);border-left:2px solid var(--line2);padding-left:10px;margin:8px 0 10px}
+.layers{display:flex;flex-direction:column;gap:3px;margin:6px 0 10px}
+.ly{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;padding:6px 8px;border-radius:7px;background:#0f1522;font-size:12.5px}
+.ly i{width:14px;height:14px;border-radius:3px;display:block}
+.ly small{font:500 11px var(--f-data);color:var(--dim)}
+.ly.out{outline:1px solid var(--line2)}
+
+/* etiquetas de las piezas sobre el 3D */
+#tags{position:fixed;inset:0;pointer-events:none;z-index:6}
+.tag{position:absolute;left:0;top:0;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:1.5px solid #fff;background:rgba(10,14,22,.78);color:#fff;font:600 11px var(--f-data);display:grid;place-items:center;cursor:pointer;pointer-events:auto;transition:background .15s,transform .15s;box-shadow:0 0 0 3px rgba(0,0,0,.25)}
+.tag:hover,.tag.on{background:var(--acc);color:#1a1100;border-color:var(--acc);transform:scale(1.12)}
+.tag.back{opacity:.35}
+
+/* manómetro */
+.gauge{position:fixed;left:16px;top:calc(70px + var(--top));z-index:8;padding:10px 12px;width:230px}
+.gauge .k{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.gauge .v{font:600 26px var(--f-data);margin:2px 0}
+.gauge .v small{display:block;font-size:12px;font-weight:400;color:var(--dim)}
+.gauge .bar{height:6px;border-radius:3px;background:#1b2436;overflow:hidden}
+.gauge .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--acc))}
+.gauge .log{margin:8px 0 0;font-size:12.5px;color:#cfd4e0;line-height:1.45}
+
+.soonbox{border:1px dashed var(--line2);border-radius:10px;padding:12px;color:var(--dim)}
+.hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + var(--bot));z-index:7;padding:7px 12px;font-size:12.5px;color:var(--dim);margin-left:calc(var(--pw) / -2 - 6px);white-space:nowrap}
+
+@media (max-width:860px){
+  :root{--pw:0px}
+  .top{right:16px}
+  .count{display:none}
+  .side{top:auto;left:0;right:0;bottom:0;width:auto;height:46vh;border-radius:14px 14px 0 0;border-bottom:0}
+  .side.min{height:auto}
+  .side.min .acts,.side.min .tabs,.side.min .body{display:none}
+  .line{left:0;right:0;bottom:calc(46vh + 6px);padding:6px 16px;background:none;border:0;backdrop-filter:none}
+  .side.min~.line{bottom:calc(var(--shh,92px) + 6px)}
+  .hint{display:none}
+  .gauge{width:190px;top:calc(62px + var(--top))}
+  .sh{cursor:pointer}
+  .sh h2{font-size:19px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="Sala 3D con los trajes espaciales (arrastra para girar, rueda o pellizco para acercar)"></canvas>
+<div id="tags"></div>
+
+<div class="top">
+  <a class="back panel" href="../">← JPL · NASA</a>
+  <div class="title panel"><div class="kick">Sala 01 · Línea del tiempo</div><h1>Trajes espaciales</h1></div>
+  <div class="count panel" id="count"></div>
+</div>
+
+<div class="gauge panel" id="gauge" hidden aria-live="polite">
+  <div class="k" id="gk">Presión del traje</div>
+  <div class="v" id="gv">0,0 <small>psi</small></div>
+  <div class="bar"><i id="gb"></i></div>
+  <div class="log" id="glog"></div>
+</div>
+
+<aside class="side panel" id="side" aria-live="polite">
+  <div class="sh" id="sh"><div class="k" id="sk"></div><h2 id="sn"></h2><p id="ss"></p></div>
+  <div class="acts" id="acts"></div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-t="partes" aria-selected="true">Piezas</button>
+    <button role="tab" data-t="capas">Capas</button>
+    <button role="tab" data-t="datos">Datos</button>
+    <button role="tab" data-t="historia">Historia</button>
+  </div>
+  <div class="body" id="body"></div>
+</aside>
+<nav class="line panel" id="line" aria-label="Trajes por año"></nav>
+<div class="hint panel" id="hint">Arrastra para girar · toca un número para ver qué es cada pieza</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const $=id=>document.getElementById(id);
+const V3=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
+const fmt=(x,d=1)=>x.toFixed(d).replace('.',',');
+
+/* ================= RENDER: luz de estudio, tonos de cine, sombras suaves ================= */
+const canvas=$('gl');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x06080d);
+scene.fog=new THREE.Fog(0x06080d,10,30);
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+const camera=new THREE.PerspectiveCamera(32,1,0.05,80);
+camera.position.set(0,2.2,9);
+const controls=new OrbitControls(camera,canvas);
+controls.enableDamping=true; controls.dampingFactor=.08;
+controls.minDistance=.7; controls.maxDistance=11; controls.maxPolarAngle=Math.PI*.56;
+controls.target.set(0,1.2,0);
+
+scene.add(new THREE.HemisphereLight(0x9fb4d8,0x0b0d12,.35));
+const key=new THREE.SpotLight(0xfff3e2,70,12,.42,.65,1.6);
+key.castShadow=true; key.shadow.mapSize.set(2048,2048); key.shadow.bias=-.0002; key.shadow.normalBias=.02; key.shadow.camera.near=1; key.shadow.camera.far=12;
+scene.add(key,key.target);
+const rim=new THREE.SpotLight(0x9cc6ff,40,10,.5,.8,1.6); scene.add(rim,rim.target);
+const fill=new THREE.PointLight(0xffe0c0,3,6,2); scene.add(fill);
+
+/* ================= TEXTURAS: tejido (relieve de los hilos) y manchas de uso ================= */
+function rng(seed){ return ()=>{ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+// mapa de normales de un tejido: hilos que suben y bajan (tafetán). cells = hilos por lado de la textura
+function weaveNormal(cells=14,strength=2.2,size=256){
+  const H=new Float32Array(size*size), s=size/cells;
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    const i=Math.floor(x/s), j=Math.floor(y/s), fx=(x%s)/s, fy=(y%s)/s;
+    const horiz=(i+j)%2===0;
+    const across=horiz?fy:fx, along=horiz?fx:fy;
+    H[y*size+x]=Math.sin(across*Math.PI)*.8*(.65+.35*Math.sin(along*Math.PI));
+  }
+  const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d'); const img=g.createImageData(size,size);
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    const h=(xx,yy)=>H[((yy+size)%size)*size+((xx+size)%size)];
+    const dx=(h(x+1,y)-h(x-1,y))*strength, dy=(h(x,y+1)-h(x,y-1))*strength;
+    const l=Math.hypot(dx,dy,1), k=(y*size+x)*4;
+    img.data[k]=(-dx/l*.5+.5)*255; img.data[k+1]=(-dy/l*.5+.5)*255; img.data[k+2]=(1/l*.5+.5)*255; img.data[k+3]=255;
+  }
+  g.putImageData(img,0,0);
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t;
+}
+// color con manchas suaves de uso (los trajes reales no son blanco puro)
+function grime(base,amount=.05,seed=3,size=256){
+  const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d');
+  g.fillStyle=base; g.fillRect(0,0,size,size);
+  const r=rng(seed);
+  for(let i=0;i<70;i++){ const x=r()*size,y=r()*size,rad=10+r()*55, d=r()<.5;
+    const gr=g.createRadialGradient(x,y,0,x,y,rad); gr.addColorStop(0,d?`rgba(90,75,50,${amount*r()})`:`rgba(255,255,255,${amount*r()})`); gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=gr; for(const ox of[-size,0,size])for(const oy of[-size,0,size]) g.fillRect(x-rad+ox,y-rad+oy,rad*2,rad*2); }
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
+}
+const TX={ weave:weaveNormal(14,2.2), weaveFine:weaveNormal(22,1.6), metal:weaveNormal(26,3.2) };
+const flagTex=(kind)=>{ const c=document.createElement('canvas'); c.width=190; c.height=100; const g=c.getContext('2d');
+  if(kind==='us'){ for(let i=0;i<13;i++){ g.fillStyle=i%2?'#f4f1ea':'#b22234'; g.fillRect(0,i*100/13,190,100/13+.5); }
+    g.fillStyle='#3c3b6e'; g.fillRect(0,0,76,54); g.fillStyle='#f4f1ea';
+    for(let r=0;r<9;r++)for(let k=0;k<(r%2?5:6);k++){ g.beginPath(); g.arc(6+k*12.6+(r%2?6.3:0),4+r*5.6,1.5,0,7); g.fill(); } }
+  else { const cs=['#f4f4f4','#0039a6','#d52b1e']; cs.forEach((cl,i)=>{ g.fillStyle=cl; g.fillRect(0,i*100/3,190,100/3+.5); }); }
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; };
+
+/* materiales con física real: tela con brillo de fibra (sheen), metal, goma, plástico transparente */
+function fabric(color,{rough=.86,sheen=.9,tint=0xffffff,nscale=.55,grimeAmt=.06,seed=1,weave=TX.weave}={}){
+  return new THREE.MeshPhysicalMaterial({color:0xffffff,map:grime(color,grimeAmt,seed),roughness:rough,sheen,sheenRoughness:.55,sheenColor:new THREE.Color(tint),
+    normalMap:weave,normalScale:new THREE.Vector2(nscale,nscale),envMapIntensity:.7,side:THREE.DoubleSide});
+}
+const M={
+  beta: fabric('#ebe6da',{seed:4}),
+  betaSoft: fabric('#e6e1d4',{seed:9,nscale:.4}),
+  chromel: new THREE.MeshPhysicalMaterial({color:0xb9bdc4,metalness:.85,roughness:.42,normalMap:TX.metal,normalScale:new THREE.Vector2(.9,.9),envMapIntensity:1}),
+  siliconeBlue: new THREE.MeshPhysicalMaterial({color:0x3f6fa8,roughness:.55,sheen:.3,clearcoat:.15}),
+  soleBlue: new THREE.MeshPhysicalMaterial({color:0x2f5d95,roughness:.7}),
+  alu: new THREE.MeshPhysicalMaterial({color:0xd6d9de,metalness:1,roughness:.22,envMapIntensity:1.1}),
+  anoBlue: new THREE.MeshPhysicalMaterial({color:0x2a63c9,metalness:.9,roughness:.28,clearcoat:.6}),
+  anoRed: new THREE.MeshPhysicalMaterial({color:0xc4262b,metalness:.85,roughness:.3,clearcoat:.6}),
+  gold: new THREE.MeshPhysicalMaterial({color:0xe2b050,metalness:1,roughness:.06,envMapIntensity:1.4}),
+  bubble: new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.02,metalness:0,transmission:1,thickness:.006,ior:1.58,transparent:true,opacity:1,envMapIntensity:1.2,side:THREE.DoubleSide,depthWrite:false}),
+  shellWhite: new THREE.MeshPhysicalMaterial({color:0xf0eee8,roughness:.38,clearcoat:.5,clearcoatRoughness:.3}),
+  rubberDark: new THREE.MeshPhysicalMaterial({color:0x1b1d22,roughness:.6}),
+  plasticGray: new THREE.MeshPhysicalMaterial({color:0x8c9097,roughness:.45,clearcoat:.3}),
+  plasticDark: new THREE.MeshPhysicalMaterial({color:0x2c3036,roughness:.4,clearcoat:.4}),
+  hoseBlue: new THREE.MeshPhysicalMaterial({color:0x7fa2c6,roughness:.5,clearcoat:.3,normalMap:TX.weaveFine,normalScale:new THREE.Vector2(.3,.3)}),
+  hoseGray: new THREE.MeshPhysicalMaterial({color:0x9aa0a8,roughness:.55}),
+  red: fabric('#b8302d',{seed:7,grimeAmt:.03}),
+  snoopyW: fabric('#efece6',{seed:11,nscale:.3}),
+  snoopyB: fabric('#4a3526',{seed:12,nscale:.3,grimeAmt:.02}),
+  mannequin: new THREE.MeshPhysicalMaterial({color:0x2a2d33,roughness:.55,clearcoat:.2}),
+  nylonW: fabric('#f1f1ee',{seed:21,rough:.8,sheen:1,nscale:.45,weave:TX.weaveFine}),
+  webBlue: fabric('#3d5fa0',{seed:22,grimeAmt:.02,weave:TX.weaveFine,nscale:.8}),
+  zipBlue: new THREE.MeshPhysicalMaterial({color:0x2850a8,roughness:.4,metalness:.3}),
+  glove: fabric('#e9e9e6',{seed:23,nscale:.35}),
+  boot: fabric('#6b7686',{seed:24,rough:.7,grimeAmt:.04}),
+  visorClear: new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.03,transmission:1,thickness:.004,ior:1.5,transparent:true,envMapIntensity:1.2,side:THREE.DoubleSide,depthWrite:false}),
+  mirror: new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:1,roughness:.02}),
+  dial: new THREE.MeshPhysicalMaterial({color:0xf2f2ee,roughness:.4}),
+  ghost: new THREE.MeshPhysicalMaterial({color:0x7f93b5,roughness:.25,metalness:.1,transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide}),
+};
+
+/* ================= GEOMETRÍA: piezas de tela «barridas» a lo largo de un eje =================
+   Cada brazo, pierna o el torso es un tubo de sección elíptica que cambia de grosor, con arrugas de tela
+   y fuelles en las articulaciones (las «convolutas» que dejaban doblar el traje inflado). */
+function sweep(pts,{nT=56,nR=44,r,ref=V3(0,0,1),wr=.012,seed=1,ribs=[],uvs=.04}={}){
+  const curve=new THREE.CatmullRomCurve3(pts.map(p=>V3(...p)),false,'centripetal');
+  const L=curve.getLength(), ra=rng(seed), ph=Array.from({length:8},()=>ra()*6.283);
+  const pos=[],uv=[],idx=[];
+  for(let i=0;i<=nT;i++){
+    const t=i/nT, P=curve.getPointAt(t), T=curve.getTangentAt(t);
+    const B=ref.clone().sub(T.clone().multiplyScalar(ref.dot(T))).normalize(), N=V3().crossVectors(T,B).normalize();
+    const [rx,rz]=r(t); let rf=1;
+    for(const [a,b,n,amp] of ribs) if(t>a&&t<b){ const s=(t-a)/(b-a); rf+=amp*Math.pow(Math.sin(s*Math.PI*n),2)*Math.sin(s*Math.PI); }
+    const d=t*L;
+    for(let j=0;j<=nR;j++){
+      const a=j/nR*Math.PI*2, c=Math.cos(a), s=Math.sin(a);
+      const w=1+wr*(Math.sin(a*3+d*9+ph[0])*Math.sin(d*23+ph[1])+.6*Math.sin(a*7-d*31+ph[2])*Math.sin(a*2+ph[3])+.35*Math.sin(d*61+a*5+ph[4]));
+      const k=rf*w;
+      pos.push(P.x+(N.x*c*rx+B.x*s*rz)*k, P.y+(N.y*c*rx+B.y*s*rz)*k, P.z+(N.z*c*rx+B.z*s*rz)*k);
+      uv.push(j/nR*(Math.PI*(rx+rz))/uvs, d/uvs);
+    }
+  }
+  for(let i=0;i<nT;i++)for(let j=0;j<nR;j++){ const a=i*(nR+1)+j,b=a+nR+1; idx.push(a,b,a+1,b,b+1,a+1); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+const lerp=(a,b,t)=>a+(b-a)*t, smooth=t=>t*t*(3-2*t);
+// perfil por tramos: [[t,valor],...]
+const prof=(k)=>t=>{ for(let i=1;i<k.length;i++) if(t<=k[i][0]){ const s=(t-k[i-1][0])/(k[i][0]-k[i-1][0]); return lerp(k[i-1][1],k[i][1],smooth(s)); } return k[k.length-1][1]; };
+function mesh(geo,mat,parent,{x=0,y=0,z=0,rx=0,ry=0,rz=0,cast=true}={}){ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.rotation.set(rx,ry,rz); m.castShadow=cast; m.receiveShadow=true; parent.add(m); return m; }
+const tube=(pts,r,seg=40)=>new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>V3(...p))),seg,r,12,false);
+// manguera corrugada (como las del Sokol)
+function corrugated(pts,r,mat,parent){ const c=new THREE.CatmullRomCurve3(pts.map(p=>V3(...p))); const L=c.getLength(); const g=new THREE.TubeGeometry(c,Math.round(L/.008),r,14,false);
+  const p=g.attributes.position, n=g.attributes.normal, segs=g.parameters.tubularSegments;
+  for(let i=0;i<p.count;i++){ const ring=Math.floor(i/15), k=1+.16*Math.abs(Math.sin(ring/segs*L/.012*Math.PI)); /* anillos cada 1,2 cm */
+    const cx=p.getX(i)-n.getX(i)*r, cy=p.getY(i)-n.getY(i)*r, cz=p.getZ(i)-n.getZ(i)*r; p.setXYZ(i,cx+n.getX(i)*r*k,cy+n.getY(i)*r*k,cz+n.getZ(i)*r*k); }
+  g.computeVertexNormals(); return mesh(g,mat,parent); }
+
+/* ================= EL CUERPO BASE (maniquí con traje) =================
+   Medidas en metros; mira hacia +z. Su izquierda es +x. */
+function body(o){
+  const g=new THREE.Group(); const P={}; const inflate=[];
+  const W=o.bulk||1, mat=o.mat;
+  // torso
+  const torso=mesh(sweep([[0,.86,0],[0,1.05,.005],[0,1.3,.012],[0,1.5,0],[0,1.57,0]],{seed:o.seed,wr:o.wr??.012,
+    r:t=>[prof([[0,.12],[.12,.19],[.3,.18],[.6,.215],[.82,.22],[1,.12]])(t)*W, prof([[0,.1],[.12,.135],[.35,.13],[.6,.15],[.85,.14],[1,.11]])(t)*W]}),mat,g);
+  inflate.push(torso); P.torso=torso;
+  // hombros
+  for(const s of[-1,1]){ const sh=mesh(new THREE.SphereGeometry(.098*W,32,20),mat,g,{x:s*.215*W,y:1.45,z:0}); sh.scale.set(1,.9,1.05); sh.userData.sz=1.05; inflate.push(sh); }
+  // piernas (pivote en la cadera)
+  P.legs=[];
+  for(const s of[-1,1]){ const lg=new THREE.Group(); lg.position.set(s*.112*W,.98,0); g.add(lg);
+    const m=mesh(sweep([[0,.04,0],[s*.008,-.2,.012],[s*.012,-.46,.03],[s*.018,-.7,.01],[s*.022,-.88,0]],{seed:o.seed+s*3,wr:o.wr??.014,ribs:o.kneeRibs||[],
+      r:t=>{ const v=prof([[0,.11],[.25,.102],[.5,.088],[.56,.09],[.75,.08],[1,.07]])(t)*W; return [v,v*1.05]; }}),mat,lg);
+    inflate.push(m); P.legs.push(lg); }
+  // brazos (pivote en el hombro, cuelgan un poco separados)
+  P.arms=[]; P.wrists=[];
+  for(const s of[-1,1]){ const ag=new THREE.Group(); ag.position.set(s*.25*W,1.45,0); ag.rotation.z=s*.16; g.add(ag);
+    const pts=[[0,.02,0],[s*.008,-.14,.005],[s*.01,-.29,.02],[s*.005,-.44,.06],[0,-.56,.085]];
+    const m=mesh(sweep(pts,{seed:o.seed+s*7,wr:o.wr??.014,ribs:o.elbowRibs||[],ref:V3(1,0,0),
+      r:t=>{ const v=prof([[0,.085],[.45,.07],[.55,.072],[1,.056]])(t)*W; return [v*1.02,v]; }}),mat,ag);
+    inflate.push(m);
+    const wr=new THREE.Group(); wr.position.set(0,-.56,.085); wr.rotation.x=-.18; ag.add(wr);
+    P.arms.push(ag); P.wrists.push(wr); }
+  // cuello
+  P.neck=new THREE.Group(); P.neck.position.set(0,1.56,0); g.add(P.neck);
+  return {g,P,inflate};
+}
+// mano con guante: palma hacia el cuerpo, dedos hacia abajo
+function hand(wr,s,{shell,tips,ring,cuff}){
+  const h=new THREE.Group(); wr.add(h);
+  const ringM=mesh(new THREE.CylinderGeometry(.063,.063,.026,40),ring,h,{y:.0});
+  mesh(new THREE.TorusGeometry(.063,.006,10,40),M.alu,h,{y:-.014,rx:Math.PI/2});
+  const c=mesh(new THREE.CylinderGeometry(.058,.05,.075,32,1,true),cuff||shell,h,{y:-.05});
+  const palm=mesh(new RoundedBoxGeometry(.05,.1,.095,4,.022),shell,h,{y:-.13,z:.005});
+  const parts=[ringM,c,palm];
+  for(let i=0;i<4;i++){ const f=mesh(new THREE.CapsuleGeometry(.0125,.045,6,12),shell,h,{y:-.205+Math.abs(i-1.5)*.006,z:-.033+i*.022,rz:-s*.25}); f.position.x=s*-.004;
+    const tp=mesh(new THREE.SphereGeometry(.0135,14,10),tips||shell,h,{y:f.position.y-.033,z:f.position.z}); tp.scale.set(1,1.25,1); tp.position.x=f.position.x-s*.008; parts.push(f,tp); }
+  const th=mesh(new THREE.CapsuleGeometry(.014,.04,6,12),shell,h,{x:-s*.016,y:-.12,z:.06,rx:.6}); parts.push(th);
+  if(tips){ const tt=mesh(new THREE.SphereGeometry(.015,14,10),tips,h,{x:-s*.018,y:-.15,z:.085}); parts.push(tt); }
+  return {h,parts,ring:ringM};
+}
+
+/* ================= TRAJE 1: APOLLO A7L (y A7LB del comandante) ================= */
+function buildA7L(){
+  const {g,P,inflate}=body({mat:M.beta,seed:5,bulk:1.06,kneeRibs:[[.4,.62,4,.06]],elbowRibs:[[.4,.62,4,.06]]});
+  const parts={}; const add=(k,meshes,anchorObj,anchorPos)=>{ parts[k]={meshes:[].concat(meshes),obj:anchorObj,pos:anchorPos}; };
+  add('itmg',[P.torso],g,V3(-.12,1.02,.15));
+  // casco: anillo del cuello, burbuja, gorro Snoopy dentro y visor LEVA encima
+  const ring=mesh(new THREE.CylinderGeometry(.135,.142,.045,48),M.alu,P.neck,{y:0});
+  mesh(new THREE.TorusGeometry(.14,.008,10,48),M.anoBlue,P.neck,{y:-.02,rx:Math.PI/2});
+  const head=new THREE.Group(); head.position.y=.16; P.neck.add(head);
+  const man=mesh(new THREE.SphereGeometry(.095,32,24),M.mannequin,head,{y:-.005}); man.scale.set(.9,1.12,1);
+  const capW=mesh(new THREE.SphereGeometry(.1,32,20,0,Math.PI*2,0,Math.PI*.42),M.snoopyW,head,{y:.012}); capW.scale.set(.93,1.12,1.03);
+  const capB=mesh(new THREE.SphereGeometry(.101,32,20,0,Math.PI*2,Math.PI*.42,Math.PI*.3),M.snoopyB,head,{y:.012}); capB.scale.set(.93,1.12,1.03);
+  const snoopy=[capW,capB];
+  for(const s of[-1,1]){ snoopy.push(mesh(new THREE.CylinderGeometry(.03,.03,.02,24),M.rubberDark,head,{x:s*.088,y:-.01,rz:Math.PI/2}));
+    snoopy.push(mesh(tube([[s*.09,-.03,.01],[s*.075,-.07,.06],[s*.03,-.085,.085]],.004),M.rubberDark,head));
+    snoopy.push(mesh(new THREE.SphereGeometry(.009,12,8),M.rubberDark,head,{x:s*.028,y:-.085,z:.088})); }
+  const bubble=mesh(new THREE.SphereGeometry(.172,64,40,0,Math.PI*2,0,Math.PI*.78),M.bubble,P.neck,{y:.15,cast:false});
+  // LEVA: concha blanca y visor dorado que sube y baja
+  const leva=new THREE.Group(); leva.position.y=.15; P.neck.add(leva);
+  const shell=mesh(new THREE.SphereGeometry(.186,64,40,Math.PI*1.08,Math.PI*.84,0,Math.PI*.74),M.shellWhite,leva); // parte de atrás
+  const crown=mesh(new THREE.SphereGeometry(.188,64,20,0,Math.PI*2,0,Math.PI*.2),M.shellWhite,leva);
+  const visorPivot=new THREE.Group(); leva.add(visorPivot);
+  const visor=mesh(new THREE.SphereGeometry(.183,64,40,Math.PI*.12,Math.PI*.76,Math.PI*.2,Math.PI*.44),M.gold,visorPivot);
+  visor.rotation.y=-Math.PI/2+Math.PI*.5; // centrado al frente (+z)
+  const eyeshade=mesh(new THREE.SphereGeometry(.191,48,12,Math.PI*.3,Math.PI*.4,Math.PI*.12,Math.PI*.09),M.shellWhite,leva);
+  for(const s of[-1,1]) mesh(new RoundedBoxGeometry(.03,.05,.03,2,.01),M.shellWhite,leva,{x:s*.18,y:-.03,z:.02});
+  add('casco',[bubble,ring],P.neck,V3(-.13,.2,.1));
+  add('leva',[visor,shell,crown,eyeshade],P.neck,V3(.06,.25,.16));
+  add('snoopy',snoopy,P.neck,V3(.09,.17,.08));
+  // franjas rojas del comandante (A7LB, desde el Apollo 13)
+  const stripes=[];
+  for(const ag of P.arms){ stripes.push(mesh(sweep([[0,-.22,.03],[0,-.3,.04]],{nT:6,wr:0,r:()=>[.083,.081],ref:V3(1,0,0)}),M.red,ag)); }
+  for(const lg of P.legs){ stripes.push(mesh(sweep([[0,-.3,.022],[0,-.38,.03]],{nT:6,wr:0,r:()=>[.112,.117]}),M.red,lg)); }
+  stripes.push(mesh(new THREE.SphereGeometry(.1895,48,10,Math.PI*1.08,Math.PI*.84,Math.PI*.02,Math.PI*.1),M.red,leva));
+  add('franjas',stripes,P.arms[1],V3(.09,-.26,.04));
+  // pecho: control remoto (RCU) con soporte de cámara y conectores azul/rojo
+  const rcu=mesh(new RoundedBoxGeometry(.15,.11,.075,3,.01),M.plasticGray,g,{y:1.31,z:.19});
+  const knobs=[]; for(let i=0;i<4;i++) knobs.push(mesh(new THREE.CylinderGeometry(.011,.011,.018,16),M.plasticDark,g,{x:-.05+i*.033,y:1.345,z:.23,rx:Math.PI/2}));
+  knobs.push(mesh(new RoundedBoxGeometry(.06,.04,.04,2,.006),M.alu,g,{y:1.385,z:.215}));
+  add('rcu',[rcu,...knobs],g,V3(0,1.36,.24));
+  const conn=[];
+  [[-.075,1.18,M.anoBlue],[.075,1.18,M.anoBlue],[-.075,1.1,M.anoRed],[.075,1.1,M.anoRed]].forEach(([x,y,m])=>{
+    conn.push(mesh(new THREE.CylinderGeometry(.028,.028,.04,28),m,g,{x,y,z:.165,rx:Math.PI/2}));
+    conn.push(mesh(new THREE.TorusGeometry(.029,.005,8,28),M.alu,g,{x,y,z:.186})); });
+  add('conectores',conn,g,V3(-.11,1.14,.2));
+  // mangueras del pecho a la mochila
+  const hoses=[];
+  for(const s of[-1,1]){ hoses.push(mesh(tube([[s*.075,1.18,.19],[s*.15,1.15,.18],[s*.215,1.1,.1],[s*.225,1.1,-.06],[s*.19,1.14,-.18]],.016),M.hoseBlue,g));
+    hoses.push(mesh(tube([[s*.075,1.1,.19],[s*.14,1.05,.175],[s*.205,1.01,.09],[s*.215,1.02,-.07],[s*.18,1.06,-.18]],.016),M.hoseBlue,g)); }
+  // mochila PLSS y unidad de oxígeno de reserva OPS
+  const plss=mesh(new RoundedBoxGeometry(.46,.54,.22,5,.04),M.betaSoft,g,{y:1.24,z:-.27});
+  const ops=mesh(new RoundedBoxGeometry(.42,.14,.2,4,.035),M.betaSoft,g,{y:1.6,z:-.27});
+  const straps=[]; for(const s of[-1,1]) straps.push(mesh(tube([[s*.15,1.5,-.17],[s*.16,1.56,-.05],[s*.15,1.5,.12],[s*.13,1.34,.17]],.012),M.betaSoft,g));
+  const patch=mesh(new THREE.PlaneGeometry(.2,.14),M.chromel,g,{y:1.24,z:-.381,ry:Math.PI});
+  add('plss',[plss,patch,...hoses,...straps],g,V3(.2,1.38,-.3));
+  add('ops',[ops],g,V3(-.15,1.64,-.28));
+  // guantes y anillos de muñeca
+  const gl=[], rings=[];
+  P.wrists.forEach((wr,i)=>{ const s=i?1:-1; const hh=hand(wr,s,{shell:M.chromel,tips:M.siliconeBlue,ring:s>0?M.anoBlue:M.anoRed,cuff:M.chromel}); gl.push(...hh.parts.filter(p=>p!==hh.ring)); rings.push(hh.ring); });
+  add('guantes',gl,P.wrists[0],V3(0,-.16,.06));
+  add('anillos',rings,P.wrists[1],V3(.04,0,.05));
+  // lista en la muñeca, manómetro y bolsillo de gafas
+  const cuff=mesh(new RoundedBoxGeometry(.075,.012,.1,2,.004),M.betaSoft,P.arms[1],{x:.06,y:-.46,z:.07,rz:-1.2});
+  const cuffP=mesh(new THREE.PlaneGeometry(.06,.085),M.dial,P.arms[1],{x:.068,y:-.46,z:.07,ry:Math.PI/2,rz:.0});
+  add('lista',[cuff,cuffP],P.arms[1],V3(.075,-.46,.07));
+  const gauge=mesh(new THREE.CylinderGeometry(.022,.022,.016,24),M.alu,P.arms[1],{x:.02,y:-.4,z:.075,rx:Math.PI/2-.3});
+  const gface=mesh(new THREE.CircleGeometry(.018,24),M.dial,P.arms[1],{x:.02,y:-.4-.0024,z:.0835,rx:-.3});
+  add('manometro',[gauge,gface],P.arms[1],V3(.02,-.38,.09));
+  const pocket=mesh(new RoundedBoxGeometry(.07,.11,.03,2,.01),M.betaSoft,P.arms[1],{x:.075,y:-.12,z:.02,rz:-.12});
+  const pens=[]; for(let i=0;i<2;i++) pens.push(mesh(new THREE.CylinderGeometry(.005,.005,.03,10),M.plasticDark,P.arms[1],{x:.07,y:-.055,z:.01+i*.014,rz:-.12}));
+  add('bolsillo',[pocket,...pens],P.arms[1],V3(.1,-.12,.03));
+  // bandera en el hombro izquierdo
+  const flag=mesh(new THREE.PlaneGeometry(.1,.053),new THREE.MeshPhysicalMaterial({map:flagTex('us'),roughness:.8,sheen:.6,normalMap:TX.weaveFine,normalScale:new THREE.Vector2(.3,.3)}),P.arms[1],{x:.091,y:-.06,z:.01,ry:Math.PI/2-.1});
+  add('bandera',[flag],P.arms[1],V3(.1,-.03,.01));
+  // botas lunares: Chromel‑R y suela azul con relieve
+  const boots=[];
+  P.legs.forEach((lg,i)=>{ const s=i?1:-1; const b=new THREE.Group(); b.position.set(s*.02,-.86,.03); lg.add(b);
+    boots.push(mesh(new RoundedBoxGeometry(.15,.13,.3,4,.05),M.chromel,b,{y:-.04,z:.03}));
+    boots.push(mesh(new THREE.CylinderGeometry(.085,.09,.12,32),M.chromel,b,{y:.06,z:-.01}));
+    boots.push(mesh(sweep([[0,.11,-.01],[0,.15,-.01]],{nT:4,wr:0,r:()=>[.09,.095]}),M.betaSoft,b));
+    boots.push(mesh(new RoundedBoxGeometry(.155,.03,.31,3,.012),M.soleBlue,b,{y:-.105,z:.03}));
+    for(let k=0;k<7;k++) boots.push(mesh(new THREE.BoxGeometry(.15,.012,.016),M.soleBlue,b,{y:-.123,z:-.1+k*.044}));
+    boots.push(mesh(tube([[-.07,-.02,.1],[0,.0,.17],[.07,-.02,.1]],.007),M.betaSoft,b)); });
+  add('botas',boots,P.legs[1],V3(.03,-.9,.22));
+  // bolsillo de muslo
+  const tp=mesh(new RoundedBoxGeometry(.11,.13,.035,2,.012),M.betaSoft,P.legs[0],{x:-.06,y:-.22,z:.09,ry:-.5});
+  add('muslo',[tp],P.legs[0],V3(-.08,-.2,.11));
+  return {g,P,parts,inflate,anim:{visorPivot,stripes},order:['casco','leva','snoopy','rcu','conectores','plss','ops','guantes','anillos','lista','manometro','bolsillo','bandera','itmg','muslo','botas','franjas']};
+}
+
+/* ================= TRAJE 2: SOKOL KV‑2 (traje de rescate de la Soyuz) ================= */
+function buildSokol(){
+  const {g,P,inflate}=body({mat:M.nylonW,seed:31,bulk:.9,wr:.02});
+  const parts={}; const add=(k,meshes,anchorObj,anchorPos)=>{ parts[k]={meshes:[].concat(meshes),obj:anchorObj,pos:anchorPos}; };
+  add('capas',[P.torso],g,V3(.1,1.0,.12));
+  // capucha blanda (presurizada) con visor abatible
+  const head=new THREE.Group(); head.position.y=.15; P.neck.add(head);
+  const hood=mesh(new THREE.SphereGeometry(.135,56,36,Math.PI*.8,Math.PI*1.4,0,Math.PI*.84),M.nylonW,head,{y:.02}); hood.scale.set(1,1.16,1.06);
+  const hoodTop=mesh(new THREE.SphereGeometry(.1355,40,12,0,Math.PI*2,0,Math.PI*.2),M.nylonW,head,{y:.02}); hoodTop.scale.set(1,1.16,1.06);
+  const face=mesh(new THREE.SphereGeometry(.085,32,24),M.mannequin,head,{y:.03,z:.03}); face.scale.set(.9,1.1,1);
+  const frame=mesh(new THREE.TorusGeometry(.09,.009,10,40,Math.PI*1.25),M.plasticGray,head,{y:.03,z:.105,rz:-Math.PI*.125}); frame.scale.set(1,1.15,1);
+  const vp=new THREE.Group(); vp.position.set(0,.13,.02); head.add(vp);
+  const visor=mesh(new THREE.SphereGeometry(.14,48,30,Math.PI*.22,Math.PI*.56,Math.PI*.18,Math.PI*.42),M.visorClear,vp,{y:-.1,z:-.03,cast:false});
+  visor.rotation.y=0;
+  const vrim=mesh(new THREE.TorusGeometry(.12,.006,8,40,Math.PI*.9),M.plasticGray,vp,{y:-.1,z:.07,rx:-.2,rz:Math.PI*.05}); vrim.scale.set(.9,1,1);
+  const collar=mesh(new THREE.CylinderGeometry(.12,.135,.05,40),M.nylonW,P.neck,{y:-.01});
+  add('capucha',[hood,hoodTop,frame,collar],P.neck,V3(-.13,.24,.04));
+  add('visor',[visor,vrim],P.neck,V3(.05,.2,.18));
+  // doble cierre en V
+  const zips=[];
+  for(const s of[-1,1]) zips.push(mesh(tube([[s*.12,1.5,.125],[s*.08,1.34,.158],[s*.03,1.16,.15],[0,1.0,.135]],.006,30),M.zipBlue,g));
+  zips.push(mesh(tube([[-.12,1.5,.125],[0,1.515,.128],[.12,1.5,.125]],.006,20),M.zipBlue,g));
+  add('cierre',zips,g,V3(-.07,1.3,.17));
+  // válvula azul del pecho
+  const valve=mesh(new THREE.CylinderGeometry(.032,.034,.03,28),M.anoBlue,g,{x:.07,y:1.26,z:.16,rx:Math.PI/2-.15});
+  const vk=mesh(new THREE.CylinderGeometry(.018,.018,.02,20),M.alu,g,{x:.07,y:1.26,z:.185,rx:Math.PI/2-.15});
+  add('valvula',[valve,vk],g,V3(.07,1.29,.2));
+  // mangueras de aire/oxígeno (izquierda) y cable eléctrico (derecha), con su ventilador portátil
+  const hoses=[];
+  const hp=[[.08,1.06,.14],[.14,.98,.18],[.2,.9,.2],[.27,.88,.2],[.34,.86,.17]];
+  hoses.push(corrugated(hp,.016,M.hoseGray,g));
+  hoses.push(corrugated(hp.map(([x,y,z])=>[x+.012,y-.035,z-.005]),.013,M.hoseGray,g));
+  hoses.push(mesh(new THREE.CylinderGeometry(.024,.024,.04,20),M.alu,g,{x:.08,y:1.07,z:.135,rx:Math.PI/2.5}));
+  const vent=mesh(new RoundedBoxGeometry(.11,.16,.09,3,.015),M.plasticGray,g,{x:.36,y:.8,z:.16});
+  const ventG=mesh(new THREE.CircleGeometry(.032,24),M.plasticDark,g,{x:.36,y:.82,z:.206});
+  add('mangueras',hoses,g,V3(.2,.95,.22));
+  add('ventilador',[vent,ventG],g,V3(.38,.76,.22));
+  const cable=mesh(tube([[-.08,1.04,.14],[-.15,.96,.17],[-.2,.86,.16],[-.22,.74,.12]],.008),M.rubberDark,g);
+  const plug=mesh(new THREE.CylinderGeometry(.02,.02,.05,20),M.plasticDark,g,{x:-.22,y:.72,z:.12});
+  add('cable',[cable,plug],g,V3(-.19,.88,.19));
+  // correas de ajuste (cinta azul con hebillas metálicas)
+  const straps=[]; const band=(parent,y,z,r1,r2,ref)=>{ straps.push(mesh(sweep([[0,y,z],[0,y-.025,z]],{nT:3,wr:0,r:()=>[r1,r2],ref}),M.webBlue,parent));
+    straps.push(mesh(new RoundedBoxGeometry(.03,.025,.012,1,.003),M.alu,parent,{y:y-.012,z:z+r2+.004})); };
+  for(const ag of P.arms){ band(ag,-.12,.008,.08,.078,V3(1,0,0)); band(ag,-.4,.05,.068,.066,V3(1,0,0)); }
+  for(const lg of P.legs){ band(lg,-.12,.015,.102,.106); band(lg,-.62,.025,.081,.085); }
+  for(const s of[-1,1]) straps.push(mesh(tube([[s*.1,1.5,.12],[s*.16,1.2,.16],[s*.17,1.02,.14]],.007),M.webBlue,g));
+  straps.push(mesh(sweep([[0,1.035,0],[0,1.0,0]],{nT:3,wr:0,r:()=>[.165,.122]}),M.webBlue,g));
+  add('correas',straps,P.legs[0],V3(-.03,-.12,.13));
+  // guantes desmontables con anillos azules
+  const gl=[], rings=[];
+  P.wrists.forEach((wr,i)=>{ const s=i?1:-1; const hh=hand(wr,s,{shell:M.glove,ring:M.anoBlue}); gl.push(...hh.parts.filter(p=>p!==hh.ring)); rings.push(hh.ring); });
+  add('guantes',[...gl,...rings],P.wrists[0],V3(0,-.12,.06));
+  // espejo (muñeca derecha) y manómetro (izquierda)
+  const mBand=mesh(sweep([[0,-.43,.068],[0,-.455,.07]],{nT:3,wr:0,r:()=>[.064,.062],ref:V3(1,0,0)}),M.rubberDark,P.arms[0]);
+  const mir=mesh(new THREE.CylinderGeometry(.03,.03,.006,28),M.mirror,P.arms[0],{x:-.05,y:-.44,z:.1,rz:Math.PI/2,ry:.6});
+  mesh(new THREE.TorusGeometry(.03,.004,8,28),M.plasticDark,P.arms[0],{x:-.052,y:-.44,z:.1,ry:Math.PI/2+.6});
+  add('espejo',[mBand,mir],P.arms[0],V3(-.07,-.44,.11));
+  const gg=mesh(new THREE.CylinderGeometry(.022,.022,.016,24),M.alu,P.arms[1],{x:.02,y:-.42,z:.08,rx:Math.PI/2-.3});
+  const gf=mesh(new THREE.CircleGeometry(.018,24),M.dial,P.arms[1],{x:.02,y:-.4224,z:.0885,rx:-.3});
+  add('manometro',[gg,gf],P.arms[1],V3(.03,-.4,.1));
+  // bandera y bolsillo
+  const flag=mesh(new THREE.PlaneGeometry(.085,.05),new THREE.MeshPhysicalMaterial({map:flagTex('ru'),roughness:.8,sheen:.6}),P.arms[1],{x:.083,y:-.08,z:.01,ry:Math.PI/2-.1});
+  add('bandera',[flag],P.arms[1],V3(.09,-.05,.01));
+  const pk=mesh(new RoundedBoxGeometry(.1,.12,.03,2,.012),M.nylonW,P.legs[1],{x:.06,y:-.25,z:.08,ry:.5});
+  const pkz=mesh(tube([[.02,-.19,.1],[.1,-.19,.06]],.004,8),M.zipBlue,P.legs[1]);
+  add('bolsillo',[pk,pkz],P.legs[1],V3(.08,-.23,.11));
+  // botas blandas
+  const boots=[];
+  P.legs.forEach((lg,i)=>{ const s=i?1:-1; const b=new THREE.Group(); b.position.set(s*.02,-.86,.02); lg.add(b);
+    boots.push(mesh(new RoundedBoxGeometry(.11,.11,.26,4,.045),M.boot,b,{y:-.05,z:.035}));
+    boots.push(mesh(new THREE.CylinderGeometry(.068,.072,.14,28),M.boot,b,{y:.04}));
+    boots.push(mesh(new RoundedBoxGeometry(.115,.022,.27,3,.01),M.rubberDark,b,{y:-.105,z:.035})); });
+  add('botas',boots,P.legs[0],V3(-.03,-.9,.2));
+  // postura: el Sokol está cortado para ir sentado, así que de pie se ve algo encorvado
+  g.rotation.x=.04; P.neck.rotation.x=.12;
+  return {g,P,parts,inflate,anim:{visorPivot:vp},order:['capucha','visor','cierre','valvula','mangueras','cable','ventilador','correas','guantes','espejo','manometro','bandera','bolsillo','capas','botas']};
+}
+
+/* ================= FANTASMAS: los trajes que vendrán en los próximos pares ================= */
+function buildGhost(o){
+  const {g,P}=body({mat:M.ghost,seed:o.seed||50,bulk:o.bulk||1,wr:.008});
+  const gm=M.ghost.clone(); gm.color.set(o.tint||0x7f93b5); g.traverse(m=>{ if(m.isMesh){ m.material=gm; m.castShadow=false; } });
+  mesh(new THREE.SphereGeometry(o.helm||.17,32,20),gm,P.neck,{y:.15,cast:false});
+  if(o.pack) mesh(new RoundedBoxGeometry(.46,.56,.22,4,.04),gm,g,{y:1.26,z:-.27,cast:false});
+  P.wrists.forEach(wr=>mesh(new RoundedBoxGeometry(.05,.13,.09,3,.02),gm,wr,{y:-.12,cast:false}));
+  P.legs.forEach(lg=>mesh(new RoundedBoxGeometry(.13,.12,.28,3,.04),gm,lg,{y:-.92,z:.05,cast:false}));
+  return {g,P,parts:{},inflate:[],anim:{},order:[]};
+}
+
+/* ================= TEXTOS: qué es cada pieza (fuentes al final de cada traje) ================= */
+const SUITS=[
+ {id:'mercury',name:'Mercury',year:1961,soon:true,tint:0xb8c4d6,desc:'El traje plateado de los primeros astronautas de EE. UU., adaptado de los trajes de los pilotos de la Marina.'},
+ {id:'gemini',name:'Gemini G4C',year:1965,soon:true,desc:'El primer traje de EE. UU. para salir de la nave: con él se hizo la primera caminata espacial estadounidense.'},
+ {id:'a7l',name:'Apollo A7L',year:1968,build:buildA7L,
+  kick:'1968–1972 · ILC Dover (EE. UU.) · traje lunar',
+  sum:'El traje con el que doce personas caminaron sobre la Luna. Es una nave espacial con forma de persona: dentro hay oxígeno puro a la presión justa para respirar, y por fuera 13 capas aislan del Sol a +120 °C, de la sombra a −150 °C y de los micrometeoritos.',
+  parts:{
+   casco:['Casco de burbuja','Una burbuja de policarbonato transparente, el mismo plástico de los escudos antidisturbios: no se raya fácil y casi no se rompe. Va fija al anillo del cuello y es tan grande que la cabeza se mueve libre adentro, sin tocarla.'],
+   leva:['Visor dorado LEVA','La «visera exterior» que se pone sobre la burbuja. Su capa dorada, muy fina, deja pasar la luz justa y refleja casi todo el calor del Sol, como unas gafas de sol gigantes. Se sube y se baja con la mano; prueba el botón <b>Visor dorado</b>. A los lados lleva parasoles pequeños para el sol bajo.'],
+   snoopy:['Gorro «Snoopy»','El gorro de comunicaciones, café y blanco, que le dio el apodo por parecerse a la cabeza del perrito de las historietas. Lleva dos audífonos y dos micrófonos delante de la boca. Sin él, el astronauta no podía hablar con su compañero ni con Houston.'],
+   rcu:['Control remoto (RCU) en el pecho','Una cajita con perillas para manejar la mochila sin verla: el volumen de la radio, el ventilador, la bomba de agua de enfriamiento y un indicador de cuánto oxígeno queda. Arriba tiene el soporte donde se enganchaba la cámara Hasselblad: por eso las fotos de la Luna están tomadas «desde el pecho».'],
+   conectores:['Conectores azul y rojo','Por los conectores <b>azules</b> (arriba) entra el oxígeno limpio que llega desde la mochila; por los <b>rojos</b> (abajo) sale el aire usado, con el CO₂ que exhalamos, de vuelta a la mochila para limpiarlo. Así nunca se confunden: igual que en la casa, azul es lo que entra frío y rojo lo que sale caliente.'],
+   plss:['Mochila de soporte vital (PLSS)','Es lo que mantiene vivo al astronauta fuera del módulo lunar: un tanque de oxígeno, un filtro que atrapa el CO₂, un sistema que enfría con agua que se evapora al vacío, la radio y la batería. En el Apollo 11 al 14 las caminatas se limitaban a 4 horas; en el Apollo 15 al 17 la mochila mejorada permitía hasta 8. En la Tierra el traje entero con mochila pesaba unos 91 kg; en la Luna se sentía como unos 15.'],
+   ops:['Oxígeno de emergencia (OPS)','La caja de arriba de la mochila: dos botellas de oxígeno a alta presión que solo se usan si falla la mochila. Abren un chorro continuo que da tiempo de volver al módulo lunar.'],
+   guantes:['Guantes lunares','Se hacían a la medida de la mano de cada astronauta, a partir de un molde de yeso. La capa de afuera es <b>Chromel‑R</b>, una tela tejida con hilos de acero que no se rompe al agarrar rocas, y las yemas son de goma de silicona azul, más delgada, para sentir lo que se toca. Con el traje inflado, cerrar la mano era como apretar una pelota de tenis una y otra vez: lo que más cansaba.'],
+   anillos:['Anillos de la muñeca','Anillos de aluminio anodizado, uno rojo y uno azul, donde se traban los guantes con un giro. Llevan rodamientos para que la mano pueda girar aunque el traje esté inflado.'],
+   lista:['Lista en la muñeca','Un cuadernito de páginas con los pasos de cada caminata, cosido al puño izquierdo. Así no había que memorizar nada: «tomar muestra, foto, siguiente piedra».'],
+   manometro:['Manómetro de la muñeca','Un reloj de aguja que indica la presión dentro del traje. Si baja, hay una fuga: hay que avisar enseguida.'],
+   bolsillo:['Bolsillo de gafas y bolígrafos','En el brazo izquierdo. Un bolígrafo de punta de fieltro de este tipo salvó el Apollo 11: Aldrin lo usó para empujar un interruptor roto del módulo lunar y poder encender el motor de despegue.'],
+   bandera:['Bandera de EE. UU.','Bordada en el hombro izquierdo de cada astronauta.'],
+   itmg:['Cubierta exterior ITMG (beta cloth)','La parte blanca que se ve es la cubierta térmica y contra micrometeoritos: 13 capas. Por fuera es <b>beta cloth</b>, una tela de fibra de vidrio cubierta de teflón que no arde. Se eligió después del incendio del Apollo 1 (enero de 1967), en el que murieron tres astronautas durante una prueba en la plataforma. Debajo van capas de Mylar y Kapton aluminizados, como espejos, separadas por tela de Dacron para que el calor no pase de una a otra.'],
+   muslo:['Bolsillo del muslo','Para guardar herramientas pequeñas y bolsas de muestras durante la caminata.'],
+   botas:['Botas lunares','Se ponían encima de las botas del traje, solo para salir. Por fuera, Chromel‑R (tela de acero) para que las rocas filosas no las cortaran; adentro, 7 capas de Mylar, 6 de Kapton y 2 de fieltro Nomex contra el calor del suelo. La suela de goma azul con relieve es la que dejó las huellas famosas.'],
+   franjas:['Franjas rojas del comandante','Solo en la versión <b>A7LB</b> (pulsa «Comandante A7LB»). Al revisar las fotos del Apollo 11 nadie sabía distinguir a Armstrong de Aldrin, porque los dos se veían iguales. Desde el Apollo 13, el comandante lleva franjas rojas en brazos, piernas y casco.'],
+  },
+  layers:[
+   ['#b8c4d4','Prenda de enfriamiento líquido (LCG)','3 capas · tubitos de plástico con agua fría'],
+   ['#f1e8d8','Capa de confort','nailon suave junto a la LCG'],
+   ['#6c5a48','Vejiga de presión','nailon con goma de neopreno: es la que retiene el oxígeno'],
+   ['#d7c9a8','Capa de restricción','nailon que no deja que el traje se infle como un globo'],
+   ['#9aa6b8','ITMG: nailon engomado','1 capa'],
+   ['#d9dde3','ITMG: Mylar aluminizado','5 capas, como espejos de calor'],
+   ['#cfc7b5','ITMG: Dacron','4 capas separadoras'],
+   ['#d8a650','ITMG: Kapton aluminizado + Beta marquisette','2 capas'],
+   ['#efeadf','ITMG: beta cloth con teflón','la capa blanca de afuera; no arde'],
+  ],
+  layersNote:'En total unas 21 capas (5 del traje de presión, 13 de la cubierta y 3 de la prenda de enfriamiento). Las fuentes no coinciden en el número exacto: el museo Smithsonian dice «21» en un texto y «25» en otro.',
+  data:[['Fabricante','ILC (International Latex Corporation), Dover, Delaware; contratista Hamilton Standard'],['Usado en','A7L: Apollo 7 al 14 · A7LB: Apollo 15 al 17, Skylab y Apollo‑Soyuz'],['Masa','34,5 kg el traje de caminata; ~91 kg con la mochila PLSS y la OPS (en la Luna se siente como ~15 kg)'],['Presión','3,7–3,8 psi (≈ 26 kPa) de oxígeno: una cuarta parte de la presión del aire al nivel del mar'],['Capas','~21'],['Caminata máxima','4 h (Apollo 11–14) · 8 h (Apollo 15–17)'],['Costo','~100 000 USD de la época por traje (más de 670 000 USD de hoy)'],['Fabricados','al menos 105 trajes A7L']],
+  hist:`<p>Para el traje lunar, la NASA eligió a ILC, una empresa de Delaware que hacía ropa interior y fajas de la marca Playtex. Sus costureras sabían coser telas elásticas con una precisión de menos de un milímetro, y eso era justo lo que hacía falta: una costura torcida y el traje tenía una fuga.</p>
+   <p>El 27 de enero de 1967, durante una prueba en la plataforma, un incendio en la cápsula del Apollo 1 mató a Gus Grissom, Ed White y Roger Chaffee. Los trajes de entonces ardían en el oxígeno puro, así que se rediseñaron con <b>beta cloth</b>, de fibra de vidrio, que no se quema.</p>
+   <p>El 20 de julio de 1969 Neil Armstrong bajó a la Luna con su A7L. Su traje original se conserva en el Museo Nacional del Aire y el Espacio del Smithsonian, en Washington, en una vitrina con temperatura y humedad controladas, porque la goma de neopreno se degrada con los años.</p>
+   <p>Para el Apollo 15, 16 y 17, que tenían el rover lunar, el A7LB agregó una articulación en la cintura y otra en el cuello para poder sentarse y mirar el camino, y la entrada pasó de la espalda al costado.</p>`,
+  src:[['Smithsonian NASM · El traje de Armstrong','https://airandspace.si.edu/explore/stories/armstrong-suit'],['Smithsonian · Cómo se ponía un traje Apollo','https://airandspace.si.edu/stories/editorial/how-do-you-put-apollo-spacesuit'],['NASA ALSJ · El traje del Apollo 11','https://nasa.gov/wp-content/uploads/static/history/alsj/a11/A11BA-Flown-Suit.html'],['NASA ALSJ · La mochila PLSS','https://www.nasa.gov/wp-content/uploads/static/history/alsj/plss.html'],['NASA ALSJ · Las franjas del comandante','https://www.nasa.gov/wp-content/uploads/static/history/alsj/alsj-CDRStripes.html'],['ILC/NASA · Space Suit Evolution (PDF)','https://www.nasa.gov/wp-content/uploads/static/history/alsj/ILC-SpaceSuits-RevA.pdf'],['ASME · Hito de ingeniería: el traje Apollo','https://www.asme.org/About-ASME/Engineering-History/Landmarks/255-Apollo-Space-Suit'],['Smithsonian Magazine · Hecho por una fábrica de sostenes','https://www.smithsonianmag.com/history/neil-armstrongs-spacesuit-was-made-by-a-bra-manufacturer-3652414/']]},
+ {id:'sokol',name:'Sokol KV‑2',year:1973,build:buildSokol,
+  kick:'1973–hoy · NPP Zvezda (Rusia) · traje de rescate',
+  sum:'El traje blanco que se ponen todos los que viajan en la Soyuz. No sirve para caminar en el espacio: es un salvavidas. Si la cápsula pierde el aire durante el despegue o el regreso, se infla y mantiene vivo al cosmonauta hasta aterrizar. «Sokol» significa «halcón».',
+  parts:{
+   capucha:['Capucha blanda','En lugar de casco rígido, una capucha de tela que se infla y toma forma al presurizarse. Es más liviana y cabe en la cápsula, donde no hay espacio para nada.'],
+   visor:['Visor abatible','El visor transparente se baja y se cierra justo antes del despegue y del regreso. Prueba el botón <b>Prueba de fugas</b>: con el visor cerrado el traje queda sellado.'],
+   cierre:['Doble cierre en V y el «apéndice»','Se entra por delante, por una abertura en forma de V. Primero las piernas, luego los brazos y por último la cabeza. Adentro, la capa de goma tiene una abertura en forma de tubo, el «apéndice», que se enrolla, se ata con elásticos y se guarda bajo la solapa: ese nudo es lo que sella el traje.'],
+   valvula:['Válvula azul del pecho','Por aquí sale el aire usado y se regula la presión: si sube demasiado, la válvula deja escapar el exceso.'],
+   mangueras:['Mangueras de aire y oxígeno','A la izquierda del abdomen. En la Soyuz se conectan al asiento. Normalmente un ventilador mete aire de la cabina para refrescar; si la cabina pierde presión, el sistema cambia solo a oxígeno de botellas. (Datos de descripciones técnicas; Zvezda no publica los detalles.)'],
+   cable:['Cable eléctrico','A la derecha. Lleva la radio y los sensores médicos que vigilan el corazón y la respiración durante el vuelo.'],
+   ventilador:['Ventilador portátil','Al caminar desde el edificio de vestidores hasta el autobús que los lleva al cohete, los cosmonautas llevan en la mano una cajita con ventilador conectada a las mangueras, para no sudar dentro del traje. Ya en la cápsula se conectan a la nave.'],
+   correas:['Correas de ajuste','Cintas con hebillas metálicas en brazos, piernas y pecho. Cuando el traje se infla, tiende a estirarse; las correas lo mantienen pegado al cuerpo para que el cosmonauta alcance los mandos.'],
+   guantes:['Guantes desmontables','Se traban en anillos de aluminio anodizado azul. Durante la mayor parte del vuelo se los quitan; los guantes se ponen solo en los momentos de riesgo.'],
+   espejo:['Espejo en la muñeca','En la muñeca derecha. Acostados en la Soyuz, con la capucha puesta, no se puede girar la cabeza: con el espejito se ven los paneles y lo que hay detrás.'],
+   manometro:['Manómetro','En la muñeca izquierda: indica la presión dentro del traje.'],
+   bandera:['Bandera del país','Cada traje lleva la bandera de quien lo usa. Este es de un cosmonauta ruso.'],
+   bolsillo:['Bolsillo del muslo','Para la lista de procedimientos, un lápiz y cosas pequeñas.'],
+   capas:['Dos capas, hecho a medida','Por dentro, una vejiga de tela engomada que retiene el aire; por fuera, lona blanca de nailon que le da forma y la protege. Cada traje se hace a la medida de una persona: a la astronauta Helen Sharman le tomaron 54 medidas.'],
+   botas:['Botas','Las botas del traje son blandas y se ponen aparte, para poder caminar hasta la nave.'],
+  },
+  layers:[['#d9d6cc','Ropa interior','algodón'],['#55524c','Capa de presión','tela engomada de policaprolactama (capron)'],['#f3f3f0','Capa exterior','lona blanca de nailon']],
+  layersNote:'Solo dos capas, porque nunca sale al espacio: no necesita protección contra el Sol ni los micrometeoritos.',
+  data:[['Fabricante','NPP Zvezda, cerca de Moscú'],['Usado en','Todas las Soyuz desde la Soyuz 12 (1973); el KV‑2 desde la Soyuz T‑2 (1980)'],['Para qué','Despegue, acoplamiento y regreso; solo dentro de la nave'],['Masa','~10 kg'],['Autonomía','~2 horas si la cápsula queda en vacío; luego hay que aterrizar'],['Presión','~400 hPa sobre la cabina (≈ 0,4 atm) · dato no oficial'],['Capas','2'],['Hecho a medida','sí, cada uno para una persona']],
+  hist:`<p>A mediados de los años 60 la Unión Soviética dejó de usar trajes en sus cápsulas para que cupieran tres cosmonautas. El 30 de junio de 1971, al regresar de la primera estación espacial, la Salyut 1, una válvula de la Soyuz 11 se abrió antes de tiempo y el aire se escapó. Gueorgui Dobrovolski, Vladislav Vólkov y Víktor Patsáyev, sin trajes, no sobrevivieron.</p>
+   <p>La fábrica Zvezda tenía trajes para pilotos de aviones a gran altura. Los adaptó en menos de un año: así nació el Sokol‑K, que voló por primera vez en la Soyuz 12, en septiembre de 1973. Desde entonces nadie sube a una Soyuz sin él. A finales de los 70 se mejoró como Sokol KV‑2, el que se usa hasta hoy.</p>
+   <p>Antes de cada despegue, en Baikonur, cada cosmonauta se pone su traje y lo inflan a más presión de la normal para buscar fugas. Lo puedes simular con el botón <b>Prueba de fugas</b>. El primer turista espacial, Dennis Tito, voló con uno en 2001 y lo donó al Smithsonian.</p>`,
+  src:[['ESA · Sokol so cool','https://www.esa.int/ESA_Multimedia/Images/2017/07/Sokol_so_cool'],['Science Museum (Londres) · El traje de Helen Sharman','https://blog.sciencemuseum.org.uk/helen-sharmans-spacesuit/'],['National Space Centre · Sokol KV‑2','https://www.spacecentre.co.uk/collections/categories/spacesuits-and-clothing/sokol-kv-2-rescue-spacesuit/'],['Smithsonian NASM · Sokol de Dennis Tito','https://airandspace.si.edu/es/collection-objects/pressure-suit-sokol-kv-2-dennis-tito/nasm_A20030122000'],['Resumen técnico con referencias (Wikipedia)','https://en.wikipedia.org/wiki/Sokol_space_suit']]},
+ {id:'orlan',name:'Orlan',year:1977,soon:true,pack:false,desc:'El traje ruso para caminatas espaciales: se entra por una puerta en la espalda, sin ayuda de nadie.'},
+ {id:'emu',name:'EMU (Estación Espacial)',year:1983,soon:true,pack:true,desc:'El traje blanco de las caminatas de los transbordadores y de la Estación Espacial Internacional.'},
+ {id:'aces',name:'ACES «calabaza»',year:1994,soon:true,tint:0xd68a3c,desc:'El traje naranja de despegue y aterrizaje del transbordador espacial, para ser vistos en el mar si había que saltar.'},
+ {id:'feitian',name:'Feitian (China)',year:2008,soon:true,pack:true,desc:'El traje chino para caminatas espaciales, estrenado en la Shenzhou 7.'},
+ {id:'spacex',name:'Traje de SpaceX',year:2020,soon:true,tint:0xd9dde3,desc:'El traje de la cápsula Dragon, hecho a medida y conectado al asiento por un solo cable.'},
+ {id:'boeing',name:'Boeing «azul»',year:2024,soon:true,tint:0x4e7fd0,desc:'El traje azul de la Starliner, más liviano que los anteriores y con guantes que funcionan en pantallas táctiles.'},
+ {id:'axemu',name:'AxEMU (Artemis)',year:'futuro',soon:true,pack:true,tint:0x8892a3,desc:'El traje lunar de Axiom para volver a la Luna con el programa Artemis.'},
+];
+
+/* ================= LA SALA ================= */
+const STEP=2.3, N=SUITS.length;
+const posOf=i=>{ const x=(i-(N-1)/2)*STEP; return V3(x,0,-.03*x*x); };
+const floor=new THREE.Mesh(new THREE.CircleGeometry(30,80),new THREE.MeshPhysicalMaterial({color:0x0a0d14,roughness:.32,metalness:.25,clearcoat:.4,clearcoatRoughness:.4}));
+floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+const plateTex=(s)=>{ const c=document.createElement('canvas'); c.width=512; c.height=160; const g=c.getContext('2d');
+  g.fillStyle='#0c111c'; g.fillRect(0,0,512,160); g.fillStyle=s.soon?'#5f6983':'#ffb547'; g.font='600 58px Jost, sans-serif'; g.fillText(String(s.year),26,66);
+  g.fillStyle=s.soon?'#7a849c':'#eceef4'; g.font='600 44px Jost, sans-serif'; g.fillText(s.name,26,124);
+  if(s.soon){ g.fillStyle='#5f6983'; g.font='500 26px "IBM Plex Mono", monospace'; g.fillText('PRÓXIMAMENTE',300,62); }
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; };
+const pedMat=new THREE.MeshPhysicalMaterial({color:0x151a26,roughness:.35,metalness:.4,clearcoat:.6});
+const FIG=[];
+SUITS.forEach((s,i)=>{
+  const p=posOf(i), root=new THREE.Group(); root.position.copy(p); root.rotation.y=-Math.atan(.06*p.x)*.9; scene.add(root);
+  const ped=mesh(new THREE.CylinderGeometry(.56,.6,.34,64),pedMat,root,{y:.17}); ped.castShadow=false;
+  mesh(new THREE.TorusGeometry(.585,.006,8,96),new THREE.MeshBasicMaterial({color:s.soon?0x2e3b5a:0xffb547}),root,{y:.335,rx:Math.PI/2,cast:false});
+  const plate=mesh(new THREE.PlaneGeometry(.62,.19),new THREE.MeshStandardMaterial({map:plateTex(s),roughness:.6,metalness:.1}),root,{y:.17,z:.6,rx:-.08,cast:false});
+  const f=s.build?s.build():buildGhost({seed:60+i,tint:s.tint,pack:s.pack});
+  f.g.position.y=.34; root.add(f.g);
+  root.traverse(o=>{ o.userData.suit=i; });
+  FIG.push({s,root,f,p:0,pT:0,v:0,vT:0,stripes:false});
+});
+
+/* ================= INTERFAZ ================= */
+let cur=-1, tab='partes', partSel=null;
+const tags=$('tags'), body_=$('body');
+$('count').innerHTML=`<b>${SUITS.filter(s=>!s.soon).length}</b> de ${N} trajes listos`;
+SUITS.forEach((s,i)=>{ const b=document.createElement('button'); b.className='chip'+(s.soon?' soon':''); b.innerHTML=`<small>${s.year}</small><b>${s.name}</b>`; b.onclick=()=>select(i); $('line').appendChild(b); });
+
+let fly=null;
+function flyTo(i,wide=false){
+  const r=FIG[i].root, target=r.localToWorld(V3(0,1.25,0)), dir=r.localToWorld(V3(.7,.25,4.4)).sub(r.position);
+  const pos=wide?V3(target.x,2.6,target.z+8):r.position.clone().add(dir);
+  if(innerWidth<=860){ target.y+=.12; pos.y+=.12; pos.sub(target).multiplyScalar(1.4).add(target); }
+  fly={t:0,p0:camera.position.clone(),t0:controls.target.clone(),p1:pos,t1:target};
+}
+function lightOn(i){ const r=FIG[i].root;
+  key.position.copy(r.localToWorld(V3(1.6,4.2,2.6))); key.target.position.copy(r.localToWorld(V3(0,1,0)));
+  rim.position.copy(r.localToWorld(V3(-2,2.6,-2.4))); rim.target.position.copy(r.localToWorld(V3(0,1.3,0)));
+  fill.position.copy(r.localToWorld(V3(-1.2,1.1,2))); }
+
+function select(i){
+  cur=i; partSel=null; const s=SUITS[i];
+  [...$('line').children].forEach((c,k)=>c.setAttribute('aria-current',k===i));
+  $('line').children[i].scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+  flyTo(i); lightOn(i);
+  $('sk').textContent=s.soon?`${s.year} · próximamente`:s.kick; $('sn').textContent=s.name; $('ss').textContent=s.soon?s.desc:s.sum;
+  stopSim(); renderActs(); tags.innerHTML='';
+  $('tabs').hidden=!!s.soon;
+  if(s.soon){ body_.innerHTML=`<div class="soonbox">Este traje se agregará en los próximos pares, con su modelo 3D, qué es cada pieza, sus capas y sus datos reales. Por ahora ves su silueta en la línea del tiempo.</div>`; return; }
+  for(const k of FIG[i].f.order){ const b=document.createElement('button'); b.className='tag'; b.dataset.k=k; b.textContent=FIG[i].f.order.indexOf(k)+1; b.onclick=()=>pickPart(k,true); b.setAttribute('aria-label',s.parts[k][0]); tags.appendChild(b); }
+  showTab(tab);
+  try{ history.replaceState(null,'','#'+s.id); }catch(e){}
+}
+function renderActs(){
+  const a=$('acts'), s=SUITS[cur], F=FIG[cur]; a.innerHTML=''; a.hidden=!!s.soon; if(s.soon) return;
+  const btn=(txt,fn,pressed)=>{ const b=document.createElement('button'); b.className='tb'; b.textContent=txt; if(pressed!==undefined) b.setAttribute('aria-pressed',pressed); b.onclick=()=>fn(b); a.appendChild(b); return b; };
+  if(s.id==='a7l'){
+    btn('Presurizar 3,7 psi',b=>{ const on=F.pT<.5; F.pT=on?1:0; b.setAttribute('aria-pressed',on); gaugeA7L(on); },F.pT>.5);
+    btn('Visor dorado',b=>{ F.vT=F.vT>.5?0:1; b.setAttribute('aria-pressed',F.vT>.5); },F.vT>.5);
+    btn('Comandante A7LB',b=>{ F.stripes=!F.stripes; F.f.anim.stripes.forEach(m=>m.visible=F.stripes); b.setAttribute('aria-pressed',F.stripes); if(F.stripes) pickPart('franjas'); },F.stripes);
+  }
+  if(s.id==='sokol'){
+    btn('Prueba de fugas',()=>leakTest(),undefined).classList.add('go');
+    btn('Visor',b=>{ F.vT=F.vT>.5?0:1; b.setAttribute('aria-pressed',F.vT>.5); },F.vT>.5);
+  }
+  btn('Vista general',()=>flyTo(cur,true));
+}
+function showTab(t){
+  tab=t; [...$('tabs').children].forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t));
+  const s=SUITS[cur], F=FIG[cur]; if(s.soon) return;
+  tags.style.display=t==='partes'?'':'none';
+  let h='';
+  if(t==='partes'){ h='<ul class="plist">'+F.f.order.map((k,n)=>`<li><button data-k="${k}" aria-current="${partSel===k}"><span class="n">${n+1}</span><b>${s.parts[k][0]}</b><span class="d">${s.parts[k][1]}</span></button></li>`).join('')+'</ul>'; }
+  if(t==='capas'){ h='<p>De adentro (arriba) hacia afuera (abajo):</p><div class="layers">'+s.layers.map((l,n)=>`<div class="ly${n===s.layers.length-1?' out':''}"><i style="background:${l[0]}"></i><span>${l[1]}</span><small>${l[2]}</small></div>`).join('')+`</div><p class="warn">${s.layersNote}</p>`; }
+  if(t==='datos'){ h='<dl class="kv">'+s.data.map(d=>`<dt>${d[0]}</dt><dd>${d[1]}</dd>`).join('')+'</dl>'; }
+  if(t==='historia'){ h=s.hist; }
+  h+=`<div class="src">Fuentes<ul>${s.src.map(x=>`<li><a href="${x[1]}" target="_blank" rel="noopener">${x[0]}</a></li>`).join('')}</ul></div>`;
+  body_.innerHTML=h;
+  body_.querySelectorAll('.plist button').forEach(b=>b.onclick=()=>pickPart(b.dataset.k===partSel?null:b.dataset.k));
+}
+$('tabs').onclick=e=>{ const b=e.target.closest('button'); if(b) showTab(b.dataset.t); };
+
+// resaltar la pieza elegida (brillo suave que late)
+const hl=new Map();
+function pickPart(k,fromTag){
+  hl.forEach((m,mesh_)=>{ mesh_.material=m; }); hl.clear();
+  partSel=k; const F=FIG[cur];
+  if(k&&F.f.parts[k]){ for(const m of F.f.parts[k].meshes){ if(!m.material||hl.has(m)) continue; hl.set(m,m.material); const c=m.material.clone(); c.emissive=new THREE.Color(0xffb547); c.emissiveIntensity=0; m.material=c; } }
+  if(tab!=='partes') showTab('partes'); else body_.querySelectorAll('.plist button').forEach(b=>b.setAttribute('aria-current',b.dataset.k===k));
+  tags.querySelectorAll('.tag').forEach(t=>t.classList.toggle('on',t.dataset.k===k));
+  if(k){ const li=body_.querySelector(`.plist button[data-k="${k}"]`); if(li) li.scrollIntoView({block:'nearest',behavior:'smooth'});
+    if(innerWidth<=860) $('side').classList.remove('min'); }
+}
+
+/* ================= SIMULACIONES: presurizar el A7L y la prueba de fugas del Sokol ================= */
+let sim=null;
+function stopSim(){ sim=null; $('gauge').hidden=true; FIG.forEach(F=>{ if(F.s.id==='sokol'){ F.pT=0; } }); }
+function gaugeA7L(on){
+  $('gauge').hidden=false; $('gk').textContent='Presión del traje A7L';
+  sim={kind:'a7l',on,t:0};
+  $('glog').innerHTML=on?'Entra oxígeno puro hasta 3,7 psi. El traje se pone duro como un globo y los brazos se separan solos del cuerpo: cada movimiento cuesta, porque hay que vencer el aire de adentro. Por eso existen los fuelles en codos y rodillas.':'Despresurizado: así se lo ponían dentro de la nave, con la cabina llena de aire.';
+}
+function leakTest(){
+  const F=FIG[cur]; F.vT=1; $('acts').querySelectorAll('.tb')[1]?.setAttribute('aria-pressed',true);
+  $('gauge').hidden=false; $('gk').textContent='Prueba de fugas · Sokol KV‑2';
+  sim={kind:'sokol',t:0,step:-1};
+}
+const SOK=[[0,'1. Cerrar el visor y ajustar las correas.'],[2,'2. Inflar por encima de la presión de trabajo.'],[5,'3. Esperar sin tocar nada: si la aguja baja, hay una fuga (1 minuto real, aquí acelerado).'],[9,'4. Sin fugas ✓. Desinflar y abrir el visor. El traje está listo para el despegue.'],[12,null]];
+function stepSim(dt){
+  if(!sim) return; sim.t+=dt; const F=FIG[cur];
+  if(sim.kind==='a7l'){ const v=3.7*F.p; $('gv').innerHTML=`${fmt(v)} <small>psi · ${fmt(v*6.895,0)} kPa</small>`; $('gb').style.width=(F.p*100)+'%'; }
+  if(sim.kind==='sokol'){
+    let st=0; for(let k=0;k<SOK.length;k++) if(sim.t>=SOK[k][0]) st=k;
+    if(st!==sim.step){ sim.step=st; if(SOK[st][1]) $('glog').textContent=SOK[st][1];
+      if(st===1) F.pT=1; if(st===3){ F.pT=0; } if(st===4){ F.vT=0; $('acts').querySelectorAll('.tb')[1]?.setAttribute('aria-pressed',false); setTimeout(()=>{ if(sim&&sim.kind==='sokol'){ sim=null; } },10); } }
+    const pc=F.p*100;
+    $('gv').innerHTML=`${fmt(pc,0)} % <small>de la presión de prueba</small>`; $('gb').style.width=pc+'%';
+  }
+}
+
+/* ================= BUCLE ================= */
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(); let down=null;
+canvas.addEventListener('pointerdown',e=>down={x:e.clientX,y:e.clientY});
+canvas.addEventListener('pointerup',e=>{ if(!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>6) return; down=null;
+  ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1); ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObjects(FIG.map(F=>F.root),true)[0]; if(!hit) return; const i=hit.object.userData.suit;
+  if(i!==cur){ select(i); return; }
+  const F=FIG[cur]; for(const k of F.f.order) if(F.f.parts[k].meshes.includes(hit.object)){ pickPart(k); return; } });
+$('sh').onclick=()=>{ if(innerWidth<=860){ $('side').classList.toggle('min'); document.documentElement.style.setProperty('--shh',$('side').offsetHeight+'px'); } };
+
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.fov=w<700?40:32; camera.updateProjectionMatrix();
+  // en pantalla ancha el panel tapa la derecha: corremos el centro de la vista
+  // en el teléfono la hoja de abajo tapa la mitad: subimos el centro de la vista
+  const pw=w>860?416:0, ph=w>860?0:Math.round(h*.46+56);
+  camera.fov=2*Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)*(h+ph)/h)*180/Math.PI;
+  camera.aspect=(w+pw)/(h+ph); camera.setViewOffset(w+pw,h+ph,pw,ph,w,h); camera.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize();
+
+const clock=new THREE.Clock(); const tmp=V3();
+function tick(){
+  const raw=clock.getDelta(), dt=Math.min(.05,raw), now=clock.elapsedTime;
+  if(fly){ fly.t=Math.min(1,fly.t+Math.min(raw,.5)/1.3); const k=smooth(fly.t); camera.position.lerpVectors(fly.p0,fly.p1,k); controls.target.lerpVectors(fly.t0,fly.t1,k); if(fly.t>=1) fly=null; }
+  controls.update();
+  for(const F of FIG){ if(!F.s.build) continue;
+    F.p+= (F.pT-F.p)*Math.min(1,dt*1.6); F.v+=(F.vT-F.v)*Math.min(1,dt*3);
+    const sc=1+.045*F.p; F.f.inflate.forEach(m=>{ m.scale.x=sc*(m.userData.sx||1); m.scale.z=sc*(m.userData.sz||1); });
+    F.f.P.arms.forEach((ag,k)=>{ const s=k?1:-1; ag.rotation.z=s*(.16+.2*F.p); ag.rotation.x=-.06*F.p; });
+    F.f.P.legs.forEach((lg,k)=>{ lg.rotation.z=(k?1:-1)*.035*F.p; });
+    if(F.s.id==='a7l') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.05;
+    if(F.s.id==='sokol') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.15;
+  }
+  stepSim(dt);
+  hl.forEach((m,mesh_)=>{ mesh_.material.emissiveIntensity=.12+.1*Math.sin(now*4); });
+  renderer.render(scene,camera);
+  // números sobre las piezas
+  if(cur>=0&&!SUITS[cur].soon&&tab==='partes'){ const F=FIG[cur], w=innerWidth, h=innerHeight; const cd=camera.getWorldDirection(V3());
+    for(const t of tags.children){ const pt=F.f.parts[t.dataset.k]; if(!pt){ t.style.display='none'; continue; }
+      if(t.dataset.k==='franjas'&&!F.stripes){ t.style.display='none'; continue; }
+      pt.obj.localToWorld(tmp.copy(pt.pos)); const loc=F.root.worldToLocal(tmp.clone()), camL=F.root.worldToLocal(camera.position.clone());
+      const back=(loc.z<-.05&&camL.z>0)||(loc.z>.08&&camL.z<0);
+      tmp.project(camera); const vis=tmp.z<1;
+      t.style.display=vis?'':'none'; t.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px)`; t.classList.toggle('back',back); }
+  }
+  requestAnimationFrame(tick);
+}
+FIG.forEach(F=>{ if(F.f.anim.stripes) F.f.anim.stripes.forEach(m=>m.visible=false); });
+// arranque: vista de toda la sala y luego vuela al traje del enlace (o al A7L)
+camera.position.set(0,3,11); controls.target.set(0,1.3,0);
+const hi=SUITS.findIndex(s=>'#'+s.id===location.hash); select(hi>=0?hi:2);
+tick();
+addEventListener('keydown',e=>{ if(e.key==='ArrowRight') select(Math.min(N-1,cur+1)); if(e.key==='ArrowLeft') select(Math.max(0,cur-1)); });
+</script>
+</body>
+</html>
