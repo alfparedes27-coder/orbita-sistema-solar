@@ -475,7 +475,7 @@ function setMode(m){ mode=m; $('bDrone').setAttribute('aria-pressed',m==='drone'
   if(m==='walk'){ fly=null; camera.position.copy(W.pos); } }
 function droneTo(target,dist,elev=.25,az=0){ const dir=V3(Math.sin(az),elev,Math.cos(az)).normalize(); fly={t:0,p0:camera.position.clone(),t0:controls.target.clone(),p1:target.clone().add(dir.multiplyScalar(dist)),t1:target.clone()}; }
 function goTo(k){ showCard(k); const r=ROCK.find(o=>o.key===k);
-  if(r){ setMode('drone'); const c=r.center||V3(r.g.position.x,r.h*.5,0); droneTo(c,Math.max(30,r.h*1.15),.18,k==='tower'?.5:0); return; }
+  if(r){ setMode('drone'); const c=r.center||V3(r.g.position.x,r.h*.5,0); const mob=innerWidth<700; if(mob) c.y-=r.h*.22; droneTo(c,Math.max(30,r.h*1.15)*(mob?2.3:1),.18,k==='tower'?.5:0); return; }
   walkTo(k); }
 function walkTo(k){ const e=EX[k]; if(!e) return; setMode('walk'); const v=e.view; W.pos.set(e.pos.x+v[0],1.7,e.pos.z+v[2]); const look=V3(e.pos.x,v[1],e.pos.z); const d=look.clone().sub(W.pos); W.yaw=Math.atan2(-d.x,-d.z); W.pitch=Math.atan2(d.y,Math.hypot(d.x,d.z))*.6; camera.position.copy(W.pos); }
 function enterHall(){ setMode('walk'); W.pos.set(-40,1.7,-121); W.yaw=0; W.pitch=.05; $('card').hidden=true; }
