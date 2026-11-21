@@ -259,6 +259,16 @@ const M={
   orlanW: fabric('#eeede8',{seed:41,nscale:.45}),
   emuW: fabric('#f0eee9',{seed:51,nscale:.5}),
   blueStripe: fabric('#2f59b8',{seed:8,grimeAmt:.03}),
+  aces: fabric('#e3520c',{seed:61,nscale:.55,grimeAmt:.05,tint:0xffc49a}),
+  acesGlove: fabric('#d9601d',{seed:62,nscale:.35}),
+  harness: fabric('#6f7066',{seed:63,weave:TX.weaveFine,nscale:.8,grimeAmt:.03}),
+  lpu: fabric('#d7c34a',{seed:64,nscale:.4}),
+  leather: new THREE.MeshPhysicalMaterial({color:0x17181a,roughness:.45,clearcoat:.35}),
+  sxW: fabric('#f2f2f0',{seed:71,nscale:.35,weave:TX.weaveFine}),
+  sxGray: fabric('#3b3e44',{seed:72,nscale:.5,grimeAmt:.02}),
+  sxGlove: fabric('#2f3237',{seed:73,nscale:.4}),
+  sxBoot: new THREE.MeshPhysicalMaterial({color:0xf0f0ee,roughness:.5,clearcoat:.3}),
+  sxVisor: new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.03,transmission:1,thickness:.004,ior:1.5,transparent:true,envMapIntensity:1.2,side:THREE.DoubleSide,depthWrite:false}),
   ghost: new THREE.MeshPhysicalMaterial({color:0x7f93b5,roughness:.25,metalness:.1,transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide}),
 };
 
@@ -652,6 +662,114 @@ function buildEMU(){
   return {g,P,parts,inflate,anim:{visorPivot:vp,stripes,lampL},order:['casco','evva','luces','dcm','hut','plss','safer','cojinetes','guantes','lista','espejo','cuerdas','lta','bandera','botas','franjas']};
 }
 
+/* ================= TRAJE 5: ACES «calabaza» (transbordador, despegue y regreso) ================= */
+function buildACES(){
+  const {g,P,inflate}=body({mat:M.aces,seed:61,bulk:1.0,wr:.022});
+  const parts={}; const add=(k,meshes,anchorObj,anchorPos)=>{ parts[k]={meshes:[].concat(meshes),obj:anchorObj,pos:anchorPos}; };
+  add('nomex',[P.torso],g,V3(.12,1.02,.15));
+  // casco de presión con visor móvil, anillo del cuello y cable de comunicaciones
+  const ring=mesh(new THREE.CylinderGeometry(.13,.14,.05,48),M.plasticDark,P.neck,{y:0});
+  const head=new THREE.Group(); head.position.y=.16; P.neck.add(head);
+  const man=mesh(new THREE.SphereGeometry(.095,32,24),M.mannequin,head,{y:-.005}); man.scale.set(.9,1.12,1);
+  const shell=mesh(new THREE.SphereGeometry(.165,56,36,Math.PI*1.05,Math.PI*.9,0,Math.PI*.8),M.shellWhite,P.neck,{y:.15});
+  const crown=mesh(new THREE.SphereGeometry(.166,56,16,0,Math.PI*2,0,Math.PI*.22),M.shellWhite,P.neck,{y:.15});
+  const vp=new THREE.Group(); vp.position.y=.15; P.neck.add(vp);
+  const visor=mesh(new THREE.SphereGeometry(.163,56,30,Math.PI*.1,Math.PI*.8,Math.PI*.22,Math.PI*.46),M.visorClear,vp,{cast:false});
+  const vrim=[]; for(const s of[-1,1]) vrim.push(mesh(new THREE.CylinderGeometry(.025,.025,.03,20),M.plasticGray,vp,{x:s*.165,y:0,rz:Math.PI/2}));
+  const comm=mesh(tube([[.15,.12,-.05],[.2,.0,-.1],[.18,-.15,-.12],[.17,-.4,-.05]],.006,24),M.snoopyW,P.neck);
+  add('casco',[shell,crown,ring],P.neck,V3(-.14,.22,.08));
+  add('visor',[visor,...vrim],P.neck,V3(.05,.2,.17));
+  add('cable',[comm],P.neck,V3(.2,-.05,-.06));
+  // cierre del cuello (neck dam) visible bajo el anillo
+  const dam=mesh(new THREE.CylinderGeometry(.12,.125,.03,40),M.rubberDark,P.neck,{y:-.035});
+  add('cuello',[dam],P.neck,V3(-.1,-.03,.1));
+  // arnés del paracaídas
+  const harness=[];
+  for(const s of[-1,1]){ harness.push(mesh(tube([[s*.12,1.52,-.12],[s*.13,1.55,.05],[s*.11,1.4,.16],[s*.09,1.1,.15],[s*.07,.92,.13]],.012,30),M.harness,g));
+    harness.push(mesh(tube([[s*.07,.92,.13],[s*.13,.82,.13],[s*.2,.8,.05],[s*.2,.82,-.1]],.012,20),M.harness,g));
+    harness.push(mesh(new RoundedBoxGeometry(.05,.035,.02,1,.005),M.alu,g,{x:s*.1,y:1.3,z:.165})); }
+  harness.push(mesh(tube([[-.11,1.2,.16],[0,1.22,.17],[.11,1.2,.16]],.012,16),M.harness,g));
+  add('arnes',harness,g,V3(-.11,1.2,.2));
+  // chalecos salvavidas (LPU) bajo los brazos
+  const lpu=[]; for(const s of[-1,1]) lpu.push(mesh(new RoundedBoxGeometry(.08,.2,.14,3,.03),M.lpu,g,{x:s*.205,y:1.2,z:.0}));
+  add('salvavidas',lpu,g,V3(.24,1.22,.02));
+  // mochila del paracaídas (en el transbordador iba en el asiento y servía de respaldo)
+  const chute=mesh(new RoundedBoxGeometry(.42,.56,.2,5,.05),M.harness,g,{y:1.22,z:-.24});
+  const kit=mesh(new RoundedBoxGeometry(.38,.14,.16,3,.03),M.lpu,g,{y:.9,z:-.22});
+  add('paracaidas',[chute],g,V3(.2,1.35,-.3));
+  add('balsa',[kit],g,V3(-.2,.9,-.26));
+  // conexión de oxígeno en el muslo izquierdo
+  const ox=mesh(new THREE.CylinderGeometry(.03,.03,.05,24),M.alu,P.legs[1],{x:.06,y:-.12,z:.1,rx:Math.PI/2});
+  const oxh=mesh(tube([[.06,-.12,.13],[.12,-.2,.16],[.14,-.36,.12]],.014,20),M.hoseGray,P.legs[1]);
+  add('oxigeno',[ox,oxh],P.legs[1],V3(.08,-.1,.14));
+  // bolsillos de los hombros con barras de luz
+  const pk=[]; for(const ag of P.arms){ pk.push(mesh(new RoundedBoxGeometry(.06,.12,.035,2,.01),M.aces,ag,{x:ag.position.x>0?.07:-.07,y:-.13,z:.04})); }
+  add('bolsillos',pk,P.arms[1],V3(.1,-.1,.05));
+  // guantes y botas negras
+  const gl=[], rings=[];
+  P.wrists.forEach((wr,i)=>{ const s=i?1:-1; const hh=hand(wr,s,{shell:M.acesGlove,ring:M.plasticDark}); gl.push(...hh.parts.filter(p=>p!==hh.ring)); rings.push(hh.ring); });
+  add('guantes',[...gl,...rings],P.wrists[0],V3(0,-.14,.06));
+  const boots=[];
+  P.legs.forEach((lg,i)=>{ const s=i?1:-1; const b=new THREE.Group(); b.position.set(s*.02,-.86,.02); lg.add(b);
+    boots.push(mesh(new RoundedBoxGeometry(.11,.12,.27,4,.04),M.leather,b,{y:-.05,z:.04}));
+    boots.push(mesh(new THREE.CylinderGeometry(.07,.075,.2,28),M.leather,b,{y:.07}));
+    boots.push(mesh(new RoundedBoxGeometry(.115,.025,.28,3,.01),M.rubberDark,b,{y:-.108,z:.04})); });
+  add('botas',boots,P.legs[0],V3(-.03,-.9,.2));
+  const flag=mesh(new THREE.PlaneGeometry(.1,.053),new THREE.MeshPhysicalMaterial({map:flagTex('us'),roughness:.8,sheen:.6}),P.arms[1],{x:.092,y:-.2,z:.02,ry:Math.PI/2-.1});
+  add('bandera',[flag],P.arms[1],V3(.1,-.2,.02));
+  return {g,P,parts,inflate,anim:{visorPivot:vp},order:['casco','visor','cuello','cable','arnes','salvavidas','paracaidas','balsa','oxigeno','bolsillos','nomex','guantes','bandera','botas']};
+}
+
+/* ================= TRAJE 6: SPACEX (cápsula Dragon) ================= */
+function buildSpaceX(){
+  const {g,P,inflate}=body({mat:M.sxW,seed:71,bulk:.9,wr:.012});
+  const parts={}; const add=(k,meshes,anchorObj,anchorPos)=>{ parts[k]={meshes:[].concat(meshes),obj:anchorObj,pos:anchorPos}; };
+  add('capas',[P.torso],g,V3(.1,1.05,.13));
+  // paneles grises a los lados del torso y en los brazos
+  const panels=[];
+  for(const s of[-1,1]) panels.push(mesh(new RoundedBoxGeometry(.03,.36,.2,3,.012),M.sxGray,g,{x:s*.168,y:1.22,z:0}));
+  for(const ag of P.arms) panels.push(mesh(sweep([[0,-.02,0],[0,-.2,.01]],{nT:6,wr:0,r:()=>[.08,.077],ref:V3(1,0,0)}),M.sxGray,ag));
+  add('paneles',panels,g,V3(.2,1.3,.05));
+  // casco impreso en 3D con visor que sube
+  const ring=mesh(new THREE.CylinderGeometry(.125,.13,.05,48),M.sxGray,P.neck,{y:0});
+  const head=new THREE.Group(); head.position.y=.16; P.neck.add(head);
+  const man=mesh(new THREE.SphereGeometry(.095,32,24),M.mannequin,head,{y:-.005}); man.scale.set(.9,1.12,1);
+  const shell=mesh(new THREE.SphereGeometry(.16,56,36,Math.PI*1.02,Math.PI*.96,0,Math.PI*.86),M.shellWhite,P.neck,{y:.15}); shell.scale.set(1,1.04,1.08);
+  const chin=mesh(new THREE.SphereGeometry(.161,56,12,Math.PI*.12,Math.PI*.76,Math.PI*.66,Math.PI*.2),M.sxGray,P.neck,{y:.15}); chin.scale.set(1,1.04,1.08);
+  const crown=mesh(new THREE.SphereGeometry(.161,56,16,0,Math.PI*2,0,Math.PI*.2),M.shellWhite,P.neck,{y:.15}); crown.scale.set(1,1.04,1.08);
+  const vp=new THREE.Group(); vp.position.y=.15; P.neck.add(vp);
+  const visor=mesh(new THREE.SphereGeometry(.164,56,30,Math.PI*.12,Math.PI*.76,Math.PI*.2,Math.PI*.46),M.sxVisor,vp,{cast:false}); visor.scale.set(1,1.04,1.08);
+  const visorCu=mesh(visor.geometry,new THREE.MeshPhysicalMaterial({color:0xd08a55,metalness:1,roughness:.08,envMapIntensity:1.3}),vp,{cast:false}); visorCu.scale.copy(visor.scale); visorCu.visible=false;
+  const hinge=[]; for(const s of[-1,1]) hinge.push(mesh(new THREE.CylinderGeometry(.03,.03,.03,24),M.sxGray,vp,{x:s*.162,rz:Math.PI/2}));
+  add('casco',[shell,crown,chin,ring],P.neck,V3(-.14,.24,.06));
+  add('visor',[visor,visorCu,...hinge],P.neck,V3(.05,.2,.18));
+  // versión EVA (Polaris Dawn): cámara del casco y pantalla HUD
+  const camE=mesh(new RoundedBoxGeometry(.04,.04,.06,2,.008),M.plasticDark,P.neck,{x:-.17,y:.24,z:.06});
+  const hud=mesh(new THREE.PlaneGeometry(.06,.025),new THREE.MeshBasicMaterial({color:0x7ee2a8,transparent:true,opacity:.75}),head,{x:.04,y:.04,z:.11,ry:-.2,cast:false});
+  const evaBits=[camE,hud]; evaBits.forEach(m=>m.visible=false);
+  add('eva',evaBits,P.neck,V3(-.18,.27,.08));
+  // umbilical único en el muslo derecho, hacia el asiento
+  const umb=mesh(new RoundedBoxGeometry(.09,.07,.05,2,.012),M.sxGray,P.legs[0],{x:-.055,y:-.14,z:.1});
+  const umbH=mesh(tube([[-.06,-.14,.13],[-.1,-.22,.2],[-.14,-.42,.22],[-.2,-.6,.18]],.016,24),M.sxW,P.legs[0]);
+  add('umbilical',[umb,umbH],P.legs[0],V3(-.07,-.12,.14));
+  // cierre frontal y correas
+  const zip=mesh(tube([[0,1.52,.135],[0,1.3,.158],[0,1.05,.14]],.004,20),M.sxGray,g);
+  add('cierre',[zip],g,V3(0,1.42,.17));
+  // guantes táctiles y botas con guía en el talón
+  const gl=[], rings=[];
+  P.wrists.forEach((wr,i)=>{ const s=i?1:-1; const hh=hand(wr,s,{shell:M.sxGlove,tips:M.sxGray,ring:M.sxGray}); gl.push(...hh.parts.filter(p=>p!==hh.ring)); rings.push(hh.ring); });
+  add('guantes',[...gl,...rings],P.wrists[0],V3(0,-.14,.06));
+  const boots=[];
+  P.legs.forEach((lg,i)=>{ const s=i?1:-1; const b=new THREE.Group(); b.position.set(s*.02,-.86,.02); lg.add(b);
+    boots.push(mesh(new RoundedBoxGeometry(.1,.11,.26,4,.04),M.sxBoot,b,{y:-.05,z:.035}));
+    boots.push(mesh(new THREE.CylinderGeometry(.066,.07,.24,28),M.sxBoot,b,{y:.08}));
+    boots.push(mesh(new RoundedBoxGeometry(.03,.04,.03,1,.006),M.alu,b,{y:-.07,z:-.1})); });
+  add('botas',boots,P.legs[0],V3(-.03,-.9,.2));
+  const flag=mesh(new THREE.PlaneGeometry(.09,.048),new THREE.MeshPhysicalMaterial({map:flagTex('us'),roughness:.8,sheen:.6}),P.arms[1],{x:.083,y:-.1,z:.01,ry:Math.PI/2-.1});
+  add('bandera',[flag],P.arms[1],V3(.09,-.08,.01));
+  return {g,P,parts,inflate,anim:{visorPivot:vp,eva:evaBits,visorMesh:visor,visorCu},order:['casco','visor','paneles','cierre','umbilical','guantes','capas','bandera','botas','eva']};
+}
+
 /* ================= FANTASMAS: los trajes que vendrán en los próximos pares ================= */
 function buildGhost(o){
   const {g,P}=body({mat:M.ghost,seed:o.seed||50,bulk:o.bulk||1,wr:.008});
@@ -788,9 +906,55 @@ const SUITS=[
    <p>El EMU se estrenó el 7 de abril de 1983, cuando Story Musgrave y Don Peterson salieron de la bodega del Challenger. Se diseñó para durar 15 años y se sigue usando en la Estación Espacial.</p>
    <p>El 16 de julio de 2013, durante una caminata, al astronauta italiano Luca Parmitano se le empezó a llenar el casco de agua: llegó a tener 1,5 litros que le tapaban los ojos, la nariz y los oídos. Volvió a la escotilla guiándose por la cuerda de seguridad y no le pasó nada. Un filtro tapado dejaba pasar el agua del enfriamiento al aire; la NASA hizo 49 cambios después.</p>`,
   src:[['NASA · Ficha del EMU (PDF)','https://www.nasa.gov/wp-content/uploads/2009/07/188963main_extravehicular_mobility_unit.pdf'],['NASA · EMU de la Estación (2019, PDF)','https://www.nasa.gov/wp-content/uploads/2015/07/2019_07_ea_emu.pdf'],['NASA · Libro de datos del EMU (PDF)','https://www.nasa.gov/wp-content/uploads/2017/02/esoc-13_rev._v_emu_hardware_data_book_jsc-e-daa-tn55224.pdf'],['NASA OIG · Informe sobre los trajes (2017)','https://oig.nasa.gov/docs/IG-17-018.pdf'],['NASA · Riesgo de descompresión','https://www.nasa.gov/reference/risk-of-decompression-sickness'],['NASA · 10 años de la EVA 23 (Parmitano)','https://nasa.gov/general/10-years-ago-eva-23-how-a-high-visibility-close-call-cut-short-a-spacewalk'],['NASA NTRS · SAFER','https://ntrs.nasa.gov/citations/19960022260'],['ESA · El traje de Tim Peake','https://www.esa.int/ESA_Multimedia/Images/2015/10/Tim_Peake_EVA_suit']]},
- {id:'aces',name:'ACES «calabaza»',year:1994,soon:true,tint:0xd68a3c,desc:'El traje naranja de despegue y aterrizaje del transbordador espacial, para ser vistos en el mar si había que saltar.'},
+ {id:'aces',name:'ACES «calabaza»',year:1994,build:buildACES,
+  kick:'1994–2011 · David Clark Company (EE. UU.) · despegue y regreso',
+  sum:'El traje naranja de los astronautas del transbordador espacial, apodado «calabaza». Nació por el accidente del Challenger (1986): si algo fallaba, tenía que mantenerlos vivos a gran altura, dejarlos saltar en paracaídas y que flotaran en el mar hasta que los rescataran. Es naranja para que se vea desde lejos en el agua.',
+  parts:{
+   casco:['Casco de presión','Un casco cerrado que se conecta al anillo del cuello. Con el visor bajado, el traje queda sellado y se puede inflar.'],
+   visor:['Visor móvil','Se sube para hablar y comer, y se baja y traba en el despegue, el regreso o si la cabina pierde aire. Prueba el botón <b>Visor</b>.'],
+   cuello:['Cierre del cuello («neck dam»)','Un cuello de goma bien ajustado que separa el casco del resto del traje. Tiene válvulas para que salga el aire exhalado.'],
+   cable:['Cable de comunicaciones','El cable blanco del casco: auriculares y micrófono conectados a la radio del transbordador.'],
+   arnes:['Arnés del paracaídas','Las cintas del pecho y las piernas sujetan el cuerpo al paracaídas, que se abría solo a unos 14.000 pies (4.300 m).'],
+   salvavidas:['Chaleco salvavidas','Dos bolsas bajo los brazos que se inflan solas al tocar el agua: unos sensores detectan el mar, sueltan el paracaídas para que no arrastre al astronauta y llenan el salvavidas.'],
+   paracaidas:['Paracaídas','La mochila del paracaídas también hacía de respaldo del asiento en el transbordador. Aquí lo ves puesto, como al saltar.'],
+   balsa:['Equipo de supervivencia','Una balsa inflable para una persona, colorante para teñir el mar alrededor, espejo de señales, luz estroboscópica, bengala, radio, agua potable y pastillas contra el mareo.'],
+   oxigeno:['Conexión de oxígeno','En el muslo izquierdo: aquí entraba el oxígeno de la nave. Si había que saltar, dos botellitas del traje daban unos 10 minutos de oxígeno, suficiente para bajar a donde se puede respirar.'],
+   bolsillos:['Bolsillos de los hombros','Llevaban barras de luz química naranjas para ser vistos de noche.'],
+   nomex:['Tela Nomex naranja','La capa exterior es Nomex, una tela que no arde, en color «naranja internacional». Debajo va una vejiga que retiene el aire y un traje con tubitos de agua fría.'],
+   guantes:['Guantes','Se traban al traje con anillos; también son de presión.'],
+   bandera:['Bandera','La bandera de EE. UU. en el brazo.'],
+   botas:['Botas negras','Botas de cuero resistentes, para poder caminar en tierra después de un aterrizaje de emergencia.'],
+  },
+  layers:[['#b8c4d4','Traje de enfriamiento','tubitos de agua fría'],['#55524c','Vejiga de presión','retiene el aire si el traje se infla'],['#cfc7b5','Capa de sujeción','mantiene la forma del traje inflado'],['#e86f1c','Nomex naranja','exterior: no arde y se ve en el mar']],
+  layersNote:'El LES (1988) era un traje de presión parcial; el ACES (1994) ya es de presión total: puede inflarse entero, como un traje espacial de verdad.',
+  data:[['Fabricante','David Clark Company, Worcester (Massachusetts)'],['Usado','1994–2011 (antes, el LES desde 1988)'],['Presión','~3,5 psi, como el aire a unos 9.000 m de altura'],['Protege hasta','unos 30.000 m (100.000 pies)'],['Masa','traje ~14 kg; con paracaídas y equipo, ~41 kg'],['Oxígeno propio','~10 minutos (2 botellitas)'],['Color','naranja internacional']],
+  hist:`<p>Antes del accidente del Challenger (28 de enero de 1986), los astronautas del transbordador volaban con monos azules, sin trajes de presión. Después, la NASA creó un sistema para escapar: el traje LES (1988) y luego el ACES (1994), hechos por la misma empresa que fabricó los trajes Gemini.</p>
+   <p><b>El escape por pértiga.</b> Si el transbordador no podía llegar a una pista, se lo dejaba planeando con el piloto automático, se despresurizaba la cabina y se expulsaba la escotilla. Por debajo de unos 7.600 m (25.000 pies), cada astronauta enganchaba su arnés a una pértiga curva de casi 3 m que salía por la escotilla, y saltaba: la pértiga lo guiaba para no chocar con el ala. Prueba el botón <b>Escape por pértiga</b>. Nunca hizo falta usarlo en una misión real.</p>
+   <p>El último vuelo con ACES fue el STS‑135, en julio de 2011. Los trajes naranjas de Orion, para el programa Artemis, siguen la misma idea: naranja para el mar, ahora hechos a medida y con guantes para pantallas táctiles.</p>`,
+  src:[['Museo de la Fuerza Aérea de EE. UU. · ACES','https://www.nationalmuseum.af.mil/Visit/Museum-Exhibits/Fact-Sheets/Display/Article/1860483/space-shuttle-advanced-crew-escape-suit-1994-2011/'],['David Clark Company · ACES','https://www.davidclarkcompany.com/aerospace/advanced-crew-escape-suit'],['NASA NTRS · Trajes del transbordador (PDF)','https://ntrs.nasa.gov/api/citations/20140010572/downloads/20140010572.pdf'],['NASA · Supervivencia de la tripulación (PDF)','https://www.nasa.gov/wp-content/uploads/2015/07/crew-survival.pdf'],['NASA · Trajes hechos para la presión','https://www.nasa.gov/humans-in-space/spacesuits-built-to-handle-pressure'],['Smithsonian · Escapar de un transbordador','https://www.smithsonianmag.com/air-space-magazine/escape-speeding-shuttle-180975606/'],['NASA · El traje de Orion (Artemis)','https://www.nasa.gov/missions/artemis/orion-suit-equipped-to-expect-the-unexpected-on-artemis-missions']]},
  {id:'feitian',name:'Feitian (China)',year:2008,soon:true,pack:true,desc:'El traje chino para caminatas espaciales, estrenado en la Shenzhou 7.'},
- {id:'spacex',name:'Traje de SpaceX',year:2020,soon:true,tint:0xd9dde3,desc:'El traje de la cápsula Dragon, hecho a medida y conectado al asiento por un solo cable.'},
+ {id:'spacex',name:'Traje de SpaceX',year:2020,build:buildSpaceX,
+  kick:'2020–hoy · SpaceX (EE. UU.) · cápsula Dragon',
+  sum:'El traje de la cápsula Crew Dragon. Lo diseñó al principio un diseñador de vestuario de Hollywood y después los ingenieros de SpaceX lo hicieron funcionar. Como el Sokol, es un salvavidas: si la cápsula pierde el aire, se infla y mantiene vivo al astronauta. Se conecta al asiento por un solo cable en el muslo.',
+  parts:{
+   casco:['Casco impreso en 3D','Hecho con impresoras 3D, con válvulas, micrófonos y el mecanismo del visor dentro de la misma pieza. Cada astronauta tiene el suyo.'],
+   visor:['Visor','Se sube y se traba para hablar; se baja para sellar el traje. Prueba el botón <b>Visor</b>.'],
+   paneles:['Paneles grises','Zonas de otro material en los costados y los hombros, donde el traje necesita doblarse o resistir más.'],
+   cierre:['Cierre frontal','El traje se pone por delante, como un mono de trabajo.'],
+   umbilical:['Un solo umbilical','En el muslo derecho: un conector con 14 pines para energía y datos, un puerto ancho para el aire y otro pequeño de alta presión. Va al asiento, que SpaceX diseñó junto con el traje como un solo sistema «traje‑asiento».'],
+   guantes:['Guantes táctiles','Las puntas de los dedos conducen electricidad, para manejar las pantallas táctiles de la Dragon sin quitarse los guantes. La Dragon casi no tiene botones.'],
+   capas:['Tres capas','Según el astronauta japonés Soichi Noguchi: una capa exterior con teflón, un núcleo reforzado con fibras y una capa interior hermética. Resiste el fuego y los golpes.'],
+   bandera:['Bandera','La bandera del país del astronauta.'],
+   botas:['Botas con guía en el talón','La pieza metálica del talón encaja en el asiento y traba el pie durante el despegue.'],
+   eva:['Versión de caminata (Polaris Dawn)','Pulsa <b>Versión EVA</b>. En 2024 SpaceX hizo un traje para salir al espacio: casco con pantalla HUD (presión, temperatura, humedad), cámara, y un visor con una capa de cobre y óxido de indio y estaño que refleja la luz del Sol. No lleva mochila: el aire llega por un umbilical de unos 3,5 m desde la cápsula.'],
+  },
+  layers:[['#55524c','Capa interior','hermética: retiene el aire'],['#cfc7b5','Núcleo','reforzado con fibras'],['#f3f3f0','Capa exterior','con teflón; resiste el fuego']],
+  layersNote:'Según Soichi Noguchi (2021). SpaceX no publica la presión ni la masa del traje.',
+  data:[['Diseño','José Fernández (vestuario de cine) y los ingenieros de SpaceX'],['Primer vuelo tripulado','30 may 2020, Demo‑2: Bob Behnken y Doug Hurley'],['Para qué','despegue y regreso en la Dragon; solo dentro de la nave'],['Conexión','un único umbilical en el muslo, al asiento'],['Hecho a medida','sí'],['Masa y presión','no publicadas'],['Versión EVA','primera caminata privada: 12 sep 2024 (Isaacman y Gillis)']],
+  hist:`<p>En 2016 SpaceX contrató a José Fernández, que había diseñado trajes de películas de superhéroes, para dibujar un traje que se viera bien. Después los ingenieros lo convirtieron en un traje de presión de verdad. Antes de llevar personas, viajó en maniquíes: en el Falcon Heavy de 2018 y en «Ripley», el maniquí de la prueba sin tripulación de 2019.</p>
+   <p>El 30 de mayo de 2020 Bob Behnken y Doug Hurley lo estrenaron en el primer vuelo tripulado de la Crew Dragon, desde la plataforma 39A de Cabo Cañaveral. Fue el primer viaje de astronautas desde EE. UU. desde el final del transbordador en 2011.</p>
+   <p>El 12 de septiembre de 2024, en la misión Polaris Dawn, Jared Isaacman y Sarah Gillis salieron al espacio con la versión EVA: la primera caminata espacial privada. Como la Dragon no tiene esclusa, se vació el aire de toda la cabina con los cuatro tripulantes dentro, con el traje puesto.</p>`,
+  src:[['Smithsonian · Los trajes de SpaceX','https://www.smithsonianmag.com/blogs/air-space-museum/2020/05/27/spacex-dragon-launch-and-entry-suits/'],['Space.com · Los trajes de Crew Dragon','https://www.space.com/spacex-crew-dragon-spacesuits-explained.html'],['NASA · Lanzamiento de Demo‑2','https://www.nasa.gov/news-release/nasa-astronauts-launch-from-america-in-historic-test-flight-of-spacex-crew-dragon/'],['TechCrunch · De cerca, los nuevos trajes','https://techcrunch.com/2020/05/27/up-close-with-the-fresh-new-spacesuits-astronauts-will-soon-wear-in-orbit-for-the-first-time/'],['Hackaday · Noguchi muestra el traje','https://hackaday.com/2021/04/06/iss-astronaut-shows-off-spacexs-stylish-spacesuit'],['Space.com · Primera caminata privada','https://www.space.com/spacex-polaris-dawn-first-private-spacewalk'],['Popular Science · El traje EVA de SpaceX','https://www.popsci.com/science/spacex-eva-suits']]},
  {id:'boeing',name:'Boeing «azul»',year:2024,soon:true,tint:0x4e7fd0,desc:'El traje azul de la Starliner, más liviano que los anteriores y con guantes que funcionan en pantallas táctiles.'},
  {id:'axemu',name:'AxEMU (Artemis)',year:'futuro',soon:true,pack:true,tint:0x8892a3,desc:'El traje lunar de Axiom para volver a la Luna con el programa Artemis.'},
 ];
@@ -874,6 +1038,16 @@ function renderActs(){
     btn('Luces',b=>{ F.lights=!F.lights; b.setAttribute('aria-pressed',F.lights); },!!F.lights);
     btn('Franjas rojas',b=>{ F.stripes=!F.stripes; F.f.anim.stripes.forEach(m=>m.visible=F.stripes); b.setAttribute('aria-pressed',F.stripes); if(F.stripes) pickPart('franjas'); },F.stripes);
   }
+  if(s.id==='aces'){
+    btn('Presurizar 3,5 psi',b=>{ const on=F.pT<.5; F.pT=on?1:0; b.setAttribute('aria-pressed',on); gaugeGen(on,'ACES',3.46,'El traje se infla a unos 3,5 psi: la presión del aire a 9.000 m de altura. Así se protegía a los astronautas si la cabina perdía el aire a gran altura.'); },F.pT>.5);
+    btn('Visor',b=>{ F.vT=F.vT>.5?0:1; b.setAttribute('aria-pressed',F.vT>.5); },F.vT>.5);
+    btn('Escape por pértiga',()=>stepsSim('Escape por pértiga · ACES',ESCAPE)).classList.add('go');
+  }
+  if(s.id==='spacex'){
+    btn('Visor',b=>{ F.vT=F.vT>.5?0:1; b.setAttribute('aria-pressed',F.vT>.5); },F.vT>.5);
+    btn('Inflar',b=>{ const on=F.pT<.5; F.pT=on?1:0; b.setAttribute('aria-pressed',on); $('gauge').hidden=!on; if(on){ $('gk').textContent='Traje de SpaceX'; sim={kind:'pct',t:0}; $('glog').textContent='Si la Dragon pierde el aire, el traje se infla con el aire del asiento. SpaceX no publica la presión exacta.'; } },F.pT>.5);
+    btn('Versión EVA (Polaris Dawn)',b=>{ F.eva=!F.eva; F.f.anim.eva.forEach(m=>m.visible=F.eva); F.f.anim.visorCu.visible=F.eva; F.f.anim.visorMesh.visible=!F.eva; b.setAttribute('aria-pressed',F.eva); if(F.eva){ F.vT=1; pickPart('eva'); } },!!F.eva);
+  }
   btn('Vista general',()=>flyTo(cur,true));
 }
 function showTab(t){
@@ -896,7 +1070,7 @@ const hl=new Map();
 function pickPart(k,fromTag){
   hl.forEach((m,mesh_)=>{ mesh_.material=m; }); hl.clear();
   partSel=k; const F=FIG[cur];
-  if(k&&F.f.parts[k]){ for(const m of F.f.parts[k].meshes){ if(!m.material||hl.has(m)) continue; hl.set(m,m.material); const c=m.material.clone(); c.emissive=new THREE.Color(0xffb547); c.emissiveIntensity=0; m.material=c; } }
+  if(k&&F.f.parts[k]){ for(const m of F.f.parts[k].meshes){ if(!m.material||hl.has(m)||!m.material.isMeshStandardMaterial) continue; hl.set(m,m.material); const c=m.material.clone(); c.emissive=new THREE.Color(0xffb547); c.emissiveIntensity=0; m.material=c; } }
   if(tab!=='partes') showTab('partes'); else body_.querySelectorAll('.plist button').forEach(b=>b.setAttribute('aria-current',b.dataset.k===k));
   tags.querySelectorAll('.tag').forEach(t=>t.classList.toggle('on',t.dataset.k===k));
   if(k){ const li=body_.querySelector(`.plist button[data-k="${k}"]`); if(li) li.scrollIntoView({block:'nearest',behavior:'smooth'});
@@ -917,6 +1091,8 @@ function gaugeGen(on,name,psi,txt){
 function flyBack(){ const r=FIG[cur].root, target=r.localToWorld(V3(0,1.35,-.2)), pos=r.localToWorld(V3(-1.6,1.9,-2.6));
   if(innerWidth<=860) pos.sub(target).multiplyScalar(1.4).add(target);
   fly={t:0,p0:camera.position.clone(),t0:controls.target.clone(),p1:pos,t1:target}; }
+const ESCAPE=[[0,'1. A unos 18.000 m (60.000 pies) el transbordador planea solo con el piloto automático, sin poder llegar a una pista.'],[3,'2. Se despresuriza la cabina y la escotilla sale disparada con explosivos.'],[6,'3. Por debajo de ~7.600 m sale por la escotilla una pértiga curva de casi 3 m.'],[9,'4. Cada astronauta engancha su arnés a la pértiga y salta: la pértiga curva lo aleja del ala izquierda.'],[12,'5. El paracaídas se abre solo a unos 4.300 m.'],[15,'6. Al tocar el agua, el paracaídas se suelta y el salvavidas se infla. A esperar el rescate en la balsa naranja.'],[19,null]];
+function stepsSim(title,steps){ $('gauge').hidden=false; $('gk').textContent=title; $('gv').innerHTML=''; $('gb').style.width='0%'; sim={kind:'steps',steps,t:0,step:-1}; }
 function leakTest(){
   const F=FIG[cur]; F.vT=1; $('acts').querySelectorAll('.tb')[1]?.setAttribute('aria-pressed',true);
   $('gauge').hidden=false; $('gk').textContent='Prueba de fugas · Sokol KV‑2';
@@ -926,6 +1102,10 @@ const SOK=[[0,'1. Cerrar el visor y ajustar las correas.'],[2,'2. Inflar por enc
 function stepSim(dt){
   if(!sim) return; sim.t+=dt; const F=FIG[cur];
   if(sim.kind==='a7l'){ const v=3.7*F.p; $('gv').innerHTML=`${fmt(v)} <small>psi · ${fmt(v*6.895,0)} kPa</small>`; $('gb').style.width=(F.p*100)+'%'; }
+  if(sim.kind==='steps'){ let st=0; for(let k=0;k<sim.steps.length;k++) if(sim.t>=sim.steps[k][0]) st=k; const last=sim.steps[sim.steps.length-1][0];
+    if(st!==sim.step){ sim.step=st; if(sim.steps[st][1]) $('glog').textContent=sim.steps[st][1]; }
+    $('gv').innerHTML=`Paso ${Math.min(st+1,sim.steps.length-1)} <small>de ${sim.steps.length-1}</small>`; $('gb').style.width=Math.min(100,sim.t/last*100)+'%'; if(sim.t>last) sim=null; return; }
+  if(sim.kind==='pct'){ $('gv').innerHTML=`${fmt(F.p*100,0)} % <small>inflado</small>`; $('gb').style.width=(F.p*100)+'%'; return; }
   if(sim.kind==='gen'){ const v=sim.psi*F.p; $('gv').innerHTML=`${fmt(v)} <small>psi · ${fmt(v*6.895,0)} kPa</small>`; $('gb').style.width=(F.p*100)+'%'; }
   if(sim.kind==='sokol'){
     let st=0; for(let k=0;k<SOK.length;k++) if(sim.t>=SOK[k][0]) st=k;
@@ -967,6 +1147,7 @@ function tick(){
     if(F.s.id==='a7l') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.05;
     if(F.s.id==='sokol') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.15;
     if(F.s.id==='emu') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.05;
+    if(F.s.id==='aces'||F.s.id==='spacex') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.1;
     if(F.s.id==='orlan'){ F.d=(F.d||0)+((F.dT||0)-(F.d||0))*Math.min(1,dt*2.2); F.f.anim.door.rotation.y=-1.5*F.d; F.f.anim.filtVis.rotation.x=-(1-F.v)*.75; }
     if(F.f.anim.lampL) F.f.anim.lampL.forEach(l=>{ l.material.emissiveIntensity+=((F.lights?6:0)-l.material.emissiveIntensity)*Math.min(1,dt*6); });
   }
@@ -976,7 +1157,7 @@ function tick(){
   // números sobre las piezas
   if(cur>=0&&!SUITS[cur].soon&&tab==='partes'){ const F=FIG[cur], w=innerWidth, h=innerHeight; const cd=camera.getWorldDirection(V3());
     for(const t of tags.children){ const pt=F.f.parts[t.dataset.k]; if(!pt){ t.style.display='none'; continue; }
-      if(t.dataset.k==='franjas'&&!F.stripes&&F.s.id!=='orlan'){ t.style.display='none'; continue; }
+      if((t.dataset.k==='franjas'&&!F.stripes&&F.s.id!=='orlan')||(t.dataset.k==='eva'&&!F.eva)){ t.style.display='none'; continue; }
       pt.obj.localToWorld(tmp.copy(pt.pos)); const loc=F.root.worldToLocal(tmp.clone()), camL=F.root.worldToLocal(camera.position.clone());
       const back=(loc.z<-.05&&camL.z>0)||(loc.z>.08&&camL.z<0);
       tmp.project(camera); const vis=tmp.z<1;
