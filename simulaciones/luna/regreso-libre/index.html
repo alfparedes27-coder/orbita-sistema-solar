@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Apolo 13 y Artemis II</title>
+<meta name="description" content="Las dos vueltas a la Luna con regreso libre: el rescate del Apolo 13 (1970), que tú ayudas a resolver, y Artemis II (2026), que batió su récord de distancia. Trayectorias calculadas con la posición real de la Luna.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Lienzo 3D a pantalla completa con paneles flotantes (paleta oscura del proyecto). Ámbar = Apolo 13, celeste = Artemis II. */
+:root{
+  --void:#04050a; --panel:rgba(10,12,20,.88); --line:#232a3d; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9a9fb3; --faint:#646b82; --a13:#ffb347; --a2:#6fd3ff; --ok:#7ee2a8; --bad:#ff6a4d;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px); --gl:max(16px,env(safe-area-inset-left,0px)); --gr:max(16px,env(safe-area-inset-right,0px));
+  --acc:var(--a13); color-scheme:dark;
+}
+body.m-a2{--acc:var(--a2)}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink);font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px;white-space:nowrap}
+.title{padding:7px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.missions{display:flex;gap:6px;flex-wrap:wrap;padding:6px}
+.mis{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 10px;text-align:left;line-height:1.15}
+.mis b{display:block;font:600 13px var(--f-display)} .mis span{font-size:11px;color:var(--dim)}
+.mis[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#120c02} .mis[aria-pressed=true] span{color:#3a2a10}
+.side{position:fixed;right:var(--gr);top:calc(80px + var(--top));bottom:calc(112px + var(--bot));width:320px;z-index:4;display:flex;flex-direction:column;overflow:hidden}
+.side .scroll{overflow:auto;padding:12px 14px;flex:1}
+.clock{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.met{font:500 18px var(--f-data);white-space:nowrap;font-variant-numeric:tabular-nums} .utc{font:400 11.5px var(--f-data);color:var(--dim);text-align:right}
+.phase{font:600 11px/1.2 var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--acc);margin-top:2px}
+.ev{margin:10px 0;padding:9px 11px;border-left:3px solid var(--acc);background:rgba(255,255,255,.04);border-radius:5px;font-size:13px;line-height:1.45}
+.ev b{display:block;font:600 14px var(--f-display);margin-bottom:2px}
+h3{margin:12px 0 6px;font:600 11px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid rgba(255,255,255,.05);font-size:12.5px}
+.row:first-of-type{border-top:0} .row span{color:var(--dim)} .row b{font:500 12.5px var(--f-data);text-align:right}
+.row b.warn{color:var(--bad)} .row b.ok{color:var(--ok)}
+.rec{margin-top:6px} .recb{height:8px;border-radius:4px;background:#1a2030;position:relative;overflow:hidden;margin:3px 0 6px}
+.recb i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.recl{display:flex;justify-content:space-between;font:500 11px var(--f-data);color:var(--dim)}
+.tasks{display:flex;flex-direction:column;gap:6px}
+.task{display:grid;grid-template-columns:28px 1fr;gap:2px 8px;align-items:center;text-align:left;background:transparent;border:1px solid var(--line2);border-radius:8px;padding:7px 9px}
+.task .ic{font-size:20px;grid-row:span 2} .task b{font:600 13px var(--f-display)} .task small{color:var(--dim);font-size:11.5px}
+.task[data-st=locked]{opacity:.45;cursor:default} .task[data-st=ready]{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset} .task[data-st=done] b::after{content:" ✓";color:var(--ok)}
+.log{list-style:none;margin:0;padding:0;max-height:230px;overflow:auto;position:relative}
+.log li{font-size:12px;line-height:1.3;padding:4px 6px;border-radius:5px;cursor:pointer;color:var(--dim)}
+.log li:hover{background:rgba(255,255,255,.05)} .log li.past{color:var(--ink)} .log li.now{background:rgba(255,255,255,.1);color:var(--ink)}
+.log li i{font-style:normal;font:500 10.5px var(--f-data);color:var(--faint);display:block}
+.note{font-size:11px;color:var(--faint);line-height:1.4;margin-top:10px}
+.bottom{position:fixed;left:var(--gl);right:var(--gr);bottom:calc(10px + var(--bot));z-index:5;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.trk{position:relative;height:26px}
+.trk input{position:absolute;inset:0;width:100%;margin:0;accent-color:var(--acc)}
+.ticks{position:absolute;left:8px;right:8px;top:0;height:6px;pointer-events:none}
+.ticks i{position:absolute;top:0;width:2px;height:6px;background:var(--acc);opacity:.7;transform:translateX(-1px)}
+.ticks i.big{height:9px;background:var(--bad);opacity:1}
+.ctl{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.ctl button{background:transparent;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font:500 12.5px var(--f-data)}
+.ctl button[aria-pressed=true]{background:var(--acc);color:#120c02;border-color:var(--acc)}
+.ctl .lab{font:600 10.5px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:0 4px}
+.ctl .sp{flex:1}
+#play{min-width:44px}
+.lbl{position:fixed;left:0;top:0;pointer-events:none;font:600 11px var(--f-display);letter-spacing:.06em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;transform:translate(-50%,-150%);z-index:2}
+.toast{position:fixed;left:50%;top:calc(84px + var(--top));transform:translateX(-50%);padding:9px 14px;z-index:6;font-size:13px;max-width:min(520px,calc(100vw - 32px));text-align:center;transition:opacity .4s}
+/* ventana de los desafíos */
+.game{position:fixed;inset:0;z-index:20;background:rgba(2,3,8,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+.gbox{width:min(760px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:16px 18px;border-color:var(--acc)}
+.gbox h2{margin:0 0 4px;font:700 20px var(--f-display)} .gbox .gk{font:600 10.5px var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+.gbox p{margin:6px 0;line-height:1.5;font-size:13.5px}
+.gbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.gbtn{background:var(--acc);color:#120c02;border:0;border-radius:8px;padding:9px 14px;font:600 14px var(--f-display)}
+.gbtn.alt{background:transparent;color:var(--ink);border:1px solid var(--line2)}
+.sw{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
+.sw button{background:#141826;border:1px solid var(--line2);border-radius:8px;padding:10px 6px;font:500 12px var(--f-data);display:flex;flex-direction:column;align-items:center;gap:6px;min-height:84px}
+.sw button i{width:16px;height:30px;border-radius:8px;background:#2a2f3e;position:relative;display:block}
+.sw button i::after{content:"";position:absolute;left:3px;right:3px;height:12px;bottom:3px;border-radius:5px;background:#9aa0b0;transition:bottom .15s}
+.sw button.on i{background:#244a2f} .sw button.on i::after{bottom:15px;background:var(--ok)}
+.sw button.err{animation:shake .3s} @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:10px 0}
+.items button{background:#141826;border:1px solid var(--line2);border-radius:8px;padding:8px;text-align:left;font-size:12.5px;display:flex;gap:8px;align-items:center}
+.items button span{font-size:22px} .items button[aria-pressed=true]{border-color:var(--ok);background:#13241a}
+.gauge{display:flex;align-items:center;gap:10px;font:500 13px var(--f-data)} .gauge .recb{flex:1;margin:0;height:12px}
+.gc{width:100%;height:auto;display:block;border-radius:10px;background:#000;touch-action:none}
+.pad{display:grid;grid-template-columns:repeat(3,52px);gap:6px;justify-content:center}
+.pad button{height:46px;border-radius:8px;background:#141826;border:1px solid var(--line2);font:600 18px var(--f-data);user-select:none;-webkit-user-select:none;touch-action:none}
+.gflex{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:10px}
+.res{padding:9px 11px;border-radius:8px;background:#13241a;border:1px solid #275a37;margin-top:8px;font-size:13.5px} .res.bad{background:#2a1410;border-color:#6a2a1a}
+@media (max-width:820px){
+  .side{left:var(--gl);right:var(--gr);width:auto;top:auto;bottom:calc(112px + var(--bot));max-height:36vh}
+  .ctl .lab,.ctl .sp{display:none} .ctl{gap:3px} .ctl button{padding:4px 6px;font-size:11px} .ev{font-size:12.5px}
+  .side.min .scroll>*:not(.keep){display:none}
+  .side .keep::after{content:'▾ Toca aquí para ver la telemetría y los desafíos';display:block;font-size:11px;color:var(--faint);text-align:center} .side:not(.min) .keep::after{content:'▴ Toca aquí para achicar'}
+  .title h1{font-size:15px}
+  .mis{padding:4px 8px}
+  .sw{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="Simulación 3D: la nave, la Tierra y la Luna"></canvas>
+<div id="labels"></div>
+<div class="top">
+  <a class="back panel" href="../">← Mapa de la Luna</a>
+  <div class="title panel"><div class="kick" id="kick">Regreso libre alrededor de la Luna</div><h1 id="h1">Apolo 13</h1></div>
+  <div class="missions panel" role="group" aria-label="Misión">
+    <button class="mis" data-m="a13" aria-pressed="true"><b>Apolo 13</b><span>1970 · el rescate</span></button>
+    <button class="mis" data-m="a2" aria-pressed="false"><b>Artemis II</b><span>2026 · el récord</span></button>
+  </div>
+</div>
+<aside class="side panel" id="side">
+  <div class="scroll">
+    <div class="keep"><div class="clock"><div><div class="met" id="met">T+ 000:00:00</div><div class="phase" id="phase">En la plataforma</div></div><div class="utc" id="utc"></div></div>
+    <div class="ev" id="ev"></div></div>
+    <h3>Telemetría</h3>
+    <div class="row"><span>Distancia a la Tierra</span><b id="dE">—</b></div>
+    <div class="row"><span>Altura sobre la Luna</span><b id="dM">—</b></div>
+    <div class="row"><span>Velocidad respecto a la Tierra</span><b id="vE">—</b></div>
+    <div class="row"><span>Radio con la Tierra</span><b id="rad">—</b></div>
+    <div class="row" id="rowO2"><span>Oxígeno del Odyssey</span><b id="o2">—</b></div>
+    <div class="rec"><h3>Récord de distancia</h3>
+      <div class="recl"><span>Apolo 13 · 400.171 km</span></div><div class="recb"><i id="rb13" style="background:var(--a13)"></i></div>
+      <div class="recl"><span>Artemis II · 406.771 km</span></div><div class="recb"><i id="rb2" style="background:var(--a2)"></i></div>
+      <div class="recl"><span id="recNow"></span></div>
+    </div>
+    <h3 id="tasksH">Ayuda a la tripulación</h3>
+    <div class="tasks" id="tasks"></div>
+    <h3>Diario de la misión</h3>
+    <ol class="log" id="log"></ol>
+    <p class="note" id="note"></p>
+  </div>
+</aside>
+<div class="bottom panel">
+  <div class="trk"><div class="ticks" id="ticks"></div><input type="range" id="tl" min="0" max="1000" step="1" value="0" aria-label="Tiempo de la misión"></div>
+  <div class="ctl">
+    <button id="play" aria-label="Reproducir">▶</button>
+    <span class="lab">Velocidad</span>
+    <button data-sp="1000">×1.000</button><button data-sp="5000" aria-pressed="true">×5.000</button><button data-sp="20000">×20.000</button>
+    <span class="sp"></span>
+    <span class="lab">Cámara</span>
+    <button data-cam="todo" aria-pressed="true">Todo el viaje</button><button data-cam="nave">La nave</button><button data-cam="ventana">Mirar a la Tierra</button>
+  </div>
+</div>
+<div class="toast panel" id="toast" style="opacity:0"></div>
+<div class="game" id="game" hidden><div class="gbox panel" id="gbox" role="dialog" aria-modal="true"></div></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const $ = id => document.getElementById(id);
+const RE = 6371, RM = 1737.4, KM = 1e-3;          // la escena está en megámetros (1 unidad = 1.000 km)
+
+/* ===================== datos de las misiones =====================
+   MET en horas desde el despegue. Los momentos y cifras vienen de los informes de NASA (Apolo 13: Mission Report MSC-02680;
+   Artemis II: blogs de la misión y Agencia Espacial Canadiense). La trayectoria se integró con la gravedad de la Tierra y de la Luna
+   y la posición real de la Luna en cada fecha (tools/hornear_regreso_libre.py). */
+const hms = (h, m = 0, s = 0) => h + m / 60 + s / 3600;
+const MIS = {
+  a13: { name: 'Apolo 13', kick: '11–17 de abril de 1970 · regreso libre de emergencia', t0: Date.UTC(1970, 3, 11, 19, 13, 0), tli: hms(2, 35, 46), per: hms(77, 8), end: hms(142, 44), splash: hms(142, 54, 41), col: 0xffb347,
+    park: 1.47, note: 'Apolo 13 no siguió todo el tiempo un regreso libre: a las 30 h dejó esa ruta para alunizar en Fra Mauro, y tras la explosión el encendido de las 61 h la recuperó. La línea muestra la ruta final, con el encendido PC+2 que adelantó la llegada. Distancias medidas desde la superficie de la Tierra, como en el récord.',
+    ev: [
+      [0, 'Despegue', 'El Saturn V despega del complejo 39A a las 14:13 hora de Ecuador. Van Jim Lovell (comandante), Jack Swigert (piloto del módulo de mando) y Fred Haise (piloto del módulo lunar). A los 5 minutos, el motor central de la segunda etapa se apaga antes de tiempo por vibraciones; los otros cuatro arden más y lo compensan.'],
+      [hms(2, 35, 46), 'Rumbo a la Luna', 'La tercera etapa S‑IVB enciende casi 6 minutos y los saca de la órbita: ahora van a 39.000 km/h.'],
+      [hms(3, 6), 'Acoplamiento', 'El módulo de mando Odyssey da media vuelta, se engancha al módulo lunar Aquarius y lo saca de la etapa. Viajarán unidos, nariz con nariz.'],
+      [hms(30, 40, 50), 'Dejan el regreso libre', 'Un encendido corto los pone en una ruta «híbrida» para alunizar en Fra Mauro. Desde aquí, si el motor fallara, no volverían solos a la Tierra.'],
+      [hms(55, 54, 53), '¡Explosión!', 'Swigert enciende los ventiladores del tanque de oxígeno 2. Un cable sin aislamiento hace chispa, el tanque estalla y arranca una tapa entera del módulo de servicio. El tanque 1 también empieza a vaciarse.', 'boom'],
+      [hms(55, 55, 20), '«Houston, hemos tenido un problema»', 'Lo dice Swigert y lo repite Lovell. En el panel, dos de las tres pilas de combustible mueren: sin oxígeno no hay ni electricidad ni agua. Por la ventana ven una nube de gas que sale de la nave.'],
+      [hms(57, 40), 'El Aquarius, bote salvavidas', 'El Aquarius estaba hecho para 2 personas durante 2 días. Ahora tiene que mantener vivas a 3 durante 4 días. Lo encienden y apagan el Odyssey para guardar sus baterías para el final.', 'task:lm'],
+      [hms(61, 29, 43), 'Vuelta al regreso libre', 'El motor de descenso del Aquarius enciende 34 segundos: la Luna los devolverá a la Tierra aunque no hagan nada más.'],
+      [hms(77, 8), 'Detrás de la Luna: récord', 'Pasan a 254 km de la cara oculta, sin señal de radio durante 25 minutos. Están a 400.171 km de la Tierra: nadie ha estado nunca tan lejos. Swigert y Haise sacan fotos; Lovell ya había visto la Luna de cerca en el Apolo 8.'],
+      [hms(79, 27, 39), 'Encendido PC+2', 'Dos horas después de la Luna, el motor del Aquarius enciende 4 minutos y 24 segundos: +262 m/s. Llegarán unas 10 horas antes y caerán en el Pacífico, donde espera el portaaviones.'],
+      [hms(85, 0), 'La «caja de correo»', 'Los filtros de CO₂ del Aquarius se saturan: el aire se vuelve venenoso. Los del Odyssey son cuadrados y el hueco del Aquarius es redondo. En Houston inventan un adaptador con lo que hay a bordo.', 'task:co2'],
+      [hms(105, 18, 28), 'Encendido a mano', 'Sin computadora de guía encendida, corrigen la ruta mirando por la ventana: mantienen la línea entre el día y la noche de la Tierra en la mira durante 14 segundos.', 'task:burn'],
+      [hms(138, 1, 48), 'Sueltan el módulo de servicio', 'Al alejarse, lo ven por primera vez: falta un panel entero de 4 m. «Hay un lado completo que no está», dice Lovell.'],
+      [hms(140, 10), 'Despiertan al Odyssey', 'Encienden el módulo de mando con mucho cuidado, sin saber si funcionará después de días a 3 °C. Las paredes chorrean agua condensada.'],
+      [hms(141, 30), 'Adiós, Aquarius', 'Sueltan el módulo lunar que les salvó la vida. Se quemará en la atmósfera sobre el Pacífico.'],
+      [hms(142, 40, 46), 'Reentrada', 'El Odyssey entra a la atmósfera a 40.000 km/h. El apagón de radio dura 6 minutos, uno y medio más de lo normal: en Houston nadie respira.'],
+      [hms(142, 54, 41), 'Amerizaje', 'Tres paracaídas y al agua, cerca de Samoa, a 6 km del portaaviones USS Iwo Jima. Los tres vuelven sanos. La NASA lo llamó «un fracaso exitoso».'],
+    ] },
+  a2: { name: 'Artemis II', kick: '1–10 de abril de 2026 · primera tripulación a la Luna en 53 años', t0: Date.UTC(2026, 3, 1, 22, 35, 0), tli: hms(25, 14), per: hms(120, 25), end: hms(217, 21), splash: hms(217, 32), col: 0x6fd3ff,
+    note: 'Artemis II siguió un regreso libre de principio a fin: después del encendido del día 2 la gravedad de la Luna hizo el resto. La órbita alta de las primeras 25 horas (185 × 74.000 km) sirvió para probar la nave cerca de casa. Distancias medidas desde la superficie de la Tierra, como en el récord.',
+    ev: [
+      [0, 'Despegue', 'El cohete SLS despega del complejo 39B a las 17:35 hora de Ecuador, con 8,8 millones de libras de empuje. En la cápsula Orión, que la tripulación llamó Integrity, van Reid Wiseman (comandante), Victor Glover (piloto), Christina Koch y el canadiense Jeremy Hansen.'],
+      [hms(1, 0), 'Órbita alta', 'La etapa superior los sube a una órbita muy alargada: de 185 km a 74.000 km de altura. Una vuelta tarda 23 horas y media; si algo fallara, estarían cerca de casa.'],
+      [hms(3, 20), 'Pilotaje manual', 'Orión se separa de la etapa superior, da media vuelta y se queda a 90 m. Glover toma los controles y se acerca hasta unos 9 m, apuntando a un blanco de 60 cm: es la práctica para acoplarse a futuros módulos de alunizaje.', 'task:prox'],
+      [hms(5, 0), 'CubeSats', 'La etapa superior suelta cuatro satélites pequeños de Argentina, Alemania, Corea del Sur y Arabia Saudita.'],
+      [hms(25, 14), 'Rumbo a la Luna', 'El motor del módulo de servicio europeo enciende unos 6 minutos. Es el punto sin retorno: desde aquí, la Luna los traerá de vuelta sola.'],
+      [hms(115, 21), 'Récord del Apolo 13 superado', 'A las 13:56 hora de la costa este de Estados Unidos pasan los 400.171 km del Apolo 13: nadie había estado tan lejos de la Tierra.'],
+      [hms(120, 6), 'Puesta de Tierra', 'Desde la ventana, la Tierra se esconde detrás del borde de la Luna. Tres minutos después se pierde la señal: 40 minutos de silencio.'],
+      [hms(120, 25), 'Máximo acercamiento', 'Pasan a 6.545 km sobre la cara oculta. Dos minutos después llegan a su distancia máxima: 406.771 km de la Tierra, el nuevo récord. Ven partes de la cara oculta iluminadas que ningún humano había visto con sus ojos.'],
+      [hms(120, 49), 'Salida de Tierra', 'La Tierra vuelve a salir por el borde de la Luna y regresa la señal.'],
+      [hms(122, 0), 'Eclipse de Sol', 'Desde Orión, la Luna tapa al Sol durante cerca de una hora. Proponen nombres para dos cráteres y ven destellos de meteoritos chocando en la cara nocturna.'],
+      [hms(216, 58), 'Separación', 'La cápsula suelta el módulo de servicio europeo, que se quemará en la atmósfera.'],
+      [hms(217, 18), 'Reentrada', 'Entran a casi 35 veces la velocidad del sonido (unos 40.000 km/h). Soportan 3,9 g y 6 minutos sin radio por el plasma.'],
+      [hms(217, 29), 'Paracaídas', 'Dos paracaídas pequeños y luego tres grandes la frenan a menos de 220 km/h, y al final a unos 30 km/h.'],
+      [hms(217, 32), 'Amerizaje', 'Cae en el Pacífico frente a San Diego. Un helicóptero lleva a la tripulación al buque USS John P. Murtha. Recorrieron más de 1,1 millones de km en casi 10 días.'],
+    ] },
+};
+
+/* ===================== escena ===================== */
+const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, logarithmicDepthBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(45, 1, 1e-6, 2e4); cam.up.set(0, 0, 1);    // z = perpendicular a la órbita de la Luna
+const ctl = new OrbitControls(cam, renderer.domElement); ctl.enableDamping = true;
+const sunL = new THREE.DirectionalLight(0xffffff, 2.6); scene.add(sunL, sunL.target, new THREE.AmbientLight(0x404a66, .35));
+const tl = new THREE.TextureLoader(), tex = (u, s = true) => { const t = tl.load(u); if (s) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+const earth = new THREE.Mesh(new THREE.SphereGeometry(RE * KM, 96, 48), new THREE.MeshStandardMaterial({ map: tex('../../tex/tierra-dia.webp'), roughness: .9 }));
+const atm = new THREE.Mesh(new THREE.SphereGeometry(RE * KM * 1.02, 64, 32), new THREE.MeshBasicMaterial({ color: 0x6aa8ff, transparent: true, opacity: .12, side: THREE.BackSide }));
+earth.add(atm); earth.rotation.x = Math.PI / 2; scene.add(earth);
+const mg = new THREE.SphereGeometry(RM * KM, 96, 48); mg.rotateY(-Math.PI / 2);          // centro del mapa (cara visible) hacia +z del objeto
+const moon = new THREE.Mesh(mg, new THREE.MeshStandardMaterial({ map: tex('../../tex/luna.webp'), roughness: 1 })); scene.add(moon);
+{ const n = 4000, p = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(9000); p.set([v.x, v.y, v.z], i * 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 1.3, sizeAttenuation: false }))); }
+// marcadores visibles a gran escala (la nave mide unos metros: a escala real sería invisible)
+function glow(col, s) { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, '#fff'); g.addColorStop(.25, col); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: false })); sp.scale.setScalar(s); return sp; }
+const dot = glow('#ffd08a', .035), eDot = glow('#5d9bff', .03), mDot = glow('#b9b4aa', .022); scene.add(dot, eDot, mDot);
+
+/* ----- naves (en metros; el grupo se escala a megámetros) ----- */
+const Mt = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .45, metalness: .5, ...o });
+const cyl = (a, b, h, m, s = 24) => new THREE.Mesh(new THREE.CylinderGeometry(a, b, h, s), m);
+const box = (w, h, d, m) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+const at = (o, x, y, z, rx = 0, ry = 0, rz = 0) => { o.position.set(x, y, z); o.rotation.set(rx, ry, rz); return o; };
+function goldTex() { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.fillStyle = '#c9a142'; x.fillRect(0, 0, 128, 128); for (let i = 0; i < 700; i++) { const v = Math.random(); x.fillStyle = `rgba(${200 + v * 55 | 0},${150 + v * 60 | 0},${40 + v * 50 | 0},.5)`; x.fillRect(Math.random() * 128, Math.random() * 128, 8, 3); } const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+const GOLD = Mt(0xffffff, { map: goldTex(), metalness: .8, roughness: .35 }), SILVER = Mt(0xd9dce2, { metalness: .85, roughness: .25 }), WHITE = Mt(0xeeeae0, { metalness: .1, roughness: .6 }), DARK = Mt(0x26272b), ALU = Mt(0xb8bcc4, { metalness: .7, roughness: .35 });
+// Apolo: módulo de servicio (con la tapa del sector 4), módulo de mando Odyssey y módulo lunar Aquarius, nariz con nariz. Eje +y = adelante
+function buildApollo() {
+  const g = new THREE.Group(), sm = new THREE.Group(), lm = new THREE.Group();
+  sm.add(at(cyl(1.96, 1.96, 7.5, SILVER, 36), 0, -3.75, 0));
+  for (let k = 0; k < 6; k++) sm.add(at(box(.05, 7.4, .2, ALU), Math.cos(k / 3 * Math.PI) * 1.97, -3.75, Math.sin(k / 3 * Math.PI) * 1.97, 0, -k / 3 * Math.PI));
+  sm.add(at(cyl(.5, 1.25, 2.8, DARK, 28), 0, -8.9, 0)); sm.add(at(cyl(.55, .55, .5, ALU), 0, -7.6, 0));
+  for (let k = 0; k < 4; k++) { const a = k / 2 * Math.PI + Math.PI / 4, q = at(box(.35, .5, .35, WHITE), Math.cos(a) * 2.05, -1.4, Math.sin(a) * 2.05); sm.add(q); }
+  const ant = new THREE.Group(); ant.add(at(cyl(.06, .06, 2.4, ALU, 8), 0, 0, 0, 0, 0, Math.PI / 2)); for (const [y, z] of [[.4, .4], [.4, -.4], [-.4, .4], [-.4, -.4]]) ant.add(at(cyl(.4, .4, .05, WHITE, 18), 1.2, y, z, 0, 0, Math.PI / 2)); ant.position.set(2.2, -7.2, 0); sm.add(ant);
+  // el hueco de la explosión: la tapa del sector 4 desaparece y queda el interior quemado
+  const panel = at(new THREE.Mesh(new THREE.CylinderGeometry(1.965, 1.965, 7.3, 12, 1, true, 0, Math.PI / 3), SILVER), 0, -3.75, 0); sm.add(panel);
+  const hole = at(new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 7.3, 12, 1, true, 0, Math.PI / 3), Mt(0x3a2a20, { metalness: .2, roughness: .9, side: THREE.DoubleSide })), 0, -3.75, 0); hole.visible = false; sm.add(hole);
+  const cm = new THREE.Group(); cm.add(at(cyl(.2, 1.96, 3.2, SILVER, 36), 0, 1.6, 0)); cm.add(at(cyl(1.98, 1.98, .15, Mt(0x8a6a3a), 36), 0, .05, 0)); cm.add(at(cyl(.4, .4, .5, ALU, 16), 0, 3.4, 0));
+  for (const a of [.6, 2.5]) cm.add(at(box(.3, .3, .05, Mt(0x0a1020, { metalness: .9, roughness: .05 })), Math.cos(a) * 1.25, 1.6, Math.sin(a) * 1.25, 0, -a + Math.PI / 2, 0));
+  // Aquarius: etapa de ascenso (gris facetada) y de descenso (dorada, octogonal) con patas plegadas, enganchado por arriba
+  lm.add(at(cyl(2.1, 2.1, 1.7, GOLD, 8), 0, 8.5, 0)); for (let k = 0; k < 4; k++) { const a = k / 2 * Math.PI + Math.PI / 4; lm.add(at(cyl(.07, .07, 3.2, ALU, 8), Math.cos(a) * 2.3, 9.1, Math.sin(a) * 2.3, Math.sin(a) * .25, 0, -Math.cos(a) * .25)); lm.add(at(cyl(.45, .45, .08, ALU, 14), Math.cos(a) * 2.6, 10.6, Math.sin(a) * 2.6)); }
+  const asc = at(new THREE.Mesh(new THREE.DodecahedronGeometry(1.55, 0), Mt(0xa8acb4, { metalness: .6, roughness: .45, flatShading: true })), 0, 6.3, 0); asc.scale.set(1.2, .9, 1.05); lm.add(asc);
+  lm.add(at(cyl(.4, .45, .5, ALU, 16), 0, 4.6, 0)); lm.add(at(cyl(.3, .3, .9, ALU, 10), 1.1, 7.2, .6)); lm.add(at(cyl(.45, .45, .05, WHITE, 18), 1.1, 7.7, .6));
+  for (const [x, z] of [[1.6, 0], [-1.6, 0], [0, 1.6], [0, -1.6]]) lm.add(at(box(.3, .3, .3, ALU), x, 6.6, z));
+  lm.rotation.z = Math.PI; lm.position.y = 14.9;        // el Aquarius va «cabeza abajo», con su escotilla contra el Odyssey
+  g.add(sm, cm, lm); g.userData = { sm, lm, panel, hole }; return g;
+}
+// Orión: cápsula (con su escudo), módulo de servicio europeo y cuatro alas solares en X. Eje +y = adelante
+function buildOrion() {
+  const g = new THREE.Group(), esm = new THREE.Group();
+  esm.add(at(cyl(2.05, 2.05, 2.6, WHITE, 36), 0, -1.6, 0)); esm.add(at(cyl(2.07, 2.07, .5, GOLD, 36), 0, -3.1, 0));
+  esm.add(at(cyl(.4, .95, 1.6, DARK, 24), 0, -4.1, 0));
+  for (let k = 0; k < 4; k++) { const a = k / 2 * Math.PI + Math.PI / 4, w = new THREE.Group(); w.position.set(Math.cos(a) * 2.1, -2.2, Math.sin(a) * 2.1); w.rotation.y = -a;
+    w.add(at(box(.15, .15, .4, ALU), .1, 0, 0)); for (let j = 0; j < 3; j++) w.add(at(box(2.3, 2.0, .04, Mt(0x1b2a5e, { metalness: .5, roughness: .25 })), .5 + j * 2.38 + 1.15, 0, 0)); esm.add(w); }
+  const cm = new THREE.Group(); cm.add(at(cyl(.75, 2.5, 3.0, Mt(0xe9e7e2, { metalness: .15, roughness: .4 }), 40), 0, 1.5, 0)); cm.add(at(cyl(2.52, 2.52, .25, Mt(0x3a2a1c, { roughness: .9 }), 40), 0, .1, 0)); cm.add(at(cyl(.6, .75, .7, ALU, 24), 0, 3.35, 0));
+  for (let k = 0; k < 4; k++) { const a = k / 2 * Math.PI + .5; cm.add(at(box(.35, .3, .04, Mt(0x0a1020, { metalness: .9, roughness: .05 })), Math.cos(a) * 1.75, 1.75, Math.sin(a) * 1.75, 0, -a + Math.PI / 2, -.45)); }
+  g.add(esm, cm); g.userData = { esm }; return g;
+}
+const crafts = { a13: buildApollo(), a2: buildOrion() };
+for (const c of Object.values(crafts)) { c.scale.setScalar(1e-6); c.visible = false; scene.add(c); }
+const debris = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(240 * 3), 3)), new THREE.PointsMaterial({ color: 0xf0e8dc, size: 2, sizeAttenuation: false, transparent: true }));
+debris.frustumCulled = false; scene.add(debris); const debV = Array.from({ length: 240 }, () => new THREE.Vector3().randomDirection().multiplyScalar(2 + Math.random() * 8));
+
+/* ===================== trayectoria ===================== */
+let D = null, M = null, id = 'a13', met = 0, playing = false, speed = 5000, camMode = 'todo';
+const lines = {};
+function prep(k) {
+  const d = D[k], n = d.t.length, pos = new Float32Array(n * 3); d.c.forEach((p, i) => pos.set(p, i * 3));
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const dim = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: MIS[k].col, transparent: true, opacity: .3 })), done = new THREE.Line(geo.clone(), new THREE.LineBasicMaterial({ color: MIS[k].col }));
+  dim.frustumCulled = done.frustumCulled = false; scene.add(dim, done);
+  let heo = null; if (d.heo) { const g = new THREE.BufferGeometry().setFromPoints(d.heo.map(p => new THREE.Vector3(...p))); heo = new THREE.Line(g, new THREE.LineBasicMaterial({ color: MIS[k].col, transparent: true, opacity: .35 })); heo.frustumCulled = false; scene.add(heo); }
+  lines[k] = { dim, done, heo, n };
+}
+// MET (h) → tiempo del modelo (h desde el paso por la Luna): tramos lineales entre la salida, la Luna y la llegada
+function tau(m) { const d = D[id], I = MIS[id]; if (m <= I.tli) return d.t0; if (m <= I.per) return d.t0 * (1 - (m - I.tli) / (I.per - I.tli)); return Math.min(d.t1, (m - I.per) / (I.end - I.per) * d.t1); }
+const V = (a, i) => new THREE.Vector3(a[i][0], a[i][1], a[i][2]);
+function idxAt(t) { const T = D[id].t; let lo = 0, hi = T.length - 1; while (hi - lo > 1) { const md = (lo + hi) >> 1; if (T[md] <= t) lo = md; else hi = md; } return [lo, hi, THREE.MathUtils.clamp((t - T[lo]) / Math.max(1e-9, T[hi] - T[lo]), 0, 1)]; }
+function stateAt(m, out = {}) {
+  const d = D[id], I = MIS[id], t = tau(m), [a, b, u] = idxAt(t);
+  out.c = V(d.c, a).lerp(V(d.c, b), u); out.m = V(d.m, a).lerp(V(d.m, b), u); out.i = a + u;
+  if (m < I.tli) {                                     // antes de salir hacia la Luna: órbita de espera (Apolo) u órbita alta (Artemis)
+    const p0 = V(d.c, 0), p1 = V(d.c, 1), nrm = new THREE.Vector3().crossVectors(p0, p1).normalize();
+    if (d.heo) { const k = (I.tli - m) / d.heoT * (d.heo.length - 1); if (k < d.heo.length - 1) { const j = Math.floor(k); out.c = V(d.heo, j).lerp(V(d.heo, j + 1), k - j); } else out.c = p0.clone().applyAxisAngle(nrm, -(k - d.heo.length + 1) * .05); }
+    else out.c = p0.clone().applyAxisAngle(nrm, -(I.tli - m) / I.park * Math.PI * 2);
+    if (m < .2) out.c.setLength(RE * KM + (out.c.length() - RE * KM) * m / .2);
+  }
+  if (m > I.end) out.c.setLength(Math.max(RE * KM, out.c.length() - (m - I.end) / (I.splash - I.end) * (out.c.length() - RE * KM)));
+  return out;
+}
+
+/* ===================== interfaz ===================== */
+const pad = (n, l = 2) => String(Math.floor(n)).padStart(l, '0');
+const fmtMET = h => `T+ ${pad(h, 3)}:${pad(h * 60 % 60)}:${pad(h * 3600 % 60)}`;
+const fmtKm = v => Math.round(v).toLocaleString('es-EC') + ' km';
+const FMT = new Intl.DateTimeFormat('es-EC', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false });
+let toastT = 0; function toast(s, ms = 3200) { const t = $('toast'); t.textContent = s; t.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => t.style.opacity = 0, ms); }
+const slider = $('tl'), totalH = () => MIS[id].splash;
+function buildUI() {
+  const I = MIS[id]; document.body.classList.toggle('m-a2', id === 'a2'); $('h1').textContent = I.name; $('kick').textContent = I.kick; $('note').textContent = I.note;
+  document.querySelectorAll('.mis').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === id));
+  $('ticks').innerHTML = I.ev.map(e => `<i class="${e[3] ? 'big' : ''}" style="left:${e[0] / totalH() * 100}%"></i>`).join('');
+  $('log').innerHTML = I.ev.map((e, i) => `<li data-i="${i}"><i>${fmtMET(e[0])}</i>${e[1]}</li>`).join('');
+  $('log').querySelectorAll('li').forEach(li => li.onclick = () => { setMET(I.ev[+li.dataset.i][0] + 1e-4); });
+  $('rowO2').hidden = id !== 'a13'; $('tasksH').textContent = id === 'a13' ? 'Ayuda a la tripulación' : 'Pilota tú';
+  for (const k in crafts) crafts[k].visible = k === id; for (const k in lines) { const v = k === id; lines[k].dim.visible = lines[k].done.visible = v; if (lines[k].heo) lines[k].heo.visible = v; }
+  dot.material.color.set(I.col); renderTasks(); lastEv = -1;
+  const s = D[id].sun; sunL.position.set(s[0], s[1], s[2]).multiplyScalar(5000);
+}
+const TASKS = {
+  lm: { ic: '🔋', name: 'Encender el Aquarius', desc: 'Antes de que el Odyssey se quede sin energía' },
+  co2: { ic: '📦', name: 'Armar la «caja de correo»', desc: 'Un filtro cuadrado en un hueco redondo' },
+  burn: { ic: '🎯', name: 'Encendido a mano', desc: '14 segundos con la Tierra en la mira' },
+  prox: { ic: '🕹️', name: 'Acercarse a la etapa ICPS', desc: 'De 90 m a 9 m, como Glover' },
+};
+const done = {};
+function renderTasks() {
+  const I = MIS[id], list = I.ev.filter(e => e[3] && e[3].startsWith('task:'));
+  $('tasks').innerHTML = list.map(e => { const k = e[3].slice(5), T = TASKS[k], st = done[k] ? 'done' : met >= e[0] ? 'ready' : 'locked';
+    return `<button class="task" data-k="${k}" data-st="${st}"><span class="ic">${T.ic}</span><b>${T.name}</b><small>${st === 'locked' ? 'Se activa a las ' + fmtMET(e[0]).slice(3) : T.desc}</small></button>`; }).join('');
+  $('tasks').querySelectorAll('.task').forEach(b => b.onclick = () => { if (b.dataset.st !== 'locked') openGame(b.dataset.k); else toast('Todavía no: avanza la misión hasta ese momento.'); });
+}
+function setMET(m) { met = THREE.MathUtils.clamp(m, 0, totalH()); slider.value = met / totalH() * 1000; }
+slider.oninput = () => { met = slider.value / 1000 * totalH(); };
+$('play').onclick = () => { playing = !playing; if (playing && met >= totalH()) met = 0; $('play').textContent = playing ? '❚❚' : '▶'; };
+document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { speed = +b.dataset.sp; document.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => setCam(b.dataset.cam));
+document.querySelectorAll('.mis').forEach(b => b.onclick = () => setMission(b.dataset.m));
+function pause() { playing = false; $('play').textContent = '▶'; }
+function setMission(k) { id = k; history.replaceState(null, '', '#' + k); pause(); setMET(0); buildUI(); setCam('todo'); }
+// cámaras
+const prevC = new THREE.Vector3();
+function setCam(m) {
+  camMode = m; document.querySelectorAll('[data-cam]').forEach(x => x.setAttribute('aria-pressed', x.dataset.cam === m));
+  const s = stateAt(met); ctl.enabled = m !== 'ventana';
+  if (m === 'todo') { ctl.minDistance = 20; ctl.maxDistance = 3000; const f = Math.max(1, 1.5 / (innerWidth / innerHeight)); ctl.target.set(190, 0, 0); cam.position.set(190 - 70 * f, -470 * f, 520 * f); }
+  if (m === 'nave') { ctl.minDistance = 1.5e-5; ctl.maxDistance = 80; ctl.target.copy(s.c); const sd = new THREE.Vector3(...D[id].sun), side = new THREE.Vector3().crossVectors(sd, new THREE.Vector3(0, 0, 1)).normalize(); cam.position.copy(s.c).addScaledVector(sd, id === 'a2' ? 2.6e-5 : 3e-5).addScaledVector(side, 2.4e-5).add(new THREE.Vector3(0, 0, 1.4e-5)); }   // con el Sol a la espalda
+  prevC.copy(s.c); ctl.update();
+}
+
+/* ===================== desafíos ===================== */
+const gbox = $('gbox'); let gameStop = null;
+function closeGame() { if (gameStop) gameStop(); gameStop = null; $('game').hidden = true; }
+function finish(k, msg, good = true) { done[k] = true; renderTasks(); const r = document.createElement('div'); r.className = 'res' + (good ? '' : ' bad'); r.innerHTML = msg; gbox.querySelector('.gend')?.replaceWith(r); gbox.querySelector('.gbar').innerHTML = '<button class="gbtn" id="gx">Seguir con la misión</button>'; $('gx').onclick = () => { closeGame(); playing = true; $('play').textContent = '❚❚'; }; }
+function shell(k, kick, title, intro, body) { $('game').hidden = false; pause();
+  gbox.innerHTML = `<div class="gk">${kick}</div><h2>${title}</h2>${intro}${body}<div class="gend"></div><div class="gbar"><button class="gbtn alt" id="gq">Cerrar</button></div>`; $('gq').onclick = closeGame; }
+function openGame(k) { ({ lm: gameLM, co2: gameCO2, burn: gameBurn, prox: gameProx })[k](); }
+
+// 1 · encender el Aquarius en orden, antes de que se acaben los 15 minutos del Odyssey
+function gameLM() {
+  const steps = [['bat', 'Baterías de descenso', 'Conecta las baterías grandes de la etapa de descenso'], ['inv', 'Inversor 1', 'Convierte la corriente para los aparatos'], ['ecs', 'Soporte de vida', 'Ventiladores, oxígeno y filtros de CO₂'], ['com', 'Radio', 'En baja potencia, para ahorrar'], ['imu', 'Plataforma de guía', 'Copia la orientación del Odyssey antes de apagarlo: sin ella no sabrían hacia dónde apuntar'], ['cm', 'Apagar el Odyssey', 'Guarda sus baterías para la reentrada']];
+  const extra = [['heat', 'Calentadores'], ['radar', 'Radar de alunizaje']];
+  const all = [...steps.map(s => [s[0], s[1]]), ...extra].sort(() => Math.random() - .5);
+  shell('lm', 'Apolo 13 · 57 h 40 min', 'Encender el Aquarius', '<p>El Odyssey se muere: le quedan unos 15 minutos de oxígeno y energía en las pilas. Hay que encender el módulo lunar <b>en el orden correcto</b>. Este procedimiento normalmente tomaba horas.</p>',
+    `<p id="lmNext"></p><div class="sw" id="sw">${all.map(([k, n]) => `<button data-k="${k}"><i></i>${n}</button>`).join('')}</div><div class="gauge">Energía del Odyssey <div class="recb"><i id="lmBar" style="background:var(--acc);width:100%"></i></div><span id="lmT">15:00</span></div>`);
+  let i = 0, left = 60, errs = 0; const next = () => { const s = steps[i]; $('lmNext').innerHTML = s ? `Paso ${i + 1} de ${steps.length}: <b>${s[1]}</b> — ${s[2]}.` : ''; }; next();
+  $('sw').querySelectorAll('button').forEach(b => b.onclick = () => { if (i >= steps.length) return; if (b.dataset.k === steps[i][0]) { b.classList.add('on'); i++; next(); if (i === steps.length) { clearInterval(tm); finish('lm', `<b>¡El Aquarius vive!</b> Lo lograste con ${Math.ceil(left / 4)} minutos de sobra${errs ? ` y ${errs} interruptores equivocados` : ' y sin un solo error'}. En la realidad, Haise y Lovell copiaron la orientación de la guía haciendo las cuentas a mano, con los números que les dictaba Swigert.`); } } else { errs++; b.classList.remove('err'); void b.offsetWidth; b.classList.add('err'); left = Math.max(0, left - 3); } });
+  const tm = setInterval(() => { left -= .25; $('lmBar').style.width = left / 60 * 100 + '%'; const mm = left / 4; $('lmT').textContent = `${pad(mm)}:${pad(mm * 60 % 60)}`; if (left <= 0) { clearInterval(tm); finish('lm', '<b>Se acabó la energía del Odyssey</b> antes de terminar. Tranquilo: en Houston habían previsto esto y tenían un plan B. Puedes volver a intentarlo abriendo el desafío otra vez.', false); done.lm = false; renderTasks(); } }, 250);
+  gameStop = () => clearInterval(tm);
+}
+// 2 · la «caja de correo»: elegir lo que sirve y ver subir el CO₂ mientras tanto
+function gameCO2() {
+  const items = [['filtro', '🟨', 'Filtro cuadrado del Odyssey', 1], ['bolsa', '🛍️', 'Bolsa de plástico', 1], ['cinta', '🩶', 'Cinta adhesiva gris', 1], ['manguera', '🌀', 'Manguera de un traje espacial', 1], ['tapa', '📘', 'Tapa de cartón de un manual', 1], ['calcetin', '🧦', 'Un calcetín', 1], ['linterna', '🔦', 'Linterna', 0], ['cepillo', '🪥', 'Cepillo de dientes', 0], ['cuchara', '🥄', 'Cuchara', 0]].sort(() => Math.random() - .5);
+  shell('co2', 'Apolo 13 · 15 de abril', 'La «caja de correo»', '<p>Tres personas respiran en una nave hecha para dos. El aire acumula dióxido de carbono: a partir de 15 mmHg da dolor de cabeza, mareo y después algo peor. Los filtros de repuesto son <b>cuadrados</b> y el hueco del Aquarius es <b>redondo</b>. Elige las 6 cosas que usaron en Houston para hacer el adaptador.</p>',
+    `<div class="items" id="it">${items.map(([k, e, n]) => `<button data-k="${k}" aria-pressed="false"><span>${e}</span>${n}</button>`).join('')}</div><div class="gauge">CO₂ en la cabina <div class="recb"><i id="co2B" style="background:var(--bad);width:50%"></i></div><span id="co2T">7,5 mmHg</span></div><div class="gbar"><button class="gbtn" id="arm">Armar el adaptador</button></div>`);
+  let co2 = 7.5, fixed = false; const sel = new Set();
+  $('it').querySelectorAll('button').forEach(b => b.onclick = () => { const k = b.dataset.k; sel.has(k) ? sel.delete(k) : sel.add(k); b.setAttribute('aria-pressed', sel.has(k)); });
+  $('arm').onclick = () => { const good = items.filter(x => x[3]).map(x => x[0]), ok = good.every(k => sel.has(k)) && sel.size === good.length;
+    if (!ok) { const miss = good.filter(k => !sel.has(k)).length, bad = [...sel].filter(k => !good.includes(k)).length; toast(miss ? `Falta${miss > 1 ? 'n' : ''} ${miss} cosa${miss > 1 ? 's' : ''}.` : `Sobra${bad > 1 ? 'n' : ''} ${bad}: eso no sirve para el adaptador.`); co2 += .6; return; }
+    fixed = true; $('arm').remove(); };
+  const tm = setInterval(() => { co2 += fixed ? -.35 : .06; $('co2B').style.width = Math.min(100, co2 / 15 * 100) + '%'; $('co2B').style.background = co2 > 12 ? 'var(--bad)' : co2 > 9 ? '#f2c14e' : 'var(--ok)'; $('co2T').textContent = co2.toFixed(1).replace('.', ',') + ' mmHg';
+    if (fixed && co2 <= 2) { clearInterval(tm); finish('co2', '<b>¡Funciona!</b> La bolsa y la cinta forman una caja alrededor del filtro cuadrado; la manguera del traje lleva el aire del Aquarius a través de él; la tapa del manual hace de soporte y el calcetín ayuda a sellar y a guiar el aire. En la realidad el CO₂ bajó en menos de una hora y armaron una segunda caja para el otro filtro.'); }
+    if (!fixed && co2 >= 15) { clearInterval(tm); finish('co2', '<b>El CO₂ llegó a 15 mmHg</b> y la tripulación ya tiene dolor de cabeza. Vuelve a intentarlo: las cosas eran un filtro, una bolsa, cinta, una manguera, una tapa de cartón y un calcetín.', false); done.co2 = false; renderTasks(); } }, 250);
+  gameStop = () => clearInterval(tm);
+}
+// 3 · encendido manual: mantener la línea día/noche de la Tierra en la mira 14 segundos
+function gameBurn() {
+  shell('burn', 'Apolo 13 · 105 h 18 min', 'Encendido a mano', '<p>La ruta se va desviando y la Tierra podría pasar de largo. Sin la computadora de guía encendida, Lovell usa la mira de la ventana: <b>mantén la línea entre el día y la noche de la Tierra sobre la cruz</b> mientras el motor enciende 14 segundos. Usa las flechas del teclado o los botones. Lovell manejaba un eje y Haise el otro; tú manejas los dos.</p>',
+    `<canvas class="gc" id="bc" width="720" height="400" aria-label="Mira de la ventana con la Tierra"></canvas><div class="gflex"><div class="pad"><span></span><button data-d="u">▲</button><span></span><button data-d="l">◀</button><button id="fire" style="font-size:12px">MOTOR</button><button data-d="r">▶</button><span></span><button data-d="d">▼</button><span></span></div><div id="bInfo" style="font:500 13px var(--f-data);min-width:220px"></div></div>`);
+  const cv = $('bc'), x = cv.getContext('2d'), keys = {}; let px = 60, py = -40, vx = 8, vy = -5, burn = -1, err = 0, n = 0, run = true, last = performance.now();
+  const down = e => { const m = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r' }[e.key]; if (m) { keys[m] = 1; e.preventDefault(); } if (e.key === ' ' && burn < 0) { burn = 0; e.preventDefault(); } }, up = e => { const m = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r' }[e.key]; if (m) keys[m] = 0; };
+  addEventListener('keydown', down); addEventListener('keyup', up);
+  gbox.querySelectorAll('[data-d]').forEach(b => { b.onpointerdown = e => { keys[b.dataset.d] = 1; b.setPointerCapture(e.pointerId); }; b.onpointerup = b.onpointercancel = () => keys[b.dataset.d] = 0; });
+  $('fire').onclick = () => { if (burn < 0) burn = 0; };
+  function frame(now) { if (!run) return; requestAnimationFrame(frame); const dt = Math.min(.05, (now - last) / 1000); last = now;
+    const ax = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), ay = (keys.d ? 1 : 0) - (keys.u ? 1 : 0), shake = burn >= 0 && burn < 14 ? 1 : 0;
+    vx += (ax * 60 + (Math.random() - .5) * (40 + shake * 160)) * dt; vy += (ay * 60 + (Math.random() - .5) * (40 + shake * 160)) * dt; px += vx * dt; py += vy * dt;
+    const W = cv.width, H = cv.height, cx = W / 2 + px, cy = H / 2 + py, R = 120; x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 60; i++) { x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect((i * 97.3) % W, (i * 57.1) % H, 1.5, 1.5); }
+    x.save(); x.beginPath(); x.arc(cx, cy, R, 0, 7); x.clip(); x.fillStyle = '#0a1a3a'; x.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    const g = x.createRadialGradient(cx + 60, cy - 30, 10, cx, cy, R); g.addColorStop(0, '#9cc6ff'); g.addColorStop(.6, '#3a74c4'); g.addColorStop(1, '#173a70'); x.fillStyle = g; x.fillRect(cx, cy - R, R, 2 * R);
+    x.fillStyle = 'rgba(255,255,255,.55)'; for (let i = 0; i < 9; i++) { x.beginPath(); x.ellipse(cx + 20 + (i * 37) % 90, cy - 90 + i * 22, 22, 6, .3, 0, 7); x.fill(); } x.restore();
+    x.strokeStyle = 'rgba(255,240,180,.9)'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(W / 2 - 160, H / 2); x.lineTo(W / 2 + 160, H / 2); x.moveTo(W / 2, H / 2 - 160); x.lineTo(W / 2, H / 2 + 160); x.stroke();
+    x.strokeStyle = 'rgba(255,240,180,.5)'; x.strokeRect(W / 2 - 14, H / 2 - 120, 28, 240);
+    const e = Math.abs(px); if (burn >= 0 && burn < 14) { burn += dt; err += e * dt; n += dt; x.fillStyle = 'rgba(255,140,60,.18)'; x.fillRect(0, 0, W, H); }
+    x.fillStyle = '#ffd9a8'; x.font = '600 22px system-ui'; x.fillText(burn < 0 ? 'Centra la línea y pulsa MOTOR (o espacio)' : burn < 14 ? `Motor encendido: ${(14 - burn).toFixed(1)} s` : 'Motor apagado', 18, 34);
+    $('bInfo').innerHTML = `Desvío de la línea: <b style="color:${e < 14 ? 'var(--ok)' : 'var(--bad)'}">${(e / 4).toFixed(1)}°</b>`;
+    if (burn >= 14) { run = false; const avg = err / Math.max(.01, n) / 4; finish('burn', avg < 4 ? `<b>¡Perfecto!</b> Desvío promedio de ${avg.toFixed(1)}°. La ruta quedó corregida y entrarán a la atmósfera con el ángulo justo. Al terminar, Lovell dijo por radio que el encendido había salido muy bien, y Houston confirmó que estaban en el corredor de reentrada.` : `<b>Salió algo torcido</b> (desvío promedio de ${avg.toFixed(1)}°). La nave queda cerca del corredor, pero haría falta otra corrección. En la realidad hubo una más pequeña a las 137 h. Puedes repetir el desafío.`, avg < 4); if (avg >= 4) { done.burn = false; renderTasks(); } } }
+  requestAnimationFrame(frame); gameStop = () => { run = false; removeEventListener('keydown', down); removeEventListener('keyup', up); };
+}
+// 4 · Artemis II: acercarse a la etapa ICPS de 90 m a 9 m, centrado y despacio, mirando por la cámara de acoplamiento
+function gameProx() {
+  shell('prox', 'Artemis II · 3 h 20 min', 'Acercarse a la etapa ICPS', '<p>Orión flota a 90 m de la etapa que la lanzó. Tú eres Victor Glover: acércate hasta <b>9 m</b> con el blanco de 60 cm en el centro de la mira y <b>casi parado</b> (menos de 0,1 m/s). Las flechas mueven la nave de lado; <b>W/S</b> o los botones + y − aceleran o frenan hacia adelante. Los propulsores no paran solos: para detenerte hay que empujar al revés.</p>',
+    `<canvas class="gc" id="pc" width="720" height="400" aria-label="Cámara de acoplamiento"></canvas><div class="gflex"><div class="pad"><button data-d="f">+</button><button data-d="u">▲</button><button data-d="b">−</button><button data-d="l">◀</button><span></span><button data-d="r">▶</button><span></span><button data-d="d">▼</button><span></span></div><div id="pInfo" style="font:500 13px var(--f-data);min-width:230px;line-height:1.7"></div></div>`);
+  const cv = $('pc'), x = cv.getContext('2d'), keys = {}; let X = 1.2, Y = -.8, Z = 90, vx = -.03, vy = .02, vz = -.25, run = true, last = performance.now(), fuel = 100;
+  const map = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r', w: 'f', W: 'f', s: 'b', S: 'b' };
+  const down = e => { const m = map[e.key]; if (m) { keys[m] = 1; e.preventDefault(); } }, up = e => { const m = map[e.key]; if (m) keys[m] = 0; };
+  addEventListener('keydown', down); addEventListener('keyup', up);
+  gbox.querySelectorAll('[data-d]').forEach(b => { b.onpointerdown = e => { keys[b.dataset.d] = 1; b.setPointerCapture(e.pointerId); }; b.onpointerup = b.onpointercancel = () => keys[b.dataset.d] = 0; });
+  function frame(now) { if (!run) return; requestAnimationFrame(frame); const dt = Math.min(.05, (now - last) / 1000) * 3; last = now;
+    const a = .05, ax = (keys.r ? a : 0) - (keys.l ? a : 0), ay = (keys.u ? a : 0) - (keys.d ? a : 0), az = (keys.b ? a : 0) - (keys.f ? a : 0);
+    if (ax || ay || az) fuel = Math.max(0, fuel - dt * .8);
+    if (fuel > 0) { vx += ax * dt; vy += ay * dt; vz += az * dt; } X += vx * dt; Y += vy * dt; Z = Math.max(1.5, Z + vz * dt);
+    const W = cv.width, H = cv.height, f = 600 / Z; x.fillStyle = '#02030a'; x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 70; i++) { x.fillStyle = 'rgba(255,255,255,.45)'; x.fillRect((i * 131.7) % W, (i * 71.3) % H, 1.2, 1.2); }
+    const g = x.createLinearGradient(0, H * .7, 0, H); g.addColorStop(0, 'rgba(60,120,220,0)'); g.addColorStop(1, 'rgba(60,120,220,.35)'); x.fillStyle = g; x.fillRect(0, H * .7, W, H * .3);
+    const cx = W / 2 - X * f, cy = H / 2 + Y * f, r = 2.55 * f;          // la ICPS tiene 5,1 m de diámetro
+    x.fillStyle = '#c9c4b8'; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); x.fillStyle = '#e6c46a'; x.beginPath(); x.arc(cx, cy, r * .8, 0, 7); x.fill();
+    x.strokeStyle = '#6f5a2a'; x.lineWidth = Math.max(1, f * .03); for (let k = 0; k < 8; k++) { x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(k / 4 * Math.PI) * r * .8, cy + Math.sin(k / 4 * Math.PI) * r * .8); x.stroke(); }
+    x.fillStyle = '#fff'; x.fillRect(cx - .3 * f, cy - .3 * f, .6 * f, .6 * f); x.fillStyle = '#111'; x.fillRect(cx - .3 * f, cy - .03 * f, .6 * f, .06 * f); x.fillRect(cx - .03 * f, cy - .3 * f, .06 * f, .6 * f);
+    x.strokeStyle = 'rgba(120,255,160,.85)'; x.lineWidth = 1.5; x.beginPath(); x.arc(W / 2, H / 2, 40, 0, 7); x.moveTo(W / 2 - 70, H / 2); x.lineTo(W / 2 - 46, H / 2); x.moveTo(W / 2 + 46, H / 2); x.lineTo(W / 2 + 70, H / 2); x.moveTo(W / 2, H / 2 - 70); x.lineTo(W / 2, H / 2 - 46); x.moveTo(W / 2, H / 2 + 46); x.lineTo(W / 2, H / 2 + 70); x.stroke();
+    if (ax || ay || az) { x.fillStyle = 'rgba(255,255,255,.25)'; x.beginPath(); x.arc(ax < 0 ? W - 30 : ax > 0 ? 30 : W / 2, ay > 0 ? H - 20 : ay < 0 ? 20 : H / 2, 26, 0, 7); x.fill(); }
+    const off = Math.hypot(X, Y), sp = Math.hypot(vx, vy, vz);
+    $('pInfo').innerHTML = `Distancia: <b>${Z.toFixed(1)} m</b><br>Velocidad de acercamiento: <b style="color:${-vz > .1 ? 'var(--bad)' : 'var(--ok)'}">${(-vz).toFixed(2)} m/s</b><br>Fuera del centro: <b style="color:${off < .3 ? 'var(--ok)' : 'var(--bad)'}">${off.toFixed(2)} m</b><br>Combustible de práctica: <b>${fuel.toFixed(0)} %</b>`;
+    if (Z <= 10 && sp < .1 && off < .3) { run = false; finish('prox', `<b>«Vuela muy bien»</b>, dijo Glover. Te detuviste a ${Z.toFixed(1)} m, a ${off.toFixed(2)} m del centro, con ${fuel.toFixed(0)} % de combustible. Así comprobaron que los astronautas pueden manejar Orión a mano para acoplarse a los futuros módulos de alunizaje.`); }
+    else if (Z <= 3) { run = false; finish('prox', '<b>¡Demasiado cerca!</b> Te pasaste de los 9 m. En la realidad, la computadora habría frenado y alejado la nave. Prueba otra vez frenando antes con −.', false); done.prox = false; renderTasks(); } }
+  requestAnimationFrame(frame); gameStop = () => { run = false; removeEventListener('keydown', down); removeEventListener('keyup', up); };
+}
+
+/* ===================== bucle ===================== */
+const lbls = { earth: 'Tierra', moon: 'Luna', craft: '' }, lblEl = {};
+for (const k in lbls) { const d = document.createElement('div'); d.className = 'lbl'; $('labels').appendChild(d); lblEl[k] = d; }
+function place(k, v, text) { const p = v.clone().project(cam), d = lblEl[k]; const vis = p.z < 1 && Math.abs(p.x) < 1.1 && Math.abs(p.y) < 1.1; d.hidden = !vis; if (!vis) return; d.textContent = text; d.style.left = (p.x + 1) / 2 * innerWidth + 'px'; d.style.top = (1 - p.y) / 2 * innerHeight + 'px'; }
+let lastEv = -1, last = performance.now(), prevMET = 0; const S = {}, S2 = {}, tmp = new THREE.Vector3(), up = new THREE.Vector3();
+function frame(now) {
+  requestAnimationFrame(frame); const dt = Math.min(.1, (now - last) / 1000); last = now;
+  if (playing) { met += dt * speed / 3600; if (met >= totalH()) { met = totalH(); pause(); } slider.value = met / totalH() * 1000; }
+  const I = MIS[id]; stateAt(met, S); stateAt(Math.min(totalH(), met + 1 / 60), S2);
+  const w = innerWidth, h = innerHeight; if (renderer.domElement.width !== Math.floor(w * renderer.getPixelRatio()) || renderer.domElement.height !== Math.floor(h * renderer.getPixelRatio())) { renderer.setSize(w, h, false); cam.aspect = w / h;
+    const big = w > 820; cam.setViewOffset(w, h, big ? 172 : 0, big ? 0 : Math.min(170, h * .2), w, h); cam.updateProjectionMatrix(); }    // el centro de la vista queda libre del panel
+  moon.position.copy(S.m); moon.lookAt(0, 0, 0);
+  const craft = crafts[id]; craft.position.copy(S.c); dot.position.copy(S.c);
+  const vel = tmp.copy(S2.c).sub(S.c); if (vel.lengthSq() > 1e-12) { craft.quaternion.setFromUnitVectors(up.set(0, 1, 0), vel.clone().normalize()); }
+  // eventos que cambian la nave
+  if (id === 'a13') { const u = craft.userData, boom = met >= hms(55, 54, 53); u.panel.visible = !boom; u.hole.visible = boom; u.sm.visible = met < hms(138, 1, 48); u.lm.visible = met < hms(141, 30);
+    const age = (met - hms(55, 54, 53)) / 2; debris.visible = age > 0 && age < 1; if (debris.visible) { const p = debris.geometry.attributes.position, r = Math.sqrt(age) * 1.2e-5; for (let i = 0; i < debV.length; i++) { const v = debV[i]; p.setXYZ(i, S.c.x + v.x * r, S.c.y + v.y * r, S.c.z + v.z * r); } p.needsUpdate = true; debris.material.opacity = 1 - age; } }   // nube de gas y trozos durante 2 h
+  else { debris.visible = false; crafts.a2.userData.esm.visible = met < hms(216, 58); }
+  // líneas: tramo recorrido
+  const L = lines[id]; L.done.geometry.setDrawRange(0, met < I.tli ? 0 : Math.ceil(S.i) + 1);
+  // cámara
+  if (camMode === 'nave') { cam.position.add(tmp.copy(S.c).sub(prevC)); ctl.target.copy(S.c); }
+  if (camMode === 'ventana') { const e = S.c.clone().negate().normalize(); cam.position.copy(S.c).addScaledVector(e, 3e-5); cam.up.set(0, 0, 1); cam.lookAt(0, 0, 0); cam.fov = 40; cam.updateProjectionMatrix(); }
+  else if (cam.fov !== 45) { cam.fov = 45; cam.updateProjectionMatrix(); }
+  prevC.copy(S.c); if (camMode !== 'ventana') ctl.update();
+  dot.visible = eDot.visible = mDot.visible = camMode === 'todo'; mDot.position.copy(S.m); craft.visible = camMode !== 'todo' || cam.position.distanceTo(S.c) < .01;
+  // telemetría
+  const dE = S.c.length() / KM - RE, dM = S.c.distanceTo(S.m) / KM - RM;
+  const v = S2.c.distanceTo(S.c) / KM * 60;          // km recorridos en un minuto de misión × 60 = km/h
+  $('met').textContent = fmtMET(met); $('utc').innerHTML = FMT.format(new Date(I.t0 + met * 3.6e6)) + ' UTC';
+  $('dE').textContent = met >= I.splash ? 'en casa' : fmtKm(Math.max(0, dE)); $('dM').textContent = fmtKm(dM); $('vE').textContent = met < I.tli || met > I.end ? '—' : fmtKm(v).replace(' km', ' km/h');
+  // ¿la Luna tapa a la Tierra? (sin radio)
+  const toE = S.c.clone().negate(), tM = S.m.clone().sub(S.c), proj = tM.dot(toE.normalize()), miss = Math.sqrt(Math.max(0, tM.lengthSq() - proj * proj)); const los = proj > 0 && miss < RM * KM;
+  $('rad').textContent = los ? 'sin señal (detrás de la Luna)' : 'sí'; $('rad').className = los ? 'warn' : 'ok';
+  if (id === 'a13') { const o = met < hms(55, 54, 53) ? 'normal (2 tanques)' : met < hms(57, 40) ? 'cayendo…' : met < hms(140, 10) ? 'vacío · todo en el Aquarius' : 'batería de reentrada'; $('o2').textContent = o; $('o2').className = met >= hms(55, 54, 53) && met < hms(140, 10) ? 'warn' : ''; }
+  $('rb13').style.width = (id === 'a13' ? Math.min(1, Math.max(0, dE) / 406771) * 100 : 400171 / 406771 * 100) + '%'; $('rb2').style.width = (id === 'a2' ? Math.min(1, Math.max(0, dE) / 406771) * 100 : 100) + '%';
+  $('recNow').textContent = id === 'a13' ? 'La barra ámbar crece con la nave' : 'La barra celeste crece con la nave';
+  // evento actual, fase y desafíos
+  let k = -1; I.ev.forEach((e, i) => { if (met >= e[0]) k = i; });
+  if (k !== lastEv) { const crossed = met > prevMET && k > lastEv, from = lastEv; lastEv = k; const e = I.ev[Math.max(0, k)];
+    $('ev').innerHTML = k < 0 ? `<b>Listos para despegar</b>Pulsa ▶ o mueve la barra de abajo. Puedes tocar cualquier momento del diario para saltar ahí.` : `<b>${e[1]}</b>${e[2]}`;
+    $('log').querySelectorAll('li').forEach((li, i) => { li.className = i < k ? 'past' : i === k ? 'now' : ''; }); if (k >= 0) { const li = $('log').children[k], lg = $('log'); lg.scrollTop = li.offsetTop - lg.offsetTop - lg.clientHeight / 2; }
+    $('phase').textContent = k < 0 ? 'En la plataforma' : met < I.tli ? 'En órbita de la Tierra' : met < I.per - 12 ? 'Viaje a la Luna' : met < I.per + 8 ? 'Junto a la Luna' : met < I.end ? 'Regreso a la Tierra' : met < I.splash ? 'Reentrada' : 'En casa';
+    renderTasks();
+    if (crossed && playing) for (let j = from + 1; j <= k; j++) { const f = I.ev[j][3]; if (f === 'boom') { toast('💥 ¡Explosión en el módulo de servicio!', 4000); setCam('nave'); document.querySelector('[data-sp="1000"]').click(); }
+      if (f && f.startsWith('task:') && !done[f.slice(5)]) { pause(); toast('Desafío disponible: ' + TASKS[f.slice(5)].name + ' (en el panel)', 5000); break; } } }
+  prevMET = met;
+  place('earth', new THREE.Vector3(0, RE * KM * 1.4, 0), 'Tierra'); place('moon', S.m.clone().add(new THREE.Vector3(0, 0, RM * KM * 1.6)), 'Luna'); place('craft', S.c, camMode === 'todo' && dM > 30000 ? I.name : '');
+  renderer.render(scene, cam);
+}
+addEventListener('keydown', e => { if (!$('game').hidden) { if (e.key === 'Escape') closeGame(); return; } if (e.key === ' ') { e.preventDefault(); $('play').click(); } });
+$('side').addEventListener('click', e => { if (innerWidth <= 820 && e.target.closest('.keep')) $('side').classList.toggle('min'); });
+if (innerWidth <= 820) $('side').classList.add('min');
+
+fetch('trayectorias.json').then(r => r.json()).then(d => { D = d; prep('a13'); prep('a2'); const h = location.hash.slice(1); id = MIS[h] ? h : 'a13'; buildUI(); setCam('todo'); requestAnimationFrame(frame);
+  window.__rl = { setMET, get met() { return met; }, setCam, openGame, stateAt: m => stateAt(m), D, setMission }; });
+</script>
+</body>
+</html>

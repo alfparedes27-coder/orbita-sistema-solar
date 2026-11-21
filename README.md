@@ -39,7 +39,9 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
   usan el mismo visor: en «En acción» su brazo trabaja con cinemática inversa (la zanja con hielo, o SEIS, el escudo y el topo con el sismograma en vivo).
 - `simulaciones/luna/`: mapa 3D de la Luna con relieve LOLA y la cara oculta; `paseo/` (caminata del Apolo 11 y rover del Apolo 17),
   `lunojod/` (el Lunojod 1 manejado desde la Tierra con 1,3 s de retraso y TV de una imagen cada pocos segundos) y
-  `fases/` (la Luna de cada noche desde Ecuador, por qué cambia y los próximos eclipses, todo calculado con Astronomy Engine).
+  `fases/` (la Luna de cada noche desde Ecuador, por qué cambia y los próximos eclipses, todo calculado con Astronomy Engine) y
+  `regreso-libre/` (Apolo 13 y Artemis II por detrás de la Luna, con trayectorias integradas por `tools/hornear_regreso_libre.py`
+  y desafíos: encender el Aquarius, la «caja de correo», el encendido a mano y el pilotaje de Orión junto a su etapa).
 - `simulaciones/jpl/`: visita al JPL de la NASA. `trajes/` es la sala de trajes espaciales: línea del tiempo en 3D con modelos
   procedurales (tela con relieve de hilos, metal, visores con transparencia real), qué es cada pieza, capas, datos y fuentes.
   Se agregan trajes de dos en dos (listos: Apollo A7L, Sokol KV‑2, Orlan‑MKS, EMU, ACES y SpaceX).
