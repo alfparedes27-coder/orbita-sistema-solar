@@ -258,6 +258,8 @@ button{cursor:pointer}
     <button type="button" data-cam="plataforma" aria-pressed="false" title="A ras de la plataforma, junto al cohete (2)">Plataforma</button>
     <button type="button" data-cam="malecon" aria-pressed="false" title="Vista desde el Malecón 2000 (3)">Malecón</button>
     <button type="button" data-cam="aterrizaje" aria-pressed="false" title="Junto a las plataformas flotantes del río, para ver aterrizar a los laterales (4)">Aterrizaje</button>
+    <button type="button" data-cam="noria" aria-pressed="false" title="La noria La Perla del Malecón 2000, de cerca (9)">Noria</button>
+    <button type="button" data-cam="cabina" aria-pressed="false" title="Sube a una cabina de la noria y mira el despegue desde arriba (N)">Desde la noria</button>
     <button type="button" data-cam="ciudad" aria-pressed="false" title="Vista aérea de Guayaquil y sus alrededores, hasta cientos de kilómetros (5)">Ciudad</button>
     <button type="button" data-cam="tierra" aria-pressed="false" title="La Tierra y la órbita (6)">Tierra</button>
     <button type="button" data-cam="tierraluna" aria-pressed="false" title="Todo el viaje (7)">Tierra–Luna</button>
@@ -306,11 +308,11 @@ button{cursor:pointer}
       <button class="tbtn" id="next-ev" type="button" title="Saltar al siguiente evento (flecha →)" aria-label="Siguiente evento"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5l9 7-9 7zM15 5h3v14h-3z"/></svg><span class="lbl-txt">Evento</span></button>
       <label class="tog" title="Sube y baja la velocidad sola, sin pasar de ×200"><input type="checkbox" id="autorate"><span>Auto</span></label>
       <button class="tbtn" id="sound" type="button" aria-pressed="false" title="Sonido del cohete con el retraso real del sonido (sólo a ×1 y ×2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path id="snd-w" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" opacity=".35"/></svg><span class="lbl-txt">Sonido</span></button>
-      <select id="tod" aria-label="Hora del lanzamiento"><option value="dia">Mañana · 9:30</option><option value="tarde">Atardecer · 18:00</option></select>
+      <select id="tod" aria-label="Hora del lanzamiento"><option value="dia">Mañana · 9:30</option><option value="tarde">Atardecer · 18:00</option><option value="noche">Noche · 20:00</option></select>
       <span id="rate-note"></span>
       <span class="spacer"></span>
       <select id="cam-select" aria-label="Cámara">
-        <option value="auto">Cámara: auto</option><option value="cohete">Cohete</option><option value="plataforma">Plataforma</option><option value="malecon">Malecón</option><option value="aterrizaje">Aterrizaje</option><option value="ciudad">Ciudad</option><option value="tierra">Tierra</option><option value="tierraluna">Tierra–Luna</option><option value="luna">Luna</option>
+        <option value="auto">Cámara: auto</option><option value="cohete">Cohete</option><option value="plataforma">Plataforma</option><option value="malecon">Malecón</option><option value="aterrizaje">Aterrizaje</option><option value="noria">Noria</option><option value="cabina">Desde la noria</option><option value="ciudad">Ciudad</option><option value="tierra">Tierra</option><option value="tierraluna">Tierra–Luna</option><option value="luna">Luna</option>
       <option value="cabina">Cabina Dragon</option></select>
       <button class="tbtn mob" id="tele-btn" type="button" aria-expanded="false" aria-controls="tele">Datos</button>
       <button class="tbtn mob" id="side-btn" type="button" aria-expanded="false" aria-controls="side">Eventos</button>
@@ -854,6 +856,7 @@ const globalToLocalDir = v => new THREE.Vector3(v.x * E3[0] + v.y * E3[1] + v.z 
 const TOD = {
   dia: { hour: 9.5, name: 'Mañana · 9:30' },
   tarde: { hour: 18.0, name: 'Atardecer · 18:00' },
+  noche: { hour: 20.0, name: 'Noche · 20:00' },
 };
 let todKey = 'dia';
 const SUN3 = new THREE.Vector3(), SUN_LOCAL = new THREE.Vector3();
@@ -1332,6 +1335,8 @@ function flattenH(lat, lon, h) {
   if (Math.abs(x) < 95 && Math.abs(z) < 85) return Math.min(h, -1);
   if (x < -70 && x > -330 && Math.abs(z) < 14) return Math.min(h, 1);
   if (Math.abs(z - LZ.z) < 55 && x > LZ.x1 - 55 && x < LZ.x2 + 55) return Math.min(h, -1);
+  const nx = (lon + 79.87587) * KX, nz = -(lat + 2.18652) * KZ;   // muelle de la noria La Perla
+  if (nx > -20 && nx < 28 && Math.abs(nz) < 34) return Math.min(h, 0.5);
   return h;
 }
 class Tile {
@@ -2167,6 +2172,115 @@ G.mkS2 = mkMarker(0x8d99b0, 0.012);
 G.mkBoost = mkMarker(0x6fd3ff, 0.012);
 G.mkCore = mkMarker(0xb9a6ff, 0.012);
 
+// ---------- Noria La Perla (Malecón 2000, extremo norte, frente a la calle Julián Coronel) ----------
+// 57 m de alto, 36 cabinas climatizadas de 6 personas, una vuelta en unos 8 minutos, más de 1.400 luces LED.
+// Está sobre una plataforma en el río sostenida por 53 pilotes; el eje, a unos 30 m sobre el muelle, lo sujetan 8 patas.
+// Inaugurada en octubre de 2016. El plano de la rueda va paralelo a la orilla (norte‑sur); el eje apunta al este.
+const NOR = { lat: -2.18652, lon: -79.87587, group: new THREE.Group(), R: 24.5, axleY: 33.5, deckY: 4, N: 36, w: 2 * Math.PI / 480, ang: 0, cabins: [], ride: -1 };
+NOR.pos = geoToLocal(NOR.lat, NOR.lon, 0); NOR.group.position.copy(NOR.pos); L.scene.add(NOR.group);
+{
+  const G3 = NOR.group, R = NOR.R, AY = NOR.axleY, DY = NOR.deckY, N = NOR.N;
+  const white = new THREE.MeshStandardMaterial({ color: 0xeef0f2, roughness: 0.45, metalness: 0.35 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0x9aa1a8, roughness: 0.5, metalness: 0.6 });
+  const conc = new THREE.MeshStandardMaterial({ color: 0xb9b6ae, roughness: 0.9 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x2c4a63, roughness: 0.08, metalness: 0.7, envMapIntensity: 1.4, transparent: true, opacity: 0.86 });
+  const add = (geo, mat, x, y, z, par = G3) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; par.add(m); return m; };
+  const beam = (a, b, r, mat, par = G3) => { const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 8), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); m.castShadow = true; par.add(m); return m; };
+  // plataforma sobre el río y sus 53 pilotes
+  add(new THREE.BoxGeometry(46, 1, 66), conc, 4, DY - 0.5, 0);
+  const pile = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.45, 0.45, 12, 10), conc, 53), pm = new THREE.Matrix4(); let k = 0;
+  for (let i = 0; i < 9 && k < 53; i++) for (let j = 0; j < 6 && k < 53; j++) pm.setPosition(4 - 20 + j * 8, DY - 6.5, -30 + i * 7.5), pile.setMatrixAt(k++, pm);
+  pile.castShadow = true; G3.add(pile);
+  for (const x of [-19, 27]) add(new THREE.BoxGeometry(0.12, 1.1, 66), grey, x, DY + 0.55, 0);
+  for (const z of [-33, 33]) add(new THREE.BoxGeometry(46, 1.1, 0.12), grey, 4, DY + 0.55, z);
+  // estación de embarque: andén elevado bajo la rueda, rampa y boletería con techo blanco
+  add(new THREE.BoxGeometry(10, 2.6, 14), conc, 0, DY + 1.3, 0);
+  add(new THREE.BoxGeometry(3, 0.3, 12), conc, -7, DY + 1.3, 0).rotation.z = 0.2;
+  const sign = canvasTex(512, 128, (g, w, h) => { g.fillStyle = '#0d2d4d'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = '700 70px Jost, sans-serif'; g.textAlign = 'center'; g.fillText('LA PERLA', w / 2, 88); g.fillStyle = '#6fc3ff'; g.fillRect(40, 104, w - 80, 6); });
+  const ticket = add(new THREE.BoxGeometry(8, 4, 18), new THREE.MeshStandardMaterial({ color: 0xf3f1ea, roughness: 0.6 }), -14, DY + 2, 14);
+  add(new THREE.BoxGeometry(12, 0.4, 22), white, -14, DY + 4.4, 14);
+  const sg = new THREE.Mesh(new THREE.PlaneGeometry(7, 1.75), new THREE.MeshStandardMaterial({ map: sign, emissive: 0xffffff, emissiveMap: sign, emissiveIntensity: 0.6 })); sg.position.set(-18.1, DY + 5.6, 14); sg.rotation.y = -Math.PI / 2; G3.add(sg);
+  // ocho patas: en cada lado un caballete (dos patas en el plano de la rueda) y dos tornapuntas hacia atrás
+  for (const sx of [-1, 1]) {
+    const top = new THREE.Vector3(sx * 4.6, AY, 0);
+    for (const sz of [-1, 1]) { beam(top, new THREE.Vector3(sx * 7, DY, sz * 17), 0.75, white); beam(top, new THREE.Vector3(sx * 17, DY, sz * 6), 0.55, white); }
+    add(new THREE.CylinderGeometry(1.6, 1.6, 1.4, 20), grey, sx * 4.6, AY, 0).rotation.z = Math.PI / 2;
+    beam(new THREE.Vector3(sx * 7, DY + 12, -12.4), new THREE.Vector3(sx * 7, DY + 12, 12.4), 0.3, white);
+  }
+  // eje fijo
+  add(new THREE.CylinderGeometry(0.9, 0.9, 10, 16), grey, 0, AY, 0).rotation.z = Math.PI / 2;
+  // la parte que gira
+  const rot = new THREE.Group(); rot.position.set(0, AY, 0); G3.add(rot); NOR.rot = rot;
+  const hub = add(new THREE.CylinderGeometry(2.2, 2.2, 6.4, 24), white, 0, 0, 0, rot); hub.rotation.z = Math.PI / 2;
+  for (const sx of [-1, 1]) add(new THREE.CylinderGeometry(3, 3, 0.35, 32), grey, sx * 3.2, 0, 0, rot).rotation.z = Math.PI / 2;
+  // aro: tres anillos (dos exteriores y uno interior) unidos por una celosía triangular
+  const XA = 1.7, RC = R - 1.9;
+  for (const [x, r, tube] of [[-XA, R, 0.28], [XA, R, 0.28], [0, RC, 0.34]]) { const t = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 8, 144), white); t.rotation.y = Math.PI / 2; t.position.x = x; t.castShadow = true; rot.add(t); }
+  const P = (x, r, a) => new THREE.Vector3(x, Math.cos(a) * r, Math.sin(a) * r);
+  const struts = [];
+  for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2, b = (i + 0.5) / N * Math.PI * 2, A = P(-XA, R, a), B = P(XA, R, a), C = P(0, RC, a), C2 = P(0, RC, (i + 1) / N * Math.PI * 2);
+    struts.push([A, B, 0.16], [A, C, 0.14], [B, C, 0.14], [A, C2, 0.1], [B, C2, 0.1], [P(-XA, R, b), P(XA, R, b), 0.1]); }
+  { const g = new THREE.CylinderGeometry(1, 1, 1, 6), im = new THREE.InstancedMesh(g, white, struts.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    struts.forEach(([a, b, r], i) => { const d = b.clone().sub(a), L2 = d.length(); q.setFromUnitVectors(up, d.normalize()); m.compose(a.clone().add(b).multiplyScalar(0.5), q, new THREE.Vector3(r, L2, r)); im.setMatrixAt(i, m); });
+    im.castShadow = true; rot.add(im); }
+  // rayos: cables tensados cruzados, del extremo izquierdo del cubo al anillo derecho y viceversa
+  const cables = [];
+  for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2; cables.push([P(-3.2, 2.6, a + 0.12), P(XA, R - 0.2, a)], [P(3.2, 2.6, a - 0.12), P(-XA, R - 0.2, a)]); }
+  { const g = new THREE.CylinderGeometry(1, 1, 1, 4), im = new THREE.InstancedMesh(g, grey, cables.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    cables.forEach(([a, b], i) => { const d = b.clone().sub(a), L2 = d.length(); q.setFromUnitVectors(up, d.normalize()); m.compose(a.clone().add(b).multiplyScalar(0.5), q, new THREE.Vector3(0.06, L2, 0.06)); im.setMatrixAt(i, m); });
+    rot.add(im); }
+  // 36 cabinas climatizadas para 6 personas, colgadas de un pivote entre los dos anillos: siempre quedan derechas
+  const cabBody = new THREE.CylinderGeometry(1.45, 1.25, 2.5, 20), cabRoof = new THREE.SphereGeometry(1.45, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2), cabWin = new THREE.CylinderGeometry(1.47, 1.37, 1.3, 20, 1, true);
+  const cabMat = new THREE.MeshStandardMaterial({ color: 0xf7f7f4, roughness: 0.35, metalness: 0.2 });
+  const cabLight = new THREE.MeshStandardMaterial({ color: 0xfff4d8, emissive: 0xffe6b0, emissiveIntensity: 0, roughness: 0.6 });
+  for (let i = 0; i < N; i++) {
+    const piv = new THREE.Group(); const a = i / N * Math.PI * 2; piv.position.set(0, Math.cos(a) * R, Math.sin(a) * R); rot.add(piv);
+    const cab = new THREE.Group(); piv.add(cab);
+    for (const x of [-1, 1]) beam(new THREE.Vector3(x * 1.55, 0, 0), new THREE.Vector3(x * 0.9, -1.6, 0), 0.09, grey, cab);
+    add(new THREE.BoxGeometry(3.3, 0.22, 0.22), grey, 0, 0, 0, cab);
+    add(cabRoof, cabMat, 0, -2.0, 0, cab).scale.y = 0.45;
+    add(cabBody, cabMat, 0, -3.25, 0, cab);
+    add(cabWin, glass, 0, -3.0, 0, cab);
+    add(new THREE.CylinderGeometry(1.3, 1.1, 0.4, 20), cabLight, 0, -4.55, 0, cab);
+    NOR.cabins.push({ piv, cab, a });
+  }
+  NOR.cabLight = cabLight;
+  // más de 1.400 luces LED en los rayos y el aro
+  const pts = [];
+  for (const [a, b] of cables) for (let j = 1; j <= 12; j++) pts.push(a.clone().lerp(b, j / 13));
+  for (let i = 0; i < N * 8; i++) { const a = i / (N * 8) * Math.PI * 2; pts.push(P(-XA - 0.3, R + 0.3, a), P(XA + 0.3, R + 0.3, a)); }
+  const lg = new THREE.BufferGeometry().setFromPoints(pts);
+  NOR.ledR = pts.map(p => Math.hypot(p.y, p.z) / R); NOR.ledA = pts.map(p => Math.atan2(p.z, p.y));
+  NOR.ledCol = new Float32Array(pts.length * 3); lg.setAttribute('color', new THREE.BufferAttribute(NOR.ledCol, 3));
+  NOR.ledMat = new THREE.PointsMaterial({ size: 0.9, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  NOR.leds = new THREE.Points(lg, NOR.ledMat); rot.add(NOR.leds); NOR.nLed = pts.length;
+  G3.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
+}
+// luces: celeste y blanco de la bandera de Guayaquil, arcoíris que corre por los rayos y destellos
+const _col = new THREE.Color();
+function updateNoria(dt, nowS) {
+  NOR.ang += NOR.w * dt; NOR.rot.rotation.x = NOR.ang;
+  NOR.cabins.forEach((c, i) => { c.cab.rotation.x = -NOR.ang + Math.sin(nowS * 0.7 + c.a * 3) * 0.015;   // la gravedad las mantiene derechas
+    const di = Math.abs(((i - NOR.ride) % NOR.N + NOR.N + NOR.N / 2) % NOR.N - NOR.N / 2); c.cab.visible = !(curMode === 'cabina' && NOR.ride >= 0 && di <= 1); });   // desde adentro, no tapan la vista la propia cabina ni las vecinas
+  const dusk = 1 - DAY, show = Math.floor(nowS / 40) % 3, col = NOR.ledCol;
+  for (let i = 0; i < NOR.nLed; i++) {
+    const r = NOR.ledR[i], a = NOR.ledA[i];
+    if (show === 0) _col.setHSL(((a / (2 * Math.PI) + r * 0.3 - nowS * 0.08) % 1 + 1) % 1, 0.9, 0.6);
+    else if (show === 1) { const on = Math.floor(a / (2 * Math.PI) * 12 + nowS * 0.5) % 2; on ? _col.setRGB(0.35, 0.75, 1) : _col.setRGB(1, 1, 1); }
+    else { const p = Math.max(0, Math.sin(r * 9 - nowS * 3)); _col.setRGB(0.2 + p, 0.3 + 0.7 * p, 0.9); }
+    col[i * 3] = _col.r; col[i * 3 + 1] = _col.g; col[i * 3 + 2] = _col.b;
+  }
+  NOR.leds.geometry.attributes.color.needsUpdate = true;
+  NOR.ledMat.opacity = 0.12 + 0.88 * dusk; NOR.ledMat.size = 0.6 + 0.6 * dusk;
+  NOR.cabLight.emissiveIntensity = 1.4 * dusk;
+}
+// la cabina que va subiendo y está más cerca de la cima: ahí se sube la cámara «Cabina»
+function noriaCabinPos(out) {
+  if (NOR.ride < 0) { let best = 0, bv = -1e9; NOR.cabins.forEach((c, i) => { const a = c.a + NOR.ang; const v = Math.cos(a) - Math.abs(Math.sin(a) - 0.3); if (v > bv) { bv = v; best = i; } }); NOR.ride = best; }
+  const c = NOR.cabins[NOR.ride]; c.cab.updateWorldMatrix(true, false);
+  return c.cab.localToWorld(out.set(2.5, -2.6, 0));   // junto a la ventana del lado del río, por fuera del aro
+}
+
 // =====================================================================
 // 3. Etiquetas HTML
 // =====================================================================
@@ -2177,6 +2291,7 @@ const PLACES = [
   ['Puerto Santa Ana', -2.1788, -79.8760, 40, 0, 14e3],
   ['Cerro Santa Ana · Las Peñas', -2.1812, -79.8781, 95, 0, 14e3],
   ['Malecón 2000', -2.1930, -79.8786, 25, 900, 14e3],
+  ['Noria La Perla · 57 m', -2.18652, -79.87587, 62, 0, 9e3],
   ['Río Guayas', -2.2000, -79.8650, 15, 0, 30e3],
   ['Durán', -2.1780, -79.8450, 40, 1500, 60e3],
   ['Isla Santay', -2.2150, -79.8600, 20, 1500, 40e3],
@@ -2224,6 +2339,8 @@ const CAMS = {
   cohete: { az: 0.5, el: 0.1, dist: 190 },
   coheteG: { az: Math.PI + 0.5, el: 0.25, dist: 0.11 },
   malecon: { zoom: 1 },
+  noria: { zoom: 1 },
+  cabina: { zoom: 1 },
   plataforma: { zoom: 1 },
   aterrizaje: { zoom: 1 },
   ciudad: { az: 3.75, el: 0.36, dist: 7200 },
@@ -2465,6 +2582,24 @@ function updateLocalCamera(t, mode, info) {
     cam.fov = clamp(2 * Math.atan(Math.max(60, 0.05 * d) / d) / DEG / CAMS.aterrizaje.zoom, 1.2, 80);
     if (W < H) cam.fov = clamp(2 * Math.atan(Math.tan(cam.fov * DEG / 2) * H / W * 0.8) / DEG, 1.2, 95);
     const dv = eye.distanceTo(L.boostPos); shakeFrac = (t > BEV.landingBurn && t < BEV.landing + 1 ? 1 : 0) * 0.008 * Math.exp(-dv / 1500);
+  } else if (mode === 'noria') {
+    // a pie por el Malecón y el muelle, dando una vuelta lenta alrededor de la rueda
+    const a = 1.5 + Math.sin(performance.now() / 1000 * 0.035) * 0.9, d = 95 / CAMS.noria.zoom, c = NOR.pos;   // desde el río, con el Malecón y el cerro Santa Ana detrás
+    _tgt.set(c.x, c.y + NOR.axleY - 3, c.z);
+    cam.position.set(c.x + Math.sin(a) * d, c.y + 14, c.z + Math.cos(a) * d);
+    cam.up.set(0, 1, 0); cam.lookAt(_tgt);
+    cam.fov = clamp(2 * Math.atan(36 / d) / DEG, 20, 70); if (W < H) cam.fov = clamp(2 * Math.atan(Math.tan(cam.fov * DEG / 2) * H / W * 0.75) / DEG, 20, 95);
+    const dv = cam.position.distanceTo(veh); shakeFrac = thrustLevel(t - dv / 343) * 0.01 * Math.exp(-dv / 3000);
+  } else if (mode === 'cabina') {
+    // dentro de una cabina: sube con la rueda y mira hacia el cohete en Puerto Santa Ana
+    noriaCabinPos(cam.position);
+    const target = t < 1 ? _tgt.set(0, 40, 0) : veh;
+    if (!L.camTarget) L.camTarget = target.clone();
+    L.camTarget.lerp(target, 0.15);
+    cam.up.set(0, 1, 0); cam.lookAt(L.camTarget);
+    const d = cam.position.distanceTo(L.camTarget);
+    cam.fov = clamp(2 * Math.atan(Math.max(150, 0.12 * d) / d) / DEG / CAMS.cabina.zoom, 3, 68); if (W < H) cam.fov = clamp(2 * Math.atan(Math.tan(cam.fov * DEG / 2) * H / W * 0.75) / DEG, 3, 95);
+    const dv = cam.position.distanceTo(veh); shakeFrac = thrustLevel(t - dv / 343) * 0.014 * Math.exp(-dv / 4000);
   } else if (mode === 'ciudad') {
     const k = CAMS.ciudad, ce = Math.cos(k.el);
     _tgt.set(-250, 0, 300);
@@ -2500,14 +2635,14 @@ function updateLocalCamera(t, mode, info) {
   L.smoke.material.uniforms.uScale.value = sc; L.trail.material.uniforms.uScale.value = sc; L.sparks.material.uniforms.uScale.value = sc;
   L.deluge.material.uniforms.uScale.value = sc; L.lzSpray.material.uniforms.uScale.value = sc; L.lox.material.uniforms.uScale.value = sc; L.ice.material.uniforms.uScale.value = sc;
   // luz del sol y sombras: siguen al cohete mientras está cerca del suelo
-  const focusShadow = info.vh < 700 ? veh : (mode === 'malecon' && t > BEV.boostbackEnd + 60 ? _p.set(LZ.mid, 0, LZ.z) : _p.set(0, 0, 0));
+  const focusShadow = (mode === 'noria' || mode === 'cabina') && info.vh < 400 ? _p.set(NOR.pos.x, 30, NOR.pos.z) : info.vh < 700 ? veh : (mode === 'malecon' && t > BEV.boostbackEnd + 60 ? _p.set(LZ.mid, 0, LZ.z) : _p.set(0, 0, 0));
   L.sun.target.position.copy(focusShadow); L.sun.position.copy(focusShadow).addScaledVector(SUN_LOCAL, 1800);
   // terreno
   if ((frame & 1) === 0 || TER.ready < 40) updateTerrain(cam);
   // etiquetas de lugares
-  const placesOn = mode === 'ciudad' || (mode === 'malecon' && t < 12) || (mode === 'cohete' && camY > 4000);
+  const placesOn = mode === 'ciudad' || mode === 'cabina' || (mode === 'malecon' && t < 12) || (mode === 'cohete' && camY > 4000);
   PLACES.forEach(l => { const d = l.p.distanceTo(cam.position); placeLabel(l.el, l.p, cam, placesOn && d > l.d0 && d < l.d1 && !(mode === 'malecon' && l.d0 >= 900 && d < 2500) && !belowHorizon(l.p, cam.position)); });
-  placeLabel(LBL.veh, veh, cam, t > 12 && (mode === 'malecon' || mode === 'ciudad' || mode === 'plataforma' || mode === 'aterrizaje') && t < 300, 12, -10);
+  placeLabel(LBL.veh, veh, cam, t > 12 && (mode === 'malecon' || mode === 'ciudad' || mode === 'plataforma' || mode === 'aterrizaje' || mode === 'noria' || mode === 'cabina') && t < 300, 12, -10);
   LBL.veh.textContent = t < EV.stageSep ? 'Falcon Heavy' : '2.ª etapa';
   const showB = t > EV.sideSep + 5 && t < BEV.landing + 40 && mode !== 'cohete' && mode !== 'aterrizaje';
   placeLabel(LBL.boost, L.boostPos, cam, showB, 14, -12);
@@ -2978,6 +3113,8 @@ function setCam(c) {
   document.querySelectorAll('#cams button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cam === c)));
   $('#cam-select').value = c;
   L.camTarget = null;
+  if (c === 'cabina') NOR.ride = -1;
+  if (c === 'noria' || c === 'cabina') showToast({ title: 'Noria La Perla · Malecón 2000', desc: c === 'noria' ? '57 m de alto, 36 cabinas para 6 personas y más de 1.400 luces LED. Una vuelta dura unos 8 minutos.' : 'Vas en una cabina climatizada que sube hasta 57 m: desde arriba se ve el cohete en Puerto Santa Ana.' });
 }
 document.querySelectorAll('#cams button').forEach(b => b.addEventListener('click', () => setCam(b.dataset.cam)));
 $('#cam-select').addEventListener('change', e => setCam(e.target.value));
@@ -3003,7 +3140,7 @@ addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input,select')) return;
   if (e.key === 'Escape') { sims.hidden = true; return; }
   if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
-  const map = { '0': 'auto', '1': 'cohete', '2': 'plataforma', '3': 'malecon', '4': 'aterrizaje', '5': 'ciudad', '6': 'tierra', '7': 'tierraluna', '8': 'luna' };
+  const map = { '0': 'auto', '1': 'cohete', '2': 'plataforma', '3': 'malecon', '4': 'aterrizaje', '5': 'ciudad', '6': 'tierra', '7': 'tierraluna', '8': 'luna', '9': 'noria', 'n': 'cabina', 'N': 'cabina' };
   if (map[e.key]) setCam(map[e.key]);
   if (e.key === 'ArrowRight') nextEvent();
   if (e.key === 'ArrowLeft') { const p = [...EVENTS].reverse().find(ev => ev.t < tNow - 3); if (p) setTime(p.t - 2); }
@@ -3062,9 +3199,10 @@ function loop(now) {
   }
   curMode = camChoice === 'auto' ? autoCam(tNow) : camChoice;
   if (curMode === 'ciudad' && now - userCamAt > 7000) CAMS.ciudad.az += dtReal * 0.025;
-  const useLocal = curMode === 'malecon' || curMode === 'ciudad' || curMode === 'plataforma' || curMode === 'aterrizaje' || (curMode === 'cohete' && tNow < LOCAL_UNTIL);
+  const useLocal = curMode === 'noria' || curMode === 'cabina' || curMode === 'malecon' || curMode === 'ciudad' || curMode === 'plataforma' || curMode === 'aterrizaje' || (curMode === 'cohete' && tNow < LOCAL_UNTIL);
   let info = null;
   if (useLocal) {
+    updateNoria(dtReal, now / 1000);
     info = updateLocal(tNow); updateLocalCamera(tNow, curMode, info);
     renderPass.scene = L.scene; renderPass.camera = L.cam;
     bloomPass.strength = 0.32 + 0.4 * (1 - DAY); bloomPass.threshold = 0.92;
