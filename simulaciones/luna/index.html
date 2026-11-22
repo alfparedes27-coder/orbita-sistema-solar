@@ -151,9 +151,9 @@ const SITES=[
  S('luna21','Luna 21 + Lunojod 2','robot',25.85,30.45,'15 ene 1973','Cráter Le Monnier','URSS · Protón desde Baikonur',{below:true,full:true}),
  S('luna24','Luna 24','robot',12.71,62.21,'18 ago 1976','Mar de las Crisis','URSS · Protón desde Baikonur'),
  S('ce3','Chang\'e 3 + Yutu','robot',44.12,-19.51,'14 dic 2013','Mar de las Lluvias','China · Larga Marcha 3B desde Xichang',{full:true}),
- S('ce5','Chang\'e 5','robot',43.06,-51.92,'1 dic 2020','Mons Rümker','China · Larga Marcha 5 desde Wenchang'),
- S('ch3','Chandrayaan‑3','robot',-69.37,32.32,'23 ago 2023','Cerca del polo sur','India · LVM3 desde Sriharikota'),
- S('slim','SLIM','robot',-13.32,25.25,'19 ene 2024','Cráter Shioli','Japón · H‑IIA desde Tanegashima'),
+ S('ce5','Chang\'e 5','robot',43.06,-51.92,'1 dic 2020','Al este del Mons Rümker','China · Larga Marcha 5 desde Wenchang',{full:true}),
+ S('ch3','Chandrayaan‑3','robot',-69.37,32.32,'23 ago 2023','Cerca del polo sur','India · LVM3 desde Sriharikota',{full:true}),
+ S('slim','SLIM','robot',-13.32,25.25,'19 ene 2024','Cráter Shioli','Japón · H‑IIA desde Tanegashima',{full:true}),
  S('im1','Odysseus (IM‑1)','robot',-80.13,1.44,'22 feb 2024','Cráter Malapert A, cerca del polo sur','Intuitive Machines · Falcon 9 desde LC‑39A, Cabo Cañaveral'),
  S('bg1','Blue Ghost 1','robot',18.56,61.81,'2 mar 2025','Mar de las Crisis','Firefly Aerospace · Falcon 9 desde LC‑39A, Cabo Cañaveral',{below:true}),
  S('im2','Athena (IM‑2)','robot',-84.8,29.2,'6 mar 2025','Cerca del polo sur (aprox.)','Intuitive Machines · Falcon 9 desde LC‑39A, Cabo Cañaveral',{below:true}),
@@ -166,7 +166,7 @@ const SITES=[
  S('vikram2','Vikram (Chandrayaan‑2)','hit',-70.88,22.78,'6 sep 2019','Cerca del polo sur','India · GSLV Mk III desde Sriharikota'),
  S('hakuto','Hakuto‑R M1','hit',47.58,44.09,'25 abr 2023','Cráter Atlas','ispace (Japón) · Falcon 9 desde SLC‑40, Cabo Cañaveral'),
  S('ce4','Chang\'e 4 + Yutu‑2','robot',-45.444,177.599,'3 ene 2019','Cráter Von Kármán, cara oculta','China · Larga Marcha 3B desde Xichang',{far:true,full:true}),
- S('ce6','Chang\'e 6','robot',-41.638,-153.985,'1 jun 2024','Cuenca Apolo, cara oculta','China · Larga Marcha 5 desde Wenchang',{far:true}),
+ S('ce6','Chang\'e 6','robot',-41.638,-153.985,'1 jun 2024','Cuenca Apolo, cara oculta','China · Larga Marcha 5 desde Wenchang',{far:true,full:true}),
  S('ranger4','Ranger 4','hit',-15.5,-130.7,'26 abr 1962','Cara oculta (aprox.)','NASA · Atlas‑Agena desde Cabo Cañaveral',{far:true}),
  S('luna25','Luna 25','hit',-57.86,61.36,'19 ago 2023','Cerca del cráter Pontécoulant','Rusia · Soyuz desde Vostochni'),
 ];
@@ -252,6 +252,43 @@ const INFO={
    <p>Encontró en el suelo olivino, un mineral que podría venir del <b>manto</b> de la Luna, sacado por el gran impacto que formó la cuenca. Su radar vio capas hasta unos 40 m de profundidad. Y en diciembre de 2021 fotografió a lo lejos algo con forma de «cabaña» cúbica: los científicos lo apodaron así, fueron a ver y en enero de 2022 confirmaron que era… una roca.</p>
    <p>La radiación en la superficie resultó unas 200 veces mayor que en la Tierra: un dato clave para los futuros astronautas.</p>`,
   prof:{name:'Chang\'e 4',kind:'change',td:700,ev:[[0,15000,1690,0,'A 15 km se enciende el motor regulable (perfil aproximado)'],[480,2400,40,-60,'Bajada casi vertical: el cráter está rodeado de montañas'],[600,99,0,-1,'Flota a 99 m unos segundos y se corre 12 m para esquivar un cráter'],[640,30,0,-1,'Desde 30 m baja despacio'],[698,4,0,-1.5,'A pocos metros apaga el motor'],[700,0,0,0,'Primer alunizaje en la cara oculta']]}},
+ ce5:{ kind:'sample', launch:[['Cohete','Larga Marcha 5'],['Plataforma','Wenchang (isla de Hainan, China)'],['Despegue','23 de noviembre de 2020, 20:30 UTC'],['Alunizaje','1 de diciembre de 2020, 15:11 UTC, Océano de las Tormentas, al este del Mons Rümker'],['Despegue lunar','3 de diciembre de 2020'],['Regreso','16 de diciembre de 2020, 17:59 UTC, Mongolia Interior'],['Muestras','1.731 g'],['Dónde quedó','43,06° N, 51,92° O (medido por LRO)']],
+  how:`<p>La misión más compleja de China hasta entonces: <b>ir a la Luna, recoger rocas y traerlas</b>, la primera vez que alguien lo hacía desde Luna 24 en 1976. La nave tenía 4 partes que se separaban y se volvían a juntar:</p><ul>
+   <li><b>Orbitador:</b> se quedó dando vueltas a la Luna esperando.</li>
+   <li><b>Aterrizador:</b> bajó al suelo con un taladro que llegó a unos 2 m de profundidad y un brazo con una pala para recoger suelo de la superficie.</li>
+   <li><b>Ascensor:</b> la parte de arriba, con las muestras selladas, despegó desde la Luna usando el aterrizador como plataforma.</li>
+   <li><b>Cápsula de regreso:</b> el ascensor se acopló solo con el orbitador en órbita lunar (el primer acople robótico alrededor de la Luna), pasó las muestras y la cápsula volvió a la Tierra.</li></ul>
+   <p>Al volver a unos 11 km/s, la cápsula «rebotó» una vez en la atmósfera, como una piedra en el agua, para frenar sin calentarse demasiado.</p>`,
+  story:`<p>Antes de despegar de la Luna, el aterrizador desplegó una bandera china de tela, que salió de su cuerpo como un pergamino.</p>
+   <p>Las rocas resultaron ser basaltos de unos <b>2.000 millones de años</b>: unos 1.000 millones de años más jóvenes que cualquier otra lava lunar fechada. La Luna tuvo volcanes activos mucho más tarde de lo que se creía.</p>
+   <p>En las muestras se encontró un mineral nuevo, la <b>changesita‑(Y)</b>, el sexto mineral descubierto en la Luna, y agua guardada en diminutas perlas de vidrio formadas por impactos.</p>`,
+  prof:{name:'Chang\'e 5',kind:'sample',td:700,ev:[[0,15000,1690,0,'A 15 km se enciende el motor regulable (perfil aproximado)'],[450,2400,90,-50,'La nave se endereza y mira el suelo'],[560,100,0,-1,'Flota a unos 100 m y elige dónde bajar'],[640,100,0,-1,'Baja despacio'],[700,0,0,0,'Alunizaje junto al Mons Rümker']]}},
+ ce6:{ kind:'sample', y6:true, launch:[['Cohete','Larga Marcha 5, desde Wenchang'],['Despegue','3 de mayo de 2024, 09:27 UTC'],['Satélite de enlace','Queqiao‑2 (lanzado en marzo de 2024)'],['Alunizaje','1 de junio de 2024, 22:23 UTC, cuenca Apolo (cara oculta)'],['Regreso','25 de junio de 2024, 06:07 UTC, Siziwang (Mongolia Interior)'],['Muestras','1.935,3 g: las primeras de la cara oculta'],['Dónde quedó','41,64° S, 153,99° O (medido por LRO)']],
+  how:`<p>Una copia de Chang'e 5 (se construyó como su respaldo) enviada a un lugar mucho más difícil: la <b>cara oculta</b>, dentro de la cuenca Polo Sur‑Aitken, el cráter de impacto más grande y antiguo de la Luna. Para hablar con la Tierra usó el satélite <b>Queqiao‑2</b>, que retransmite desde detrás de la Luna.</p><ul>
+   <li>Mismas 4 partes que Chang'e 5: orbitador, aterrizador, ascensor y cápsula de regreso.</li>
+   <li>Taladro y pala para recoger 1.935 g de suelo y roca.</li>
+   <li>Instrumentos de otros países: un detector de iones negativos de Suecia con la ESA, un detector de radón de Francia, un retrorreflector láser de Italia y un pequeño satélite de Pakistán.</li>
+   <li>Un mini‑rover, que no se anunció antes del lanzamiento, salió del aterrizador y le tomó una foto.</li></ul>`,
+  story:`<p>Fue la primera vez que se trajeron muestras de la cara oculta, que es muy distinta de la visible: casi no tiene «mares» de lava.</p>
+   <p>Los primeros estudios (Science y Nature, noviembre de 2024) encontraron basaltos de unos <b>2.830 millones de años</b> y granos de lava de unos 4.200 millones: la cara oculta tuvo volcanes durante miles de millones de años.</p>`,
+  prof:{name:'Chang\'e 6',kind:'sample',td:700,ev:[[0,15000,1690,0,'A 15 km se enciende el motor regulable (perfil aproximado)'],[480,2400,40,-60,'Bajada casi vertical sobre la cuenca Apolo'],[600,100,0,-1,'Flota a unos 100 m y elige dónde bajar'],[640,100,0,-1,'Baja despacio'],[700,0,0,0,'Alunizaje en la cara oculta']]}},
+ ch3:{ kind:'vikram', launch:[['Cohete','LVM3‑M4'],['Plataforma','Sriharikota (India)'],['Despegue','14 de julio de 2023, 09:05 UTC'],['Alunizaje','23 de agosto de 2023, 12:33 UTC, cerca del polo sur'],['Lugar','«Statio Shiv Shakti», 69,37° S, 32,32° E'],['Nave','Módulo Vikram (1.752 kg con el rover) y rover Pragyan (26 kg, 6 ruedas)'],['Recorrido de Pragyan','más de 100 m']],
+  how:`<p>India se convirtió en el <b>4.º país</b> en alunizar (después de EE. UU., la URSS y China) y el primero en hacerlo cerca del polo sur, donde se cree que hay hielo en los cráteres que nunca ven el Sol. Cuatro años antes, Chandrayaan‑2 se había estrellado; Chandrayaan‑3 se rediseñó para aguantar errores.</p><ul>
+   <li><b>Vikram:</b> el módulo, con 4 patas reforzadas y un panel solar extra.</li>
+   <li><b>Pragyan</b> («sabiduría»): un rover de 26 kg con 6 ruedas que bajó por una rampa.</li>
+   <li><b>ChaSTE:</b> una sonda clavada en el suelo que midió la temperatura hasta 10 cm de profundidad: hasta unos 82 °C en la superficie al sol.</li>
+   <li><b>LIBS:</b> un láser que hacía brillar el suelo y, por la luz, confirmó que hay <b>azufre</b>.</li>
+   <li><b>ILSA:</b> el primer sismómetro de tecnología de microchips en la Luna; sintió los movimientos del rover.</li></ul>`,
+  story:`<p>Estaba diseñado para funcionar un día lunar, unos 14 días terrestres. Antes de que llegara la noche, Vikram hizo una prueba sorprendente: encendió sus motores, <b>saltó unos 40 cm</b> y volvió a aterrizar a 30–40 cm de distancia, ensayando lo que harán futuras misiones que despeguen de la Luna con muestras.</p>
+   <p>A comienzos de septiembre de 2023 el rover y el módulo se pusieron a «dormir» para la noche lunar. El lugar del alunizaje recibió el nombre «Shiv Shakti», aprobado por la Unión Astronómica Internacional en 2024.</p>`,
+  prof:{name:'Vikram',kind:'vikram',td:1140,ev:[[0,30000,1680,0,'A 30 km empieza el frenado con 4 motores (perfil aproximado)'],[690,7400,340,-60,'Mantiene la altitud y gira para mirar el suelo'],[900,800,10,-15,'Vuelo casi vertical: las cámaras buscan un lugar seguro'],[1060,150,0,-1,'Flota y confirma el sitio'],[1140,0,0,0,'Alunizaje cerca del polo sur']]}},
+ slim:{ kind:'slim', launch:[['Cohete','H‑IIA, junto con el telescopio XRISM'],['Plataforma','Tanegashima (Japón)'],['Despegue','6 de septiembre de 2023'],['Alunizaje','19 de enero de 2024, ~15:20 UTC, junto al cráter Shioli'],['Precisión','~3–4 m antes de la falla; quedó a ~55 m del objetivo'],['Noches lunares','sobrevivió 3'],['Fin','23 de agosto de 2024']],
+  how:`<p>SLIM («Smart Lander for Investigating Moon») quería demostrar algo nuevo: <b>alunizar exactamente donde uno quiere</b>, a menos de 100 m del objetivo, en lugar de «en algún lugar de una llanura grande».</p><ul>
+   <li><b>Navegación por cráteres:</b> mientras bajaba, comparaba las fotos de su cámara con mapas de cráteres hechos por otras sondas, como quien reconoce su barrio por las calles.</li>
+   <li><b>Dos mini‑rovers:</b> LEV‑1, que avanza saltando, y LEV‑2 («SORA‑Q»), una pelota de 250 g que se abre y se convierte en un vehículo con ruedas. Lo hicieron JAXA con una juguetera (TOMY), Sony y una universidad.</li></ul>`,
+  story:`<p>A unos 50 m de altura, una de sus dos toberas principales se desprendió y el empuje bajó a la mitad. Aun así llegó al suelo… pero quedó <b>apoyado de cabeza</b>, con el motor hacia arriba y los paneles solares mirando al oeste, sin producir energía.</p>
+   <p>La pequeña SORA‑Q se soltó antes del contacto y le tomó la foto famosa de SLIM de cabeza en la pendiente. Días después, cuando el Sol cambió de lugar, los paneles empezaron a funcionar. SLIM sobrevivió además 3 noches lunares, algo para lo que no estaba diseñado. Su precisión antes de la falla fue de unos 3–4 m: Japón se convirtió en el 5.º país en alunizar.</p>`,
+  prof:{name:'SLIM',kind:'slim',td:600,ev:[[0,15000,1690,0,'Comienza el descenso (perfil aproximado)'],[420,2000,60,-40,'Compara los cráteres que ve con sus mapas'],[540,50,0,-3,'A ~50 m se desprende una tobera: el empuje cae a la mitad'],[590,5,0,-2,'Suelta los mini‑rovers LEV‑1 y SORA‑Q'],[600,0,0,0,'Toca el suelo… y queda de cabeza']]}},
  a11:{ launch:[['Cohete','Saturn V (SA‑506), 110 m de alto'],['Plataforma','LC‑39A, Centro Espacial Kennedy (Cabo Cañaveral)'],['Despegue','16 de julio de 1969, 13:32 UTC'],['Viaje','4 días hasta la órbita lunar'],['Nave','Columbia (módulo de mando) y Eagle (módulo lunar)'],['Tripulación','Neil Armstrong, Buzz Aldrin y Michael Collins (en órbita)'],['Alunizaje','20 de julio de 1969, 20:17 UTC']],
   how:LMHOW+`<p>En el suelo dejaron un sismógrafo y un <b>retrorreflector láser</b>: aún hoy los observatorios disparan láseres a ese espejo y miden la distancia a la Luna con precisión de milímetros. Así sabemos que se aleja 3,8 cm por año.</p>`,
   story:`<p>Durante el descenso sonaron las alarmas 1202 y 1201: la computadora estaba sobrecargada, pero estaba diseñada para descartar tareas secundarias. Desde Houston, un ingeniero de 26 años dijo que podían seguir.</p>
@@ -395,14 +432,14 @@ function openCard(s){
   if(!I){ $('cbody').innerHTML=`${expBtns(s)}<p>${NOTE[s.id]||''}</p><div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${coords}</b><span>Quién y cómo</span><b>${s.who}</b></div>
     ${s.id==='luna17'?`<a class="go" href="lunojod/">🎛 Manejar el Lunojod 1 desde la Tierra, con el retraso de la señal →</a>`:`<div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`}`; wireExp(s); return; }
   if(tab==='lrv'){ buildLRVDetail(s.id==='a17'); rctl.target.set(0,.8,0); rcam.position.set(4.2,2.3,4.6); $('cbody').innerHTML=lrvHTML(s); $('cbody').scrollTop=0; return; }
-  if(I.kind) buildProbe(I.l2?'lunojod2':I.y2?'change2':I.kind); else buildLM(['a15','a16','a17'].includes(s.id), s.id==='a12'); castAll(lm); castAll(stay); setPose(1e9,I.prof); if(I.kind==='lunojod'||I.kind==='change'){ rctl.target.set(.6,1.1,2.6); rcam.position.set(8,4.4,10); }
+  if(I.kind) buildProbe(I.l2?'lunojod2':I.y2?'change2':I.y6?'sample6':I.kind); else buildLM(['a15','a16','a17'].includes(s.id), s.id==='a12'); castAll(lm); castAll(stay); setPose(1e9,I.prof); if(I.kind==='lunojod'||I.kind==='change'||I.kind==='vikram'){ rctl.target.set(.6,1.1,2.6); rcam.position.set(8,4.4,10); } if(I.kind==='sample'||I.kind==='slim'){ rctl.target.set(0,1.4,0); rcam.position.set(8,4.5,9); }
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
     <button class="go" id="play" style="width:100%;border:0;cursor:pointer">▶ Ver la animación del alunizaje</button>
     ${s.id==='luna17'?`<a class="go" href="lunojod/">🎛 Manejar el Lunojod 1 desde la Tierra, con el retraso de la señal →</a>`:''}
     ${s.id==='a11'?`<a class="go" href="paseo/">🚶 Caminar por Tranquility Base en primera persona →</a>`:''}
     ${s.id==='a17'?`<a class="go" href="paseo/?m=a17">🚙 Manejar el rover lunar por el valle Taurus‑Littrow →</a>`:''}
     ${REVS[s.id]?`<a class="go alt" href="apollo/#${s.id}">Ver la misión completa: Saturn V, viaje, ${REVS[s.id]} vueltas y regreso →</a>`:''}
-    <p style="font-size:11.5px;color:var(--faint)">${I.kind==='change'?'Fechas: Planetary Society, Spaceflight Now, Nature Communications y LROC. El perfil de descenso es aproximado; el rover baja por la rampa acelerado.':I.kind==='lunojod'?'Fechas: NASA (Siddiqi, «Deep Space Chronicle») y LROC. El perfil de descenso es esquemático; el rover baja por la rampa acelerado (en la realidad tardó unas 2 a 3 horas).':'Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.'}</p>`;
+    <p style="font-size:11.5px;color:var(--faint)">${({sample:'Fechas: Spaceflight Now, Planetary Society, Space.com, Science/Nature y LROC. El perfil de descenso es aproximado; el ascensor despega acelerado.',vikram:'Fechas y datos: ISRO, Space.com, NASASpaceflight y USGS (nombres planetarios). El perfil de descenso es aproximado.',slim:'Fechas y datos: JAXA y Planetary Society. El perfil de descenso es aproximado.'})[I.kind]||''}${I.kind==='change'?'Fechas: Planetary Society, Spaceflight Now, Nature Communications y LROC. El perfil de descenso es aproximado; el rover baja por la rampa acelerado.':I.kind==='lunojod'?'Fechas: NASA (Siddiqi, «Deep Space Chronicle») y LROC. El perfil de descenso es esquemático; el rover baja por la rampa acelerado (en la realidad tardó unas 2 a 3 horas).':'Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.'}</p>`;
   $('cbody').innerHTML=expBtns(s)+h; $('cbody').scrollTop=0; wireExp(s);
   if($('play')) $('play').onclick=()=>startAnim(I.prof);
 }
@@ -487,6 +524,41 @@ function buildProbe(kind){
     for(const sx of[-.17,.17]){ const cmr=cy(.04,.04,.06,dk,12); cmr.rotation.x=Math.PI/2; cmr.position.set(sx,1.8,.62); rv.add(cmr); }
     const hga=new THREE.Mesh(new THREE.SphereGeometry(.22,20,8,0,Math.PI*2,0,1.0),Mt(0xe8e8e8,{metalness:.5,side:THREE.DoubleSide})); hga.position.set(0,1.95,.35); hga.rotation.x=-.6; rv.add(hga);
     rv.userData.wings=wings; stay.add(rv); stay.userData.rover=rv; stay.userData.deck=2.15; stay.userData.ramp=[1.0,3.6];
+  } else if(kind==='sample'||kind==='sample6'){ // Chang'e 5/6: aterrizador con taladro, brazo y bandera; ascensor arriba
+    const foil=Mt(0xd6a63f,{metalness:.9,roughness:.32}), sil=Mt(0xd7dadf,{metalness:.85,roughness:.25}), pv=Mt(0x1d2f63,{metalness:.5,roughness:.3});
+    const bodyL=cy(1.7,1.7,.9,foil,8); bodyL.position.y=1.45; bodyL.rotation.y=Math.PI/8; lm.add(bodyL); const deck=cy(1.7,1.7,.06,sil,8); deck.position.y=1.93; deck.rotation.y=Math.PI/8; lm.add(deck);
+    for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, f=new THREE.Vector3(Math.cos(a)*2.9,.08,Math.sin(a)*2.9); lm.add(rod(new THREE.Vector3(Math.cos(a)*1.5,1.2,Math.sin(a)*1.5),f,.07,sil)); lm.add(rod(new THREE.Vector3(Math.cos(a)*1.55,1.8,Math.sin(a)*1.55),f.clone().multiplyScalar(.8).setY(.5),.04,sil)); const pd=cy(.28,.3,.08,sil,12); pd.position.copy(f); lm.add(pd); }
+    for(const sx of[-1,1]){ const p=box(.04,1.2,2.2,pv); p.position.set(sx*2.4,2.5,0); p.rotation.z=sx*-.4; lm.add(p); lm.add(rod(new THREE.Vector3(sx*1.6,1.9,0),new THREE.Vector3(sx*2.1,2.2,0),.03,sil)); }
+    const drill=cy(.12,.12,1.4,sil,12); drill.position.set(.9,.75,.9); lm.add(drill); const bit=cy(.04,.04,.8,dk,8); bit.position.set(.9,-.1,.9); lm.add(bit);
+    lm.add(rod(new THREE.Vector3(-1.2,1.9,.8),new THREE.Vector3(-2.2,1.6,1.6),.05,sil)); lm.add(rod(new THREE.Vector3(-2.2,1.6,1.6),new THREE.Vector3(-2.6,.3,2),.04,sil)); const sc=box(.3,.15,.3,sil); sc.position.set(-2.6,.2,2); lm.add(sc);
+    lm.add(rod(new THREE.Vector3(1.2,1.9,-1),new THREE.Vector3(1.2,3.2,-1),.03,sil)); const fl=box(.9,.6,.02,Mt(0xd62a1e,{roughness:.9,side:THREE.DoubleSide})); fl.position.set(1.65,2.9,-1); lm.add(fl);
+    const nz=cy(.22,.45,.7,dk,16); nz.position.y=.75; lm.add(nz); plume.position.y=-1.3; lm.add(plume);
+    const asc=new THREE.Group(); const ab=cy(.75,.85,.9,foil,6); ab.position.y=.45; asc.add(ab); const at=box(.9,.2,.9,sil); at.position.y=1.0; asc.add(at); const an=cy(.04,.04,.6,sil,6); an.position.set(.3,1.4,0); asc.add(an);
+    const ae=cy(.12,.25,.35,dk,12); ae.position.y=-.1; asc.add(ae); const ap=new THREE.Mesh(new THREE.ConeGeometry(.35,2.5,12,1,true),plume.material); ap.rotation.x=Math.PI; ap.position.y=-1.4; ap.visible=false; asc.add(ap); asc.userData.pl=ap;
+    stay.add(asc); stay.userData.asc=asc;
+    if(kind==='sample6'){ const mr=new THREE.Group(); const mb=box(.45,.25,.35,sil); mb.position.y=.25; mr.add(mb); for(const sx of[-1,1]) for(const sz of[-1,1]){ const w=cy(.09,.09,.06,dk,10); w.rotation.z=Math.PI/2; w.position.set(sx*.25,.09,sz*.13); mr.add(w); } mr.position.set(4,0,2.5); stay.add(mr); stay.userData.mini=mr; }
+  } else if(kind==='vikram'){ // Chandrayaan‑3: módulo Vikram con rampa y rover Pragyan
+    const foil=Mt(0xd6a63f,{metalness:.9,roughness:.32}), sil=Mt(0xd7dadf,{metalness:.85,roughness:.25}), pv=Mt(0x1d2f63,{metalness:.5,roughness:.3});
+    const b=box(2.0,1.2,2.0,foil); b.position.y=1.6; lm.add(b); const top=box(2.04,.05,2.04,sil); top.position.y=2.22; lm.add(top);
+    const sp=box(1.6,1.1,.04,pv); sp.position.set(0,1.65,-1.04); lm.add(sp); const sp2=box(.04,.9,1.4,pv); sp2.position.set(-1.04,1.6,0); lm.add(sp2);
+    for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, f=new THREE.Vector3(Math.cos(a)*2.1,.08,Math.sin(a)*2.1); lm.add(rod(new THREE.Vector3(Math.cos(a)*1.2,1.2,Math.sin(a)*1.2),f,.08,sil)); const pd=cy(.25,.28,.07,sil,12); pd.position.copy(f); lm.add(pd); }
+    for(let i=0;i<4;i++){ const a=i*Math.PI/2; const e=cy(.1,.18,.3,dk,10); e.position.set(Math.cos(a)*.6,.85,Math.sin(a)*.6); lm.add(e); } plume.position.y=-1.1; lm.add(plume);
+    lm.add(rod(new THREE.Vector3(.6,2.25,-.6),new THREE.Vector3(.6,2.9,-.6),.02,sil)); const ant=new THREE.Mesh(new THREE.SphereGeometry(.25,16,6,0,Math.PI*2,0,1),Mt(0xe8e8e8,{side:THREE.DoubleSide})); ant.position.set(.6,2.95,-.6); lm.add(ant);
+    for(const sx of[-.25,.25]){ const r=box(.12,.03,2.4,sil); r.position.set(sx,1.05,1.85); r.rotation.x=.6; lm.add(r); }
+    const rv=new THREE.Group(); const rb=box(.9,.35,.75,foil); rb.position.y=.45; rv.add(rb); const rp=box(.95,.03,.8,pv); rp.position.y=.65; rp.rotation.x=-.25; rv.add(rp);
+    for(const sx of[-1,1]) for(let k=0;k<3;k++){ const w=cy(.1,.1,.08,Mt(0x9aa0a8,{metalness:.7}),12); w.rotation.z=Math.PI/2; w.position.set(sx*.5,.1,-.3+k*.3); rv.add(w); }
+    const mst=cy(.02,.02,.35,sil,6); mst.position.set(0,.8,.3); rv.add(mst); const cmr=box(.25,.08,.06,dk); cmr.position.set(0,.98,.33); rv.add(cmr);
+    stay.add(rv); stay.userData.rover=rv; stay.userData.deck=2.25; stay.userData.ramp=[.9,3.0];
+  } else if(kind==='slim'){ // SLIM: queda de cabeza; mini‑rovers LEV‑1 y SORA‑Q
+    const foil=Mt(0xd6a63f,{metalness:.9,roughness:.32}), sil=Mt(0xd7dadf,{metalness:.85,roughness:.25}), pv=Mt(0x1d2f63,{metalness:.5,roughness:.3});
+    const body=new THREE.Group(); body.position.y=1.3; lm.add(body);
+    const b=box(1.5,1.7,1.5,foil); body.add(b); for(const sx of[-1,1]){ const t=cy(.38,.38,1.5,sil,16); t.position.set(sx*.55,0,.85); body.add(t); }
+    const pnl=box(1.52,1.2,.04,pv); pnl.position.set(0,.1,-.78); body.add(pnl); const top=box(1.0,.3,1.0,sil); top.position.y=1.0; body.add(top);
+    for(let i=0;i<5;i++){ const a=i/5*Math.PI*2, f=new THREE.Vector3(Math.cos(a)*1.4,-1.25,Math.sin(a)*1.4); body.add(rod(new THREE.Vector3(Math.cos(a)*.7,-.6,Math.sin(a)*.7),f,.05,sil)); const pd=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),sil); pd.position.copy(f); body.add(pd); }
+    for(const sx of[-.35,.35]){ const e=cy(.12,.22,.35,dk,12); e.position.set(sx,-1.0,0); body.add(e); }
+    plume.position.y=-1.4; body.add(plume);
+    const lev1=box(.25,.2,.3,sil); lev1.position.set(2.4,.12,1.4); stay.add(lev1); const lev2=new THREE.Mesh(new THREE.SphereGeometry(.1,16,12),Mt(0xb8bcc2,{metalness:.7})); lev2.position.set(-1.8,.1,2.4); stay.add(lev2);
+    lm.userData.slim=body;
   } else { // Surveyor: estructura triangular, 3 patas, mástil con panel solar, antena plana y cámara
     const fr=cy(0.9,0.9,0.15,alu,3); fr.position.y=1.3; lm.add(fr);
     for(let i=0;i<3;i++){ const a=i/3*Math.PI*2+Math.PI/6, f=new THREE.Vector3(Math.cos(a)*2.1,0.08,Math.sin(a)*2.1);
@@ -625,7 +697,10 @@ function setPose(t,P){ const p=profAt(P,t), x=rangeLeft(P,t);
       if(cap){ const B=Math.max(0,k), hb=k<0?0:8*Math.exp(-B/12)*Math.abs(Math.sin(B*0.9)), done=k>60;
         cap.position.set(Math.min(B,60)*0.1-3.5, t<P.td? -50 : (done?0.9:0.9+hb), 1.5); cap.visible=t>=P.td-0.01;
         cap.userData.bags.visible=t>=P.td && k<70; const open=THREE.MathUtils.clamp((k-200)/40,0,1); cap.userData.pet.forEach((q,i)=>q.rotation.x=-open*1.9); cap.userData.ant.visible=open>=1; if(!done) cap.rotation.z=-B*0.6; else cap.rotation.z=0; } }
-    else if(P.kind==='lunojod'||P.kind==='change'){ const rv=stay.userData.rover; stay.visible=true; lm.visible=true; if(plume) plume.visible=t<P.td-1;
+    else if(P.kind==='sample'){ stay.visible=true; lm.visible=true; if(plume) plume.visible=t<P.td-1; const asc=stay.userData.asc, k=t-P.td;
+      if(asc){ const lift=(t<1e8&&k>25)?k-25:0; asc.position.set(lm.position.x,lm.position.y+1.96+1.5*lift*lift,0); asc.userData.pl.visible=lift>0&&lift<44; } }
+    else if(P.kind==='slim'){ stay.visible=t>=P.td-8; const body=lm.userData.slim, k=THREE.MathUtils.clamp((t-(P.td-12))/12,0,1); if(body){ body.rotation.z=-2.4*k*k; body.position.y=1.3-.35*k; } if(plume) plume.visible=t<P.td; }
+    else if(P.kind==='lunojod'||P.kind==='change'||P.kind==='vikram'){ const rv=stay.userData.rover; stay.visible=true; lm.visible=true; if(plume) plume.visible=t<P.td-1;
       if(rv){ const k=t-P.td, u=THREE.MathUtils.clamp((k-20)/35,0,1), v=THREE.MathUtils.clamp((k-55)/25,0,1);
         const dY=stay.userData.deck||1.78, rp=stay.userData.ramp||[1.3,4.0]; if(u<=0){ rv.position.set(lm.position.x,lm.position.y+dY,0); rv.rotation.x=0; }
         else { const top=new THREE.Vector3(lm.position.x,lm.position.y+dY,rp[0]), bot=new THREE.Vector3(lm.position.x,0,rp[1]); rv.position.lerpVectors(top,bot,u); rv.position.z+=v*1.2; rv.position.x+=v*1.4; rv.rotation.y=v*.6; rv.rotation.x=(u>0&&u<1)?.62:0; }
@@ -659,12 +734,12 @@ function loop(t){
   if(moved) mareEls.forEach(m=>{ if(!vis(m.p)){ m.el.hidden=true; return; } tmp.copy(m.p).project(cam); m.el.hidden=false; m.el.style.left=((tmp.x+1)/2*innerWidth)+'px'; m.el.style.top=((1-tmp.y)/2*innerHeight)+'px'; });
   renderer.render(scene,cam);
   if(!$('card').hidden && !rc.hidden){ const w=rc.clientWidth,h=rc.clientHeight; if(rc.width!==Math.floor(w*rr.getPixelRatio())){ rr.setSize(w,h,false); rcam.aspect=w/h; rcam.updateProjectionMatrix(); }
-    if(anim){ const prevX=lm.position.clone(); anim.t=Math.min(anim.P.td+(anim.P.kind==='luna9'?260:(anim.P.kind==='lunojod'||anim.P.kind==='change')?110:20),anim.t+dt*aSpeed); const p=setPose(anim.t,anim.P);
+    if(anim){ const prevX=lm.position.clone(); anim.t=Math.min(anim.P.td+(anim.P.kind==='luna9'?260:(anim.P.kind==='lunojod'||anim.P.kind==='change'||anim.P.kind==='vikram')?110:anim.P.kind==='sample'?70:20),anim.t+dt*aSpeed); const p=setPose(anim.t,anim.P);
       const d=lm.position.clone().sub(prevX); rctl.target.add(d); rcam.position.add(d);
       const want=new THREE.Vector3(lm.position.x+14,lm.position.y+16,lm.position.z+26); if(anim.t<1) { rcam.position.copy(want); rctl.target.copy(lm.position); }
       const mm=Math.floor(Math.max(0,anim.t)/60), ss=Math.floor(Math.max(0,anim.t)%60);
       $('hud').innerHTML=`${anim.P.name} · ${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')} desde el inicio<br>Altura: ${p[1]>=1000?(p[1]/1000).toFixed(1)+' km':Math.round(p[1])+' m'}<br>Velocidad: ${Math.round(Math.hypot(p[2],p[3])*3.6)} km/h<br><span style="color:var(--mars)">${anim.P.kind==='luna9'&&anim.t>anim.P.td+200?'Se abren los 4 pétalos: ¡primer aterrizaje suave en otro mundo!':anim.P.kind==='luna9'&&anim.t>anim.P.td+60?'Se sueltan las bolsas de aire':p[4]}</span>`;
-      if(anim.t>=anim.P.td+(anim.P.kind==='luna9'?260:(anim.P.kind==='lunojod'||anim.P.kind==='change')?110:20)){ anim=null; rctl.autoRotate=true; } }
+      if(anim.t>=anim.P.td+(anim.P.kind==='luna9'?260:(anim.P.kind==='lunojod'||anim.P.kind==='change'||anim.P.kind==='vikram')?110:anim.P.kind==='sample'?70:20)){ anim=null; rctl.autoRotate=true; } }
     rctl.update(); rr.render(rs,rcam); }
 }
 requestAnimationFrame(loop);

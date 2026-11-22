@@ -45,7 +45,7 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
   y desafíos: encender el Aquarius, la «caja de correo», el encendido a mano y el pilotaje de Orión junto a su etapa).
 - `simulaciones/jpl/`: visita al JPL de la NASA. `trajes/` es la sala de trajes espaciales: línea del tiempo en 3D con modelos
   procedurales (tela con relieve de hilos, metal, visores con transparencia real), qué es cada pieza, capas, datos y fuentes.
-  Se agregan trajes de dos en dos (listos: Apollo A7L, Sokol KV‑2, Orlan‑MKS, EMU, ACES y SpaceX).
+  Se agregan trajes de dos en dos (listos: Mercury, Gemini G4C, Apollo A7L, Sokol KV‑2, Orlan‑MKS, EMU, ACES y SpaceX).
 - `simulaciones/starbase/`: Starbase (Texas) en 3D: los cohetes de SpaceX en fila con su historia, la torre con los palillos,
   una galería para recorrer a pie (Dragon, motores, aletas, losetas, Starlink, trajes) y la línea del tiempo de Tesla.
   `starbase/dragon/`: el interior de la Crew Dragon, desde los asientos.

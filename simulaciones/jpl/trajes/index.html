@@ -269,6 +269,9 @@ const M={
   sxGlove: fabric('#2f3237',{seed:73,nscale:.4}),
   sxBoot: new THREE.MeshPhysicalMaterial({color:0xf0f0ee,roughness:.5,clearcoat:.3}),
   sxVisor: new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.03,transmission:1,thickness:.004,ior:1.5,transparent:true,envMapIntensity:1.2,side:THREE.DoubleSide,depthWrite:false}),
+  merc: new THREE.MeshPhysicalMaterial({color:0xc9ccd2,metalness:.75,roughness:.38,map:grime('#e4e6ea',.05,81),normalMap:TX.weave,normalScale:new THREE.Vector2(.5,.5),side:THREE.DoubleSide}),
+  gem: fabric('#ecebe6',{seed:91,nscale:.5}),
+  gemGlove: fabric('#dcdad2',{seed:92,nscale:.4}),
   ghost: new THREE.MeshPhysicalMaterial({color:0x7f93b5,roughness:.25,metalness:.1,transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide}),
 };
 
@@ -770,6 +773,76 @@ function buildSpaceX(){
   return {g,P,parts,inflate,anim:{visorPivot:vp,eva:evaBits,visorMesh:visor,visorCu},order:['casco','visor','paneles','cierre','umbilical','guantes','capas','bandera','botas','eva']};
 }
 
+/* ================= TRAJE 7: MERCURY (1961–1963) ================= */
+function buildMercury(){
+  const {g,P,inflate}=body({mat:M.merc,seed:81,bulk:.92,wr:.022});
+  const parts={}; const add=(k,meshes,anchorObj,anchorPos)=>{ parts[k]={meshes:[].concat(meshes),obj:anchorObj,pos:anchorPos}; };
+  add('capa',[P.torso],g,V3(.12,1.0,.13));
+  const ring=mesh(new THREE.CylinderGeometry(.125,.13,.05,40),M.alu,P.neck,{y:0});
+  const head=new THREE.Group(); head.position.y=.16; P.neck.add(head); const man=mesh(new THREE.SphereGeometry(.095,32,24),M.mannequin,head,{y:-.005}); man.scale.set(.9,1.12,1);
+  const helm=mesh(new THREE.SphereGeometry(.16,56,36,Math.PI*1.08,Math.PI*.84,0,Math.PI*.82),M.shellWhite,P.neck,{y:.15}); helm.scale.set(1,1.06,1.05);
+  const crown=mesh(new THREE.SphereGeometry(.161,56,14,0,Math.PI*2,0,Math.PI*.2),M.shellWhite,P.neck,{y:.15}); crown.scale.set(1,1.06,1.05);
+  const vp=new THREE.Group(); vp.position.y=.15; P.neck.add(vp); const visor=mesh(new THREE.SphereGeometry(.163,48,28,Math.PI*.12,Math.PI*.76,Math.PI*.24,Math.PI*.44),M.visorClear,vp,{cast:false}); visor.scale.set(1,1.06,1.05);
+  for(const s of[-1,1]) mesh(new THREE.CylinderGeometry(.03,.03,.03,20),M.alu,vp,{x:s*.163,rz:Math.PI/2});
+  const mic=mesh(tube([[.11,-.02,.06],[.07,-.06,.11],[.02,-.07,.12]],.006,12),M.rubberDark,head); const mk=mesh(new THREE.SphereGeometry(.014,10,8),M.rubberDark,head,{x:.02,y:-.07,z:.12});
+  add('casco',[helm,crown,ring],P.neck,V3(-.14,.22,.06)); add('visor',[visor],P.neck,V3(.05,.2,.17)); add('microfono',[mic,mk],P.neck,V3(.04,.09,.16));
+  // cremallera diagonal de entrada y cremallera de cintura
+  const z1=mesh(tube([[-.14,1.45,.13],[-.02,1.28,.155],[.1,1.08,.14]],.005,24),M.alu,g); const z2=mesh(tube([[-.17,1.02,.12],[0,1.0,.14],[.17,1.02,.12]],.005,24),M.alu,g);
+  add('cremalleras',[z1,z2],g,V3(-.06,1.3,.17));
+  // conexión de ventilación (oxígeno) en la cintura
+  const vc=[]; vc.push(mesh(new THREE.CylinderGeometry(.03,.03,.05,20),M.plasticDark,g,{x:.08,y:1.05,z:.14,rx:Math.PI/2})); vc.push(mesh(new THREE.CylinderGeometry(.03,.03,.05,20),M.anoBlue,g,{x:.14,y:1.07,z:.12,rx:Math.PI/2}));
+  vc.push(mesh(tube([[.08,1.05,.17],[.16,.98,.2],[.24,.9,.16]],.014,16),M.hoseGray,g));
+  add('ventilacion',vc,g,V3(.12,1.05,.19));
+  // guantes con dedos curvos y luces rojas en dos dedos
+  const gl=[], rings=[], lights=[];
+  P.wrists.forEach((wr,i)=>{ const s=i?1:-1; const hh=hand(wr,s,{shell:M.merc,ring:M.alu}); gl.push(...hh.parts.filter(p=>p!==hh.ring)); rings.push(hh.ring);
+    for(let k=0;k<2;k++){ const L=mesh(new THREE.SphereGeometry(.008,10,8),new THREE.MeshStandardMaterial({color:0xff4b3a,emissive:0xff2a14,emissiveIntensity:0}),wr,{x:-s*.012,y:-.245,z:-.033+k*.022}); lights.push(L); } });
+  add('guantes',[...gl,...rings],P.wrists[0],V3(0,-.14,.06)); add('luces',lights,P.wrists[1],V3(0,-.24,0));
+  // botas
+  const boots=[]; P.legs.forEach((lg,i)=>{ const s=i?1:-1; const b=new THREE.Group(); b.position.set(s*.02,-.86,.02); lg.add(b);
+    boots.push(mesh(new RoundedBoxGeometry(.1,.11,.26,4,.04),M.merc,b,{y:-.05,z:.035})); boots.push(mesh(new THREE.CylinderGeometry(.066,.07,.16,28),M.merc,b,{y:.05})); boots.push(mesh(new RoundedBoxGeometry(.105,.025,.27,3,.01),M.rubberDark,b,{y:-.108,z:.035})); });
+  add('botas',boots,P.legs[0],V3(-.03,-.9,.2));
+  const flag=mesh(new THREE.PlaneGeometry(.085,.045),new THREE.MeshPhysicalMaterial({map:flagTex('us'),roughness:.8}),P.arms[1],{x:.083,y:-.08,z:.01,ry:Math.PI/2-.1});
+  add('bandera',[flag],P.arms[1],V3(.09,-.06,.01));
+  return {g,P,parts,inflate,anim:{visorPivot:vp,lights},order:['casco','visor','microfono','cremalleras','ventilacion','guantes','luces','capa','bandera','botas']};
+}
+/* ================= TRAJE 8: GEMINI G4C (1965–1966) ================= */
+function buildGemini(){
+  const {g,P,inflate}=body({mat:M.gem,seed:91,bulk:1.0,wr:.02,kneeRibs:[[.42,.6,3,.04]]});
+  const parts={}; const add=(k,meshes,anchorObj,anchorPos)=>{ parts[k]={meshes:[].concat(meshes),obj:anchorObj,pos:anchorPos}; };
+  add('cubierta',[P.torso],g,V3(.12,1.0,.14));
+  const ring=mesh(new THREE.CylinderGeometry(.13,.135,.05,40),M.alu,P.neck,{y:0});
+  const head=new THREE.Group(); head.position.y=.16; P.neck.add(head); const man=mesh(new THREE.SphereGeometry(.095,32,24),M.mannequin,head,{y:-.005}); man.scale.set(.9,1.12,1);
+  const helm=mesh(new THREE.SphereGeometry(.165,56,36,Math.PI*1.08,Math.PI*.84,0,Math.PI*.84),M.shellWhite,P.neck,{y:.15}); helm.scale.set(1,1.05,1.08);
+  const crown=mesh(new THREE.SphereGeometry(.166,56,14,0,Math.PI*2,0,Math.PI*.2),M.shellWhite,P.neck,{y:.15}); crown.scale.set(1,1.05,1.08);
+  const visor=mesh(new THREE.SphereGeometry(.166,48,28,Math.PI*.12,Math.PI*.76,Math.PI*.24,Math.PI*.44),M.visorClear,P.neck,{y:.15,cast:false}); visor.scale.set(1,1.05,1.08);
+  const vp=new THREE.Group(); vp.position.y=.15; P.neck.add(vp); const gold=mesh(new THREE.SphereGeometry(.172,48,28,Math.PI*.12,Math.PI*.76,Math.PI*.2,Math.PI*.46),M.gold,vp); gold.scale.set(1,1.05,1.08);
+  add('casco',[helm,crown,ring,visor],P.neck,V3(-.14,.22,.06)); add('visorOro',[gold],P.neck,V3(.06,.27,.16));
+  // conectores y módulo de ventilación en el pecho
+  const ch=[]; ch.push(mesh(new RoundedBoxGeometry(.16,.12,.06,3,.012),M.plasticGray,g,{y:1.2,z:.155}));
+  for(const [x,m] of [[-.05,M.anoBlue],[.05,M.anoRed]]) ch.push(mesh(new THREE.CylinderGeometry(.022,.022,.04,18),m,g,{x,y:1.1,z:.15,rx:Math.PI/2}));
+  add('pecho',ch,g,V3(0,1.24,.2));
+  // umbilical dorado de 7,6 m (aquí enrollado) que daba oxígeno y radio
+  const umbPts=[]; for(let k=0;k<=60;k++){ const t=k/60, a=t*Math.PI*7; umbPts.push([.05+.12*Math.cos(a)+.3*t,1.12-.9*t,.2+.12*Math.sin(a)]); }
+  const umb=mesh(tube(umbPts,.018,260),M.gold,g);
+  add('umbilical',[umb],g,V3(.24,.75,.3));
+  // pistola de maniobra (HHMU) en la mano derecha
+  const gun=new THREE.Group(); P.wrists[0].add(gun); gun.position.set(.02,-.17,.05);
+  const gb=[]; gb.push(mesh(new RoundedBoxGeometry(.05,.1,.04,2,.01),M.alu,gun,{y:0})); gb.push(mesh(new THREE.CylinderGeometry(.02,.02,.16,16),M.alu,gun,{z:.08,rx:Math.PI/2}));
+  for(const s of[-1,1]) gb.push(mesh(new THREE.CylinderGeometry(.008,.012,.05,10),M.alu,gun,{x:s*.06,z:.15,rz:Math.PI/2}));
+  const puff=new THREE.Mesh(new THREE.ConeGeometry(.05,.25,14,1,true),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false})); puff.position.set(0,0,-.1); puff.rotation.x=Math.PI/2; gun.add(puff);
+  add('pistola',gb,P.wrists[0],V3(.02,-.17,.14));
+  // guantes (sobreguantes) y botas
+  const gl=[], rings=[]; P.wrists.forEach((wr,i)=>{ const s=i?1:-1; const hh=hand(wr,s,{shell:M.gemGlove,ring:M.alu}); gl.push(...hh.parts.filter(p=>p!==hh.ring)); rings.push(hh.ring); });
+  add('guantes',[...gl,...rings],P.wrists[1],V3(0,-.14,.06));
+  const boots=[]; P.legs.forEach((lg,i)=>{ const s=i?1:-1; const b=new THREE.Group(); b.position.set(s*.02,-.86,.02); lg.add(b);
+    boots.push(mesh(new RoundedBoxGeometry(.11,.12,.27,4,.04),M.gem,b,{y:-.05,z:.035})); boots.push(mesh(new THREE.CylinderGeometry(.07,.074,.18,28),M.gem,b,{y:.06})); boots.push(mesh(new RoundedBoxGeometry(.115,.025,.28,3,.01),M.rubberDark,b,{y:-.108,z:.035})); });
+  add('botas',boots,P.legs[0],V3(-.03,-.9,.2));
+  const flag=mesh(new THREE.PlaneGeometry(.09,.048),new THREE.MeshPhysicalMaterial({map:flagTex('us'),roughness:.8}),P.arms[1],{x:.088,y:-.08,z:.01,ry:Math.PI/2-.1});
+  add('bandera',[flag],P.arms[1],V3(.09,-.06,.01));
+  return {g,P,parts,inflate,anim:{visorPivot:vp,puff},order:['casco','visorOro','pecho','umbilical','pistola','guantes','cubierta','bandera','botas']};
+}
+
 /* ================= FANTASMAS: los trajes que vendrán en los próximos pares ================= */
 function buildGhost(o){
   const {g,P}=body({mat:M.ghost,seed:o.seed||50,bulk:o.bulk||1,wr:.008});
@@ -783,8 +856,49 @@ function buildGhost(o){
 
 /* ================= TEXTOS: qué es cada pieza (fuentes al final de cada traje) ================= */
 const SUITS=[
- {id:'mercury',name:'Mercury',year:1961,soon:true,tint:0xb8c4d6,desc:'El traje plateado de los primeros astronautas de EE. UU., adaptado de los trajes de los pilotos de la Marina.'},
- {id:'gemini',name:'Gemini G4C',year:1965,soon:true,desc:'El primer traje de EE. UU. para salir de la nave: con él se hizo la primera caminata espacial estadounidense.'},
+ {id:'mercury',name:'Mercury',year:1961,build:buildMercury,
+  kick:'1961–1963 · B.F. Goodrich (EE. UU.) · cápsula Mercury',
+  sum:'El traje plateado de los primeros siete astronautas de Estados Unidos. Venía de un traje de la Marina para pilotos de cazas a gran altura (el Navy Mark IV), adaptado para el espacio. Era un traje de respaldo: solo se inflaba si la cápsula perdía la presión, algo que nunca pasó en un vuelo Mercury.',
+  parts:{
+   casco:['Casco','De plástico, unido al traje por un anillo de cuello. Al cerrar el visor, un sello inflable dejaba todo hermético.'],
+   visor:['Visor','Prueba el botón <b>Visor</b>. En el último vuelo Mercury (1963) el sello inflable se cambió por uno mecánico.'],
+   microfono:['Micrófono y sensor de respiración','Dentro del casco iban los audífonos y el micrófono, y un sensor que medía la respiración del astronauta para los médicos en tierra.'],
+   cremalleras:['Cremalleras','Se entraba por una cremallera en diagonal sobre el pecho; había otras en la cintura, el cuello y los tobillos. Con el traje inflado no se podían abrir.'],
+   ventilacion:['Conexión de oxígeno','En la cintura. El oxígeno entraba aquí, enfriaba el cuerpo, subía al casco para respirar y salía por una válvula. Mantenía el traje a unos 27 °C.'],
+   guantes:['Guantes con dedos curvos','Los dedos venían doblados, en posición de agarrar, para no cansar la mano con el traje inflado. Un dedo estaba hecho para pulsar botones.'],
+   luces:['Luces en las yemas','Pequeñas luces rojas en dos dedos de cada mano, para leer el panel si se apagaba la iluminación de la cápsula. Prueba el botón <b>Luces de los dedos</b>. El traje de John Glenn fue el primero en llevarlas.'],
+   capa:['Capa plateada','Por fuera, nailon con aluminio; por dentro, nailon con goma de neopreno que retiene el aire. El brillo plateado se asocia al control del calor y le dio su aspecto famoso.'],
+   bandera:['Bandera','La bandera de EE. UU. en el brazo.'],
+   botas:['Botas','Hechas a medida. Al principio de cuero blanco y luego plateadas; en el último vuelo ya iban unidas al traje.'],
+  },
+  layers:[['#55524c','Capa de presión','nailon con neopreno: retiene el aire'],['#c8ccd2','Capa exterior','nailon aluminizado, plateado']],
+  layersNote:'Un traje de dos capas, ajustado al cuerpo. Pesaba unos 9–10 kg. Cada astronauta tenía 3 trajes a medida (dos de vuelo y uno de entrenamiento).',
+  data:[['Fabricante','B.F. Goodrich, a partir del Navy Mark IV de la Marina'],['Vuelos','6 tripulados, del 5 may 1961 al 16 may 1963'],['Masa','~9–10 kg'],['Presión','~3,7 psi, solo si la cabina se despresurizaba'],['Trajes por astronauta','3, hechos a medida'],['Astronautas','Shepard, Grissom, Glenn, Carpenter, Schirra, Cooper y Slayton (que no voló en Mercury)']],
+  hist:`<p>El 5 de mayo de 1961 Alan Shepard se convirtió en el primer estadounidense en el espacio, en un vuelo de 15 minutos. Antes del despegue hubo tantos retrasos que, tras unas 3 horas dentro de la cápsula, necesitó orinar. No lo dejaron salir: le dijeron que lo hiciera en el traje. Después de eso, los trajes llevaron un colector de orina.</p>
+   <p>En el segundo vuelo, la cápsula de Gus Grissom se hundió en el mar al abrirse la escotilla antes de tiempo, y casi se ahoga porque una válvula del traje dejó entrar agua. Desde entonces se agregó un chaleco salvavidas.</p>
+   <p>John Glenn dio las primeras 3 vueltas a la Tierra de un estadounidense en 1962, y Gordon Cooper pasó 34 horas en órbita en 1963, el vuelo más largo del programa.</p>`,
+  src:[['NASA · Trajes de presión de Mercury (PDF)','https://www.nasa.gov/wp-content/uploads/static/history/40thmerc7/pressuresuits.pdf'],['Smithsonian NASM · Navy Mark IV','https://si.edu/object/pressure-suit-mark-iv:nasm_A20020093000'],['Smithsonian NASM · Traje de Glenn','https://artsandculture.google.com/asset/pressure-suit-mercury-john-glenn-friendship-7-flown/hwGPIxRmN4DIoQ'],['NASA · Resumen de los vuelos Mercury','https://www.nasa.gov/missions/project-mercury/mercury-crewed-flights-summary/'],['Smithsonian Magazine · El retraso de Shepard','https://www.smithsonianmag.com/smithsonian-institution/second-man-space-had-wee-wish-that-he-had-bathroom-before-blasting-off-180980002/'],['Resumen con referencias (Wikipedia)','https://en.wikipedia.org/wiki/Mercury_spacesuit']]},
+ {id:'gemini',name:'Gemini G4C',year:1965,build:buildGemini,
+  kick:'1965–1966 · David Clark Company (EE. UU.) · caminatas',
+  sum:'El primer traje de Estados Unidos para salir al espacio. Con él, Ed White hizo la primera caminata espacial estadounidense el 3 de junio de 1965. No tenía mochila: el oxígeno y la radio llegaban desde la nave por un cordón umbilical dorado de unos 7,6 m.',
+  parts:{
+   casco:['Casco','Con un visor transparente que sella el traje y anillo de cuello de aluminio.'],
+   visorOro:['Visor dorado','Un segundo visor con una capa de oro, encima del transparente, para protegerse del Sol sin filtro. Prueba el botón <b>Visor dorado</b>.'],
+   pecho:['Conexiones del pecho','Aquí se conectaba el umbilical: entrada (azul) y salida (roja) de oxígeno. Desde Gemini 8 se agregó una caja en el pecho con 30 minutos de oxígeno de reserva.'],
+   umbilical:['Umbilical dorado','Un cordón de ~7,6 m que unía al astronauta con la nave: le daba oxígeno, radio y lo mantenía sujeto. Iba cubierto de una cinta dorada que reflejaba el calor.'],
+   pistola:['Pistola de maniobra','La «zip gun» de Ed White: soltaba chorros de oxígeno para empujarse. El gas se le acabó a los 3 minutos; después se movía tirando del umbilical. Prueba el botón <b>Pistola</b>.'],
+   guantes:['Sobreguantes','Encima de los guantes del traje, para protegerse del calor y el frío de las superficies.'],
+   cubierta:['Cubierta exterior','Por fuera, nailon resistente al calor (HT‑1). Debajo, un fieltro contra micrometeoritos y 7 capas de Mylar aluminizado y Dacron que aíslan del Sol (+121 °C) y de la sombra (−157 °C).'],
+   bandera:['Bandera','La bandera de EE. UU. en el brazo.'],
+   botas:['Botas','En el traje del piloto, unidas al traje.'],
+  },
+  layers:[['#2a4a8a','Forro','nailon azul'],['#55524c','Vejiga de presión','caucho y neopreno'],['#cfc7b5','Capas interiores de HT‑1','2 capas'],['#d9dde3','Superaislante','7 capas de Mylar aluminizado y Dacron'],['#8a8070','Fieltro antimicrometeoritos','desde Gemini 8, nailon con neopreno'],['#f3f3f0','Cubierta exterior','nailon HT‑1, resiste el calor']],
+  layersNote:'La cubierta para caminar en el espacio sumaba capas aislantes al traje de cabina G3C. Pesaba unos 16 kg y trabajaba a unos 3,7 psi.',
+  data:[['Fabricante','David Clark Company, Worcester (Massachusetts)'],['Primera caminata de EE. UU.','3 jun 1965, Ed White, Gemini 4 (unos 20–23 min)'],['Masa','~16 kg'],['Presión','~3,7 psi'],['Soporte vital','por umbilical desde la nave (~7,6 m), sin mochila'],['Modelos','G3C (Gemini 3), G4C (caminatas), G5C (Gemini 7, de 14 días)']],
+  hist:`<p>Ed White disfrutó tanto su caminata que le costó volver: «Es el momento más triste de mi vida», dijo al entrar. Pero las siguientes caminatas mostraron que trabajar afuera era durísimo.</p>
+   <p>En Gemini 9A (junio de 1966), Gene Cernan luchó contra un traje tan rígido que cada movimiento lo agotaba. Sudó tanto que se le empañó el visor, su pulso llegó a unos 180 latidos por minuto y bajó 6 kg en la misión. Tuvo que volver antes de tiempo.</p>
+   <p>La solución llegó con Buzz Aldrin en Gemini 12 (noviembre de 1966): pasamanos, apoyos para los pies, cuerdas en la cintura, pausas para descansar y entrenamiento bajo el agua. Trabajó más de 2 horas sin agotarse. Así se preparó la caminata en la Luna.</p>`,
+  src:[['David Clark Company · Historia','https://www.davidclarkcompany.com/aerospace/history.php'],['NASA · Ed White, primer caminante de EE. UU.','https://www.nasa.gov/image-article/ed-white-first-american-spacewalker/'],['NASA · Gemini IV: aprender a caminar en el espacio','https://nasa.gov/missions/gemini/gemini-iv-learning-to-walk-in-space'],['NASA NTRS · Protección de trajes para caminatas (Kosmo)','https://ntrs.nasa.gov/api/citations/19870017974/downloads/19870017974.pdf'],['NASA · La agotadora caminata de Cernan','https://www.nasa.gov/image-article/first-steps-americas-grueling-second-spacewalk/'],['NASA · Gemini XII domina las caminatas','https://www.nasa.gov/missions/gemini/gemini-xii-crew-masters-the-challenges-of-spacewalks/'],['Smithsonian NASM · Casco de White','https://www.si.edu/object/helmet-gh-4-c-white-gemini-4:nasm_A19670210001']]},
  {id:'a7l',name:'Apollo A7L',year:1968,build:buildA7L,
   kick:'1968–1972 · ILC Dover (EE. UU.) · traje lunar',
   sum:'El traje con el que doce personas caminaron sobre la Luna. Es una nave espacial con forma de persona: dentro hay oxígeno puro a la presión justa para respirar, y por fuera 13 capas aislan del Sol a +120 °C, de la sombra a −150 °C y de los micrometeoritos.',
@@ -1048,6 +1162,16 @@ function renderActs(){
     btn('Inflar',b=>{ const on=F.pT<.5; F.pT=on?1:0; b.setAttribute('aria-pressed',on); $('gauge').hidden=!on; if(on){ $('gk').textContent='Traje de SpaceX'; sim={kind:'pct',t:0}; $('glog').textContent='Si la Dragon pierde el aire, el traje se infla con el aire del asiento. SpaceX no publica la presión exacta.'; } },F.pT>.5);
     btn('Versión EVA (Polaris Dawn)',b=>{ F.eva=!F.eva; F.f.anim.eva.forEach(m=>m.visible=F.eva); F.f.anim.visorCu.visible=F.eva; F.f.anim.visorMesh.visible=!F.eva; b.setAttribute('aria-pressed',F.eva); if(F.eva){ F.vT=1; pickPart('eva'); } },!!F.eva);
   }
+  if(s.id==='mercury'){
+    btn('Visor',b=>{ F.vT=F.vT>.5?0:1; b.setAttribute('aria-pressed',F.vT>.5); },F.vT>.5);
+    btn('Luces de los dedos',b=>{ F.lights=!F.lights; b.setAttribute('aria-pressed',F.lights); if(F.lights) pickPart('luces'); },!!F.lights);
+    btn('Presurizar (emergencia)',b=>{ const on=F.pT<.5; F.pT=on?1:0; b.setAttribute('aria-pressed',on); gaugeGen(on,'Mercury',3.7,'Solo si la cápsula perdía el aire: el traje se inflaba a unos 3,7 psi de oxígeno. En ningún vuelo Mercury hizo falta.'); },F.pT>.5);
+  }
+  if(s.id==='gemini'){
+    btn('Visor dorado',b=>{ F.vT=F.vT>.5?0:1; b.setAttribute('aria-pressed',F.vT>.5); },F.vT>.5);
+    btn('Pistola de maniobra',()=>{ F.puffT=1.2; pickPart('pistola'); });
+    btn('Presurizar 3,7 psi',b=>{ const on=F.pT<.5; F.pT=on?1:0; b.setAttribute('aria-pressed',on); gaugeGen(on,'Gemini G4C',3.7,'Inflado en el vacío, el traje se ponía muy rígido: por eso Cernan se agotó en 1966. La solución fueron los apoyos, las pausas y el entrenamiento bajo el agua.'); },F.pT>.5);
+  }
   btn('Vista general',()=>flyTo(cur,true));
 }
 function showTab(t){
@@ -1148,6 +1272,8 @@ function tick(){
     if(F.s.id==='sokol') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.15;
     if(F.s.id==='emu') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.05;
     if(F.s.id==='aces'||F.s.id==='spacex') F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.1;
+    if(F.s.id==='mercury'){ F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.1; F.f.anim.lights.forEach(l=>l.material.emissiveIntensity=F.lights?5:0); }
+    if(F.s.id==='gemini'){ F.f.anim.visorPivot.rotation.x=-(1-F.v)*1.0; F.puffT=Math.max(0,(F.puffT||0)-dt); F.f.anim.puff.material.opacity=Math.min(.7,F.puffT)*.8; F.f.anim.puff.scale.setScalar(1+(1.2-F.puffT)*2); }
     if(F.s.id==='orlan'){ F.d=(F.d||0)+((F.dT||0)-(F.d||0))*Math.min(1,dt*2.2); F.f.anim.door.rotation.y=-1.5*F.d; F.f.anim.filtVis.rotation.x=-(1-F.v)*.75; }
     if(F.f.anim.lampL) F.f.anim.lampL.forEach(l=>{ l.material.emissiveIntensity+=((F.lights?6:0)-l.material.emissiveIntensity)*Math.min(1,dt*6); });
   }
