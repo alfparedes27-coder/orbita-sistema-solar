@@ -595,9 +595,9 @@ const lblBox=$('lbl'); LBL.forEach(l=>{ const d=document.createElement('div'); d
 function showCard(k){ let kick,name,html;
   if(k.startsWith('tesla')){ const t=TESLA[+k.slice(5)]; kick='Tesla · '+t[1]; name=t[0]; html=`<p>${t[2]}</p><p class="note">Tesla fue fundada en 2003 por Martin Eberhard y Marc Tarpenning; Elon Musk fue el principal inversor desde 2004 y luego su director. Aquí ves la línea del tiempo de sus vehículos con sus datos; no incluimos modelos 3D de los autos porque sus diseños son obra protegida de la marca.</p><div class="src">Fuentes<ul>${[...t[3],'tsl'].map(s=>`<li><a href="${SRC[s][1]}" target="_blank" rel="noopener">${SRC[s][0]}</a></li>`).join('')}</ul></div>`; }
   else { const I=INFO[k]; kick=(I.grp==='cohete'?'Cohete · ':I.grp==='sitio'?'Starbase · ':'Galería · ')+I.yrs; name=I.name;
-    html=`<dl class="kv">${I.data.map(d=>`<dt>${d[0]}</dt><dd>${d[1]}</dd>`).join('')}</dl>${(k==='ss'||k==='tower')?`<button class="go" id="goCatch">▶ Simular la captura del propulsor</button>`:''}${partsHTML(k)}${I.hist}${I.grp!=='edificio'?'':`<button class="go" id="goWalk">🚶 Ir caminando hasta aquí</button>`}<div class="src">Fuentes<ul>${I.src.map(s=>`<li><a href="${SRC[s][1]}" target="_blank" rel="noopener">${SRC[s][0]}</a></li>`).join('')}</ul></div>`; }
+    html=`<dl class="kv">${I.data.map(d=>`<dt>${d[0]}</dt><dd>${d[1]}</dd>`).join('')}</dl>${k==='ss'?`<button class="go" id="goLaunch">▶ Simular el despegue</button>`:''}${(k==='ss'||k==='tower')?`<button class="go" id="goCatch">▶ Simular la captura del propulsor</button>`:''}${(k==='barge'||k==='b5')?`<button class="go" id="goLand">▶ Simular el aterrizaje en la barcaza</button>`:''}${k==='dragon'?`<a class="go" href="dragon/">🧑‍🚀 Entrar a la Crew Dragon (recorrido por dentro)</a>`:''}${partsHTML(k)}${I.hist}${I.grp!=='edificio'?'':`<button class="go" id="goWalk">🚶 Ir caminando hasta aquí</button>`}<div class="src">Fuentes<ul>${I.src.map(s=>`<li><a href="${SRC[s][1]}" target="_blank" rel="noopener">${SRC[s][0]}</a></li>`).join('')}</ul></div>`; }
   $('ck').textContent=kick; $('cn').textContent=name; $('cb').innerHTML=html; $('cb').scrollTop=0; $('card').hidden=false;
-  const gw=$('goWalk'); if(gw) gw.onclick=()=>walkTo(k); const gc=$('goCatch'); if(gc) gc.onclick=startCatch; buildPartTags(k);
+  const gw=$('goWalk'); if(gw) gw.onclick=()=>walkTo(k); const gc=$('goCatch'); if(gc) gc.onclick=startCatch; const gl_=$('goLaunch'); if(gl_) gl_.onclick=startLaunch; const gd=$('goLand'); if(gd) gd.onclick=startLand; buildPartTags(k);
   idx.querySelectorAll('button').forEach(b=>b.setAttribute('aria-current',b.dataset.k===k));
   try{ history.replaceState(null,'','#'+k); }catch(e){} }
 $('cx').onclick=()=>{ $('card').hidden=true; ptBox.innerHTML=''; curKey=null; };
@@ -616,7 +616,7 @@ const LH={dragon:10.5,dragon1:9.5,merlin:5.6,mvac:8.2,raptor:7,grid:4.2,sdraco:3
 const HL=[]; for(const [k,h] of Object.entries(LH)){ if(!EX[k]) continue; const d=document.createElement('div'); d.className='lb'; d.innerHTML=INFO[k].name; d.onclick=()=>showCard(k); $('lbl').appendChild(d); HL.push({k,el:d,pos:V3(EX[k].pos.x,h,EX[k].pos.z)}); }
 // simulación: el propulsor vuelve y la torre lo atrapa
 let CS=null;
-function startCatch(){ setMode('drone'); $('card').hidden=innerWidth<=900; CS={t:0}; SS.ship.visible=false; SS.flame.visible=true; droneTo(V3(110,300,-2),330,.08,.9); $('csHud').hidden=false; }
+function startCatch(){ resetStack(); setMode('drone'); $('card').hidden=innerWidth<=900; CS={t:0}; SS.ship.visible=false; SS.flame.visible=true; droneTo(V3(110,300,-2),330,.08,.9); $('csHud').hidden=false; }
 function stepCatch(dt){ if(!CS||CS.done) return; CS.t+=dt; const T=16, u=Math.min(1,CS.t/T), e=1-u;
   const y=22+1500*e*e, x=-70*e*e*e; SS.st.position.set(x,y,6); SS.st.rotation.z=.35*e*e*e;
   SS.flame.visible=u<.985; SS.flame.scale.setScalar(.7+.5*e+.08*Math.sin(CS.t*40));
@@ -625,6 +625,51 @@ function stepCatch(dt){ if(!CS||CS.done) return; CS.t+=dt; const T=16, u=Math.mi
   const v=(2*1500*e/T)*3.6; if(u<1){ $('csHud').innerHTML=`Super Heavy regresando · altura ${Math.round(y-22)} m · ${Math.round(v)} km/h<br><small>${CS.t<T-2.2?'Los motores centrales frenan el propulsor y lo guían hacia la torre (animación aproximada)':'Los palillos se cierran: los pines se apoyan sobre los brazos'}</small>`; return; }
   CS.done=true; SS.flame.visible=false; $('csHud').innerHTML=`¡Atrapado! <small>Así fue el 13 de octubre de 2024, la primera vez.</small><button class="go" id="csRe">Volver a apilar la nave</button>`;
   $('csRe').onclick=()=>{ SS.ship.visible=true; $('csHud').hidden=true; CS=null; SS.arms.forEach(([p,s])=>p.rotation.y=s*.42); }; }
+
+/* ---- humo (sprites que crecen y se desvanecen) ---- */
+const smokeTex=ctex(64,64,(g)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'rgba(255,255,255,.95)'); gr.addColorStop(.45,'rgba(240,238,232,.55)'); gr.addColorStop(1,'rgba(240,238,232,0)'); g.fillStyle=gr; g.fillRect(0,0,64,64); });
+const SMK=[]; for(let i=0;i<220;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:smokeTex,color:0xe4e0d8,transparent:true,depthWrite:false,opacity:0})); sp.visible=false; scene.add(sp); SMK.push({sp,life:0,v:V3(),size:1}); }
+function puff(p,spread,up,size=8){ const s=SMK.find(o=>o.life<=0); if(!s) return; s.life=1; s.sp.visible=true; s.sp.position.copy(p); const a=Math.random()*6.283, r=.5+Math.random();
+  s.v.set(Math.cos(a)*spread*r,up*(.3+Math.random()),Math.sin(a)*spread*r); s.size=size*(.7+Math.random()*.6); }
+function stepSmoke(dt){ for(const s of SMK){ if(s.life<=0) continue; s.life-=dt*.16; s.sp.position.addScaledVector(s.v,dt); s.v.multiplyScalar(1-dt*.35); const k=1-s.life; s.sp.scale.setScalar(s.size*(1+k*5)); s.sp.material.opacity=Math.max(0,s.life)*.75; if(s.life<=0) s.sp.visible=false; } }
+// llama grande del despegue (33 motores)
+{ const fl=new THREE.Group(); fl.position.y=-.4; SS.st.children[0].add(fl); fl.visible=false; SS.lflame=fl;
+  const m1=new THREE.MeshBasicMaterial({color:0xffa65a,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false});
+  const m2=new THREE.MeshBasicMaterial({color:0xfff4dc,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false});
+  const c1=mesh(new THREE.ConeGeometry(7.5,46,32,1,true),m1,fl,0,-23,0,false); c1.rotation.x=Math.PI; const c2=mesh(new THREE.ConeGeometry(5,24,32,1,true),m2,fl,0,-12,0,false); c2.rotation.x=Math.PI;
+  for(let i=0;i<12;i++){ const a=i/12*6.283; const d=mesh(new THREE.ConeGeometry(.9,7,10,1,true),m2,fl,Math.cos(a)*5.6,-3.5,Math.sin(a)*5.6,false); d.rotation.x=Math.PI; } }
+const baseW=V3(110,3,-2);
+function resetStack(){ SS.st.position.set(0,22,6); SS.st.rotation.set(0,0,0); SS.ship.visible=true; SS.flame.visible=false; SS.lflame.visible=false; SS.arms.forEach(([p,s])=>p.rotation.y=s*.42); CS=null; LS=null; }
+/* ---- animación: despegue de Starship ---- */
+let LS=null;
+function startLaunch(){ resetStack(); setMode('drone'); $('card').hidden=innerWidth<=900; LS={t:0}; droneTo(V3(110,70,-2),360,.06,1.1); $('csHud').hidden=false; }
+function stepLaunch(dt){ if(!LS||LS.done) return; LS.t+=dt; const T0=4, t=LS.t, tt=Math.max(0,t-T0); const y=22+2.6*tt*tt, v=5.2*tt;
+  SS.st.position.y=y; SS.lflame.visible=t>.6; SS.lflame.scale.set(1,THREE.MathUtils.clamp((t-.6)/1.5,.2,1)*(1+.06*Math.sin(t*50)),1);
+  const n=t<T0?6:y<200?5:2; for(let i=0;i<n;i++) puff(y<120?baseW.clone().add(V3((Math.random()-.5)*10,0,(Math.random()-.5)*10)):V3(110,y-30,-2),y<120?26:6,y<120?5:-2,y<120?10:7);
+  controls.target.set(110,Math.max(70,y+40),-2);
+  if(t<T0) $('csHud').innerHTML=`T−${(T0-t).toFixed(1)} s · encendido de los 33 Raptor<br><small>Las abrazaderas sujetan el propulsor hasta que todos los motores empujan bien</small>`;
+  else if(y<2400) $('csHud').innerHTML=`T+${tt.toFixed(1)} s · altura ${Math.round(y-22)} m · ${Math.round(v*3.6)} km/h<br><small>${y<180?'¡Despegue! Sale de la torre en pocos segundos':'Atraviesa la atmósfera; en unos 2 a 3 minutos se separa la nave (animación aproximada)'}</small>`;
+  else { LS.done=true; $('csHud').innerHTML=`Rumbo al espacio… <small>La animación termina aquí.</small><button class="go" id="lsRe">Volver a la plataforma</button>`; $('lsRe').onclick=()=>{ resetStack(); $('csHud').hidden=true; droneTo(V3(110,73,-2),170,.18,0); }; } }
+/* ---- animación: aterrizaje del Falcon 9 en la barcaza ---- */
+let FS=null;
+{ const lb=SS.barge.children.find(c=>c.isGroup); SS.lb=lb; SS.legs=[]; const y0=2.2;
+  // reemplazar las patas fijas por patas con bisagra abajo (plegadas hacia arriba durante el vuelo)
+  lb.children.filter(c=>c.isMesh&&c.material===M.carbon&&c.geometry.type==='CylinderGeometry'&&c.geometry.parameters.radiusTop<.4&&c.geometry.parameters.radiusTop>.1).forEach(c=>c.removeFromParent());
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4; const o=new THREE.Group(); o.position.set(Math.cos(a)*1.95,y0+1,Math.sin(a)*1.95); o.rotation.y=-a; lb.add(o);
+    const p=new THREE.Group(); o.add(p); box(.75,6.1,.42,M.carbon,p,0,3.05,0); box(1.3,.3,1.3,M.carbon,p,0,6.1,0); p.rotation.z=-2.09; SS.legs.push(p); }
+  const fl=new THREE.Group(); lb.add(fl); fl.visible=false; SS.bflame=fl; const fm=new THREE.MeshBasicMaterial({color:0xffb36b,transparent:true,opacity:.75,blending:THREE.AdditiveBlending,depthWrite:false});
+  for(let i=0;i<3;i++){ const c=mesh(new THREE.ConeGeometry(.55,9,14,1,true),fm,fl,i===0?0:Math.cos(i*3.14)*1.25,-.8,0,false); c.position.y=-4.5+y0; c.rotation.x=Math.PI; c.userData.side=i>0; }
+  tag(lb,'barge'); }
+function startLand(){ setMode('drone'); $('card').hidden=innerWidth<=900; FS={t:0}; droneTo(V3(560,200,40),300,.05,-.6); $('csHud').hidden=false; }
+function stepLand(dt){ if(!FS||FS.done) return; FS.t+=dt; const T=26, u=Math.min(1,FS.t/T), e=1-u, lb=SS.lb;
+  lb.position.set(-260*e*e*e,3.1+2000*Math.pow(e,1.8),0); lb.rotation.z=-.5*e*e*e;
+  const entry=FS.t>2&&FS.t<7, landing=u>.72&&u<1; SS.bflame.visible=entry||landing; SS.bflame.children.forEach(c=>c.visible=!c.userData.side||entry);
+  const dep=THREE.MathUtils.clamp((u-.82)/.1,0,1); SS.legs.forEach(p=>p.rotation.z=-2.09*dep);
+  if(entry&&Math.random()<.6) puff(lb.position.clone().add(SS.barge.position).add(V3(0,-6,0)),3,-4,5);
+  controls.target.set(560+lb.position.x,Math.max(30,lb.position.y+20),40);
+  const alt=lb.position.y-3.1, vs=2000*1.8*Math.pow(e,.8)/T*3.6;
+  if(u<1) $('csHud').innerHTML=`Falcon 9 · altura ${Math.round(alt)} m · ${Math.round(vs)} km/h<br><small>${FS.t<2?'Vuelve del espacio en caída libre':entry?'Encendido de reentrada: 3 motores frenan para que no se queme':u<.72?'Las aletas de rejilla lo guían hacia la barcaza':dep<1&&dep>0?'Se abren las patas':'Encendido de aterrizaje: solo el motor central (animación aproximada)'}</small>`;
+  else { FS.done=true; SS.bflame.visible=false; SS.legs.forEach(p=>p.rotation.z=-2.09); lb.position.set(0,3.1,0); lb.rotation.z=0; $('csHud').innerHTML=`¡Aterrizó! <small>Toca suelo a unos pocos km/h, justo en el centro.</small><button class="go" id="fsRe">Cerrar</button>`; $('fsRe').onclick=()=>{ $('csHud').hidden=true; FS=null; }; } }
 
 /* ================= CÁMARA: dron y caminar ================= */
 let mode='drone', fly=null;
@@ -667,13 +712,13 @@ const clock=new THREE.Clock(), tmp=V3();
 function tick(){ const raw=clock.getDelta(), dt=Math.min(.05,raw);
   if(mode==='drone'){ if(fly){ fly.t=Math.min(1,fly.t+Math.min(raw,.5)/1.6); const k=fly.t*fly.t*(3-2*fly.t); camera.position.lerpVectors(fly.p0,fly.p1,k); controls.target.lerpVectors(fly.t0,fly.t1,k); if(fly.t>=1) fly=null; } controls.update(); }
   else stepWalk(dt);
-  stepCatch(dt); M.water.normalMap.offset.x+=dt*.004; M.water.normalMap.offset.y+=dt*.002;
+  stepCatch(dt); stepLaunch(dt); stepLand(dt); stepSmoke(dt); M.water.normalMap.offset.x+=dt*.004; M.water.normalMap.offset.y+=dt*.002;
   renderer.render(scene,camera);
   const w=innerWidth,h=innerHeight, inHall=mode==='walk'&&W.pos.z<B.z1&&W.pos.z>B.z0&&W.pos.x>B.x0&&W.pos.x<B.x1;
   for(const l of LBL){ tmp.copy(l.pos).project(camera); const d=camera.position.distanceTo(l.pos); const vis=tmp.z<1&&Math.abs(tmp.x)<1.1&&Math.abs(tmp.y)<1.1&&!inHall&&(mode==='drone'||d<160);
     l.el.style.display=vis?'':'none'; if(vis) l.el.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px) translate(-50%,-100%)`; }
   for(const l of HL){ tmp.copy(l.pos).project(camera); const vis=inHall&&tmp.z<1&&Math.abs(tmp.x)<1.05&&Math.abs(tmp.y)<1.05&&camera.position.distanceTo(l.pos)<34; l.el.style.display=vis?'':'none'; if(vis) l.el.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px) translate(-50%,-100%)`; }
-  const L=PARTS[curKey], showP=L&&!$('card').hidden&&mode==='drone'&&!CS; ptBox.style.display=showP?'':'none';
+  const L=PARTS[curKey], showP=L&&!$('card').hidden&&mode==='drone'&&!CS&&!LS&&!FS; ptBox.style.display=showP?'':'none';
   if(showP) L.forEach((p,i)=>{ const t=ptBox.children[i]; if(!t) return; tmp.set(...p[2]).project(camera); const vis=tmp.z<1&&Math.abs(tmp.x)<1&&Math.abs(tmp.y)<1; t.style.display=vis?'':'none'; if(vis) t.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px)`; });
   requestAnimationFrame(tick); }
 camera.position.set(60,60,260); controls.target.set(-20,35,-20);

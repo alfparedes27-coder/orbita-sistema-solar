@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Dentro de la Crew Dragon</title>
+<meta name="description" content="Recorrido por dentro de la cápsula Crew Dragon: los 4 asientos, las tres pantallas táctiles, los botones de emergencia, las ventanas con la Tierra afuera, la cúpula, y cómo se ve en el despegue, en órbita y en el regreso.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --panel:rgba(10,13,20,.92); --line:#222b3e; --line2:#33405c; --ink:#eef0f5; --dim:#9ba4b8; --acc:#7cc4ff; --warm:#ffb547;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px); color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:#000;color:var(--ink);font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none;cursor:grab}
+button{font-family:var(--f-body)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+.top{position:fixed;top:calc(10px + var(--top));left:16px;right:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:8;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12.5px;padding:8px 11px}
+.title{padding:6px 13px} .title .kick{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)} .title h1{margin:1px 0 0;font:700 17px var(--f-display)}
+.bar{position:fixed;left:16px;right:calc(380px + 32px);bottom:calc(14px + var(--bot));z-index:8;display:flex;gap:6px;flex-wrap:wrap;padding:8px}
+.bar .g{display:flex;gap:6px;align-items:center;flex-wrap:wrap} .bar .g+.g{border-left:1px solid var(--line);padding-left:8px}
+.bar small{font:500 10.5px var(--f-data);color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.tb{background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:12.5px;cursor:pointer}
+.tb[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#04121f}
+.side{position:fixed;right:16px;top:calc(66px + var(--top));bottom:calc(14px + var(--bot));width:380px;z-index:9;display:flex;flex-direction:column;overflow:hidden}
+.side .hd{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.side .k{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--warm)}
+.side h2{margin:3px 0 4px;font:700 20px var(--f-display)} .side .hd p{margin:0;color:var(--dim);font-size:13px;line-height:1.5}
+.bd{flex:1;overflow-y:auto;padding:10px 14px 16px;font-size:13.5px;line-height:1.55}
+.pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.pl button{width:100%;display:grid;grid-template-columns:24px 1fr;gap:2px 9px;text-align:left;background:none;border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--ink);cursor:pointer;font-size:13px}
+.pl .n{grid-row:span 2;width:22px;height:22px;border-radius:50%;background:#1a2336;display:grid;place-items:center;font:600 11px var(--f-data)}
+.pl button[aria-current=true]{border-color:var(--warm)} .pl button[aria-current=true] .n{background:var(--warm);color:#1a1100}
+.pl .d{grid-column:2;color:#c9cfdb} .pl button:not([aria-current=true]) .d{display:none}
+.src{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--dim)} .src ul{margin:4px 0 0;padding-left:16px} .src a{color:var(--acc);word-break:break-word}
+#pts{position:fixed;inset:0;pointer-events:none;z-index:6}
+.pt{position:absolute;left:0;top:0;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:1.5px solid #fff;background:rgba(8,12,20,.78);color:#fff;font:600 11px var(--f-data);display:grid;place-items:center;cursor:pointer;pointer-events:auto;padding:0}
+.pt:hover,.pt.on{background:var(--warm);color:#1a1100;border-color:var(--warm)}
+.st{position:fixed;left:16px;top:calc(66px + var(--top));z-index:7;padding:8px 12px;font:500 12px var(--f-data);color:var(--dim);max-width:300px}
+.st b{color:var(--ink);font-weight:500}
+@media (max-width:900px){
+  .side{left:0;right:0;top:auto;bottom:0;width:auto;height:40vh;border-radius:14px 14px 0 0}
+  .bar{left:8px;right:8px;bottom:calc(40vh + 6px);padding:6px} .st{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="Interior de la Crew Dragon (arrastra para mirar alrededor)"></canvas>
+<div id="pts"></div>
+<div class="top">
+  <a class="back panel" href="../#dragon">← Starbase</a>
+  <div class="title panel"><div class="kick">Recorrido por dentro</div><h1>Crew Dragon</h1></div>
+</div>
+<div class="st panel" id="st"></div>
+<div class="bar panel">
+  <div class="g"><small>Fase</small><button class="tb" data-ph="0">🚀 Despegue</button><button class="tb" data-ph="1" aria-pressed="true">🌍 En órbita</button><button class="tb" data-ph="2">🔥 Regreso</button></div>
+  <div class="g"><small>Asiento</small><button class="tb" data-seat="0">1</button><button class="tb" data-seat="1" aria-pressed="true">2 · Cmdte.</button><button class="tb" data-seat="2">3 · Piloto</button><button class="tb" data-seat="3">4</button></div>
+  <div class="g"><button class="tb" id="bCup">Cúpula (Inspiration4)</button></div>
+</div>
+<aside class="side panel">
+  <div class="hd"><div class="k">9,3 m³ presurizados · 4 asientos</div><h2>Dentro de la cápsula</h2><p>Arrastra para mirar alrededor desde el asiento. Toca un número para saber qué es cada cosa.</p></div>
+  <div class="bd" id="bd"></div>
+</aside>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+const $=id=>document.getElementById(id); const V3=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
+
+const renderer=new THREE.WebGLRenderer({canvas:$('gl'),antialias:true}); renderer.setPixelRatio(Math.min(2,devicePixelRatio));
+renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
+scene.environment=new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),.04).texture;
+const camera=new THREE.PerspectiveCamera(70,1,.02,5000);
+const P=o=>new THREE.MeshPhysicalMaterial(o);
+const mesh=(g,m,parent,x=0,y=0,z=0)=>{ const o=new THREE.Mesh(g,m); o.position.set(x,y,z); parent.add(o); return o; };
+const box=(w,h,d,m,parent,x,y,z,r=.02)=>mesh(new RoundedBoxGeometry(w,h,d,2,Math.min(r,w/2,h/2,d/2)),m,parent,x,y,z);
+function ctex(w,h,draw,srgb=true){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); if(srgb) t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; }
+
+/* ======== afuera: la Tierra, el Sol y las estrellas ======== */
+const out=new THREE.Group(); scene.add(out);
+const sunL=new THREE.DirectionalLight(0xfff4e6,2.4); sunL.position.set(-300,200,400); scene.add(sunL);
+const earthTex=new THREE.TextureLoader().load('../../tex/tierra-dia.webp',t=>{ t.colorSpace=THREE.SRGBColorSpace; });
+const earth=mesh(new THREE.SphereGeometry(560,96,64),new THREE.MeshStandardMaterial({map:earthTex,roughness:.9}),out,-520,-330,150); earth.rotation.z=.3;
+const atm=mesh(new THREE.SphereGeometry(572,64,48),new THREE.MeshBasicMaterial({color:0x6fb2ff,transparent:true,opacity:.18,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false}),out,-520,-330,150);
+{ const g=new THREE.BufferGeometry(), p=[]; for(let i=0;i<3000;i++){ const v=V3().randomDirection().multiplyScalar(3000); p.push(v.x,v.y,v.z); } g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); out.add(new THREE.Points(g,new THREE.PointsMaterial({size:1.6,sizeAttenuation:false,color:0xffffff}))); }
+const skyBlue=mesh(new THREE.SphereGeometry(80,32,16),new THREE.MeshBasicMaterial({color:0x5c95d6,side:THREE.BackSide}),scene); skyBlue.visible=false;
+const plasma=mesh(new THREE.SphereGeometry(6,32,16),new THREE.MeshBasicMaterial({color:0xff7a2a,side:THREE.BackSide,transparent:true,opacity:.9}),scene); plasma.visible=false;
+
+/* ======== la cabina ======== */
+const cab=new THREE.Group(); scene.add(cab);
+const W=[[-.55,-.04],[.55,.04],[2.3,-.06],[-2.3,.06]]; // ventanas: ángulo alrededor y desplazamiento
+const winV=.52; // altura relativa de las ventanas en la pared
+const wallAlpha=ctex(1024,256,(g,w,h)=>{ g.fillStyle='#fff'; g.fillRect(0,0,w,h); g.fillStyle='#000';
+  for(const [a] of W){ const u=((a/(Math.PI*2))%1+1)%1; for(const du of[-1,0,1]){ g.beginPath(); g.ellipse((u+du)*w,(1-winV)*h,21,11,0,0,7); g.fill(); } } },false);
+const profile=[[1.8,0],[1.78,.4],[1.55,1.3],[1.25,2.25],[1.05,2.6]].map(([r,y])=>new THREE.Vector2(r,y));
+const wallM=P({color:0xf2f2f0,roughness:.55,side:THREE.BackSide,alphaMap:wallAlpha,alphaTest:.5});
+const wall=mesh(new THREE.LatheGeometry(profile,96),wallM,cab);
+// paneles acolchados sobre la pared
+for(let i=0;i<16;i++){ const a=i/16*Math.PI*2; if(W.some(([b])=>Math.abs(((a-b+Math.PI)%(2*Math.PI))-Math.PI)<.35)) continue; const r=1.62, y=1.05; const p=box(.36,.55,.03,P({color:0xe9e9e6,roughness:.7}),cab,Math.sin(a)*r,y,Math.cos(a)*r); p.rotation.set(-.25,a+Math.PI,0,'YXZ'); }
+// marcos y vidrios de las ventanas
+const winPos=[]; for(const [a,dy] of W){ const y=1.376, r=1.505; const f=mesh(new THREE.TorusGeometry(.2,.035,12,40),P({color:0x1a1b1e,roughness:.5}),cab,Math.sin(a)*r,y,Math.cos(a)*r); f.rotation.set(-.32,a,0,'YXZ'); f.scale.set(1,1.12,1);
+  const gl=mesh(new THREE.CircleGeometry(.2,32),P({color:0x9fc4e0,roughness:.02,transparent:true,opacity:.12,depthWrite:false}),cab,Math.sin(a)*(r+.01),y,Math.cos(a)*(r+.01)); gl.rotation.set(-.32,a,0,'YXZ'); winPos.push(V3(Math.sin(a)*r,y,Math.cos(a)*r)); }
+// piso y techo
+const floor=mesh(new THREE.CircleGeometry(1.8,64),P({color:0x2a2c31,roughness:.8}),cab); floor.rotation.x=-Math.PI/2;
+const ceilR=mesh(new THREE.RingGeometry(.48,1.06,64),P({color:0xeeeeec,roughness:.6,side:THREE.DoubleSide}),cab,0,2.6,0); ceilR.rotation.x=Math.PI/2;
+const hatchTop=new THREE.Group(); hatchTop.position.y=2.6; cab.add(hatchTop);
+mesh(new THREE.CircleGeometry(.48,48),P({color:0xd8d9da,roughness:.4,metalness:.4,side:THREE.DoubleSide}),hatchTop).rotation.x=Math.PI/2;
+const hr=mesh(new THREE.TorusGeometry(.48,.05,12,48),P({color:0x55595f,metalness:.8,roughness:.35}),hatchTop); hr.rotation.x=Math.PI/2;
+const hh=mesh(new THREE.TorusGeometry(.14,.025,10,24),P({color:0x1a1b1e}),hatchTop,0,-.05,0); hh.rotation.x=Math.PI/2;
+// cúpula (Inspiration4): reemplaza la escotilla del techo
+const cup=new THREE.Group(); cup.position.y=2.6; cab.add(cup); cup.visible=false;
+mesh(new THREE.SphereGeometry(.6,48,24,0,Math.PI*2,0,Math.PI/2),P({color:0xffffff,roughness:.02,transmission:1,thickness:.02,transparent:true,depthWrite:false}),cup).scale.y=.7;
+mesh(new THREE.TorusGeometry(.6,.05,12,48),P({color:0x55595f,metalness:.8,roughness:.35}),cup).rotation.x=Math.PI/2;
+const ceilHole=mesh(new THREE.CircleGeometry(.48,48),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0}),cab,0,2.59,0); ceilHole.rotation.x=Math.PI/2;
+// inodoro con cortina en el techo (Inspiration4)
+const cur=mesh(new THREE.CylinderGeometry(.62,.62,.35,40,1,true),P({color:0xdedfe2,roughness:.9,side:THREE.DoubleSide,transparent:true,opacity:.92}),cup,0,-.2,0);
+// escotilla lateral
+const sideH=new THREE.Group(); { const a=-Math.PI/2+.0, r=1.62, y=1.15; sideH.position.set(Math.sin(a)*r,y,Math.cos(a)*r); sideH.rotation.set(-.24,a,0,'YXZ'); cab.add(sideH);
+  box(.8,.8,.05,P({color:0xdcdcd8,roughness:.45,metalness:.2}),sideH,0,0,-.02,.08); mesh(new THREE.TorusGeometry(.4,.025,10,48),P({color:0x55595f,metalness:.8}),sideH,0,0,-.05).scale.set(1,1,1);
+  box(.3,.06,.06,P({color:0xd9a33a,roughness:.5}),sideH,0,-.2,-.08); }
+// asientos: carcasa de fibra de carbono y tela tipo Alcantara
+const carbon=P({color:0x141518,roughness:.35,clearcoat:.8,clearcoatRoughness:.25}), alc=P({color:0x2b2c30,roughness:.95,sheen:1,sheenColor:new THREE.Color(0x555555)});
+const seatX=[-1.05,-.36,.36,1.05], SEATS=[];
+for(let i=0;i<4;i++){ const s=new THREE.Group(); s.position.set(seatX[i],.55,-.35); s.rotation.x=-.95; cab.add(s); SEATS.push(s);
+  box(.5,.07,.9,carbon,s,0,0,0); box(.42,.05,.82,alc,s,0,.05,0); box(.5,.6,.07,carbon,s,0,.3,-.45).rotation.x=-.15; box(.42,.5,.04,alc,s,0,.3,-.41);
+  box(.5,.08,.55,carbon,s,0,-.18,.65).rotation.x=.9; box(.26,.24,.06,carbon,s,0,.72,-.5);
+  for(const sx of[-1,1]) box(.05,.12,.6,carbon,s,sx*.26,.08,.05);
+  box(.12,.08,.1,P({color:0xe8e8e6,roughness:.5}),s,.27,.07,.25); // conexión del umbilical del traje
+  mesh(new THREE.TorusGeometry(.04,.012,8,16),P({color:0x888}),s,-.05,.1,-.1);
+}
+// carga bajo los asientos
+for(let i=0;i<5;i++){ box(.45,.3,.35,P({color:0x8a8d93,roughness:.7}),cab,-1+i*.5,.17,-1.15); box(.47,.03,.37,P({color:0x333}),cab,-1+i*.5,.33,-1.15); }
+// panel de control: 3 pantallas táctiles y botones físicos debajo
+const dash=new THREE.Group(); dash.position.set(0,1.62,1.02); dash.rotation.set(.62,Math.PI,0,'YXZ'); cab.add(dash);
+box(2.0,.62,.08,P({color:0x1b1c1f,roughness:.45}),dash,0,0,0,.05);
+const scr=[]; for(let i=0;i<3;i++){ const c=document.createElement('canvas'); c.width=640; c.height=400; const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
+  const m=mesh(new THREE.PlaneGeometry(.58,.36),new THREE.MeshBasicMaterial({map:t,toneMapped:false}),dash,-.64+i*.64,.07,.045); scr.push({c,g:c.getContext('2d'),t}); }
+const btnRow=new THREE.Group(); btnRow.position.set(0,-.24,.045); dash.add(btnRow);
+for(let i=0;i<28;i++){ const x=-.88+i*.065; box(.045,.045,.02,P({color:i%7===6?0x9c2b27:0x2e3035,roughness:.4,emissive:i%7===6?0x3a0d0b:0x0}),btnRow,x,0,0,.008); }
+const lbl=mesh(new THREE.PlaneGeometry(1.9,.06),new THREE.MeshBasicMaterial({map:ctex(1024,32,(g,w,h)=>{ g.fillStyle='#1b1c1f'; g.fillRect(0,0,w,h); g.fillStyle='#c9ccd2'; g.font='500 18px "IBM Plex Mono", monospace'; g.fillText('PARACAÍDAS        INCENDIO           DESORBITAR          CABINA',40,22); }),toneMapped:false}),btnRow,0,-.05,.001);
+// manija de aborto entre los asientos del comandante y el piloto
+const abort=new THREE.Group(); abort.position.set(0,.95,.45); cab.add(abort); box(.06,.3,.06,P({color:0x222}),abort,0,0,0); box(.2,.05,.05,P({color:0xe8b62f,roughness:.4}),abort,0,.16,0);
+// luces de la cabina
+const cabL=new THREE.PointLight(0xfff6ea,6,6,1.5); cabL.position.set(0,2.2,0); cab.add(cabL);
+cab.add(new THREE.HemisphereLight(0xffffff,0x444444,.5));
+// mascota indicadora de gravedad cero (peluche genérico)
+const pl=new THREE.Group(); cab.add(pl); { const m=P({color:0x7f5fc4,roughness:.95,sheen:1}); mesh(new THREE.SphereGeometry(.07,20,14),m,pl).scale.set(1.3,1,1); mesh(new THREE.SphereGeometry(.04,16,12),m,pl,.1,.05,0); mesh(new THREE.CylinderGeometry(.015,.02,.12,8),m,pl,-.12,0,0).rotation.z=1.3;
+  for(const [x,z] of[[-.04,.03],[.04,.03],[-.04,-.03],[.04,-.03]]) mesh(new THREE.CylinderGeometry(.015,.015,.06,8),m,pl,x,-.07,z); mesh(new THREE.SphereGeometry(.008,8,6),P({color:0x111}),pl,.13,.06,.02); }
+const tether=mesh(new THREE.CylinderGeometry(.003,.003,1,6),P({color:0xdddddd}),cab);
+
+/* ======== qué es cada cosa ======== */
+const PARTS=[
+ ['Tres pantallas táctiles','Casi todo se maneja tocando las pantallas, incluso con los guantes del traje. Cada pantalla tiene unas 25 a 30 páginas: trayectoria, sistemas, comunicaciones. La Dragon vuela sola; los astronautas supervisan y pueden tomar el control para acoplar o en una emergencia.',()=>dash.localToWorld(V3(0,.07,.05))],
+ ['Botones físicos','Una fila de botones debajo de las pantallas, por si estas fallan: permiten hacer lo crítico, como desplegar los paracaídas, apagar un incendio o salir de órbita para volver.',()=>btnRow.localToWorld(V3(-.6,0,.02))],
+ ['Manija de aborto','Entre el comandante y el piloto. Se tira y se gira: dispara los 8 motores SuperDraco, que alejan la cápsula del cohete en una fracción de segundo.',()=>abort.localToWorld(V3(0,.18,0))],
+ ['Asientos','De fibra de carbono con tela tipo Alcantara, hechos para cuatro. La cápsula se diseñó para 7, pero desde 2020 vuela con 4 para llevar más carga. Antes del despegue se giran a la posición de lanzamiento.',()=>SEATS[0].localToWorld(V3(0,.3,0))],
+ ['Conexión del traje','Cada traje se conecta al asiento por un único umbilical en el muslo: aire para enfriarlo y respirar, electricidad y datos.',()=>SEATS[3].localToWorld(V3(.27,.1,.25))],
+ ['Ventanas','Una para cada astronauta, en los costados. Son planas y por ellas se ve la Tierra pasar a 28.000 km/h.',()=>winPos[0].clone()],
+ ['Escotilla delantera','Arriba, en el «techo». Por aquí se pasa a la Estación Espacial al acoplarse. Afuera tiene el mecanismo de acople, protegido por la nariz que se abre en órbita.',()=>hatchTop.localToWorld(V3(0,-.02,0))],
+ ['Escotilla lateral','Por donde se entra y se sale en la Tierra, desde el brazo de la torre de lanzamiento o en el barco de rescate.',()=>sideH.localToWorld(V3(0,0,-.05))],
+ ['Carga bajo los asientos','Hay un espacio grande para carga presurizada: experimentos, comida y equipos para la Estación.',()=>V3(-.5,.35,-1.15)],
+ ['Mascota de gravedad cero','Cada tripulación lleva un peluche: cuando empieza a flotar, saben que ya no hay gravedad aparente. En el Demo‑2 (2020) fue un dinosaurio de lentejuelas que eligieron los hijos de los astronautas.',()=>pl.position.clone().add(V3(0,.12,0))],
+ ['Soporte vital','Bajo el piso: mantiene la cabina a la presión del aire normal, entre 18 y 27 °C, limpia el aire de CO₂ y tiene un sistema que apaga incendios con nitrógeno.',()=>V3(.9,.05,.6)],
+];
+const SRC=[['SpaceX · Dragon','https://new.spacex.com/vehicles/dragon'],['Time · Dentro de la Crew Dragon','https://time.com/6083975/inside-spacex-crew-dragon-spacecraft/'],['Spaceflight Now · Primer vuelo manual (2020)','https://spaceflightnow.com/2020/05/30/dragon-astronauts-name-their-spacecraft-endeavour-complete-first-manual-flight-test/'],['Space.com · Recorrido de Crew‑1','https://space.com/spacex-baby-yoda-crew-1-dragon-spaceship-video-tour'],['Space.com · La cúpula de Inspiration4','https://www.space.com/spacex-dragon-cupola-inspiration4-private-spaceflight'],['collectSPACE · El interior de la Crew Dragon','https://www.collectspace.com/news/news-091015a-spacex-crew-dragon-interior.html'],['ICES‑2020‑333 · Soporte vital de Dragon (PDF)','https://web.mit.edu/2.70/Reading%20Materials/SpaceX%20Dragon%20capsule%20ICES-2020-333.pdf'],['Space.com · El dinosaurio de Demo‑2','https://www.space.com/spacex-crew-dragon-tremor-dinosaur-doll.html']];
+const bd=$('bd'); bd.innerHTML=`<ol class="pl">${PARTS.map((p,i)=>`<li><button data-i="${i}"><span class="n">${i+1}</span><b>${p[0]}</b><span class="d">${p[1]}</span></button></li>`).join('')}</ol>
+ <p style="margin:12px 0 0;color:#c9cfdb"><b>Cúpula:</b> en la misión privada Inspiration4 (2021) se cambió la escotilla del techo por una ventana en forma de domo de unos 1,2 m, junto al inodoro, que tiene una cortina. Pruébala con el botón <b>Cúpula</b>.</p>
+ <div class="src">Fuentes<ul>${SRC.map(s=>`<li><a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a></li>`).join('')}</ul></div>`;
+const pts=$('pts'); PARTS.forEach((p,i)=>{ const b=document.createElement('button'); b.className='pt'; b.textContent=i+1; b.setAttribute('aria-label',p[0]); b.onclick=()=>pick(i); pts.appendChild(b); });
+function pick(i){ bd.querySelectorAll('.pl button').forEach(b=>b.setAttribute('aria-current',+b.dataset.i===i)); pts.querySelectorAll('.pt').forEach((t,k)=>t.classList.toggle('on',k===i)); const b=bd.querySelector(`[data-i="${i}"]`); b&&b.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+bd.querySelectorAll('.pl button').forEach(b=>b.onclick=()=>pick(+b.dataset.i));
+
+/* ======== fases del vuelo y pantallas ======== */
+let phase=1, seat=1, t0=performance.now();
+function drawScreens(t){ const ph=phase, el=(t-t0)/1000;
+  scr.forEach((s,i)=>{ const g=s.g, w=640, h=400; g.fillStyle='#05080d'; g.fillRect(0,0,w,h); g.strokeStyle='#1d2a3c'; g.lineWidth=2; g.strokeRect(4,4,w-8,h-8);
+    g.fillStyle='#e9eef6'; g.font='600 26px Jost, sans-serif';
+    if(i===0){ g.fillText(['ASCENSO','ÓRBITA','REENTRADA'][ph],24,44); g.font='500 18px "IBM Plex Mono", monospace'; g.fillStyle='#9fb3cf';
+      const alt=ph===0?Math.min(200,el*1.6):ph===1?420:Math.max(0,120-el*.9), v=ph===0?Math.min(27000,el*220):ph===1?27600:Math.max(800,27000-el*260);
+      [['ALTURA',alt.toFixed(1)+' km'],['VELOCIDAD',Math.round(v).toLocaleString('es')+' km/h'],['T+',new Date(el*1000).toISOString().slice(11,19)]].forEach(([a,b],k)=>{ g.fillStyle='#6f84a3'; g.fillText(a,24,100+k*70); g.fillStyle='#ffffff'; g.font='600 34px "IBM Plex Mono", monospace'; g.fillText(b,24,136+k*70); g.font='500 18px "IBM Plex Mono", monospace'; }); }
+    if(i===1){ g.fillText('TRAYECTORIA',24,44); const cx=w/2, cy=h/2+20; g.fillStyle='#163a63'; g.beginPath(); g.arc(cx,cy,95,0,7); g.fill(); g.strokeStyle='#3d6fa8'; g.stroke();
+      g.strokeStyle='#7cc4ff'; g.setLineDash([6,6]); g.beginPath(); g.ellipse(cx,cy,140,128,0,0,7); g.stroke(); g.setLineDash([]); const a=el*.15; g.fillStyle='#ffb547'; g.beginPath(); g.arc(cx+Math.cos(a)*140,cy+Math.sin(a)*128,8,0,7); g.fill(); }
+    if(i===2){ g.fillText('SISTEMAS',24,44); g.font='500 19px "IBM Plex Mono", monospace';
+      [['PRESIÓN CABINA','101 kPa'],['TEMPERATURA','22 °C'],['HUMEDAD','45 %'],['O₂ / CO₂','OK'],['PARACAÍDAS',ph===2?'ARMADOS':'LISTOS'],['TRAJES','4 / 4 OK']].forEach(([a,b],k)=>{ g.fillStyle='#6f84a3'; g.fillText(a,24,96+k*46); g.fillStyle=b.includes('OK')||b==='LISTOS'||b==='ARMADOS'?'#7ee2a8':'#ffffff'; g.fillText(b,360,96+k*46); }); }
+    s.t.needsUpdate=true; }); }
+function setPhase(p){ phase=p; t0=performance.now(); document.querySelectorAll('[data-ph]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.ph===p));
+  out.visible=p===1; skyBlue.visible=p===0; plasma.visible=p===2;
+  $('st').innerHTML=['<b>Despegue:</b> el cielo pasa de azul a negro en unos minutos. Todos sentados, con el visor bajado.','<b>En órbita:</b> a unos 400 km, dando una vuelta a la Tierra cada hora y media. La mascota flota.','<b>Regreso:</b> el aire alrededor de la cápsula se vuelve plasma a miles de grados; luego se abren 2 paracaídas de frenado y 4 principales, y amariza en el mar.'][p]; }
+document.querySelectorAll('[data-ph]').forEach(b=>b.onclick=()=>setPhase(+b.dataset.ph));
+document.querySelectorAll('[data-seat]').forEach(b=>b.onclick=()=>{ seat=+b.dataset.seat; document.querySelectorAll('[data-seat]').forEach(x=>x.setAttribute('aria-pressed',x===b)); yaw=Math.PI; pitch=.12; });
+$('bCup').onclick=()=>{ const on=!cup.visible; cup.visible=on; hatchTop.visible=!on; $('bCup').setAttribute('aria-pressed',on); if(on){ pitch=1.0; } };
+
+/* ======== mirar alrededor ======== */
+let yaw=Math.PI, pitch=.12, drag=null;
+const cv=$('gl'); cv.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY}; cv.setPointerCapture(e.pointerId); cv.style.cursor='grabbing'; });
+cv.addEventListener('pointermove',e=>{ if(!drag) return; yaw-=(e.clientX-drag.x)*.005; pitch=THREE.MathUtils.clamp(pitch-(e.clientY-drag.y)*.005,-1.1,1.45); drag={x:e.clientX,y:e.clientY}; });
+cv.addEventListener('pointerup',()=>{ drag=null; cv.style.cursor='grab'; });
+function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize();
+const tmp=V3(); let last=0;
+function tick(t){ requestAnimationFrame(tick); const s=SEATS[seat]; const head=V3(seatX[seat]*.9,1.28,-.55);
+  const shake=phase===0?.004:phase===2?.003:0; camera.position.copy(head).add(V3((Math.random()-.5)*shake,(Math.random()-.5)*shake,0));
+  camera.rotation.set(pitch,yaw,0,'YXZ');
+  earth.rotation.y+=.0004; out.rotation.y=Math.sin(t/20000)*.05;
+  plasma.material.opacity=.75+.2*Math.sin(t/60)*Math.sin(t/23);
+  if(phase===1){ pl.position.set(Math.sin(t/2300)*.25,1.55+Math.sin(t/1700)*.12,.3+Math.cos(t/2900)*.15); pl.rotation.set(t/3100,t/2400,t/4100); }
+  else { pl.position.set(-.36,1.05,.35); pl.rotation.set(0,0,0); }
+  const anchor=SEATS[2].localToWorld(V3(0,.62,-.3)); tether.position.copy(anchor).add(pl.position).multiplyScalar(.5); tether.scale.y=anchor.distanceTo(pl.position); tether.lookAt(pl.position); tether.rotateX(Math.PI/2);
+  if(t-last>250){ drawScreens(t); last=t; }
+  renderer.render(scene,camera);
+  const w=innerWidth,h=innerHeight, cd=camera.getWorldDirection(V3());
+  PARTS.forEach((p,i)=>{ const el=pts.children[i]; tmp.copy(p[2]()); const toP=tmp.clone().sub(camera.position); const front=toP.dot(cd)>0; tmp.project(camera); const vis=front&&Math.abs(tmp.x)<1&&Math.abs(tmp.y)<1;
+    el.style.display=vis?'':'none'; if(vis) el.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px)`; }); }
+setPhase(1); requestAnimationFrame(tick);
+</script>
+</body>
+</html>
