@@ -643,6 +643,205 @@ function buildViking(hf, n) {
   return { group: g, parts, act, reset };
 }
 
+// ======================= los que no lo lograron (o casi): Mars 2, 3 y 6, Beagle 2, Mars Polar Lander y Schiaparelli =======================
+// cada uno trae un grupo «inner» con sus piezas (para bajarlo, inclinarlo o romperlo en la reconstrucción) y un kit de descenso:
+// paracaídas, llama de los cohetes, polvo, cráter y trozos que saltan
+function descentKit(g, gy) {
+  const k = {};
+  k.chute = new THREE.Group(); const can = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 8, 0, Math.PI * 2, 0, 1.1), Mt(0xe8e2d2, { side: THREE.DoubleSide, roughness: .8 }));
+  can.scale.set(1, .55, 1); k.chute.add(can); const lp = []; for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; lp.push(Math.cos(a) * .89, .25, Math.sin(a) * .89, 0, -2.2, 0); }
+  const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(lp, 3)); k.chute.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0x5a5248 }))); k.chute.visible = false; g.add(k.chute);
+  k.flame = new THREE.Group(); k.flames = []; g.add(k.flame);
+  k.addFlame = (x, y, z, s = 1) => { const f = new THREE.Mesh(new THREE.ConeGeometry(.08 * s, .6 * s, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xffb266, transparent: true, opacity: .8, blending: THREE.AdditiveBlending, depthWrite: false })); f.rotation.x = Math.PI; f.position.set(x, y - .3 * s, z); k.flame.add(f); k.flames.push(f); return f; };
+  const ND = 220, dGeo = new THREE.BufferGeometry(), dP = new Float32Array(ND * 3), seeds = []; for (let i = 0; i < ND; i++) seeds.push([Math.random() * Math.PI * 2, .3 + Math.random(), Math.random()]);
+  dGeo.setAttribute('position', new THREE.BufferAttribute(dP, 3)); k.dust = new THREE.Points(dGeo, new THREE.PointsMaterial({ color: 0xb07a52, size: .09, transparent: true, opacity: 0, depthWrite: false })); k.dust.frustumCulled = false; g.add(k.dust);
+  k.crater = new THREE.Mesh(new THREE.CircleGeometry(1, 28), new THREE.MeshStandardMaterial({ color: 0x2e1c14, roughness: 1, transparent: true, opacity: 0, depthWrite: false })); k.crater.rotation.x = -Math.PI / 2; k.crater.position.y = gy(0, 0) + .015; g.add(k.crater);
+  k.blast = new THREE.Mesh(new THREE.RingGeometry(1, 3.2, 40), new THREE.MeshStandardMaterial({ color: 0x3b2418, roughness: 1, transparent: true, opacity: 0, depthWrite: false })); k.blast.rotation.x = -Math.PI / 2; k.blast.position.y = gy(0, 0) + .012; g.add(k.blast);
+  k.bits = []; for (let i = 0; i < 10; i++) { const b = at(box(.08 + Math.random() * .12, .03, .06 + Math.random() * .1, i % 3 ? M.alu : M.gold), 0, 0, 0); b.visible = false; g.add(b); k.bits.push([b, Math.random() * Math.PI * 2, 2 + Math.random() * 4, 2 + Math.random() * 3]); }
+  // impacto: age en segundos desde el choque; size escala el cráter y la nube
+  k.impact = (age, size = 1, blast = 0) => {
+    const on = age >= 0; k.dust.material.opacity = on ? Math.max(0, .85 - age * .14) : 0;
+    if (on) for (let i = 0; i < ND; i++) { const [a, sp, up] = seeds[i], r = sp * size * 2.2 * (1 - Math.exp(-age * 1.6)); dP[i * 3] = Math.cos(a) * r; dP[i * 3 + 1] = gy(0, 0) + .05 + up * size * 1.2 * Math.max(0, Math.sin(Math.min(Math.PI, age * 1.2))) * (1 - age * .08); dP[i * 3 + 2] = Math.sin(a) * r; }
+    dGeo.attributes.position.needsUpdate = true; k.crater.material.opacity = on ? Math.min(.9, age * 3) : 0; k.crater.scale.setScalar(size * .9);
+    k.blast.material.opacity = on && blast ? Math.min(.55, age * 1.5) * blast : 0; k.blast.scale.setScalar(size);
+    for (const [b, a, v, vy] of k.bits) { b.visible = on && age < 6; if (!b.visible) continue; const tt = Math.min(age, (2 * vy) / 3.71); b.position.set(Math.cos(a) * v * tt * .5 * size, gy(0, 0) + .03 + Math.max(0, vy * tt - 1.855 * tt * tt) * .5, Math.sin(a) * v * tt * .5 * size); b.rotation.set(age * 6, age * 3, 0); }
+  };
+  k.reset = () => { k.chute.visible = false; k.flames.forEach(f => f.visible = false); k.impact(-1); };
+  return k;
+}
+function crashBase(hf) {
+  const g = new THREE.Group(), inner = new THREE.Group(), parts = []; g.add(inner);
+  const part = (id, name, obj, dir, info) => { obj.userData.part = id; parts.push({ id, name, obj, dir, info, home: obj.position.clone() }); inner.add(obj); return obj; };
+  const h0 = hf(0, 0), gy = (x, z) => hf(x, z) - h0; return { g, inner, parts, part, gy, kit: descentKit(g, gy) };
+}
+const flick = t => .75 + Math.sin(t * 61) * .15 + Math.sin(t * 37) * .1;
+
+// ---------- módulos soviéticos M‑71 y M‑73 (Mars 2, Mars 3 y Mars 6): una esfera con cuatro pétalos ----------
+function buildSoviet(hf, kind) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const shell = Mt(0xc9c3b4, { metalness: .45, roughness: .45 }), green = Mt(0x6f7a63, { metalness: .3, roughness: .6 });
+  const body = new THREE.Group(); body.add(at(new THREE.Mesh(new THREE.SphereGeometry(.5, 28, 16), shell), 0, .55, 0)); body.add(at(cyl(.52, .52, .08, M.aluDark, 28), 0, .52, 0));
+  body.add(at(cyl(.12, .16, .14, M.dark, 14), 0, 1.07, 0)); for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; body.add(at(box(.07, .05, .02, M.gold), Math.cos(a) * .47, .72, Math.sin(a) * .47, 0, -a + Math.PI / 2)); }
+  part('cuerpo', 'Esfera del módulo', body, V3(0, .3, 0), 'El módulo que llegaba al suelo era una esfera de 1,2 m y 358 kg, envuelta en espuma para aguantar el golpe. Dentro iban la radio, las baterías, los aparatos para medir la temperatura, la presión y el viento, y un espectrómetro de masas para el aire.');
+  // pétalos triangulares: cerrados forman una pirámide; abiertos quedan en el suelo y enderezan el módulo
+  const pet = new THREE.Group(), petals = [];
+  for (let k = 0; k < 4; k++) { const hinge = new THREE.Group(), a = k / 4 * Math.PI * 2; hinge.rotation.y = -a; const p = new THREE.Group(); p.position.set(.52, .2, 0); hinge.add(p);
+    const sh = new THREE.Shape(); sh.moveTo(0, -.5); sh.lineTo(1.05, 0); sh.lineTo(0, .5); sh.lineTo(0, -.5); const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: .03, bevelEnabled: false }), green); m.rotation.x = -Math.PI / 2; p.add(m);
+    p.add(rod(V3(0, .02, 0), V3(.9, .02, 0), .015, M.aluDark)); pet.add(hinge); petals.push(p); }
+  part('petalos', 'Pétalos', pet, V3(0, -.15, 0), 'Cuatro pétalos de metal que, al abrirse, empujan el suelo y ponen derecho al módulo, cayera como cayera. Al abrirse dejaban libres las cámaras y las antenas.');
+  // cámaras panorámicas (telefotómetros) y antenas de látigo
+  const cams = new THREE.Group(); for (const s of [-1, 1]) { cams.add(at(cyl(.07, .07, .26, Mt(0x9aa0a6, { metalness: .6 }), 16), s * .36, .95, 0)); cams.add(at(box(.03, .12, .03, M.black), s * .36 - .06 * s, .97, 0)); }
+  part('camaras', 'Cámaras panorámicas', cams, V3(0, .45, -.2), 'Dos «telefotómetros»: en vez de sacar una foto de golpe, un espejo giraba y armaba la imagen de 360° línea por línea, igual que en el Viking pero cinco años antes.');
+  const ants = new THREE.Group(), antM = []; for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.PI / 4, h = new THREE.Group(); h.position.set(Math.cos(a) * .3, 1.0, Math.sin(a) * .3); h.rotation.y = -a; const r = at(cyl(.008, .008, 1.1, M.alu, 6), .55, 0, 0, 0, 0, Math.PI / 2); h.add(r); ants.add(h); antM.push(h); }
+  part('antenas', 'Antenas', ants, V3(0, .5, .2), 'Cuatro antenas de látigo que se estiran después de abrir los pétalos. Mandaban todo al orbitador, que pasaba por encima y lo reenviaba a la Tierra.');
+  // PrOP‑M: el primer rover que llegó a Marte, con esquís y un cable de 15 m (solo en Mars 2 y 3)
+  let prop = null, tth = null, propArm = null;
+  if (kind !== 6) { const pg = new THREE.Group(); prop = new THREE.Group(); prop.add(at(box(.25, .14, .22, Mt(0x8c9196, { metalness: .5 })), 0, .12, 0)); for (const s of [-1, 1]) prop.add(at(box(.06, .02, .3, M.aluDark), s * .16, .04, 0)); prop.add(at(cyl(.004, .004, .2, M.alu, 4), .1, .12, -.2, Math.PI / 2)); prop.add(at(cyl(.004, .004, .2, M.alu, 4), -.1, .12, -.2, Math.PI / 2));
+    prop.position.set(0, .62, -.55); pg.add(prop); propArm = new THREE.Group(); propArm.position.set(0, .75, -.45); propArm.add(rod(V3(0, 0, 0), V3(0, 0, -.6), .015, M.alu)); pg.add(propArm);
+    tth = tether(0x222222); pg.add(tth);
+    part('prop', 'Rover PrOP‑M', pg, V3(0, .3, -.5), 'El primer rover enviado a otro planeta: una cajita de 4,5 kg que caminaba sobre dos esquís, atada al módulo con un cable de 15 m. Dos varillas al frente tocaban los obstáculos para que diera la vuelta solo. Medía la dureza del suelo. Nunca se supo si llegó a salir.'); }
+  const T = kind === 2 ? 18 : 30;
+  function pose(open) { petals.forEach(p => p.rotation.z = (1 - open) * 1.25); antM.forEach(h => h.rotation.z = (1 - Math.min(1, open * 1.4)) * -1.45 + .35); }
+  function act(time) {
+    const t = time % T; kit.reset(); kit.flames.length || kit.addFlame(0, 2.1, 0, 2.5);
+    let step = 0, alt = 0, open = 0, look = 1.5; inner.visible = true; inner.rotation.set(0, 0, 0);
+    if (kind === 2) {                     // sin paracaídas: cae empinado y se estrella
+      const ti = 6; if (t < ti) { const u = t / ti; alt = 34 * (1 - u * u); inner.position.set(-14 * (1 - u), alt, 6 * (1 - u)); inner.rotation.set(1.1 * u, .4, .8); open = 0; look = Math.max(1.5, alt * .45); step = t < 3 ? 0 : 1; }
+      else { inner.visible = false; kit.impact(t - ti, 1.1, .4); step = t < 10 ? 2 : 3; }
+      pose(open); return { step, look, kv: [['Ángulo de entrada', 'demasiado empinado'], ['Paracaídas', t < ti ? 'no alcanza a frenar' : '—'], ['Velocidad', t < ti ? `${Math.round(400 + 900 * t / ti)} km/h` : 'choque'], ['Resultado', t < ti ? 'cayendo…' : 'primer objeto humano en Marte']] };
+    }
+    // Mars 3 y 6: paracaídas, cohete de frenado que se lleva el paracaídas, golpe y (Mars 3) apertura y 20 s de señal
+    const land = kind === 3 ? 7 : 7.5;
+    if (t < land) { const u = t / land; alt = 24 * (1 - u); inner.position.set(0, alt, 0); inner.rotation.z = Math.sin(t * 1.3) * .06; kit.chute.visible = t < land - 1.4; kit.chute.position.set(Math.sin(t * 1.3) * .2, alt + 5.2, 0); kit.chute.scale.setScalar(2.4);
+      if (t > land - 1.6 && t < land - .2) { kit.flame.position.set(0, alt, 0); kit.flames[0].visible = true; kit.flames[0].material.opacity = .8 * flick(t); kit.chute.position.x += (t - land + 1.6) * 8; }
+      step = 0; look = Math.max(1.5, alt * .5); }
+    else inner.position.set(0, Math.max(0, .25 * Math.sin((t - land) * 9) * Math.exp(-(t - land) * 4)), 0);
+    if (kind === 6) {
+      const lost = t > land - .4; if (t >= land) kit.impact(t - land, .35, 0);
+      pose(0); step = t < 3 ? 0 : t < land - .4 ? 1 : 2; if (t > 16) step = 3;
+      const tx = Math.min(224, Math.round(t / (land - .4) * 224));
+      return { step, look, kv: [['Datos enviados al bajar', `${tx} de 224 s`], ['Presión', lost ? '—' : `${(3 + t * .9).toFixed(1)} mbar`], ['Cohete de frenado', t < land - 1.6 ? 'esperando' : lost ? 'encendido… y silencio' : 'encendiendo'], ['Señal', lost ? 'perdida a las 09:11:05 UTC' : 'llegando']] };
+    }
+    if (t >= land) kit.impact(t - land, .35, 0);
+    open = sm(land + 1, land + 4, t); pose(open);
+    if (prop) { const pd = sm(land + 6, land + 9, t), walk = sm(land + 9, land + 16, t); propArm.rotation.x = -pd * .9; prop.position.set(0, .62 - pd * (.62 - gy(0, -1.15)) , -.55 - pd * .6 - walk * 1.1); prop.position.y += walk > 0 && walk < 1 ? Math.abs(Math.sin(t * 3)) * .03 : 0;
+      tth.visible = pd > .05; tth.userData.set(V3(0, .6, -.45), prop.position.clone().add(V3(0, .1, .1)), .12); }
+    const sig = t > land + 2 && t < land + 2 + 20 * .5;
+    step = t < land ? 0 : t < land + 2 ? 1 : t < land + 6 ? 2 : t < land + 12 ? 3 : 4;
+    return { step, look, scan: t > land + 2 ? { f: Math.min(.22, (t - land - 2) / 10 * .22), cycle: Math.floor(time / T), pos: V3(.36, 1.0, -.1), look: V3(0, gy(0, -3), -3), noise: .92, lost: t > land + 12 } : null,
+      kv: [['Pétalos', open < .02 ? 'cerrados' : open < .98 ? 'abriéndose' : 'abiertos'], ['Señal al orbitador', t < land + 1.5 ? 'esperando 90 s' : sig ? 'transmitiendo…' : 'perdida tras unos 20 s'], ['Imagen recibida', t < land + 2 ? '—' : `${Math.min(70, Math.round((t - land - 2) / 10 * 70))} líneas, gris y sin detalles`], ['Tormenta de polvo', 'cubría todo el planeta']] };
+  }
+  function reset() { kit.reset(); inner.position.set(0, 0, 0); inner.rotation.set(0, 0, 0); inner.visible = true; pose(1); if (prop) { prop.position.set(0, .62, -.55); propArm.rotation.x = 0; tth.visible = false; } }
+  shadows(g); kit.dust.castShadow = false; reset();
+  return { group: g, parts, act, reset };
+}
+
+// ---------- Beagle 2 (2003): rebotó en bolsas de aire, abrió solo una parte de sus paneles y tapó su propia antena ----------
+function buildBeagle(hf) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const base = new THREE.Group(); base.add(at(cyl(.33, .3, .14, Mt(0x6d6f73, { metalness: .6, roughness: .4 }), 32), 0, .09, 0)); base.add(at(cyl(.335, .335, .02, M.gold, 32), 0, .165, 0));
+  base.add(at(box(.14, .05, .1, M.gold), .05, .19, .08)); base.add(at(cyl(.03, .03, .06, M.dark, 10), -.12, .2, -.05));
+  part('base', 'Base y laboratorio GAP', base, V3(0, -.25, 0), 'Una «tapa de olla» de menos de un metro donde iba todo: la computadora, la batería y el GAP, un laboratorio que horneaba muestras para buscar rastros de vida en los gases. Pesaba unos 33 kg. Lo dirigía el científico británico Colin Pillinger y su nombre recuerda al barco de Darwin.');
+  const ant = new THREE.Group(); ant.add(at(cyl(.012, .012, .12, M.white, 8), .2, .24, 0)); ant.add(at(box(.05, .02, .05, M.white), .2, .3, 0));
+  part('antena', 'Antena', ant, V3(.25, .2, 0), 'La antena de radio quedaba debajo del último panel. Si ese panel no se abría, la antena quedaba tapada y el Beagle 2 no podía hablar con nadie: eso fue lo que pasó.');
+  // cuatro paneles redondos que se abren como pétalos alrededor de la base
+  const pg = new THREE.Group(), panels = [];
+  for (let k = 0; k < 4; k++) { const hinge = new THREE.Group(), a = k / 4 * Math.PI * 2; hinge.rotation.y = -a; const p = new THREE.Group(); p.position.set(.32, .18, 0); hinge.add(p);
+    const disc = at(new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .012, 30), M.solar), -.3, -.006 + k * .022, 0); p.add(disc); p.add(at(new THREE.Mesh(new THREE.CylinderGeometry(.305, .305, .02, 30), M.gold), -.3, .01 + k * .022, 0)); pg.add(hinge); panels.push(p); }   // las celdas miran hacia abajo guardadas y hacia arriba abiertas
+  part('paneles', 'Paneles solares', pg, V3(0, .3, 0), 'Cuatro paneles redondos guardados uno sobre otro. Al abrirse como pétalos daban energía y destapaban la antena. En 2015 la cámara HiRISE lo encontró en el suelo: solo uno, dos o como mucho tres paneles se habían abierto.');
+  // tapa con el brazo PAW plegado
+  const lidG = new THREE.Group(); lidG.position.set(-.33, .2, 0); const lid = new THREE.Group(); lidG.add(lid);
+  lid.add(at(new THREE.Mesh(new THREE.SphereGeometry(.34, 30, 8, 0, Math.PI * 2, 0, .5), Mt(0x6d6f73, { metalness: .6, roughness: .4 })), .33, -.06, 0));
+  const paw = new THREE.Group(); paw.add(rod(V3(.2, .06, 0), V3(.5, .07, 0), .02, M.alu)); paw.add(at(box(.1, .07, .1, M.gold), .52, .08, 0)); paw.add(at(cyl(.015, .015, .12, M.dark, 8), .55, .08, .06, Math.PI / 2)); lid.add(paw);
+  part('tapa', 'Tapa y brazo PAW', lidG, V3(-.3, .35, 0), 'La tapa se abría como una almeja. Por dentro llevaba el brazo con el PAW: cámaras estéreo, un microscopio, dos espectrómetros, un taladro para rocas y el «topo» PLUTO, que se arrastraba por el suelo para sacar tierra de debajo de las piedras.');
+  // bolsas de aire (tres esferas) para la reconstrucción
+  const bags = new THREE.Group(); for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; bags.add(at(new THREE.Mesh(new THREE.SphereGeometry(.55, 20, 14), Mt(0xd8d0bf, { roughness: .9 })), Math.cos(a) * .4, .55, Math.sin(a) * .4)); } bags.visible = false; g.add(bags);
+  const OPEN = [1, 1, .55, 0], T = 26;
+  function pose(lidA, pan) { lid.rotation.z = -lidA * 2.0; panels.forEach((p, i) => p.rotation.z = -pan[i] * Math.PI * .97); }
+  function act(time) {
+    const t = time % T; kit.reset(); let step, look = 1.2;
+    if (t < 7) { const bx = -10 + t * 1.45, hgt = Math.abs(Math.sin(t * 1.6)) * 7 * Math.exp(-t * .45); bags.visible = true; bags.position.set(bx, hgt, 0); bags.rotation.z = -t * 2; inner.visible = false; step = 0; look = Math.max(1.2, hgt * .4); }
+    else { bags.visible = t < 8.5; if (bags.visible) { const u = t - 7; bags.position.set(.2 + u * 3, .1 + u * 2, -u); bags.scale.setScalar(Math.max(.3, 1 - u * .5)); } else bags.scale.setScalar(1);
+      inner.visible = true; inner.position.set(0, 0, 0); step = 1; }
+    const lidA = sm(10, 12.5, t), pan = OPEN.map((o, i) => o * sm(12.5 + i * 1.2, 14 + i * 1.2, t)); pose(lidA, pan);
+    if (t > 10) step = 2; if (t > 17) step = 3; if (t > 21) step = 4;
+    return { step, look, kv: [['Bolsas de aire', t < 7 ? 'rebotando' : 'sueltas'], ['Paneles abiertos', t < 12.5 ? '0 de 4' : `${pan.filter(p => p > .9).length} de 4 (uno a medias)`], ['Antena', t < 17 ? '—' : 'tapada por el último panel'], ['Señal', t < 17 ? 'esperando…' : 'ninguna, nunca: hasta que HiRISE lo vio en 2015']] };
+  }
+  function reset() { kit.reset(); bags.visible = false; inner.visible = true; inner.position.set(0, 0, 0); pose(1, [1, 1, 1, 1]); }
+  shadows(g); reset();
+  return { group: g, parts, act, reset };
+}
+
+// ---------- Mars Polar Lander (1999): apagó los motores a 40 m por una señal falsa de sus patas ----------
+function buildMPL(hf) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const deck = new THREE.Group(); deck.add(at(cyl(.72, .72, .26, Mt(0xd8ccae, { metalness: .35, roughness: .45 }), 12), 0, .78, 0)); deck.add(at(cyl(.74, .74, .03, M.alu, 12), 0, .92, 0)); deck.add(at(cyl(.68, .7, .05, M.gold, 12), 0, .63, 0));
+  for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2 + Math.PI / 6; for (let j = 0; j < 4; j++) deck.add(at(cyl(.025, .045, .1, M.dark, 8), Math.cos(a) * .5 + (j % 2 - .5) * .1, .56, Math.sin(a) * .5 + (j > 1 ? .05 : -.05))); kit.addFlame(Math.cos(a) * .5, .5, Math.sin(a) * .5, 1.6); }
+  part('cubierta', 'Cubierta y motores', deck, V3(0, -.3, 0), 'Hermano mayor de Phoenix: la misma familia de módulo con 12 motores de hidracina en tres grupos de cuatro. Debía aterrizar cerca del polo sur, donde nunca había llegado nada.');
+  const legs = new THREE.Group(), sens = Mt(0xe84a3a, { emissive: 0x551010 });
+  for (let i = 0; i < 3; i++) { const a = Math.PI / 2 + i / 3 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a), fx = c * 1.05, fz = s * 1.05, f = V3(fx, gy(fx, fz) + .1, fz);
+    legs.add(rod(V3(c * .58, .7, s * .58), f, .04, M.alu)); legs.add(at(cyl(.13, .15, .05, M.alu, 14), fx, f.y - .06, fz)); legs.add(at(box(.07, .07, .07, sens), c * .78, .5, s * .78)); }
+  part('patas', 'Patas y sensores de contacto', legs, V3(0, -.25, 0), 'En cada pata, un sensor magnético (en rojo) avisaba cuando tocaba el suelo, para apagar los motores. Al desplegarse las patas a 1.500 m, la sacudida hizo «saltar» esos sensores. El programa guardó esa señal falsa y, al llegar a 40 m, la creyó: apagó los motores en el aire.');
+  const sol = new THREE.Group(); for (const s of [-1, 1]) { sol.add(at(box(1.05, .025, .8, M.solar), s * 1.25, .95, 0)); sol.add(at(box(1.07, .015, .82, M.gold), s * 1.25, .935, 0)); sol.add(at(box(.35, .02, .5, M.solar), 0, .96, s * .72)); }
+  part('solar', 'Paneles solares', sol, V3(0, .4, 0), 'Dos paneles de arseniuro de galio a los lados (3,6 m de punta a punta) y dos auxiliares, para unos 200 W.');
+  const ins = new THREE.Group(); ins.add(rod(V3(-.3, .93, -.3), V3(-.3, 1.9, -.3), .025, M.alu)); ins.add(at(box(.2, .11, .12, M.white), -.3, 1.95, -.3)); for (const x of [-.06, .06]) ins.add(at(cyl(.02, .02, .02, M.lens, 10), -.3 + x, 1.95, -.37, Math.PI / 2));
+  ins.add(rod(V3(.45, .93, .3), V3(.45, 2.1, .3), .012, M.alu)); ins.add(rod(V3(.2, .93, .45), V3(.2, 1.8, .45), .012, M.alu));
+  ins.add(at(box(.15, .1, .12, M.white), .35, .99, -.15)); ins.add(at(cyl(.035, .035, .02, M.lens, 12), .35, 1.05, -.15));
+  ins.add(at(cyl(.025, .025, .04, M.dark, 10), -.1, .97, .35)); ins.add(at(box(.4, .1, .16, M.white), .05, .99, .05));
+  ins.add(rod(V3(.1, .97, -.6), V3(.4, 1.25, -.95), .03, M.alu)); ins.add(rod(V3(.4, 1.25, -.95), V3(.5, .99, -.6), .025, M.alu)); ins.add(at(box(.1, .06, .1, M.alu), .5, 1.0, -.58));
+  part('ciencia', 'Cámaras, brazo, lidar y micrófono', ins, V3(0, .45, -.2), 'Llevaba una cámara estéreo en un mástil, un brazo de 1 m con pala, un horno TEGA como el de Phoenix, mástiles del tiempo, un lidar ruso para ver el polvo y el hielo en el aire y el primer micrófono enviado a Marte, hecho con piezas de audífono. Antes de entrar soltó dos sondas «Deep Space 2» que debían clavarse en el suelo: tampoco se supo de ellas.');
+  const T = 22, VS = .5;            // escala vertical de la reconstrucción: 1 m real = 0,5 m en pantalla
+  function altAt(tr) { const t1 = 12 / 13; if (tr < t1) return 52 - 13 * tr; const s = tr - t1; return Math.max(0, 40 - 13 * s - 1.855 * s * s); }
+  function act(time) {
+    const t = time % T, tr = t / 4, alt = altAt(tr), cut = tr > 12 / 13, hit = alt <= 0; kit.reset(); let step;
+    if (!hit) { inner.position.set(0, alt * VS, 0); inner.rotation.set(0, 0, 0); kit.flame.position.copy(inner.position); kit.flames.forEach(f => { f.visible = !cut; f.material.opacity = .8 * flick(t); }); }
+    else { const tImp = (12 / 13 + 2.31) * 4; inner.position.set(0, -.25, 0); inner.rotation.set(.45, 0, .35); kit.impact(t - tImp, .8, 0); }
+    const v = !cut ? 13 : Math.min(21.6, 13 + 3.71 * (tr - 12 / 13));
+    step = !cut ? 1 : !hit ? 2 : t < 18 ? 3 : 4; if (t < 1) step = 0;
+    return { step, look: Math.max(1, alt * VS * .6), kv: [['Altura', hit ? '0 m' : `${alt.toFixed(0)} m`], ['Velocidad', hit ? '—' : `${(v * 3.6).toFixed(0)} km/h`], ['Motores', cut ? 'apagados por la señal falsa' : 'encendidos'], ['Cámara lenta', '×4 · altura a media escala']] };
+  }
+  function reset() { kit.reset(); inner.position.set(0, 0, 0); inner.rotation.set(0, 0, 0); }
+  shadows(g); reset();
+  return { group: g, parts, act, reset };
+}
+
+// ---------- Schiaparelli (2016): un sensor se saturó un segundo, la computadora creyó estar bajo el suelo y soltó el paracaídas a 3,7 km ----------
+function buildSchia(hf) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const plat = new THREE.Group(); plat.add(at(cyl(.82, .82, .18, Mt(0xcfcac0, { metalness: .4, roughness: .45 }), 36), 0, .55, 0)); plat.add(at(cyl(.84, .84, .02, M.gold, 36), 0, .645, 0));
+  plat.add(at(cyl(.8, .7, .3, Mt(0x8a7a52, { metalness: .3, roughness: .8 }), 36), 0, .31, 0));
+  part('plataforma', 'Plataforma y base aplastable', plat, V3(0, -.3, 0), 'Un disco de 1,7 m. No tenía patas: por debajo llevaba una estructura que se aplastaba como una lata para aguantar el golpe final, desde unos 2 m de altura. Era una prueba de la ESA para aprender a aterrizar en Marte.');
+  const thr = new THREE.Group(); for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; for (let j = -1; j <= 1; j++) { const b = a + j * .12; thr.add(at(cyl(.03, .05, .12, M.dark, 10), Math.cos(b) * .68, .5, Math.sin(b) * .68)); } kit.addFlame(Math.cos(a) * .68, .44, Math.sin(a) * .68, 1.8); }
+  part('motores', 'Nueve propulsores', thr, V3(0, -.5, .3), 'Tres grupos de tres motores de hidracina. Debían encenderse unos 30 segundos para bajar despacio hasta 2 m del suelo. Solo funcionaron 3 segundos.');
+  const top = new THREE.Group(); top.add(rod(V3(.3, .66, .2), V3(.3, 1.2, .2), .015, M.alu)); top.add(at(box(.1, .05, .06, M.white), .3, 1.22, .2)); top.add(rod(V3(.3, 1.05, .2), V3(.5, 1.05, .2), .008, M.alu));
+  top.add(at(box(.3, .12, .2, M.gold), -.25, .72, .1)); top.add(at(cyl(.025, .025, .25, M.white, 8), -.4, .79, -.3)); top.add(at(box(.25, .08, .18, M.white), .1, .7, -.35));
+  part('dreams', 'Estación DREAMS', top, V3(0, .4, 0), 'La pequeña estación del tiempo DREAMS iba a medir viento, temperatura, presión y, por primera vez, la electricidad del aire en Marte durante unos días, con su batería.');
+  const radar = new THREE.Group(); for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + .4; radar.add(at(box(.1, .03, .1, M.dark), Math.cos(a) * .35, .15, Math.sin(a) * .35)); }
+  part('radar', 'Radar Doppler', radar, V3(0, -.55, -.2), 'Cuatro antenas que miden la altura y la velocidad respecto al suelo con ondas de radio. Funcionaban bien, pero la computadora ya creía otra cosa.');
+  // escudo delantero y cubierta trasera (para el despiece y la bajada)
+  const shield = new THREE.Group(); const fs = at(new THREE.Mesh(new THREE.ConeGeometry(1.2, .45, 40, 1, true), Mt(0x6b4a2e, { roughness: .9, side: THREE.DoubleSide })), 0, -.05, 0, Math.PI); shield.add(fs);
+  const bc = at(new THREE.Mesh(new THREE.CylinderGeometry(.45, 1.2, .7, 40, 1, true), Mt(0xe8e4da, { roughness: .6, side: THREE.DoubleSide })), 0, 1.0, 0); shield.add(bc);
+  part('escudo', 'Escudo térmico y cubierta', shield, V3(0, 1.4, 0), 'El escudo de 2,4 m aguantó la entrada a 21.000 km/h. La cubierta de atrás guardaba el paracaídas de 12 m. Las dos se soltaron demasiado pronto, a 3,7 km de altura.');
+  const T = 26;
+  function act(time) {
+    const t = time % T; kit.reset(); let step = 0, look = 2, realAlt, think, spd;
+    shield.children[0].visible = false; shield.children[1].visible = true;
+    if (t < 6.5) { const y = 22 - t * .3; inner.position.set(Math.sin(t) * .15, y, 0); inner.rotation.set(t > 3 && t < 4 ? Math.sin(t * 30) * .3 : Math.sin(t * 1.4) * .08, 0, 0); kit.chute.visible = true; kit.chute.scale.setScalar(3.2); kit.chute.position.set(inner.position.x, y + 8, 0);
+      realAlt = 6.2 - t * .38; think = t < 3.5 ? realAlt : realAlt - (t - 3.5) * 3; spd = 250; step = t < 3 ? 0 : 1; look = y * .55; }
+    else if (t < 9.5) { const u = t - 6.5, y = 22 - 6.5 * .3 - u * .4; inner.position.set(0, y, 0); inner.rotation.set(0, 0, 0); shield.children[1].visible = false; kit.chute.visible = true; kit.chute.position.set(u * 2.5, 22 + 8 - 6.5 * .3 + u * 1.5, -u); kit.chute.scale.setScalar(3.2);
+      kit.flame.position.copy(inner.position); kit.flames.forEach(f => { f.visible = true; f.material.opacity = .85 * flick(t); }); realAlt = 3.7; think = -2.1; spd = 200; step = 2; look = y * .55; }
+    else { const u = (t - 9.5) / 4.5; shield.children[1].visible = false;
+      if (u < 1) { const y = (22 - 6.5 * .3 - 3 * .4) * (1 - u * u); inner.position.set(0, y, 0); realAlt = 3.7 * (1 - u * u); spd = 200 + 340 * u; look = Math.max(1.5, y * .55); step = 3; }
+      else { inner.visible = false; kit.impact(t - 14, 1.6, 1); realAlt = 0; spd = 540; step = 4; look = 1.5; }
+      think = -2.1; }
+    if (t >= 14) inner.visible = false; else inner.visible = true;
+    return { step, look, kv: [['Altura real', `${realAlt.toFixed(1).replace('.', ',')} km`], ['Altura que creía la computadora', think < 0 ? 'bajo el suelo (¡imposible!)' : `${think.toFixed(1).replace('.', ',')} km`], ['Velocidad', `${Math.round(spd)} km/h`], ['Propulsores', t < 6.5 ? 'apagados' : t < 9.5 ? 'encendidos 3 s (debían ser 30)' : 'apagados']] };
+  }
+  function reset() { kit.reset(); inner.visible = true; inner.position.set(0, 0, 0); inner.rotation.set(0, 0, 0); shield.children[0].visible = true; shield.children[1].visible = false; }
+  shadows(g); reset();
+  return { group: g, parts, act, reset };
+}
+
 // ---------- fichas: lanzamiento, viaje, llegada (datos NASA/JPL) ----------
 const ROVERS = {
   m2020: { name: 'Perseverance', sub: 'Mars 2020 · NASA/JPL', build: () => buildMSL('perse'), mass: '1.025 kg', size: '3,0 m de largo · 2,7 m de ancho · 2,2 m de alto', speed: 'hasta 152 m/h (0,042 m/s)',
@@ -700,6 +899,42 @@ const ROVERS = {
     launch: [['Despegue', '9 de septiembre de 1975, 18:39 UTC'], ['Cohete', 'Titan IIIE con etapa Centaur'], ['Plataforma', 'LC‑41, Cabo Cañaveral, Florida'], ['Viaje', '333 días hasta la órbita de Marte (7 de agosto de 1976)'], ['Llegada', '3 de septiembre de 1976, 22:37 UTC'], ['Lugar', 'Utopia Planitia (47,64° N, 134,29° E), más al norte, en una llanura llena de rocas'], ['Misión prevista', '90 días'], ['Estado', 'Terminada: funcionó 3 años y 7 meses (1.281 soles), hasta que fallaron sus baterías el 11 de abril de 1980']],
     edl: [['Separación', 'se suelta del orbitador y enciende 12 toberas para bajar de la órbita'], ['Entrada', 'escudo térmico y medición de la atmósfera al caer'], ['Paracaídas', 'de 16 m, a 6 km de altura'], ['Motores', 'tres motores de 18 toberas en el último kilómetro y medio'], ['Suelo', 'el radar se confundió con una roca y encendió un propulsor de más: quedó inclinado 8°, con una pata sobre una piedra']],
     firsts: ['Fotografió escarcha de agua sobre el suelo de Marte en invierno', 'Su sismómetro funcionó (el del Viking 1 nunca se destrabó)', 'Movió rocas con su brazo para tomar tierra que estaba debajo', 'Junto con el Viking 1 enviaron más de 4.500 fotos desde el suelo'] },
+  mars2: { name: 'Mars 2', sub: 'Mars 2 · URSS · módulo de descenso M‑71', build: hf => buildSoviet(hf, 2), view: { ty: .7, cam: [3.6, 2.3, -3.8], drv: [12, 8, -17], back: 6, up: 2.6, max: 40 }, lander: true, noSim: true, crash: true, speedLabel: 'Estado', edlTitle: 'La llegada', mass: '358 kg la esfera que debía llegar al suelo', size: 'esfera de 1,2 m con cuatro pétalos', speed: 'se estrelló el 27 de noviembre de 1971',
+    act: { title: 'El primero en llegar… estrellado', text: 'Reconstrucción: el módulo entra con un ángulo demasiado empinado y el paracaídas no llega a frenarlo. Aun así, fue el primer objeto hecho por humanos que tocó Marte.',
+      steps: ['El módulo entra demasiado empinado', 'El paracaídas no alcanza a frenarlo', 'Choque: el primer objeto humano en Marte', 'Nunca envió datos desde el suelo'] },
+    launch: [['Despegue', '19 de mayo de 1971, 16:22 UTC'], ['Cohete', 'Protón‑K con etapa Blok D'], ['Plataforma', 'Baikonur (hoy Kazajistán)'], ['Llegada', '27 de noviembre de 1971'], ['Lugar', 'cerca de Hellas (posición aproximada)'], ['Orbitador', 'siguió funcionando y fotografió Marte durante meses'], ['Estado', 'el módulo se estrelló; nunca envió datos']],
+    edl: [['Separación', 'el módulo se soltó del orbitador horas antes de llegar'], ['Entrada', 'un error dejó el ángulo de entrada demasiado empinado'], ['Paracaídas', 'no alcanzó a frenarlo a tiempo'], ['Suelo', 'choque a gran velocidad']],
+    firsts: ['Primer objeto hecho por humanos que llegó al suelo de Marte', 'Llevaba el primer rover enviado a Marte, el PrOP‑M', 'Su orbitador fue de los primeros en estudiar Marte desde la órbita'] },
+  mars3: { name: 'Mars 3', sub: 'Mars 3 · URSS · módulo de descenso M‑71', build: hf => buildSoviet(hf, 3), view: { ty: .7, cam: [3.6, 2.3, -3.8], drv: [12, 8, -17], back: 6, up: 2.6, max: 40 }, lander: true, noSim: true, crash: true, speedLabel: 'Estado', edlTitle: 'La llegada', scan: true, mass: '358 kg la esfera de aterrizaje (1.210 kg con escudo y cohetes)', size: 'esfera de 1,2 m con cuatro pétalos', speed: 'aterrizó y calló a los 20 s',
+    act: { title: '20 segundos en Marte', text: 'Reconstrucción: paracaídas, cohete de frenado, pétalos abiertos y la primera señal desde el suelo de Marte… que se cortó a los 20 segundos, en plena tormenta de polvo global.',
+      steps: ['Baja en paracaídas en plena tormenta de polvo', 'Un cohete lo frena y se lleva el paracaídas; golpe y pétalos abiertos', 'A los 90 s empieza a mandar una imagen…', 'El rover PrOP‑M debía salir con su cable (nunca se supo si salió)', 'A los 20 s, silencio para siempre'] },
+    launch: [['Despegue', '28 de mayo de 1971, 15:26 UTC'], ['Cohete', 'Protón‑K con etapa Blok D'], ['Plataforma', 'Baikonur (hoy Kazajistán)'], ['Llegada', '2 de diciembre de 1971, 13:52 UTC'], ['Lugar', 'cerca del cráter Ptolemaeus (unos 45° S, 202° E)'], ['Duró', 'unos 20 segundos de señal, 90 s después de aterrizar'], ['Estado', 'en 2013 unos aficionados creyeron verlo en fotos de HiRISE; no está confirmado']],
+    edl: [['Separación', 'a las 09:14 UTC, 4 h 35 min antes de llegar'], ['Entrada', 'a unos 5,7 km/s, frenado por un escudo cónico de 2,9 m'], ['Paracaídas', 'frena la esfera; luego un cohete la frena más y aparta el paracaídas'], ['Suelo', 'espuma alrededor de la esfera para aguantar el golpe; los pétalos la enderezan']],
+    firsts: ['Primer aterrizaje suave en Marte', 'Primera señal enviada desde el suelo de Marte (unos 20 s)', 'Primera imagen desde el suelo, aunque solo 70 líneas grises sin detalles', 'Llevaba el rover PrOP‑M con esquís y un cable de 15 m'] },
+  mars6: { name: 'Mars 6', sub: 'Mars 6 · URSS · módulo de descenso M‑73', build: hf => buildSoviet(hf, 6), view: { ty: .7, cam: [3.6, 2.3, -3.8], drv: [12, 8, -17], back: 6, up: 2.6, max: 40 }, lander: true, noSim: true, crash: true, speedLabel: 'Estado', edlTitle: 'La llegada', mass: '635 kg el módulo de descenso', size: 'esfera con cuatro pétalos, como el de Mars 3', speed: 'perdido al aterrizar',
+    act: { title: 'Datos al caer', text: 'Reconstrucción: durante 224 segundos envía las primeras mediciones del aire de Marte tomadas mientras bajaba. Justo al encender el cohete de frenado, la señal se corta.',
+      steps: ['Baja en paracaídas enviando datos del aire', 'Primeras mediciones de la atmósfera tomadas al bajar', 'Al encender el cohete de frenado, la señal se corta', 'Nunca se supo si llegó entero'] },
+    launch: [['Despegue', '5 de agosto de 1973, 17:45 UTC'], ['Cohete', 'Protón‑K con etapa Blok D'], ['Plataforma', 'Baikonur (hoy Kazajistán)'], ['Llegada', '12 de marzo de 1974; entrada a las 09:05:53 UTC'], ['Lugar', 'Margaritifer Terra (23,9° S, 19,4° O)'], ['Señal perdida', '09:11:05 UTC, al ir a encender los cohetes'], ['Estado', 'perdido; un chip defectuoso arruinó buena parte de los datos']],
+    edl: [['Separación', 'a unos 48.000 km de Marte'], ['Entrada', 'frena de 5.600 a 600 m/s con su escudo'], ['Paracaídas', 'mientras baja mide temperatura, presión y composición del aire'], ['Cohete', 'debía encenderse en los últimos segundos: ahí se perdió la señal']],
+    firsts: ['Primeras mediciones de la atmósfera de Marte tomadas mientras bajaba', '224 segundos de datos durante la bajada', 'Llegó a la superficie, aunque no se sabe en qué estado'] },
+  beagle: { name: 'Beagle 2', sub: 'Beagle 2 · Reino Unido / ESA · viajó con Mars Express', build: buildBeagle, view: { ty: .25, cam: [1.7, 1.1, -1.9], drv: [6, 4, -8], back: 6, up: 2.6, max: 40 }, lander: true, noSim: true, crash: true, speedLabel: 'Estado', edlTitle: 'La llegada', mass: 'unos 33 kg en el suelo (69 kg con su sistema de aterrizaje)', size: 'menos de 1 m cerrado, menos de 2 m abierto', speed: 'aterrizó, pero quedó mudo',
+    act: { title: 'Casi lo logra', text: 'Reconstrucción de lo que mostraron las fotos de HiRISE en 2015: aterrizó bien, abrió la tapa y algunos paneles, pero el último panel quedó cerrado sobre la antena.',
+      steps: ['Rebota envuelto en bolsas de aire', 'Las bolsas se sueltan y queda en el suelo', 'Abre la tapa y los paneles… pero no todos', 'El último panel tapa la antena: silencio', 'En 2015 la cámara HiRISE lo encuentra a 5 km del centro previsto'] },
+    launch: [['Despegue', '2 de junio de 2003, con la sonda Mars Express'], ['Cohete', 'Soyuz‑FG con etapa Fregat'], ['Plataforma', 'Baikonur (hoy Kazajistán)'], ['Separación', '19 de diciembre de 2003'], ['Llegada', '25 de diciembre de 2003, Navidad'], ['Lugar', 'Isidis Planitia (11,5° N, 90,4° E)'], ['Estado', 'perdido hasta 2015, cuando HiRISE lo encontró con sus paneles a medio abrir']],
+    edl: [['Separación', 'Mars Express lo suelta 6 días antes'], ['Entrada', 'escudo térmico'], ['Paracaídas', 'un paracaídas pequeño y luego el principal'], ['Bolsas de aire', 'rebota envuelto en bolsas, que luego se sueltan'], ['Suelo', 'aterrizó bien: las fotos muestran el paracaídas y la cubierta cerca']],
+    firsts: ['Primer módulo británico enviado a otro planeta', 'Encontrado 11 años después en fotos desde la órbita', 'Llevaba un «topo» que se arrastraba para sacar tierra de debajo de las piedras'] },
+  mpl: { name: 'Mars Polar Lander', sub: 'Mars Surveyor ’98 · NASA/JPL', build: buildMPL, view: { ty: .7, cam: [3.6, 2.3, -3.8], drv: [12, 8, -17], back: 6, up: 2.6, max: 40 }, lander: true, noSim: true, crash: true, speedLabel: 'Estado', edlTitle: 'La llegada', mass: '290 kg', size: '3,6 m de ancho con los paneles · 1,06 m de alto', speed: 'se estrelló el 3 de diciembre de 1999',
+    act: { title: 'Una señal falsa a 40 metros', text: 'Reconstrucción de la causa más probable, según la junta que investigó el fallo: los motores se apagan a 40 m porque el programa cree que las patas ya tocaron el suelo.',
+      steps: ['Baja con los motores encendidos', 'A 40 m el programa lee la señal falsa guardada desde 1.500 m', 'Apaga los motores: cae 40 m', 'Choca a unos 80 km/h', 'Phoenix, su hermano, corrigió el programa y aterrizó bien en 2008'] },
+    launch: [['Despegue', '3 de enero de 1999, 20:21 UTC'], ['Cohete', 'Delta II 7425'], ['Plataforma', 'SLC‑17B, Cabo Cañaveral, Florida'], ['Llegada', '3 de diciembre de 1999; última señal a las 14:39 UTC, antes de la entrada'], ['Lugar', 'cerca del polo sur (zona prevista, 76,6° S)'], ['Estado', 'perdido; dado por perdido el 17 de enero de 2000']],
+    edl: [['Sondas', 'antes de entrar suelta dos sondas Deep Space 2, que también se perdieron'], ['Patas', 'a unos 1.500 m se despliegan; la sacudida da una señal falsa de contacto'], ['Motores', 'encendidos desde 1,3 km a unos 80 m/s'], ['40 m', 'se apaga el radar y se empiezan a leer las patas: el programa cree la señal falsa'], ['Suelo', 'cae 40 m y llega a unos 22 m/s (80 km/h)']],
+    firsts: ['Primer intento de aterrizar cerca del polo sur de Marte', 'Llevaba el primer micrófono enviado a Marte', 'Su error enseñó a revisar mejor los programas: Phoenix usó su diseño y aterrizó bien'] },
+  schia: { name: 'Schiaparelli', sub: 'ExoMars 2016 · ESA y Roscosmos · módulo de demostración', build: buildSchia, view: { ty: .7, cam: [3.6, 2.3, -3.8], drv: [12, 8, -17], back: 6, up: 2.6, max: 40 }, lander: true, noSim: true, crash: true, speedLabel: 'Estado', edlTitle: 'La llegada', mass: '577 kg', size: '2,4 m con el escudo · 1,7 m la plataforma', speed: 'se estrelló el 19 de octubre de 2016',
+    act: { title: 'Creyó que estaba bajo el suelo', text: 'Reconstrucción del informe de la ESA: un sensor de giro se satura un instante, la computadora calcula una altura negativa y corta el paracaídas y los motores a 3,7 km.',
+      steps: ['Baja en paracaídas', 'Un sensor de giro se satura un instante y la computadora calcula mal su posición', 'Cree estar bajo el suelo: suelta el paracaídas y enciende los motores solo 3 s', 'Cae libre desde 3,7 km', 'Choca a unos 540 km/h; el orbitador MRO fotografió la mancha'] },
+    launch: [['Despegue', '14 de marzo de 2016, con el orbitador TGO'], ['Cohete', 'Protón‑M con etapa Briz‑M'], ['Plataforma', 'Baikonur (hoy Kazajistán)'], ['Separación', '16 de octubre de 2016'], ['Llegada', '19 de octubre de 2016'], ['Lugar', 'Meridiani Planum, cerca de donde trabajó Opportunity'], ['Estado', 'se estrelló; el orbitador TGO sigue funcionando']],
+    edl: [['Entrada', 'escudo de 2,4 m; seis minutos de bajada'], ['Paracaídas', 'se abre unos 3 minutos después de entrar'], ['El error', 'el sensor de giro se satura un instante y la navegación queda mal'], ['Corte', 'suelta paracaídas y cubierta, y enciende 3 s en vez de 30'], ['Suelo', 'caída libre desde unos 3,7 km; impacto a unos 540 km/h']],
+    firsts: ['Primera prueba europea de aterrizaje en Marte', 'Mandó datos durante casi toda la bajada: por eso se supo qué falló', 'Lo aprendido se usó para el rover europeo Rosalind Franklin'] },
 };
 export const ROVER_IDS = Object.keys(ROVERS);
 
@@ -733,7 +968,7 @@ export function abrirRover(id, onClose) {
   const root = document.createElement('div'); root.className = 'rv'; root.innerHTML = `
     <canvas class="rv-gl" aria-label="Rover en 3D: arrastra para girar, rueda para acercar"></canvas>
     <header class="rv-top"><div><div class="rv-sub">${R.sub}</div><h2>${R.name}</h2></div>
-      <nav class="rv-tabs" role="tablist"><button data-m="modelo" aria-pressed="true">Modelo</button><button data-m="piezas">Piezas</button><button data-m="recorrido">${R.lander ? 'En acción' : 'Recorrido'}</button><button data-m="lanzamiento">Lanzamiento y llegada</button></nav>
+      <nav class="rv-tabs" role="tablist"><button data-m="modelo" aria-pressed="true">Modelo</button><button data-m="piezas">Piezas</button><button data-m="recorrido">${R.crash ? 'Qué pasó' : R.lander ? 'En acción' : 'Recorrido'}</button><button data-m="lanzamiento">Lanzamiento y llegada</button></nav>
       <button class="rv-close" aria-label="Cerrar">✕</button></header>
     <aside class="rv-side"></aside>
     <div class="rv-labels"></div>
@@ -763,7 +998,7 @@ export function abrirRover(id, onClose) {
   function selectPart(p) { selected = p; renderSide(); tags.forEach((t, i) => t.classList.toggle('sel', parts[i] === p));
     parts.forEach(q => q.obj.traverse(o => { if (!o.isMesh) return; if (o.userData.m0) { o.material = o.userData.m0; o.userData.m0 = null; } if (q === p) { o.userData.m0 = o.material; o.material = o.material.clone(); o.material.emissive = new THREE.Color(0x2f6cff); o.material.emissiveIntensity = .35; } })); }
   function renderSide() {
-    if (mode === 'modelo') side.innerHTML = `<div class="kv"><span>Masa</span><b>${R.mass}</b><span>Tamaño</span><b>${R.size}</b><span>${R.speedLabel || 'Velocidad'}</span><b>${R.speed}</b></div><p>Arrastra para girarlo y acércate con la rueda o pellizcando. En <b>Piezas</b> se separa en sus partes; ${R.lander ? 'en <b>En acción</b> lo ves trabajar con su brazo' : 'en <b>Recorrido</b> lo ves andar'}.</p><ul class="rv-firsts">${R.firsts.map(f => `<li>${f}</li>`).join('')}</ul>`;
+    if (mode === 'modelo') side.innerHTML = `<div class="kv"><span>Masa</span><b>${R.mass}</b><span>Tamaño</span><b>${R.size}</b><span>${R.speedLabel || 'Velocidad'}</span><b>${R.speed}</b></div><p>Arrastra para girarlo y acércate con la rueda o pellizcando. En <b>Piezas</b> se separa en sus partes; ${R.crash ? 'en <b>Qué pasó</b> ves la reconstrucción de su llegada' : R.lander ? 'en <b>En acción</b> lo ves trabajar con su brazo' : 'en <b>Recorrido</b> lo ves andar'}.</p><ul class="rv-firsts">${R.firsts.map(f => `<li>${f}</li>`).join('')}</ul>`;
     if (mode === 'piezas') side.innerHTML = (selected ? `<h3>${selected.name}</h3><p>${selected.info}</p>` : `<h3>Despiece</h3><p>Mueve el control de abajo para separar las piezas y toca el nombre de cada una para saber qué hace.</p>`) + `<div class="rv-list">${parts.map(p => `<button data-p="${p.id}" ${selected === p ? 'aria-pressed="true"' : ''}>${p.name}</button>`).join('')}</div>`;
     if (mode === 'recorrido' && R.lander) side.innerHTML = `<h3>${R.act.title}</h3><p>${R.act.text}</p>${R.seismo ? '<canvas id="rv-seis" width="560" height="150" aria-label="Sismograma en vivo"></canvas>' : ''}${R.scan ? '<canvas id="rv-scan" width="320" height="200" aria-label="La foto de la cámara, línea por línea"></canvas>' : ''}<div class="kv" id="rv-actkv"></div><ol class="rv-steps">${R.act.steps.map((s, i) => `<li data-step="${i}">${s}</li>`).join('')}</ol>`;
     else if (mode === 'recorrido') side.innerHTML = `<h3>Conduciendo</h3><p>El rover avanza a <b>${R.speed}</b>; aquí lo ves <b>6 veces más rápido</b>. Mira cómo cada rueda sigue el suelo y los balancines se inclinan: ninguna rueda se despega.</p><p>En la realidad recorre unos 100 m en un buen día: los conductores en la Tierra planean la ruta con las fotos del día anterior, y el rover la sigue solo, frenando si ve una piedra o una pendiente peligrosa.</p>${rover.spirit ? '<p><b>Spirit anda en reversa</b>: su rueda delantera derecha se trabó en 2006 y la arrastra. Mira el surco claro que deja: así destapó la sílice de aguas termales.</p>' : id === 'merb' ? '<p>Las bolitas grises del suelo son los «arándanos» de hematita que encontró Opportunity en Meridiani: se formaron dentro de rocas empapadas en agua y quedaron sueltas cuando el viento gastó la roca.</p>' : ''}<div class="kv"><span>Distancia</span><b id="rv-dist">0 m</b><span>Tiempo real equivalente</span><b id="rv-time">0 min</b></div>${R.driveNote ? `<p>${R.driveNote}</p>` : ''}${rover.group.userData.ing ? '<p>Ingenuity vuela alrededor: en Marte voló hasta 24 m de alto y 700 m de distancia en un solo vuelo.</p>' : ''}`;
@@ -830,7 +1065,7 @@ export function abrirRover(id, onClose) {
       x.strokeStyle = '#7ee0a1'; x.lineWidth = 2; x.beginPath(); for (let k = 0; k < n; k++) { const v = a[(i + k) % n], y = Hh / 2 - Math.max(-1, Math.min(1, v)) * Hh * .45; k ? x.lineTo(k / (n - 1) * W, y) : x.moveTo(0, y); } x.stroke();
       x.fillStyle = 'rgba(255,255,255,.6)'; x.font = '20px system-ui'; x.fillText('SEIS · sismograma', 10, 24); }
     const sc = r.scan && side.querySelector('#rv-scan'); if (sc) drawScan(sc, r.scan);
-    const tgt = tmpV.set(0, TY * .75, -.9); ctl.target.lerp(tgt, .08);
+    const tgt = tmpV.set(0, r.look ?? TY * .75, r.look != null ? 0 : -.9); ctl.target.lerp(tgt, .08);
   }
   // cámara de barrido del Viking: se saca la imagen desde la cabeza de la cámara y se revela una columna a la vez, como llegaba en 1976
   const SW = 320, SH = 200, scanRT = new THREE.WebGLRenderTarget(SW, SH), scanCam = new THREE.PerspectiveCamera(46, SW / SH, .03, 300), scanBuf = new Uint8Array(SW * SH * 4); let scanImg = null, scanCycle = -1;
@@ -841,9 +1076,11 @@ export function abrirRover(id, onClose) {
       renderer.setRenderTarget(scanRT); renderer.render(scene, scanCam); renderer.readRenderTargetPixels(scanRT, 0, 0, SW, SH, scanBuf); renderer.setRenderTarget(null);
       scanImg = x.createImageData(SW, SH); for (let j = 0; j < SH; j++) for (let i = 0; i < SW; i++) { const a = ((SH - 1 - j) * SW + i) * 4, b = (j * SW + i) * 4, gr = Math.min(255, (scanBuf[a] * .3 + scanBuf[a + 1] * .59 + scanBuf[a + 2] * .11) * 1.15 + (Math.random() - .5) * 14); scanImg.data[b] = scanImg.data[b + 1] = scanImg.data[b + 2] = gr; scanImg.data[b + 3] = 255; }
       x.fillStyle = '#000'; x.fillRect(0, 0, SW, SH); }
+    if (s.noise && !scanImg.noised) { scanImg.noised = true; const dd = scanImg.data; for (let i = 0; i < dd.length; i += 4) { const v = dd[i] * (1 - s.noise) + (118 + (Math.random() - .5) * 40) * s.noise; dd[i] = dd[i + 1] = dd[i + 2] = v; } }
     const c = Math.max(0, Math.min(SW, Math.floor(s.f * SW))); x.putImageData(scanImg, 0, 0, 0, 0, c, SH); x.fillStyle = '#000'; x.fillRect(c, 0, SW - c, SH);
-    if (c < SW) { x.fillStyle = 'rgba(255,255,255,.8)'; x.fillRect(c, 0, 2, SH); }
-    x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(0, SH - 18, SW, 18); x.fillStyle = '#ddd'; x.font = '12px monospace'; x.fillText(c < SW ? `Cámara 2 · línea ${c} de ${SW}` : 'Cámara 2 · foto completa', 6, SH - 5);
+    if (c < SW && !s.lost) { x.fillStyle = 'rgba(255,255,255,.8)'; x.fillRect(c, 0, 2, SH); }
+    if (s.lost) { x.fillStyle = '#ff7a6b'; x.font = 'bold 18px system-ui'; x.fillText('SEÑAL PERDIDA', SW / 2 - 62, SH / 2); }
+    x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(0, SH - 18, SW, 18); x.fillStyle = '#ddd'; x.font = '12px monospace'; x.fillText(s.noise ? `Telefotómetro · ${Math.round(c / SW * 318)} líneas` : c < SW ? `Cámara 2 · línea ${c} de ${SW}` : 'Cámara 2 · foto completa', 6, SH - 5);
   }
   // --- bucle ---
   let last = performance.now();
