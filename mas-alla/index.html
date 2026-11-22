@@ -202,7 +202,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new THREE.Scene(); scene.background = new THREE.Color('#020309');
 const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 6000);
 const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 0.3; controls.maxDistance = 1800; controls.zoomSpeed = 1.2;
+controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 0.004; controls.maxDistance = 1800; controls.zoomSpeed = 1.2;
 let pxScale = 1;
 function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); pxScale = h*renderer.getPixelRatio()/(2*Math.tan(camera.fov*DEG/2)); for (const m of pointMats) m.uniforms.uScale.value = pxScale; }
 
@@ -242,13 +242,12 @@ const LAYERS = [
   { id:'satelites', n:2, c:'#7fd6ff', name:'Galaxias satélite', small:'14 galaxias enanas en su lugar real', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:400, el:14, az:150} },
   { id:'globulares', n:3, c:'#ffcf73', name:'Cúmulos globulares', small:'Los 157 del catálogo de Harris', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:105, el:26, az:200} },
   { id:'disco', n:4, c:'#8fb8ff', name:'Disco y brazos espirales', small:'Donde está casi todo lo que brilla', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:48, el:58, az:180} },
+  { id:'barra', n:5, c:'#ffc36b', name:'La barra y el bulbo', small:'Estrellas viejas en forma de X', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:15, el:16, az:215} },
+  { id:'centro', n:6, c:'#ffe7b0', name:'Sagitario A* y el centro', small:'El agujero negro de 4 millones de soles', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:0.6, el:32, az:200} },
+  { id:'burbujas', n:7, c:'#ff7fd8', name:'Burbujas gigantes', small:'Fermi, eROSITA y MeerKAT', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:60, el:6, az:200} },
+  { id:'vecindario', n:8, c:'#8fd8ff', name:'Nuestro vecindario', small:'Burbuja Local, Onda de Radcliffe… y el Sol', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:2.4, el:38, az:200}, tgt:SUN },
 ];
-const SOON = [
-  ['La barra y el bulbo central','Estrellas viejas en forma de cacahuate'],
-  ['Sagitario A* y el centro','El agujero negro de 4 millones de soles'],
-  ['Las burbujas de Fermi','Dos burbujas gigantes sobre y bajo el disco'],
-  ['Nuestro vecindario','Burbuja Local, Onda de Radcliffe… y el Sol'],
-];
+
 const L = Object.fromEntries(LAYERS.map(l => [l.id, l]));
 
 /* etiquetas HTML ancladas a puntos 3D */
@@ -414,16 +413,12 @@ const D = L.disco;
     { const [x, y] = armXY(armR(a, a.lab), a.lab), p = gc(x, y, 0);
       a.pos = p; label(a.name, p, D, {cls:'big', color:a.col, min:4, max:140, pri:3}); pick({kind:'arm', name:a.name, pos:p, layer:D, ref:a}); }
   }
-  // barra (≈ 5 kpc de largo, a 27° de la línea Sol‑centro) y bulbo: solo como luz de fondo; su capa llega en la próxima tanda
-  const ba = 27*DEG, ux = -Math.cos(ba), uy = Math.sin(ba);
-  for (let i=0;i<11000;i++){ const a = gauss()*1.6, b = gauss()*0.5, w = 0.28 + 0.1*rnd(); push(a*ux + b*uy, a*uy - b*ux, gauss()*0.33, [w, w*0.78, w*0.5], 0.09); }
-  for (let i=0;i<7000;i++){ const r = Math.abs(gauss())*0.8, s = sphere(), w = 0.32 + 0.1*rnd(); push(r*s[0], r*s[2], r*s[1]*0.75, [w, w*0.8, w*0.52], 0.09); }
   D.mats.push(points(pos, col, siz, {min:1, max:7}).material);
   // el Sol, su órbita y el sentido de giro
   D.mats.push(points([SUN.x, SUN.y, SUN.z], [1.4, 1.15, 0.6], [0.12], {min:6, max:16}).material);
   const orb = polyline(circle(R0, ZSUN), lineMat('#ffd36a', .38, true)); D.lines.push(orb.material);
   label('Sol · tú estás aquí', SUN, D, {cls:'sun', min:0, max:400, pri:5});
-  label('Centro galáctico', new THREE.Vector3(0, 0, 0), D, {color:'#ffdca0', min:1, max:140, pri:2});
+  label('Centro galáctico', new THREE.Vector3(0, 0, 0), D, {color:'#ffdca0', min:3, max:140, pri:2});
   pick({kind:'sun', name:'El Sol', pos:SUN, layer:D});
   for (const r of [5,10,15]){ const l = polyline(circle(r), lineMat('#2a3150', .5)); D.lines.push(l.material); label(ly(r), new THREE.Vector3(0, 0, -r), D, {cls:'ring', min:8, max:90, pri:0}); }
   // flechas del giro (en el sentido de las agujas del reloj visto desde el norte galáctico)
@@ -434,12 +429,130 @@ const D = L.disco;
     const ln = polyline(pts, lineMat('#5d6a96', .45)); D.lines.push(ln.material); }
 }
 
-/* ---------- videos (verificados con oEmbed) ---------- */
+/* ===== 5. Barra y bulbo (Wegg y Gerhard 2013; Wegg, Gerhard y Portail 2015) ===== */
+const BA = 27*DEG, BUX = -Math.cos(BA), BUY = Math.sin(BA);        // eje de la barra: el extremo cercano apunta hacia l > 0
+const B = L.barra;
+{
+  const pos = [], col = [], siz = [];
+  const push = (a, b, z, c, s) => { const v = gc(a*BUX + b*BUY, a*BUY - b*BUX, z); pos.push(v.x, v.y, v.z); col.push(c[0], c[1], c[2]); siz.push(s); };
+  // bulbo en forma de X («cacahuate»): las estrellas se apartan del plano cuanto más lejos están del centro, en las dos puntas
+  for (let i=0;i<14000;i++){ const a = gauss()*0.95; if (Math.abs(a) > 2.3) continue;
+    const xs = rnd() < .55, z = xs ? (rnd() < .5 ? 1 : -1)*(0.42*Math.abs(a) + gauss()*0.12) : gauss()*0.3, w = 0.3 + 0.1*rnd();
+    push(a, gauss()*0.45, z, [w, w*0.78, w*0.5], 0.08); }
+  // barra larga y delgada hasta ≈ 5 kpc
+  for (let i=0;i<9000;i++){ const a = (rnd()*2 - 1)*5.0; if (rnd() > 1 - Math.abs(a)/6.2) continue; const w = 0.24 + 0.1*rnd();
+    push(a, gauss()*0.33, gauss()*0.16, [w, w*0.8, w*0.55], 0.08); }
+  // núcleo del bulbo
+  for (let i=0;i<5000;i++){ const r = Math.abs(gauss())*0.55, s = sphere(), w = 0.34 + 0.1*rnd(); push(r*s[0], r*s[2], r*s[1]*0.7, [w, w*0.82, w*0.55], 0.08); }
+  B.mats.push(points(pos, col, siz, {min:1, max:7}).material);
+  // brazos de 3 kpc cercano y lejano: anillo elíptico alrededor de la barra (forma aproximada, Dame y Thaddeus 2008)
+  const near = [], far = [];
+  for (let i=0;i<=200;i++){ const t = i/200*2*Math.PI, a = 4.2*Math.cos(t), b = 3.0*Math.sin(t), v = gc(a*BUX + b*BUY, a*BUY - b*BUX, 0.004);
+    (b > 0 ? near : far).push(v); }
+  const ln1 = polyline(near, lineMat('#ff9e7a', .7)), ln2 = polyline(far, lineMat('#ff9e7a', .45, true)); B.lines.push(ln1.material, ln2.material);
+  const pN = gc(0*BUX + 3.0*BUY, 0*BUY - 3.0*BUX, 0), pF = gc(-3.0*BUY, 3.0*BUX, 0), tip = gc(4.8*BUX, 4.8*BUY, 0);
+  label('Brazo de 3 kpc cercano', pN, B, {color:'#ffb39a', min:2, max:60, pri:2}); label('Brazo de 3 kpc lejano', pF, B, {color:'#ffb39a', min:2, max:60, pri:2});
+  label('Barra larga', tip, B, {cls:'big', color:'#ffcf8a', min:2, max:90, pri:3});
+  label('Bulbo en forma de X', new THREE.Vector3(0, 1.1, 0), B, {cls:'big', color:'#ffcf8a', min:1.5, max:60, pri:3});
+  pick({kind:'info', name:'La barra larga', pos:tip, layer:B, ref:'barra'});
+  pick({kind:'info', name:'El brazo de 3 kpc cercano', pos:pN, layer:B, ref:'b3c'}); pick({kind:'info', name:'El brazo de 3 kpc lejano', pos:pF, layer:B, ref:'b3l'});
+}
+
+/* ===== 6. El centro: Sagitario A*, el cúmulo estelar nuclear y la zona molecular central ===== */
+const C = L.centro, PC = 0.001;                                     // 1 parsec en kpc
+{
+  const pos = [], col = [], siz = [];
+  const pushG = (x, y, z, c, s) => { const v = gc(x, y, z); pos.push(v.x, v.y, v.z); col.push(c[0], c[1], c[2]); siz.push(s); };
+  // disco estelar nuclear: ≈ 200 pc de radio, muy plano (Launhardt y colaboradores 2002)
+  for (let i=0;i<6000;i++){ const R = -90*PC*Math.log(rnd()*rnd() + 1e-9); if (R > 230*PC) continue; const t = 2*Math.PI*rnd(), w = 0.22 + 0.1*rnd();
+    pushG(R*Math.cos(t), R*Math.sin(t), gauss()*40*PC, [w, w*0.82, w*0.6], 3*PC); }
+  // cúmulo estelar nuclear: ≈ 25 millones de soles, radio efectivo ≈ 4 pc
+  for (let i=0;i<2500;i++){ const r = Math.abs(gauss())*4.5*PC, s = sphere(), w = 0.4 + 0.15*rnd(); pushG(r*s[0], r*s[2], r*s[1]*0.8, [w, w*0.9, w*0.75], 0.5*PC); }
+  // zona molecular central: anillo torcido de ≈ 100 × 60 pc (Molinari y colaboradores 2011) y gas alrededor
+  for (let i=0;i<4500;i++){ const t = 2*Math.PI*rnd(), w = 0.3 + 0.2*rnd();
+    pushG(60*PC*Math.cos(t) + gauss()*5*PC, 100*PC*Math.sin(t) + gauss()*6*PC, 15*PC*Math.sin(2*t) + gauss()*3*PC, [w, w*0.32, w*0.38], 2.5*PC); }
+  for (let i=0;i<3500;i++){ const yl = (-140 + rnd()*350)*PC, w = 0.18 + 0.12*rnd(); pushG(gauss()*60*PC, yl, gauss()*12*PC, [w, w*0.3, w*0.36], 3*PC); }
+  C.mats.push(points(pos, col, siz, {min:1, max:9}).material);
+  C.mats.push(points([0, 0, 0], [1.6, 1.5, 1.3], [1*PC], {min:7, max:14}).material);
+  const ring = []; for (let i=0;i<=200;i++){ const t = i/200*2*Math.PI; ring.push(gc(60*PC*Math.cos(t), 100*PC*Math.sin(t), 15*PC*Math.sin(2*t))); }
+  C.lines.push(polyline(ring, lineMat('#ff7a9a', .35, false)).material);
+  const at = (l, b) => gc(0, R0*Math.sin(l*DEG), R0*Math.sin(b*DEG));
+  label('Sagitario A*', new THREE.Vector3(), C, {cls:'big', color:'#fff1c8', min:0, max:2.5, pri:5});
+  label('Sagitario B2', at(0.67, -0.03), C, {color:'#ffa3b8', min:0.05, max:2.5, pri:3});
+  label('Sagitario C', at(-0.57, -0.09), C, {color:'#ffa3b8', min:0.05, max:2.5, pri:2});
+  label('Zona molecular central', gc(0, -0.13, 0.05), C, {color:'#ff8aa6', min:0.1, max:2.5, pri:2});
+  label('Disco estelar nuclear', gc(0, 0.2, -0.05), C, {color:'#e8d3ad', min:0.15, max:2.5, pri:1});
+  pick({kind:'info', name:'Sagitario A*', pos:new THREE.Vector3(), layer:C, ref:'sgra'});
+  pick({kind:'info', name:'Sagitario B2', pos:at(0.67, -0.03), layer:C, ref:'sgrb2'});
+  pick({kind:'info', name:'Zona molecular central', pos:gc(0, -0.13, 0.05), layer:C, ref:'cmz'});
+}
+
+/* ===== 7. Burbujas: Fermi (rayos gamma), eROSITA (rayos X) y MeerKAT (radio) ===== */
+const U = L.burbujas;
+function bubble(cy, rx, ry, col, op){
+  const m = new THREE.ShaderMaterial({ transparent:true, depthWrite:false, side:THREE.DoubleSide, blending:THREE.AdditiveBlending,
+    uniforms:{ uFade:{value:0}, uCol:{value:new THREE.Color(col)}, uOp:{value:op} },
+    vertexShader:`varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }`,
+    fragmentShader:`uniform float uFade, uOp; uniform vec3 uCol; varying vec3 vN; varying vec3 vV;
+      void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); float a = (pow(f, 3.5)*0.42 + 0.012)*uOp*uFade; gl_FragColor = vec4(uCol*a, 1.0); }` });
+  for (const s of [1, -1]){ const g = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 40), m); g.scale.set(rx, ry, rx); g.position.set(0, s*cy, 0); g.frustumCulled = false; scene.add(g); }
+  m.userData.big = cy > 1; U.mats.push(m);
+}
+bubble(4.7, 3.6, 4.7, '#ff5fd2', 1.0);          // Fermi: ≈ 9–10 kpc sobre y bajo el plano (Su, Slatyer y Finkbeiner 2010)
+bubble(7.0, 6.0, 7.0, '#53d6ff', 0.55);         // eROSITA: ≈ 14 kpc (Predehl y colaboradores 2020)
+bubble(0.11, 0.07, 0.11, '#ffe08a', 0.7);       // MeerKAT: ≈ 430 pc en total (Heywood y colaboradores 2019)
+label('Burbujas de Fermi', new THREE.Vector3(0, 9.9, 0), U, {cls:'big', color:'#ff8fe0', min:12, max:400, pri:3});
+label('Burbujas de eROSITA', new THREE.Vector3(0, 14.6, 0), U, {cls:'big', color:'#8fe4ff', min:16, max:400, pri:3});
+label('Burbujas de MeerKAT', new THREE.Vector3(0, 0.25, 0), U, {color:'#ffe08a', min:0.2, max:6, pri:3});
+pick({kind:'info', name:'Burbujas de Fermi', pos:new THREE.Vector3(0, 9.4, 0), layer:U, ref:'fermi'});
+pick({kind:'info', name:'Burbujas de eROSITA', pos:new THREE.Vector3(0, 14, 0), layer:U, ref:'erosita'});
+pick({kind:'info', name:'Burbujas de MeerKAT', pos:new THREE.Vector3(0, 0.22, 0), layer:U, ref:'meerkat'});
+
+/* ===== 8. Nuestro vecindario: Burbuja Local, nubes y nebulosas cercanas, y el Sol ===== */
+const N = L.vecindario;
+{
+  // Burbuja Local: cavidad de ≈ 300 pc (1 000 años luz) de gas caliente y muy tenue; forma simplificada como esfera
+  const m = new THREE.ShaderMaterial({ transparent:true, depthWrite:false, side:THREE.DoubleSide, blending:THREE.AdditiveBlending,
+    uniforms:{ uFade:{value:0} },
+    vertexShader:`varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }`,
+    fragmentShader:`uniform float uFade; varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); gl_FragColor = vec4(vec3(0.35,0.75,1.0)*(pow(f, 2.5)*0.8 + 0.04)*uFade, 1.0); }` });
+  const sph_ = new THREE.Mesh(new THREE.SphereGeometry(0.15, 48, 32), m); sph_.scale.set(1, 0.8, 1.1); sph_.position.copy(SUN).add(new THREE.Vector3(0.02, 0, -0.01)); sph_.frustumCulled = false; scene.add(sph_);
+  N.mats.push(m);
+  label('Burbuja Local', SUN.clone().add(new THREE.Vector3(0, 0.15, 0)), N, {color:'#8fd8ff', min:0.15, max:5, pri:3});
+  pick({kind:'info', name:'La Burbuja Local', pos:SUN.clone().add(new THREE.Vector3(0, 0.13, 0)), layer:N, ref:'burbuja'});
+  // lugares con distancia medida (paralajes de Gaia y máseres)
+  const SPOTS = [
+    ['Nebulosa de Orión (M 42)', 209.01, -19.38, 0.414, 'Brazo Local', 'La guardería de estrellas más cercana con estrellas grandes. Se ve a simple vista en la espada de Orión.'],
+    ['Las Pléyades', 166.57, -23.52, 0.136, 'Brazo Local', 'Un cúmulo de estrellas jóvenes, de unos 100 millones de años. Desde Ecuador se ve muy bien en noviembre y diciembre.'],
+    ['Las Híades', 180.06, -22.34, 0.047, 'Brazo Local', 'El cúmulo de estrellas más cercano al Sol; forma la «V» de la cara de Tauro.'],
+    ['Nube de Rho Ophiuchi', 353.7, 17.7, 0.139, 'Brazo Local', 'Una de las regiones de formación de estrellas más cercanas: está justo en la pared de la Burbuja Local.'],
+    ['Betelgeuse', 199.79, -8.96, 0.168, 'Brazo Local', 'La supergigante roja de Orión. Cuando explote como supernova se verá de día, pero no hará daño a la Tierra.'],
+    ['Nebulosa de la Laguna (M 8)', 6.0, -1.2, 1.25, 'Brazo de Sagitario‑Carina', 'Una gran nube donde nacen estrellas, en el brazo que está entre nosotros y el centro.'],
+    ['Nebulosa del Águila (M 16)', 16.95, 0.79, 1.74, 'Brazo de Sagitario‑Carina', 'Aquí están los «Pilares de la Creación» que fotografiaron el Hubble y el James Webb.'],
+    ['Nebulosa de Carina', 287.6, -0.6, 2.35, 'Brazo de Sagitario‑Carina', 'Una de las nebulosas más grandes y brillantes del cielo del sur, con la estrella gigante Eta Carinae.'],
+    ['Cúmulo Doble de Perseo', 134.6, -3.7, 2.3, 'Brazo de Perseo', 'Dos cúmulos jóvenes lado a lado, en el brazo que está más afuera que el nuestro.'],
+  ];
+  const pos = [], col = [], siz = [];
+  for (const [nm, l, b, d, arm, fact] of SPOTS){ const p = helio(l, b, d); pos.push(p.x, p.y, p.z); col.push(0.9, 0.55, 0.75); siz.push(0.012);
+    label(nm, p, N, {color:'#ffc0dc', min:0.05, max:9, pri:2}); pick({kind:'spot', name:nm, pos:p, layer:N, ref:{l, b, d, arm, fact}}); }
+  N.mats.push(points(pos, col, siz, {min:5, max:12}).material);
+  // Onda de Radcliffe: trazo aproximado que une nubes con distancia medida (Alves y colaboradores 2020)
+  const nodes = [[224.5, -2.5, 1.1], [209.0, -19.4, 0.41], [159.6, -20.5, 0.29], [110.4, 2.6, 0.7], [85.0, -0.8, 0.8]].map(([l, b, d]) => helio(l, b, d));
+  const curve = new THREE.CatmullRomCurve3(nodes), wave = polyline(curve.getPoints(160), lineMat('#c79bff', .7, true)); N.lines.push(wave.material);
+  label('Onda de Radcliffe', nodes[3], N, {cls:'big', color:'#d8b8ff', min:0.3, max:9, pri:3});
+  pick({kind:'info', name:'La Onda de Radcliffe', pos:nodes[3], layer:N, ref:'radcliffe'});
+}
+
+/* ---------- videos ---------- */
 const VIDEOS = {
   halo:{ id:'gAkC8oJZWrk', ch:'Date un Voltio', t:'Nos adentramos en el lado oscuro del universo: la materia oscura', t0:0, t1:300 },
   nubes:{ id:'oWOXpPuaslU', ch:'Núcleo Milenio TITANs (Chile)', t:'Las Nubes de Magallanes: un tesoro del cielo austral', t0:0, t1:300 },
   globulares:{ id:'3FZccx2nq6I', ch:'Wolfgang Steffen (astrofísico, UNAM)', t:'Cúmulo globular', t0:0, t1:300 },
   disco:{ id:'oh_yZlKa2Kg', ch:'astrovlog', t:'La extraña forma de la Vía Láctea', t0:0, t1:300 },
+  barra:{ id:'7KG-bDGzjMM', ch:'YouTube', t:'¿Cómo sabemos el tamaño y forma de la Vía Láctea?', t0:0, t1:300 },
+  sgra:{ id:'7qdQSp8Htqc', ch:'Alex Riveiro', t:'Así es Sagitario A*, el agujero negro de la Vía Láctea', t0:0, t1:300 },
+  burbujas:{ id:'U_vMUTw1Jd8', ch:'YouTube', t:'¿Qué son las enormes burbujas del centro de nuestra galaxia?', t0:0, t1:300 },
+  vecindario:{ id:'KU42ofHcxW8', ch:'YouTube', t:'¿Qué es la Burbuja Local?', t0:0, t1:300 },
 };
 const CAN_EMBED = /^https?:$/.test(location.protocol) && !/claude|anthropic/i.test(location.hostname);
 let vReturn = null;
@@ -498,11 +611,91 @@ const CARDS = {
    <p>La última vez que el Sol estuvo en este mismo punto de su órbita, en la Tierra empezaban a extenderse los primeros dinosaurios.</p>
    <h4>¿Cómo se dibujan los brazos desde adentro?</h4>
    <p>Desde dentro no se ve la forma de la galaxia, igual que no se ve la forma de un bosque estando en medio de él. Los radiotelescopios VLBA (Estados Unidos) y VERA (Japón) midieron el <b>paralaje</b> —el pequeño vaivén aparente que causa la órbita de la Tierra— de unas 200 nubes donde nacen estrellas, algunas del otro lado del centro, a 66 000 años luz. Con esas distancias, Reid y colaboradores (2019) calcularon la forma de cada brazo. Lo que está detrás del centro casi no se ha podido medir: por eso es punteado.</p>
-   <div class="note">Brazos: modelo de Reid et al. (2019). Las estrellas siguen un disco exponencial de 2,6 kpc; son una distribución modelo, no posiciones reales. La luz del centro (barra y bulbo) tendrá su propia capa en la siguiente tanda.</div>
+   <div class="note">Brazos: modelo de Reid et al. (2019). Las estrellas siguen un disco exponencial de 2,6 kpc; son una distribución modelo, no posiciones reales. La barra y el bulbo del centro son la capa 5.</div>
    ${vbtn('disco','La Vía Láctea')}
    <div class="navrow"><button class="chip" type="button" data-go="sun">Ir al Sol</button></div>
    ${src([['Reid et al. 2019','https://arxiv.org/abs/1910.03357'],['Sanna et al. 2017 (del otro lado)','https://arxiv.org/abs/1710.06489'],['Bland‑Hawthorn y Gerhard 2016','https://arxiv.org/abs/1602.07702']])}`,
+ barra:() => `<p class="lead">En el centro de la galaxia, las estrellas no forman un disco sino una <b>barra</b>: un óvalo alargado. Su parte gruesa, el bulbo, mide unos 13 000 años luz de punta a punta, y sigue como una barra delgada hasta unos 33 000. Gira entera, como una sola pieza, y con su gravedad empuja el gas que forma los brazos.</p>
+   <p>Vista de canto, la parte gruesa tiene forma de <b>X</b> o de cacahuate: sus estrellas suben y bajan del plano en órbitas que se fueron inflando con el tiempo. Pulsa «De canto» para verlo.</p>
+   ${kv({'Largo de la barra':'≈ 10 kpc de punta a punta · '+ly(10), 'Ángulo con la línea Sol‑centro':'≈ 27°', 'Una vuelta de la barra':'≈ 160 millones de años', 'Edad de sus estrellas':'casi todas de más de 8 000 millones de años', 'Masa en estrellas':'≈ 20 000 millones de soles'})}
+   <h4>¿Cómo se descubrió la X?</h4>
+   <p>En 2010, dos equipos notaron que hacia el centro había dos grupos de estrellas gigantes iguales, pero a dos distancias distintas: unas en el brazo cercano de la X y otras en el lejano. Luego el satélite infrarrojo WISE la fotografió directamente (2016), porque la luz infrarroja atraviesa el polvo.</p>
+   <p>Los dos <b>brazos de 3 kpc</b> rodean la barra. Se mueven hacia afuera: el cercano viene hacia nosotros a unos 53 km/s y el lejano se aleja a unos 56 km/s.</p>
+   <div class="note">Cómo está dibujado: la forma sigue los modelos de Wegg y Gerhard (2013) y de Wegg, Gerhard y Portail (2015), pero los puntos son ilustrativos. Los brazos de 3 kpc tienen forma aproximada.</div>
+   ${vbtn('barra','La forma de la galaxia')}
+   ${src([['Wegg y Gerhard 2013','https://arxiv.org/abs/1308.0593'],['Wegg, Gerhard y Portail 2015','https://arxiv.org/abs/1504.01401'],['Dame y Thaddeus 2008 (brazos de 3 kpc)','https://arxiv.org/abs/0807.1752']])}`,
+ centro:() => `<p class="lead">En el centro exacto de la Vía Láctea hay un <b>agujero negro supermasivo</b>, Sagitario A*, de unos 4 millones de veces la masa del Sol. A su alrededor se aprietan unos 25 millones de soles en estrellas en una bola de apenas unos 30 años luz: el <b>cúmulo estelar nuclear</b>.</p>
+   ${kv({'Masa de Sagitario A*':'≈ 4,3 millones de soles', 'Distancia al Sol':'8,2 kpc · ≈ 26 700 años luz', 'Tamaño de su sombra':'≈ 0,4 UA de diámetro (cabría dentro de la órbita de Mercurio)', 'Primera imagen':'Telescopio Horizonte de Sucesos, 2022', 'Premio Nobel':'Física 2020: Genzel y Ghez'})}
+   <h4>La estrella S2: el reloj del agujero negro</h4>
+   <p>No podemos ver el agujero negro, pero sí las estrellas que giran a su alrededor. La más famosa, S2, da una vuelta cada 16 años. Al pasar más cerca llega a unos 7 700 km/s, el 2,6 % de la velocidad de la luz. Así se pesó el agujero negro, y en 2018 se comprobó con ella la relatividad de Einstein.</p>
+   <svg id="s2" viewBox="-130 -150 260 215" style="width:100%;height:auto;display:block;margin:6px 0;border:1px solid var(--line);border-radius:8px;background:#05060d" role="img" aria-label="Órbita de la estrella S2 alrededor de Sagitario A*, vista en el cielo"></svg>
+   <p class="src" id="s2-txt"></p>
+   <h4>Alrededor del cúmulo</h4>
+   <ul><li>La <b>zona molecular central</b>: el gas más denso de la galaxia, en un anillo torcido de unos 100 × 60 pc. Concentra muchísimo gas frío y denso, materia prima para nuevas estrellas.</li>
+   <li><b>Sagitario B2</b>, una nube gigante. Allí se encontró formiato de etilo, la molécula que da sabor a las frambuesas.</li>
+   <li>El <b>disco estelar nuclear</b>, un disquito plano de estrellas de unos 200 pc de radio.</li></ul>
+   <div class="note">El cúmulo, el disco nuclear y el gas tienen sus tamaños medidos; los puntos son ilustrativos. Acércate con la rueda o pellizcando: aquí 1 cuadrito de pantalla son pocos años luz.</div>
+   ${vbtn('sgra','Sagitario A*')}
+   ${src([['GRAVITY 2020 (órbita de S2)','https://arxiv.org/abs/2004.07187'],['EHT 2022 (imagen)','https://iopscience.iop.org/article/10.3847/2041-8213/ac6674'],['Molinari et al. 2011 (anillo de 100 pc)','https://arxiv.org/abs/1105.5486']])}`,
+ burbujas:() => `<p class="lead">Encima y debajo del centro de la galaxia hay <b>burbujas gigantes</b> de gas muy caliente, invisibles a nuestros ojos. Se descubrieron con telescopios de luz que no vemos: rayos gamma, rayos X y ondas de radio. Son la huella de explosiones de energía que salieron del centro.</p>
+   <div class="legend"><span><i class="dot" style="--c:#ff5fd2"></i><b>Burbujas de Fermi</b> (rayos gamma, 2010): ≈ 9 kpc hacia cada lado</span>
+     <span><i class="dot" style="--c:#53d6ff"></i><b>Burbujas de eROSITA</b> (rayos X, 2020): ≈ 14 kpc hacia cada lado</span>
+     <span><i class="dot" style="--c:#ffe08a"></i><b>Burbujas de MeerKAT</b> (radio, 2019): ≈ 430 pc en total</span></div>
+   ${kv({'Fermi: alto total':'≈ 18 kpc · '+ly(18), 'eROSITA: alto total':'≈ 28 kpc · '+ly(28), 'Edad estimada':'de unos pocos a unos 10 millones de años', 'Energía (eROSITA)':'como unas 100 000 supernovas juntas'})}
+   <h4>¿Qué las infló?</h4>
+   <p>Todavía se discute. Una idea es que Sagitario A* se «tragó» mucho gas hace unos millones de años y lanzó chorros de energía; otra, que hubo una época de muchísimas supernovas en el centro. Las tres burbujas, de tamaños muy distintos, podrían ser ecos de varios episodios.</p>
+   <p>Pulsa «De canto» para ver bien cómo salen del centro hacia arriba y hacia abajo.</p>
+   <div class="note">Forma simplificada: las burbujas reales no son perfectamente simétricas (la de eROSITA del norte es más brillante y está mejor medida). Los tamaños son los publicados.</div>
+   ${vbtn('burbujas','Burbujas del centro')}
+   ${src([['Su, Slatyer y Finkbeiner 2010 (Fermi)','https://arxiv.org/abs/1005.5480'],['Predehl et al. 2020 (eROSITA)','https://arxiv.org/abs/2012.05840'],['Heywood et al. 2019 (MeerKAT)','https://arxiv.org/abs/1909.05534']])}`,
+ vecindario:() => `<p class="lead">De vuelta a casa. El Sol está dentro de la <b>Burbuja Local</b>: una cavidad de gas caliente y muy tenue de unos 1 000 años luz, abierta por unas 15 supernovas que explotaron a partir de hace unos 14 millones de años. El gas que empujaron se amontonó en sus paredes, y allí nacieron casi todas las estrellas jóvenes cercanas.</p>
+   ${kv({'Burbuja Local':'≈ 300 pc · '+ly(0.3), 'Onda de Radcliffe':'≈ 2,7 kpc de largo · '+ly(2.7), 'Alto de la onda':'≈ 160 pc arriba y abajo del plano', 'Estrella más cercana':'Próxima Centauri, a 4,2 años luz'})}
+   <h4>La Onda de Radcliffe</h4>
+   <p>En 2020, midiendo con Gaia las distancias de las nubes de gas cercanas, se descubrió que Orión, Perseo, Cefeo y otras forman una sola ola gigante que sube y baja del plano de la galaxia. En 2024 se vio que además oscila, como una ola que avanza.</p>
+   <h4>Toca los puntos rosados</h4>
+   <p>Son nebulosas y cúmulos famosos en su distancia medida. Fíjate en qué brazo cae cada uno: la Nebulosa de Orión y las Pléyades en el nuestro, la del Águila en el de Sagitario, el Cúmulo Doble en Perseo.</p>
+   <h4>Y aquí empieza el sistema solar</h4>
+   <p>A esta escala, todo el sistema solar —hasta el borde de la nube de Oort, a 1,5 años luz— es más pequeño que el punto del Sol. La heliosfera, la burbuja del viento solar, mide unas 120 veces la distancia Tierra‑Sol.</p>
+   <a class="chip pri golink" href="../">Volver al sistema solar →</a>
+   <div class="note">La Burbuja Local se dibuja como una esfera simplificada; la real es irregular. La Onda de Radcliffe es un trazo aproximado que une nubes con distancia medida.</div>
+   ${vbtn('vecindario','Burbuja Local')}
+   ${src([['Zucker et al. 2022 (Burbuja Local)','https://arxiv.org/abs/2201.05124'],['Alves et al. 2020 (Onda de Radcliffe)','https://arxiv.org/abs/2001.08748']])}`,
 };
+
+const INFO = {
+ barra:'La barra larga y delgada llega hasta unos 5 kpc del centro hacia cada lado. Es como el eje de una rueda: gira entera, una vuelta cada ≈ 160 millones de años, y su gravedad ordena el gas que forma los brazos.',
+ b3c:'El brazo de 3 kpc cercano está entre nosotros y el centro, rodeando la barra. Su gas se acerca hacia nosotros a unos 53 km/s: no gira como el resto, sino que también se expande.',
+ b3l:'El brazo de 3 kpc lejano, al otro lado del centro. Fue descubierto en 2008 por Dame y Thaddeus; su gas se aleja a unos 56 km/s, como un espejo del brazo cercano.',
+ sgra:'El agujero negro supermasivo del centro de la galaxia: unos 4,3 millones de soles en un espacio más pequeño que la órbita de Mercurio. Hoy está casi «dormido»: traga muy poco gas.',
+ sgrb2:'Una de las nubes de gas más grandes de la galaxia, a unos 100 pc del centro. Allí nacen muchísimas estrellas y se han encontrado decenas de moléculas, entre ellas la del sabor de las frambuesas.',
+ cmz:'La zona molecular central tiene el gas más denso de la Vía Láctea, en un anillo torcido de unos 100 × 60 pc. Aun así forma menos estrellas de las que se esperaría: es uno de los misterios del centro.',
+ fermi:'Descubiertas en 2010 con el telescopio de rayos gamma Fermi de la NASA. Cada una sube unos 9 a 10 kpc sobre el plano y tiene bordes muy marcados, como si se hubieran inflado de golpe.',
+ erosita:'Descubiertas en 2020 por el telescopio de rayos X eROSITA. Son todavía más grandes que las de Fermi y las envuelven: unos 14 kpc hacia cada lado.',
+ meerkat:'Descubiertas en 2019 con el radiotelescopio MeerKAT de Sudáfrica: dos burbujas pequeñas, de unos 430 pc en total, justo encima y debajo de Sagitario A*. Son las más jóvenes, de pocos millones de años.',
+ burbuja:'La cavidad donde vive el Sol: gas a un millón de grados pero tan tenue que hay unos pocos átomos por litro. Ahora mismo el Sol cruza una nubecita más fría dentro de ella, la Nube Interestelar Local.',
+ radcliffe:'Una cadena de nubes de gas de unos 9 000 años luz de largo que sube y baja del plano como una ola. Contiene muchas de las nubes donde nacen estrellas cercanas, como la de Orión. El trazo une nubes con distancias medidas.',
+};
+// órbita de S2 en el cielo: elementos de GRAVITY (2020); a en segundos de arco, ángulos en grados, tiempos en años
+function drawS2(){
+  const svg = document.getElementById('s2'); if (!svg) return;
+  const a = 0.12506, e = 0.884649, inc = 134.567*DEG, om = 66.263*DEG, Om = 228.171*DEG, P = 16.0455, tp = 2018.379, S = 480;   // 1" = 480 px
+  const sky = (t) => { let M = 2*Math.PI*(t - tp)/P; M = Math.atan2(Math.sin(M), Math.cos(M)); let E = M; for (let k=0;k<30;k++) E -= (E - e*Math.sin(E) - M)/(1 - e*Math.cos(E));
+    const nu = 2*Math.atan2(Math.sqrt(1 + e)*Math.sin(E/2), Math.sqrt(1 - e)*Math.cos(E/2)), r = a*(1 - e*Math.cos(E)), u = om + nu;
+    const dN = r*(Math.cos(Om)*Math.cos(u) - Math.sin(Om)*Math.sin(u)*Math.cos(inc)), dE = r*(Math.sin(Om)*Math.cos(u) + Math.cos(Om)*Math.sin(u)*Math.cos(inc));
+    return [-dE*S, -dN*S]; };
+  let d = ''; for (let i=0;i<=400;i++){ const [x, y] = sky(tp + P*i/400); d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); }
+  const now = new Date(), yr = now.getFullYear() + (now - new Date(now.getFullYear(), 0, 1))/(365.25*864e5), [hx, hy] = sky(yr), [px, py] = sky(tp);
+  const marks = '';
+  svg.innerHTML = `<path d="${d}" fill="none" stroke="#8fb8ff" stroke-width="1.4" stroke-dasharray="3 3"/>${marks}
+    <circle cx="0" cy="0" r="4" fill="#000" stroke="#ffd36a" stroke-width="2"/><text x="8" y="-6" fill="#ffd36a" font-size="11">Sgr A*</text>
+    <text x="-120" y="${py + 28}" fill="#9aa0b5" font-size="10">Paso más cercano a Sgr A*: 2018 y 2034</text>
+    <circle id="s2dot" r="4" fill="#fff"/><circle cx="${hx}" cy="${hy}" r="6" fill="none" stroke="#7ee2a8" stroke-width="1.6"/><text x="${hx + 9}" y="${hy + 4}" fill="#7ee2a8" font-size="11">S2 hoy</text>
+    <text x="-122" y="-136" fill="#646b82" font-size="10">N ↑  · E ←</text><line x1="60" y1="108" x2="${60 + 0.1*S}" y2="108" stroke="#9aa0b5"/><text x="60" y="102" fill="#9aa0b5" font-size="10">≈ 820 UA</text>`;
+  document.getElementById('s2-txt').textContent = `Posición calculada para hoy (${yr.toFixed(2).replace('.', ',')}). El punto blanco recorre la órbita completa de 16 años en 16 segundos. Elementos orbitales: colaboración GRAVITY (2020).`;
+  const dot = document.getElementById('s2dot'), t0 = performance.now();
+  (function anim(){ if (!document.getElementById('s2')) return; const [x, y] = sky(tp + ((performance.now() - t0)/1000) % P); dot.setAttribute('cx', x.toFixed(1)); dot.setAttribute('cy', y.toFixed(1)); requestAnimationFrame(anim); })();
+}
+
 const ARM_TXT = {
  perseo:'Uno de los dos brazos principales. Pasa unos 2 kpc (6 500 años luz) más afuera que el Sol; lo vemos en el cielo hacia Perseo y Casiopea. Allí está el famoso Cúmulo Doble de Perseo.',
  escudo:'El otro brazo principal: nace en un extremo de la barra central y está lleno de regiones donde se forman estrellas. Del otro lado de la galaxia reaparece muy lejos, como el «brazo Escudo‑Centauro Exterior».',
@@ -516,7 +709,7 @@ function showLayerCard(l){
   cardState = {layer:l};
   $('card').style.setProperty('--c', l.c);
   $('c-kick').textContent = `Capa ${l.n} de 8 · de afuera hacia adentro`; $('c-title').textContent = l.name;
-  $('c-body').innerHTML = CARDS[l.id](); $('c-body').scrollTop = 0; $('card').classList.remove('min');
+  $('c-body').innerHTML = CARDS[l.id](); $('c-body').scrollTop = 0; $('card').classList.remove('min'); if (l.id === 'centro') drawS2();
 }
 function showObjCard(o){
   cardState = {obj:o};
@@ -532,10 +725,13 @@ function showObjCard(o){
       <p class="src">Datos: catálogo de Harris (2010).</p>`; }
   else if (o.kind === 'arm'){ const a = o.ref; k = 'Brazo espiral';
     h = `<p class="lead">${ARM_TXT[a.id]}</p>${kv({'Ángulo de enrollamiento':`${fmt(Math.abs(a.p1),1)}°${a.p1 !== a.p2 ? ' y '+fmt(Math.abs(a.p2),1)+'°' : ''}`, 'Ancho medido':kpcs(a.w)+' · '+ly(a.w), 'Tramo medido (azimut)':`${a.bmin}° a ${a.bmax}°`})}<p class="src">Modelo: Reid et al. (2019).</p>`; }
+  else if (o.kind === 'info'){ k = o.layer.name; h = `<p class="lead">${INFO[o.ref]}</p>` + (o.ref === 'sgra' ? `<svg id="s2" viewBox="-130 -150 260 215" style="width:100%;height:auto;display:block;margin:6px 0;border:1px solid var(--line);border-radius:8px;background:#05060d"></svg><p class="src" id="s2-txt"></p>` + vbtn('sgra','Sagitario A*') : '') + kv({'Distancia al Sol':kpcs(o.pos.distanceTo(SUN))+' · '+ly(o.pos.distanceTo(SUN))}); }
+  else if (o.kind === 'spot'){ const s = o.ref; k = 'Vecindario · ' + s.arm;
+    h = `<p class="lead">${s.fact}</p>${kv({'Distancia al Sol':kpcs(s.d)+' · '+ly(s.d), 'Brazo':s.arm, 'Posición (l, b)':`${fmt(s.l,1)}°, ${fmt(s.b,1)}°`})}`; }
   else if (o.kind === 'sun'){ k = 'Nuestra estrella';
     h = `<p class="lead">Una estrella común, en un brazo pequeño, a medio camino entre el centro y el borde del disco. Desde aquí, todo lo demás de esta página se mide desde adentro.</p>${kv({'Distancia al centro':'8,15 kpc · '+ly(8.15), 'Altura sobre el plano':'≈ 21 pc · 68 años luz', 'Velocidad alrededor del centro':'236 km/s', 'Una vuelta':'≈ 212 millones de años', 'Vueltas desde que nació':'≈ 20'})}
       <a class="chip pri golink" href="../">Volver al sistema solar →</a>`; }
-  $('c-kick').textContent = k; $('c-title').textContent = o.name; $('c-body').innerHTML = h + back; $('c-body').scrollTop = 0;
+  $('c-kick').textContent = k; $('c-title').textContent = o.name; $('c-body').innerHTML = h + back; $('c-body').scrollTop = 0; if (o.ref === 'sgra') drawS2();
 }
 $('c-body').addEventListener('click', e => {
   const v = e.target.closest('[data-vid]'); if (v) return openVideo(v.dataset.vid, v.dataset.kind);
@@ -546,7 +742,7 @@ $('c-min').onclick = () => $('card').classList.toggle('min');
 
 /* ---------- lista de capas ---------- */
 $('laylist').innerHTML = LAYERS.map(l => `<div class="lay" data-id="${l.id}" style="--c:${l.c}"><span class="n">${l.n}</span><span><b>${l.name}</b><small>${l.small}</small></span><input type="checkbox" aria-label="Mostrar ${l.name}"></div>`).join('')
-  + `<div class="sep">Próxima tanda</div>` + SOON.map(([t, s], i) => `<div class="lay soon"><span class="n">${i + 5}</span><span><b>${t}</b><small>${s}</small></span><span class="tag">pronto</span></div>`).join('');
+  + `<div class="sep">Después</div><div class="lay soon"><span class="n">→</span><span><b>Más allá de la Vía Láctea</b><small>El Grupo Local: Andrómeda y sus vecinas</small></span><span class="tag">pronto</span></div>`;
 const rowOf = id => document.querySelector(`.lay[data-id="${id}"]`);
 function setOn(l, on){ l.on = on; rowOf(l.id).querySelector('input').checked = on; }
 $('laylist').addEventListener('click', e => {
@@ -554,7 +750,7 @@ $('laylist').addEventListener('click', e => {
   if (e.target.matches('input')){ setOn(l, e.target.checked); return; }
   stopTour(); setOn(l, true); focusLayer(l);
 });
-function focusLayer(l){ document.querySelectorAll('.lay').forEach(r => r.classList.toggle('on', r.dataset.id === l.id)); showLayerCard(l); fly(l.cam, new THREE.Vector3()); }
+function focusLayer(l){ document.querySelectorAll('.lay').forEach(r => r.classList.toggle('on', r.dataset.id === l.id)); showLayerCard(l); fly(l.cam, l.tgt || new THREE.Vector3()); }
 
 /* ---------- cámara ---------- */
 let flight = null;
@@ -595,7 +791,6 @@ function tourStep(){
 function stopTour(finished){
   if (!tour) return; tour = null; $('tourbar').hidden = true;
   for (const l of LAYERS) setOn(l, true);
-  if (finished) fly({r:120, el:30, az:200}, new THREE.Vector3(), 3500);
 }
 $('b-tour').onclick = startTour; $('tb-next').onclick = tourStep; $('tb-stop').onclick = () => stopTour(false);
 controls.addEventListener('start', () => { flight = null; if (tour) tour.next = Infinity; });
@@ -652,9 +847,11 @@ function frame(now){
   requestAnimationFrame(frame);
   stepFlight(now); controls.update();
   if (tour && now > tour.next) tourStep();
-  const dist = camera.position.distanceTo(controls.target);
+  const dist = camera.position.distanceTo(controls.target), camO = camera.position.length();
+  const nr = Math.min(1, Math.max(2e-6, dist*0.002)); if (Math.abs(nr - camera.near)/camera.near > 0.2){ camera.near = nr; camera.updateProjectionMatrix(); }
   for (const l of LAYERS){ const tgt = l.on ? 1 : 0; l.fade += (tgt - l.fade)*0.045; if (Math.abs(tgt - l.fade) < .002) l.fade = tgt;
-    for (const m of l.mats) m.uniforms.uFade.value = l.fade;
+    const k = l.id === 'disco' ? THREE.MathUtils.smoothstep(camO, 0.5, 3) : l.id === 'barra' ? THREE.MathUtils.smoothstep(camO, 0.35, 2.2) : l.id === 'globulares' ? THREE.MathUtils.smoothstep(camO, 0.3, 1.5) : 1;
+    for (const m of l.mats) m.uniforms.uFade.value = l.fade*k*(m.userData.big ? THREE.MathUtils.smoothstep(camO, 1.5, 9)*THREE.MathUtils.smoothstep(dist, 4, 14) : 1);
     for (const m of l.lines) m.opacity = m.userData.base*l.fade; }
   // el halo se atenúa cuando la cámara está dentro de él, para no tapar el disco
   if (L.halo.haloMat) L.halo.haloMat.uniforms.uFade.value = L.halo.fade*THREE.MathUtils.smoothstep(dist, 60, 420);
