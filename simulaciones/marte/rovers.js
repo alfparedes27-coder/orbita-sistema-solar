@@ -994,6 +994,157 @@ function buildLuna9(hf) {
   return { group: g, parts, act, reset };
 }
 
+// ======================= Luna (tanda 2): traer rocas (Luna 16, Chang'e 5 y 6) y los nuevos (Chandrayaan‑3, SLIM, Odysseus) =======================
+// etapa de ascenso que despega: sube con su llama y se va
+function liftoff(kit, obj, home, t, t0, flameY = 0) { const u = Math.max(0, t - t0); obj.position.set(home.x, home.y + (u > 0 ? .5 * 1.8 * u * u : 0), home.z); obj.visible = u < 6; if (u > 0 && u < 6) { kit.flame.position.set(home.x, obj.position.y + flameY, home.z); kit.flames[0].visible = true; kit.flames[0].material.opacity = .85 * flick(t); } return u; }
+
+// Luna 16 (1970): taladro de 35 cm, 101 g de tierra y un cohete que la trajo a Kazajistán
+function buildLuna16(hf) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const base = new THREE.Group(); base.add(at(cyl(.75, .75, .5, Mt(0x8f969c, { metalness: .5 }), 8), 0, .95, 0));
+  for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.PI / 4; base.add(at(new THREE.Mesh(new THREE.SphereGeometry(.38, 18, 12), Mt(0xb8bcc0, { metalness: .6 })), Math.cos(a) * .75, .72, Math.sin(a) * .75)); base.add(rod(V3(Math.cos(a) * .5, .9, Math.sin(a) * .5), V3(Math.cos(a) * 1.5, gy(Math.cos(a) * 1.5, Math.sin(a) * 1.5) + .08, Math.sin(a) * 1.5), .04, M.alu)); base.add(at(cyl(.18, .2, .05, M.alu, 14), Math.cos(a) * 1.5, gy(Math.cos(a) * 1.5, Math.sin(a) * 1.5) + .03, Math.sin(a) * 1.5)); }
+  base.add(at(cyl(.2, .35, .35, M.dark, 14), 0, .55, 0));
+  part('base', 'Etapa de descenso', base, V3(0, -.4, 0), 'La parte de abajo: cuatro tanques esféricos, cuatro patas, el radar y los motores para alunizar. Después sirve de plataforma de lanzamiento para la etapa de arriba. Pesaba 1.880 kg al llegar.');
+  const asc = new THREE.Group(); asc.position.set(0, 1.2, 0); asc.add(at(cyl(.45, .45, .7, Mt(0xa8acb0, { metalness: .55 }), 20), 0, .35, 0)); asc.add(at(cyl(.15, .25, .2, M.dark, 12), 0, -.02, 0)); for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2; asc.add(at(new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), Mt(0xc0c4c8, { metalness: .6 })), Math.cos(a) * .42, .35, Math.sin(a) * .42)); }
+  asc.add(at(cyl(.08, .08, .3, M.alu, 8), 0, .85, 0)); const cap = at(new THREE.Mesh(new THREE.SphereGeometry(.25, 20, 14), Mt(0x7a6a58, { roughness: .7 })), 0, 1.15, 0); asc.add(cap); kit.addFlame(0, -.1, 0, 1.6);
+  part('ascenso', 'Cohete de regreso y cápsula', asc, V3(0, .8, 0), 'Un cohete pequeño con una pelota de 50 cm arriba: la cápsula. Despegó 26 horas después de alunizar, viajó 3 días directo hacia la Tierra sin entrar en órbita, y la cápsula cayó en paracaídas en Kazajistán el 24 de septiembre de 1970.');
+  const arm = new THREE.Group(); arm.position.set(.65, 1.15, -.2); const boom = new THREE.Group(); arm.add(boom); boom.add(rod(V3(0, 0, 0), V3(0, 0, -1.1), .03, M.alu)); boom.add(at(cyl(.06, .06, .3, M.dark, 12), 0, 0, -1.1)); const bit = at(cyl(.02, .02, .4, M.alu, 8), 0, -.25, -1.1); boom.add(bit);
+  part('taladro', 'Brazo con taladro', arm, V3(.6, .3, -.3), 'Un brazo que baja hasta el suelo, taladra 35 cm y saca un tubo con tierra. Después gira por encima del módulo y mete la muestra en la cápsula: todo sin una sola persona, por primera vez en la historia.');
+  const T = 34;
+  function act(time) {
+    const t = time % T; kit.reset(); let step;
+    const down = sm(1, 4, t) * (1 - sm(10, 13, t)), up = sm(10, 14, t);
+    boom.rotation.x = -down * 1.05 + up * 2.6; bit.rotation.y = t > 4 && t < 9.5 ? t * 30 : 0; bit.position.y = -.25 - (t > 4 && t < 9.5 ? sm(4, 9.5, t) * .2 : t >= 9.5 && t < 10 ? .2 : 0);
+    const u = liftoff(kit, asc, V3(0, 1.2, 0), t, 18, -.1);
+    step = t < 4 ? 0 : t < 10 ? 1 : t < 15 ? 2 : t < 18 ? 3 : 4;
+    return { step, look: Math.max(1.2, Math.min(18, asc.position.y * .9)), kv: [['Taladro', t < 4 ? '—' : t < 9.5 ? `${Math.round(sm(4, 9.5, t) * 35)} cm` : '35 cm (lo máximo: llegó a roca)'], ['Muestra', t < 14 ? '—' : '101 g en la cápsula'], ['Cohete de regreso', t < 18 ? 'esperando' : u < 6 ? '¡despegó! (21 sep 1970, 07:43 UTC)' : 'rumbo a la Tierra: 3 días'], ['La etapa de abajo', 'se queda para siempre en el Mar de la Fecundidad']] };
+  }
+  function reset() { kit.reset(); asc.position.set(0, 1.2, 0); asc.visible = true; boom.rotation.x = 0; bit.position.y = -.25; }
+  shadows(g); reset();
+  return { group: g, parts, act, reset };
+}
+
+// Chang'e 5 (2020) y Chang'e 6 (2024): pala, taladro, bandera y un cohete que lleva las muestras a un orbitador
+function buildChangE56(hf, n) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf), six = n === 6;
+  const body = new THREE.Group(); const oct = []; for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; oct.push([Math.cos(a) * 1.1, Math.sin(a) * 1.1]); }
+  body.add(flatShape(oct, M.gold, .9, .8)); body.add(flatShape(oct.map(p => [p[0] * 1.01, p[1] * 1.01]), M.alu, 1.7, .03)); body.add(at(cyl(.35, .55, .5, M.dark, 20), 0, .7, 0));
+  for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.PI / 4, c = Math.cos(a), s = Math.sin(a), fx = c * 2.0, fz = s * 2.0, f = V3(fx, gy(fx, fz) + .1, fz); body.add(rod(V3(c * .95, 1.4, s * .95), f, .055, M.alu)); body.add(at(cyl(.3, .32, .07, M.alu, 20), fx, f.y - .07, fz)); }
+  for (const s of [-1, 1]) { const w = new THREE.Group(); w.position.set(s * 1.1, 1.6, .2); w.rotation.z = s * -.2; w.add(flatShape([[0, -.6], [s * 1.5, -.6], [s * 1.5, .6], [0, .6]], M_CELLS, 0, .025)); body.add(w); }
+  part('modulo', 'Módulo de alunizaje', body, V3(0, -.4, 0), (six ? 'Aterrizó el 1 de junio de 2024 en la cuenca Apolo, en la cara oculta, dentro de la cuenca Polo Sur‑Aitken, el cráter más grande y viejo de la Luna. Llevaba instrumentos de Francia, Italia y Suecia, y un satélite pequeño de Pakistán.' : 'Aterrizó el 1 de diciembre de 2020 al este del Mons Rümker, sobre lavas jóvenes de solo unos 2.000 millones de años, mucho más nuevas que las del Apolo.') + ' Es el doble de grande que el Chang\'e 3 porque carga su propio cohete.');
+  const asc = new THREE.Group(); asc.position.set(-.1, 1.73, -.1); asc.add(at(cyl(.55, .6, .5, Mt(0xe6e2d6, { roughness: .5 }), 16), 0, .25, 0)); asc.add(at(cyl(.4, .55, .3, M.gold, 16), 0, .65, 0)); asc.add(at(cyl(.15, .15, .2, M.alu, 12), 0, .9, 0)); const cont = at(cyl(.12, .12, .14, Mt(0x5a5a60, { metalness: .7 }), 14), 0, 1.07, 0); asc.add(cont); kit.addFlame(0, 0, 0, 2);
+  part('ascenso', 'Cohete ascensor', asc, V3(0, .8, 0), 'El ascensor recibe el frasco con las muestras, despega desde la Luna y se acopla en órbita con el orbitador, que pasa el frasco a la cápsula de regreso. Fue el primer acoplamiento robótico en órbita lunar' + (six ? '; con Chang\'e 6, el primer despegue desde la cara oculta.' : '.'));
+  const arm = new THREE.Group(); arm.position.set(.9, 1.7, -.6); const a1 = new THREE.Group(); arm.add(a1); a1.add(rod(V3(0, 0, 0), V3(0, 0, -1.4), .04, M.alu)); const a2 = new THREE.Group(); a2.position.z = -1.4; a1.add(a2); a2.add(rod(V3(0, 0, 0), V3(0, 0, -1.2), .035, M.alu)); a2.add(at(box(.18, .14, .16, M.aluDark), 0, -.05, -1.25));
+  part('brazo', 'Brazo con pala', arm, V3(.6, .3, -.6), 'Un brazo de 3,6 m con dos palas en la punta: toma tierra en varios lugares alrededor del módulo y la mete en el frasco del ascensor. Las cámaras en la Tierra miraban cada palada.');
+  const drill = new THREE.Group(); drill.position.set(-.95, .9, -.6); drill.add(at(box(.2, 1.0, .2, M.white), 0, .1, 0)); const bit = at(cyl(.025, .025, .9, M.alu, 8), 0, -.3, 0); drill.add(bit);
+  part('taladro', 'Taladro', drill, V3(-.6, -.2, -.4), six ? 'Taladra unos 2 m y envuelve el tubo de tierra en una bolsa, para guardar las capas en orden. En total trajo 1.935 g: las primeras rocas de la cara oculta.' : 'Debía taladrar 2 m, pero encontró roca dura y llegó a 1 m. En total trajo 1.731 g: las primeras rocas lunares en 44 años.');
+  const flag = new THREE.Group(); flag.position.set(.3, 1.73, .75); const fpole = at(cyl(.012, .012, .6, M.alu, 6), 0, .3, 0); flag.add(fpole); const cloth = at(box(.5, .33, .01, Mt(0xd62828, { roughness: .7 })), .25, .5, 0); flag.add(cloth); for (const [x, y] of [[.1, .58]]) flag.add(at(box(.07, .07, .012, Mt(0xffd400)), x, y, 0));
+  part('bandera', 'Bandera', flag, V3(0, .4, .4), six ? 'Una bandera hecha de fibra de basalto, una roca volcánica hilada, para que aguante la radiación del Sol en la Luna.' : 'La primera bandera de tela desplegada por China en la Luna: un brazo la sacó como un cartel. Las banderas del Apolo, en cambio, ya están blancas por el Sol.');
+  let rover = null; if (six) { rover = new THREE.Group(); rover.add(at(box(.25, .12, .2, M.white), 0, .1, 0)); for (const [x, z] of [[-.13, -.08], [.13, -.08], [-.13, .08], [.13, .08]]) rover.add(at(cyl(.04, .04, .03, M.dark, 10), x, .04, z, 0, 0, Math.PI / 2)); rover.add(at(cyl(.02, .02, .02, M.lens, 8), 0, .12, -.11, Math.PI / 2)); rover.position.set(1.0, 1.73, .4); g.add(rover); }
+  const T = 40, PTS = [[1.3, -2.2], [.2, -2.6], [2.0, -1.4]];
+  function act(time) {
+    const t = time % T; kit.reset(); let step;
+    const scoopPh = Math.floor(Math.min(2.99, Math.max(0, (t - 1) / 4))), sp = ((t - 1) / 4) % 1, inScoop = t > 1 && t < 13;
+    const reach = inScoop ? Math.sin(sp * Math.PI) : sm(13, 14, t) * (1 - sm(15.5, 16.5, t)) * .5; a1.rotation.y = inScoop ? .4 - scoopPh * .5 : -.2; a1.rotation.x = -reach * .55 + (t > 13 && t < 16.5 ? .6 : 0); a2.rotation.x = -reach * .9;
+    bit.position.y = -.3 - sm(17, 22, t) * (1 - sm(23, 24, t)) * .8; bit.rotation.y = t > 17 && t < 22 ? t * 25 : 0;
+    flag.rotation.y = 0; cloth.scale.x = Math.max(.02, sm(24, 26, t)); cloth.position.x = .25 * cloth.scale.x; flag.visible = t > 23.5;
+    if (rover) { const d = sm(26, 28, t), w = sm(28, 30, t); rover.visible = t > 26 && t < 38; rover.position.set(1.0 + d * .6 + w * 1.4, 1.73 * (1 - d) + gy(2.5, 1.6) * d, .4 + d * .6 + w * 1.6); rover.rotation.y = -w * 2.4; }
+    const u = liftoff(kit, asc, V3(-.1, 1.73, -.1), t, six ? 31 : 28, 0);
+    step = t < 13 ? 0 : t < 17 ? 1 : t < 24 ? 2 : t < (six ? 31 : 28) ? 3 : 4;
+    return { step, look: Math.max(1.5, Math.min(18, asc.position.y * .9)), scan: six && t > 29.5 && t < 31 + .1 ? { f: Math.min(1, (t - 29.5) / 1.5), cycle: Math.floor(time / T), pos: V3(rover.position.x, rover.position.y + .15, rover.position.z), look: V3(0, 1.4, 0) } : null,
+      kv: [['Pala', t < 13 ? `palada ${scoopPh + 1} de varias` : 'terminado'], ['Taladro', t < 17 ? '—' : `${(sm(17, 22, t) * (six ? 2 : 1)).toFixed(1).replace('.', ',')} m`], ['Muestras', `${six ? '1.935' : '1.731'} g en total`], ['Ascensor', u > 0 ? (u < 6 ? '¡despegó!' : 'en órbita, buscando al orbitador') : 'cargando el frasco']] };
+  }
+  function reset() { kit.reset(); asc.position.set(-.1, 1.73, -.1); asc.visible = true; a1.rotation.set(-.2, 0, 0); a2.rotation.set(0, 0, 0); cloth.scale.x = 1; cloth.position.x = .25; flag.visible = true; bit.position.y = -.3; if (rover) { rover.position.set(1.0, 1.73, .4); rover.rotation.y = 0; rover.visible = true; } }
+  shadows(g); reset();
+  return { group: g, parts, act, reset };
+}
+
+// Chandrayaan‑3 (2023): el módulo Vikram y el rover Pragyan, cerca del polo sur; al final Vikram da un saltito de 40 cm
+function buildVikram(hf) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const body = new THREE.Group(); body.add(at(box(1.6, 1.0, 1.6, M.gold, .04), 0, 1.05, 0)); body.add(at(box(1.62, .05, 1.62, M.alu), 0, 1.57, 0));
+  for (let k = 0; k < 4; k++) { const x = k % 2 ? .55 : -.55, z = k > 1 ? .55 : -.55; body.add(at(cyl(.08, .14, .22, M.dark, 12), x, .45, z)); kit.addFlame(x, .34, z, 1.1); }
+  body.add(at(box(1.4, .02, 1.0, M.solar), 0, 1.25, .82, Math.PI / 2 - .2)); body.add(at(cyl(.15, .15, .3, M.white, 12), .5, 1.75, .4)); body.add(at(box(.2, .15, .2, M.dark), -.5, 1.68, .45));
+  part('vikram', 'Módulo Vikram', body, V3(0, .4, 0), 'Vikram (1.726 kg) se llama así por Vikram Sarabhai, padre del programa espacial de la India. Tiene cuatro motores de 800 N y un panel solar en un costado. El 23 de agosto de 2023 fue el primero en alunizar cerca del polo sur, en un lugar que la India llamó «Punto Shiv Shakti».');
+  const legs = new THREE.Group(); for (let k = 0; k < 4; k++) { const x = k % 2 ? 1 : -1, z = k > 1 ? 1 : -1, fx = x * 1.4, fz = z * 1.4, f = V3(fx, gy(fx, fz) + .08, fz); legs.add(rod(V3(x * .78, .9, z * .78), f, .05, M.alu)); legs.add(at(cyl(.2, .22, .06, M.alu, 16), fx, f.y - .05, fz)); }
+  part('patas', 'Patas reforzadas', legs, V3(0, -.3, 0), 'Las patas se reforzaron después del choque del Chandrayaan‑2 en 2019, para aguantar llegar a 3 m/s y de lado.');
+  const sci = new THREE.Group(); const ch = new THREE.Group(); ch.position.set(-.55, 1.0, -.82); ch.add(rod(V3(0, 0, 0), V3(-.3, -.5, -.3), .02, M.alu)); const probe = at(cyl(.015, .015, .2, M.alu, 8), -.3, -.6, -.3); ch.add(probe); sci.add(ch); sci.add(at(box(.15, .1, .15, M.white), .6, .55, -.82));
+  part('ciencia', 'ChaSTE, ILSA y RAMBHA', sci, V3(0, .2, -.5), 'ChaSTE clavó un termómetro con 10 sensores en el suelo, 10 cm adentro: arriba el suelo estaba a 70 °C y apenas 8 cm abajo, a −10 °C. ILSA, un sismómetro, sintió un posible temblor lunar, y RAMBHA midió el gas cargado sobre el suelo.');
+  const ramp = new THREE.Group(); ramp.position.set(0, .7, -.82); const rplate = at(box(.75, .03, 1.2, M.alu), 0, 0, -.6); ramp.add(rplate); part('rampa', 'Rampa', ramp, V3(0, .2, -.6), 'Una rampa de dos piezas que baja del costado del módulo para que salga el rover.');
+  const pr = new THREE.Group(); pr.add(at(box(.6, .25, .55, M.gold, .02), 0, .28, 0)); pr.add(at(box(.75, .02, .62, M.solar), 0, .45, .12, .5)); pr.add(rod(V3(0, .4, -.2), V3(0, .6, -.25), .015, M.alu)); pr.add(at(box(.2, .06, .06, M.white), 0, .62, -.25));
+  const pW = []; for (const [x, z] of [[-.36, -.25], [-.36, 0], [-.36, .25], [.36, -.25], [.36, 0], [.36, .25]]) { const w = at(cyl(.08, .08, .06, Mt(0x9aa0a6, { metalness: .6 }), 16), x, .08, z, 0, 0, Math.PI / 2); pr.add(w); pW.push(w); }
+  pr.position.set(0, .72, -.55); g.add(pr);
+  part('pragyan', 'Rover Pragyan', pr, V3(0, .3, -1), 'Pragyan («sabiduría» en sánscrito) pesa 26 kg y tiene seis ruedas. Recorrió 101 m en 10 días. Sus ruedas traseras dejaban estampados en el polvo el emblema de la agencia espacial india y el de los leones de Ashoka. Con su láser (LIBS) confirmó por primera vez azufre en el suelo, cerca del polo sur.');
+  const prints = new THREE.InstancedMesh(new THREE.BoxGeometry(.06, .005, .12), Mt(0x55534f, { roughness: 1 }), 120), pm = new THREE.Matrix4(); prints.count = 0; prints.castShadow = false; g.add(prints);
+  const T = 40, VH = V3(0, 0, 0);
+  function act(time) {
+    const t = time % T; kit.reset(); let step;
+    ramp.rotation.x = sm(1, 3, t) * .5; const out = sm(4, 9, t), drv = sm(9, 22, t);
+    const rz = -.55 - out * 1.5 - drv * 2.2, rx = drv * 1.2 * Math.sin(drv * 2), ry = out < 1 ? .72 * (1 - out) + gy(0, -2) * out : gy(rx, rz);
+    pr.position.set(rx, ry + (out > 0 && out < 1 ? -out * (1 - out) * .2 : 0), rz); pr.rotation.set(out > 0 && out < 1 ? -.45 : 0, drv > 0 ? Math.sin(drv * 2) * .4 : 0, 0); pW.forEach(w => w.rotation.x = -rz * 10);
+    const nP = Math.floor(drv * 60); prints.count = nP * 2; for (let i = 0; i < nP; i++) { const d = i / 60, z = -2.05 - d * 2.2, x = d * 1.2 * Math.sin(d * 2); for (const s of [-1, 1]) { pm.compose(V3(x + s * .36, gy(x, z) + .004, z), new THREE.Quaternion(), V3(1, 1, 1)); prints.setMatrixAt(i * 2 + (s > 0 ? 1 : 0), pm); } } prints.instanceMatrix.needsUpdate = true;
+    const hop = t > 26 && t < 30 ? Math.sin((t - 26) / 4 * Math.PI) : 0, side = sm(26, 30, t) * .5; inner.position.set(side, hop * .4, 0); kit.flame.position.copy(inner.position); kit.flames.forEach(f => { f.visible = hop > 0; f.material.opacity = .75 * flick(t); });
+    probe.position.y = -.6 - sm(22, 24, t) * .15;
+    step = t < 4 ? 0 : t < 9 ? 1 : t < 22 ? 2 : t < 26 ? 3 : t < 31 ? 4 : 5;
+    return { step, kv: [['Pragyan', t < 9 ? 'saliendo' : `${Math.round(drv * 101)} m recorridos`], ['LIBS', t < 14 ? '—' : 'azufre, aluminio, calcio, hierro, titanio…'], ['ChaSTE', t < 24 ? '—' : '70 °C arriba, −10 °C a 8 cm'], ['Vikram', t < 26 ? 'quieto' : t < 30 ? '¡salta! 40 cm arriba y 50 cm de lado' : 'durmiendo: no despertó tras la noche']] };
+  }
+  function reset() { kit.reset(); inner.position.set(0, 0, 0); ramp.rotation.x = 0; pr.position.set(0, .72, -.55); pr.rotation.set(0, 0, 0); prints.count = 0; probe.position.y = -.6; }
+  shadows(g); prints.castShadow = false; reset();
+  return { group: g, parts, act, reset };
+}
+
+// SLIM (Japón, 2024): alunizó a menos de 100 m del objetivo… de cabeza, porque perdió una tobera
+function buildSLIM(hf) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const body = new THREE.Group(); body.add(at(box(1.5, 1.7, 1.2, M.gold, .04), 0, 1.25, 0)); body.add(at(cyl(.38, .38, 1.6, Mt(0xc8ccd0, { metalness: .6 }), 18), -.45, 1.25, 0, 0, 0, 0)); body.add(at(cyl(.38, .38, 1.6, Mt(0xc8ccd0, { metalness: .6 }), 18), .45, 1.25, 0));
+  body.add(at(box(1.52, .02, 1.0, M.solar), 0, 1.6, .62, Math.PI / 2)); const nozzles = []; for (const s of [-1, 1]) { const nz = at(cyl(.08, .16, .3, M.dark, 14), s * .45, .3, 0); body.add(nz); nozzles.push(nz); kit.addFlame(s * .45, .18, 0, 1.3); }
+  part('cuerpo', 'Cuerpo y tanques', body, V3(0, .3, 0), 'SLIM («Smart Lander for Investigating Moon») pesaba solo 120 kg sin combustible. Su objetivo era alunizar a menos de 100 m de un punto elegido, en vez de los kilómetros de margen de otras naves: «aterrizar donde queremos, no donde podemos». Lo logró: quedó a unos 55 m.');
+  const legs = new THREE.Group(); for (const [x, z, l] of [[-.6, -.5, 1], [.6, -.5, 1], [-.6, .5, 1], [.6, .5, 1], [0, -.65, .7]]) { legs.add(rod(V3(x * .9, .6, z * .9), V3(x * 1.3, .05, z * 1.4), .03, M.alu)); legs.add(at(box(.22, .1, .22, Mt(0xb0b4b8, { metalness: .4, roughness: .7 })), x * 1.3, .05, z * 1.4)); }
+  part('patas', 'Patas de panal impreso', legs, V3(0, -.3, 0), 'Las patas tienen pies de aluminio en forma de panal, hechos con impresora 3D, que se aplastan para absorber el golpe. Estaba diseñado para posarse inclinado en una ladera: primero una pata y luego caer suave sobre las demás.');
+  const lev1 = new THREE.Group(); lev1.add(at(cyl(.1, .1, .14, M.alu, 14), 0, .07, 0)); lev1.add(at(cyl(.01, .01, .2, M.white, 6), 0, .2, 0)); lev1.position.set(.78, 1.0, .3); g.add(lev1);
+  const sora = new THREE.Group(), sh1 = at(new THREE.Mesh(new THREE.SphereGeometry(.04, 14, 10, 0, Math.PI), Mt(0xd8d0c0, { metalness: .4 })), 0, .04, 0, 0, Math.PI / 2), sh2 = at(new THREE.Mesh(new THREE.SphereGeometry(.04, 14, 10, 0, Math.PI), Mt(0xd8d0c0, { metalness: .4 })), 0, .04, 0, 0, -Math.PI / 2); sora.add(sh1, sh2, at(cyl(.008, .008, .02, M.lens, 8), 0, .04, -.04, Math.PI / 2)); sora.position.set(.78, 1.0, -.3); g.add(sora);
+  const levInfo = ('Justo antes de tocar el suelo soltó dos robots. LEV‑1 avanza dando saltitos y hablaba directo con la Tierra. SORA‑Q es una pelota de 250 g, del tamaño de una de béisbol, hecha con la empresa de juguetes Tomy: se abre en dos ruedas y anda como una tortuga. Fue SORA‑Q quien sacó la foto de SLIM de cabeza.');  // (va en la ficha)
+  const T = 34;
+  function act(time) {
+    const t = time % T; kit.reset(); let step;
+    const lost = t > 3, tip = sm(7.5, 9.5, t);
+    if (t < 8) { const y = 9 - t * 1.05; inner.position.set(0, Math.max(0, y), 0); inner.rotation.set(0, 0, lost ? Math.min(.5, (t - 3) * .12) : 0); kit.flame.position.copy(inner.position); kit.flame.rotation.copy(inner.rotation); kit.flames.forEach((f, i) => { f.visible = i === 0 ? true : !lost; f.material.opacity = .8 * flick(t); }); nozzles[1].visible = !lost; step = t < 3 ? 0 : 1; }
+    else { inner.position.set(-.4 * tip, .75 * tip, 0); inner.rotation.set(0, 0, .5 + tip * (Math.PI / 2 - .5) + tip * .0); nozzles[1].visible = false; step = 2; }
+    // los dos robots salen antes de tocar el suelo
+    const r = sm(7, 8, t); lev1.position.set(.78 + r * 1.6, Math.max(gy(2.4, .9), 1.0 * (1 - r)) + (t > 9 ? Math.abs(Math.sin(t * 2)) * .3 * (t < 15 ? 1 : 0) : 0), .3 + r * .6 + sm(9, 15, t) * 1.2);
+    const so = sm(10, 12, t); sora.position.set(.78 + r * 1.2 + sm(12, 18, t) * 1.4, gy(2.0, -1.4) + (1 - r) * 1.0, -.3 - r * 1.1 - sm(12, 18, t) * .8); sh1.rotation.y = Math.PI / 2 + so * .6; sh2.rotation.y = -Math.PI / 2 - so * .6;
+    lev1.visible = sora.visible = t > 6.5; if (t > 18) step = 3; if (t > 26) step = 4;
+    return { step, look: Math.max(1.2, inner.position.y * .9 + 1), scan: t > 18 && t < 26.5 ? { f: Math.min(1, (t - 18) / 7), cycle: Math.floor(time / T), pos: V3(sora.position.x, sora.position.y + .06, sora.position.z), look: V3(0, .7, 0) } : null,
+      kv: [['Toberas', lost ? '1 de 2: se cayó una a 50 m de altura' : '2 de 2'], ['Distancia al objetivo', t < 8 ? 'calculando…' : 'unos 55 m: ¡objetivo cumplido!'], ['Posición final', t < 9.5 ? '—' : 'de cabeza, con el panel mirando al oeste'], ['Energía', t < 9.5 ? '—' : 'solo cuando el Sol venga del oeste: despertó 3 veces']] };
+  }
+  function reset() { kit.reset(); inner.position.set(0, 0, 0); inner.rotation.set(0, 0, 0); nozzles[1].visible = true; lev1.position.set(.78, 1.0, .3); sora.position.set(.78, 1.0, -.3); lev1.visible = sora.visible = true; kit.flame.rotation.set(0, 0, 0); }
+  shadows(g); reset();
+  return { group: g, parts, act, reset };
+}
+
+// Odysseus (IM‑1, 2024): el primer módulo privado en alunizar; llegó rápido a una ladera, rompió una pata y quedó acostado
+function buildOdysseus(hf) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const body = new THREE.Group(); const hex = []; for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; hex.push([Math.cos(a) * .8, Math.sin(a) * .8]); }
+  body.add(flatShape(hex, Mt(0xe0ddd4, { roughness: .5 }), .9, 2.6)); for (let k = 0; k < 6; k++) { const a = (k + .5) / 6 * Math.PI * 2; body.add(at(box(.7, 1.6, .02, M.solar), Math.cos(a) * .7, 2.3, Math.sin(a) * .7, 0, -a + Math.PI / 2)); }
+  body.add(at(new THREE.Mesh(new THREE.SphereGeometry(.38, 18, 12), Mt(0xc8ccd0, { metalness: .6 })), 0, 2.0, 0)); body.add(at(cyl(.25, .45, .5, M.dark, 18), 0, .7, 0)); kit.addFlame(0, .45, 0, 2.6);
+  body.add(at(cyl(.12, .12, .5, M.alu, 10), .55, 1.2, .35, 0, 0, .3));
+  part('cuerpo', 'Cuerpo y motor de metano', body, V3(0, .3, 0), 'Un prisma de seis lados de unos 4 m de alto, con paneles solares en los costados. Su motor quemaba metano y oxígeno líquidos: la primera vez que ese combustible llevó algo a otro mundo. Lo construyó la empresa Intuitive Machines, de Houston, y la NASA pagó por llevar 6 instrumentos.');
+  const legs = new THREE.Group(), legM = []; for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + Math.PI / 6, c = Math.cos(a), s = Math.sin(a), fx = c * 1.5, fz = s * 1.5, f = V3(fx, .05, fz), L = new THREE.Group(); L.add(rod(V3(c * .75, 1.1, s * .75), f, .04, M.alu)); L.add(at(cyl(.15, .17, .05, M.alu, 14), fx, .03, fz)); legs.add(L); legM.push(L); }
+  part('patas', 'Seis patas', legs, V3(0, -.3, 0), 'Seis patas para aterrizar en laderas de hasta unos 10°. Odysseus bajó más rápido de lo previsto sobre una ladera de 12°, patinó, rompió una pata y se volcó: quedó apoyado unos 30° sobre un tanque.');
+  const eagle = at(box(.18, .18, .18, Mt(0xb83a2b)), .75, 1.4, -.45); part('eaglecam', 'EagleCam', eagle, V3(.5, 0, -.4), 'Un cubo de cámaras de la universidad Embry‑Riddle que debía saltar a 30 m de altura para fotografiar el alunizaje desde afuera. Por el cambio de último momento en los sensores quedó apagado; lo soltaron días después, pero no logró fotografiar al módulo.');
+  const T = 30;
+  function act(time) {
+    const t = time % T; kit.reset(); let step;
+    if (t < 7) { const y = 14 - t * 2.0; inner.position.set(t * .25 - 1.75, Math.max(0, y), 0); inner.rotation.set(0, 0, 0); kit.flame.position.copy(inner.position); kit.flames[0].visible = true; kit.flames[0].material.opacity = .85 * flick(t); legM[3].rotation.set(0, 0, 0); step = t < 3 ? 0 : 1; }
+    else { const u = sm(7, 9.5, t); inner.position.set(u * .5, u * .15, 0); inner.rotation.set(0, 0, -u * .52); legM[2].rotation.z = -u * .6; step = t < 10 ? 2 : t < 20 ? 3 : 4; }
+    return { step, look: Math.max(1.5, inner.position.y * .9 + 1.5), kv: [['Láser de altura', 'no funciona: no movieron un seguro antes del despegue'], ['Plan B', 'usar un láser experimental de la NASA que iba de pasajero'], ['Llegada', t < 7 ? 'bajando más rápido de lo previsto' : 'ladera de 12°: patina y se vuelca'], ['Inclinación', t < 7 ? '—' : `${Math.round(sm(7, 9.5, t) * 30)}°`]] };
+  }
+  function reset() { kit.reset(); inner.position.set(0, 0, 0); inner.rotation.set(0, 0, 0); legM.forEach(L => L.rotation.set(0, 0, 0)); }
+  shadows(g); reset();
+  return { group: g, parts, act, reset };
+}
+
 // ---------- fichas: lanzamiento, viaje, llegada (datos NASA/JPL) ----------
 const ROVERS = {
   m2020: { name: 'Perseverance', sub: 'Mars 2020 · NASA/JPL', build: () => buildMSL('perse'), mass: '1.025 kg', size: '3,0 m de largo · 2,7 m de ancho · 2,2 m de alto', speed: 'hasta 152 m/h (0,042 m/s)',
@@ -1117,6 +1268,36 @@ const ROVERS = {
     launch: [['Despegue', '31 de enero de 1966, 11:41 UTC'], ['Cohete', 'Molniya‑M'], ['Plataforma', 'Baikonur (hoy Kazajistán)'], ['Llegada', '3 de febrero de 1966, 18:45 UTC'], ['Lugar', 'Océano de las Tormentas (7,1° N, 64,4° O)'], ['Estado', 'última señal el 6 de febrero de 1966, 22:55 UTC']],
     edl: [['Radar', 'a 75 km enciende el retrocohete'], ['Frenado', 'el cohete frena hasta unos pocos metros'], ['Sensor', 'a 5 m un sensor suelta la pelota e infla las bolsas'], ['Suelo', 'rebota a más de 54 km/h dentro de las bolsas']],
     firsts: ['Primer alunizaje suave de la historia', 'Primeras fotos desde el suelo de otro mundo', 'Probó que el suelo lunar aguanta una nave: no era polvo blando'] },
+  luna16: { name: 'Luna 16', sub: 'Luna 16 · URSS · Ye‑8‑5', build: buildLuna16, lander: true, noSim: true, world: 'luna', earth: [100, 33], mass: '1.880 kg al llegar', size: 'unos 4 m de alto con el cohete de regreso', speed: 'no se mueve: taladra y despega', speedLabel: 'Movimiento', view: { ty: 1.2, cam: [6.5, 4, -7], drv: [8, 5, -11], back: 6, up: 2.6, max: 12 }, edlTitle: 'La llegada',
+    act: { title: 'Traer la Luna a casa', text: 'El primer robot que trajo tierra de la Luna: taladra, guarda la muestra en una cápsula y despega de regreso, todo solo.', steps: ['El brazo baja hasta el suelo', 'Taladra 35 cm', 'Sube la muestra y la mete en la cápsula', 'Cuenta regresiva: 26 horas en la Luna', '¡Despega! La cápsula llegará a Kazajistán'] },
+    launch: [['Despegue', '12 de septiembre de 1970, 13:25 UTC'], ['Cohete', 'Protón‑K con etapa Blok D'], ['Plataforma', 'Baikonur (hoy Kazajistán)'], ['Llegada', '20 de septiembre de 1970, 05:18 UTC'], ['Lugar', 'Mar de la Fecundidad (0,68° S, 56,3° E)'], ['Regreso', 'despegó el 21 de septiembre; la cápsula cayó en paracaídas el 24 de septiembre cerca de Dzhezkazgan'], ['Muestra', '101 g de tierra lunar']],
+    edl: [['Órbita', 'primero gira alrededor de la Luna y baja su órbita'], ['Motor', 'el motor principal frena la bajada'], ['Final', 'motores más pequeños la posan sobre sus cuatro patas']],
+    firsts: ['Primera muestra de la Luna traída por un robot', 'Primer despegue robótico desde otro mundo', 'Mostró que se podía explorar sin arriesgar personas'] },
+  ce5: { name: "Chang'e 5", sub: "Chang'e 5 · CNSA · misión de muestras", build: hf => buildChangE56(hf, 5), lander: true, noSim: true, world: 'luna', earth: [140, 40], mass: 'unos 8.200 kg al despegar (todo el conjunto)', size: 'unos 4,5 m de ancho con los paneles', speed: 'no se mueve: pala, taladro y cohete', speedLabel: 'Movimiento', view: { ty: 1.2, cam: [6.5, 4, -7], drv: [8, 5, -11], back: 6, up: 2.6, max: 12 }, edlTitle: 'El alunizaje',
+    act: { title: '1.731 gramos', text: 'Pala, taladro y bandera; después el ascensor despega y se acopla con el orbitador para traer las muestras a la Tierra.', steps: ['El brazo toma tierra con la pala', 'Lleva las muestras al frasco del ascensor', 'El taladro saca un tubo de 1 m', 'Se despliega la bandera', '¡El ascensor despega!'] },
+    launch: [['Despegue', '23 de noviembre de 2020, 20:30 UTC'], ['Cohete', 'Larga Marcha 5'], ['Plataforma', 'Wenchang, isla de Hainan (China)'], ['Llegada', '1 de diciembre de 2020'], ['Lugar', 'al este del Mons Rümker, Océano de las Tormentas (43,1° N, 51,9° O)'], ['Despegue lunar', '3 de diciembre de 2020'], ['Regreso', '16 de diciembre de 2020, en Mongolia Interior'], ['Muestra', '1.731 g']],
+    edl: [['Órbita', 'el orbitador se queda arriba esperando'], ['Bajada', 'el módulo con el ascensor baja solo'], ['Flotar', 'elige un lugar sin piedras y se posa'], ['Trabajo', 'tenía menos de dos días para todo antes de despegar']],
+    firsts: ['Primeras rocas lunares traídas a la Tierra en 44 años', 'Primer acoplamiento robótico en órbita de la Luna', 'Primera bandera de tela de China en la Luna'] },
+  ce6: { name: "Chang'e 6", sub: "Chang'e 6 · CNSA · muestras de la cara oculta", build: hf => buildChangE56(hf, 6), lander: true, noSim: true, world: 'luna', farSide: true, scan: true, mass: 'unos 8.200 kg al despegar (todo el conjunto)', size: 'unos 4,5 m de ancho con los paneles', speed: 'no se mueve: pala, taladro y cohete', speedLabel: 'Movimiento', view: { ty: 1.2, cam: [6.5, 4, -7], drv: [8, 5, -11], back: 6, up: 2.6, max: 12 }, edlTitle: 'El alunizaje en la cara oculta',
+    act: { title: 'Rocas de la cara oculta', text: 'Como Chang\'e 5, pero detrás de la Luna: la señal va por el satélite Queqiao‑2. Al final, un pequeño rover de 5 kg baja y fotografía al módulo.', steps: ['El brazo toma tierra con la pala', 'Lleva las muestras al ascensor', 'El taladro llega a unos 2 m', 'Bandera de basalto y el minirover Jinchan saca una foto', '¡Primer despegue desde la cara oculta!'] },
+    launch: [['Despegue', '3 de mayo de 2024, 09:27 UTC'], ['Cohete', 'Larga Marcha 5'], ['Plataforma', 'Wenchang, isla de Hainan (China)'], ['Llegada', '1 de junio de 2024, 22:23 UTC'], ['Lugar', 'cuenca Apolo, cara oculta (41,6° S, 154,0° O)'], ['Despegue lunar', '3 de junio de 2024, 23:38 UTC'], ['Regreso', '25 de junio de 2024, 06:07 UTC, en Mongolia Interior'], ['Muestra', '1.935,3 g']],
+    edl: [['Enlace', 'satélite Queqiao‑2, detrás de la Luna'], ['Bajada', 'el módulo con el ascensor se separa del orbitador'], ['Flotar', 'elige con láser un lugar seguro'], ['Acople', 'el 6 de junio el ascensor se une al orbitador en órbita lunar']],
+    firsts: ['Primeras rocas traídas de la cara oculta', 'Primer despegue desde la cara oculta', 'Instrumentos de Francia, Italia, Suecia y un satélite de Pakistán'] },
+  ch3: { name: 'Chandrayaan‑3', sub: 'Chandrayaan‑3 · ISRO (India) · módulo Vikram y rover Pragyan', build: buildVikram, lander: true, noSim: true, world: 'luna', earth: [10, 15], mass: 'Vikram 1.726 kg · Pragyan 26 kg', size: 'Vikram unos 2 m · Pragyan 0,9 × 0,75 × 0,4 m', speed: 'Pragyan: 101 m en 10 días', speedLabel: 'Movimiento', view: { ty: 1.2, cam: [6.5, 4, -7], drv: [8, 5, -11], back: 6, up: 2.6, max: 12 }, edlTitle: 'El alunizaje cerca del polo sur',
+    act: { title: 'Primeros cerca del polo sur', text: 'Baja la rampa, Pragyan sale y deja estampados sus emblemas en el polvo, mide el suelo con su láser, y al final Vikram da un salto de prueba de 40 cm.', steps: ['Se despliega la rampa', 'Pragyan baja al suelo', 'Recorre el lugar dejando sus emblemas en el polvo; su láser halla azufre', 'ChaSTE clava su termómetro 10 cm', 'Vikram salta 40 cm y se posa 50 cm al lado', 'Llega la noche: los dos se duermen para siempre'] },
+    launch: [['Despegue', '14 de julio de 2023, 09:05 UTC'], ['Cohete', 'LVM3'], ['Plataforma', 'Centro Espacial Satish Dhawan, Sriharikota (India)'], ['Llegada', '23 de agosto de 2023, 12:33 UTC'], ['Lugar', 'Punto Shiv Shakti, cerca del polo sur (69,4° S, 32,3° E)'], ['Estado', 'durmieron el 3 de septiembre; no despertaron tras la noche lunar']],
+    edl: [['Viaje', 'más de un mes dando vueltas cada vez más grandes para ahorrar combustible'], ['Frenado', 'cuatro motores de 800 N'], ['Flotar', 'se detiene a unos 150 m para elegir el lugar'], ['Suelo', 'patas reforzadas, aguantan llegar de lado']],
+    firsts: ['Primer alunizaje cerca del polo sur', 'India, cuarto país en alunizar', 'Primera medición directa de azufre en el suelo lunar'] },
+  slim: { name: 'SLIM', sub: 'Smart Lander for Investigating Moon · JAXA (Japón)', build: buildSLIM, lander: true, noSim: true, world: 'luna', earth: [60, 50], scan: true, mass: '120 kg sin combustible (590 kg al despegar)', size: 'unos 2,7 m de alto', speed: 'no se mueve', speedLabel: 'Movimiento', view: { ty: 1.2, cam: [6.5, 4, -7], drv: [8, 5, -11], back: 6, up: 2.6, max: 12 }, edlTitle: 'El alunizaje de precisión',
+    act: { title: 'Aterrizar donde queremos', text: 'SLIM llega a 55 m de su objetivo… pero una tobera se cae en la bajada, la nave se inclina y queda de cabeza. Antes de tocar suelta dos robots, y la pelotita SORA‑Q saca la foto famosa. LEV‑1 avanza a saltitos y SORA‑Q (250 g, hecha con la empresa de juguetes Tomy) se abre en dos ruedas.', steps: ['Baja reconociendo los cráteres con su cámara', 'A 50 m se cae una tobera: la nave se inclina', 'Suelta LEV‑1 y SORA‑Q y queda de cabeza', 'SORA‑Q fotografía a SLIM', 'El panel mira al oeste: despierta cuando el Sol viene de ese lado'] },
+    launch: [['Despegue', '6 de septiembre de 2023, 23:42 UTC, junto con el telescopio XRISM'], ['Cohete', 'H‑IIA 202'], ['Plataforma', 'Centro Espacial de Tanegashima (Japón)'], ['Llegada', '19 de enero de 2024, 15:20 UTC'], ['Lugar', 'junto al cráter Shioli, Mar del Néctar (13,3° S, 25,2° E)'], ['Estado', 'despertó después de tres noches lunares; la JAXA terminó la misión en agosto de 2024']],
+    edl: [['Navegación', 'compara los cráteres que ve con un mapa, como un GPS de cráteres'], ['El fallo', 'a unos 50 m se desprende una tobera'], ['Robots', 'los suelta justo antes de tocar'], ['Suelo', 'se posa de cabeza, a unos 55 m del objetivo']],
+    firsts: ['Alunizaje más preciso de la historia', 'Japón, quinto país en alunizar', 'El robot más pequeño en trabajar en la Luna (SORA‑Q, 250 g)'] },
+  im1: { name: 'Odysseus', sub: 'IM‑1 · Intuitive Machines · NASA CLPS', build: buildOdysseus, lander: true, noSim: true, world: 'luna', earth: [0, 8], mass: '1.900 kg al despegar', size: 'unos 4 m de alto', speed: 'no se mueve', speedLabel: 'Movimiento', view: { ty: 1.2, cam: [6.5, 4, -7], drv: [8, 5, -11], back: 6, up: 2.6, max: 12 }, edlTitle: 'El alunizaje',
+    act: { title: 'El primero privado, acostado', text: 'El láser que mide la altura no funcionó porque nadie movió un seguro antes del despegue. Bajó usando un láser experimental de la NASA, llegó rápido a una ladera, rompió una pata y se volcó… pero funcionó una semana.', steps: ['El láser de altura no responde', 'Baja con el láser experimental de la NASA, más rápido de lo previsto', 'Toca una ladera de 12°, patina y se vuelca', 'Queda apoyado 30° sobre un tanque, con las antenas mal apuntadas', 'Aun así, los 6 instrumentos de la NASA mandaron datos'] },
+    launch: [['Despegue', '15 de febrero de 2024, 06:05 UTC'], ['Cohete', 'Falcon 9'], ['Plataforma', 'LC‑39A, Centro Espacial Kennedy (Florida)'], ['Llegada', '22 de febrero de 2024, 23:23 UTC'], ['Lugar', 'cerca del cráter Malapert A, cerca del polo sur (80,1° S, 1,4° E)'], ['Estado', 'se quedó sin energía el 29 de febrero de 2024, al llegar la noche']],
+    edl: [['Órbita', 'gira alrededor de la Luna a unos 92 km'], ['El problema', 'el láser de altura estaba bloqueado por un seguro'], ['Plan B', 'reprograman la nave en órbita para usar el láser de la NASA'], ['Suelo', 'llega más rápido y de lado: rompe una pata']],
+    firsts: ['Primer alunizaje de una empresa privada', 'Primer alunizaje de Estados Unidos desde el Apolo 17 (1972)', 'Primera vez que se alunizó con motor de metano y oxígeno'] },
 };
 export const ROVER_IDS = Object.keys(ROVERS);
 
