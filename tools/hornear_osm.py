@@ -90,7 +90,8 @@ if '--empaquetar' in sys.argv:
     sys.exit(0)
 MIRRORS = ['https://overpass-api.de/api/interpreter', 'https://lz4.overpass-api.de/api/interpreter', 'https://z.overpass-api.de/api/interpreter',
            'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter']
-KEYS = ['name', 'name:en', 'name:es', 'operator', 'owner', 'brand', 'building', 'height', 'min_height', 'building:height', 'building:levels']
+KEYS = ['name', 'name:en', 'name:es', 'operator', 'owner', 'brand', 'building', 'height', 'min_height', 'building:height', 'building:levels',
+        'power', 'plant:source', 'generator:source', 'plant:output:electricity']
 
 def enc(geom):
     out, pa, po = [], 0, 0
@@ -116,7 +117,9 @@ def fetch(q, vacio_ok=False):
     sys.exit('Ningún servidor de Overpass respondió')
 
 for path, boxes in SITES.items():
-    d = fetch('[out:json][timeout:240];(' + ''.join(f'way["building"]({b});relation["building"]({b});' for b in boxes) + ');out geom;')
+    d = fetch('[out:json][timeout:240];(' + ''.join(f'way["building"]({b});relation["building"]({b});'
+                                                    f'way["power"="plant"]["plant:source"="solar"]({b});relation["power"="plant"]["plant:source"="solar"]({b});'
+                                                    f'way["power"="generator"]["generator:source"="solar"]({b});' for b in boxes) + ');out geom;')   # edificios y campos solares
     e = []
     for x in d['elements']:
         t = {k: x['tags'][k] for k in KEYS if k in x.get('tags', {})}

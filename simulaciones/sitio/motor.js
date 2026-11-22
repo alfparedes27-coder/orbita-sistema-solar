@@ -591,6 +591,7 @@ function parseOSM(data) {
     if (pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]) pts.pop();
     if (pts.length < 3) return;
     let cla = 0, clo = 0; for (const [a, b] of pts) { cla += a; clo += b; } cla /= pts.length; clo /= pts.length;
+    if (isSolar(tags) || !tags.building) return;
     const txt = [tags.name, tags.operator, tags.owner, tags['name:en'], tags.brand].filter(Boolean).join(' ');
     if (EXCL_RE.test(txt)) { BLD.skipped++; return; }
     if (EXCL.some(([a, b, r]) => distM(cla, clo, a, b) < r)) { BLD.skipped++; return; }
@@ -788,6 +789,92 @@ function placeAt(obj, lat, lon, rotDeg = 0) {
 }
 // metros al norte y al este de un lugar → lat, lon
 const offset = (p, north, east) => [p.lat + north / KM, p.lon + east / (KM * Math.cos(p.lat * DEG))];
+
+// ======================= campos solares =======================
+// Formas reales de OpenStreetMap (power=plant solar y, si están dibujadas, cada fila de paneles power=generator); se leen de la copia
+// guardada y, si esa copia aún no las trae, se piden a Overpass desde el navegador y se guardan. Si no hay nada, se usan los
+// rectángulos aproximados de CFG.solar (centro, tamaño y potencia de las fuentes oficiales).
+const SOLAR = { plants: [], rows: [], built: false };
+const isSolar = t => (t.power === 'plant' && /solar/.test(t['plant:source'] || '')) || (t.power === 'generator' && /solar/.test(t['generator:source'] || ''));
+const SOLAR_Q = `[out:json][timeout:60];(${CFG.osmBoxes.map(b => `way["power"="plant"]["plant:source"="solar"](${b});relation["power"="plant"]["plant:source"="solar"](${b});way["power"="generator"]["generator:source"="solar"](${b});`).join('')});out geom;`;
+function solarFromOSM(data) {
+  const add = (geom, tags) => { if (!geom || geom.length < 4) return; const pts = geom.map(g => [g.lat, g.lon]); if (tags.power === 'plant') SOLAR.plants.push({ pts, tags }); else SOLAR.rows.push(pts); };
+  for (const e of data.elements || []) { const t = e.tags || {}; if (!isSolar(t)) continue;
+    if (e.type === 'way') add(e.geometry, t); else if (e.type === 'relation') for (const m of e.members || []) if (m.type === 'way' && m.role === 'outer') add(m.geometry, t); }
+}
+async function solarLive() {
+  try { const c = JSON.parse(localStorage.getItem('solar-osm-' + CFG.short) || 'null'); if (c && Date.now() - c.t < 30 * 864e5) return c.d; } catch (e) {}
+  for (const url of OVERPASS) {
+    try { const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 30000);
+      const r = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(SOLAR_Q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal }); clearTimeout(to);
+      if (!r.ok) continue; const d = await r.json(); try { localStorage.setItem('solar-osm-' + CFG.short, JSON.stringify({ t: Date.now(), d })); } catch (e) {} return d;
+    } catch (e) {}
+  }
+  return null;
+}
+const M_PV = new THREE.MeshStandardMaterial({ color: 0x14203a, roughness: 0.22, metalness: 0.55 }), M_PVFRAME = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.5, metalness: 0.6 });
+function inPoly(x, y, poly) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+// un campo: filas de mesas fijas inclinadas hacia el sur, postes, inversores cada ~150 m y una subestación
+function solarFarm(f, polys, rows) {
+  const g = new THREE.Group(), lat0 = f.lat, lon0 = f.lon, kx = KM * Math.cos(lat0 * DEG);
+  const toXZ = ([la, lo]) => [(lo - lon0) * kx, -(la - lat0) * KM];          // x = este, z = sur
+  const tilt = (f.tilt || 20) * DEG, TW = f.tableW || 20, TD = f.tableD || 4.4, pitch = f.pitch || 8.5, H = 1.6;
+  const tables = [];
+  if (rows.length) for (const r of rows) {                                   // filas dibujadas en OpenStreetMap: se respeta cada una
+    const q = r.map(toXZ); let cx = 0, cz = 0; q.forEach(([x, z]) => { cx += x; cz += z; }); cx /= q.length; cz /= q.length;
+    let sxx = 0, szz = 0, sxz = 0; q.forEach(([x, z]) => { sxx += (x - cx) ** 2; szz += (z - cz) ** 2; sxz += (x - cx) * (z - cz); });
+    const ang = .5 * Math.atan2(2 * sxz, sxx - szz), ux = Math.cos(ang), uz = Math.sin(ang); let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
+    q.forEach(([x, z]) => { const a = (x - cx) * ux + (z - cz) * uz, b = -(x - cx) * uz + (z - cz) * ux; a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); });
+    const L = a1 - a0, W = Math.max(1.5, (b1 - b0) / Math.cos(tilt)); if (L < 2) continue;
+    for (let s = 0; s < L; s += TW) { const l = Math.min(TW, L - s), t0 = a0 + s + l / 2; tables.push([cx + ux * t0 - uz * (b0 + b1) / 2, cz + uz * t0 + ux * (b0 + b1) / 2, l, W, -ang]); }
+  } else {                                                                    // sin filas: se rellena el contorno (o el rectángulo) con filas este‑oeste
+    const P = polys.map(pl => pl.map(toXZ)), hw = f.w / 2, hd = f.d / 2;
+    let x0 = -hw, x1 = hw, z0 = -hd, z1 = hd; if (P.length) { x0 = z0 = 1e9; x1 = z1 = -1e9; P.flat().forEach(([x, z]) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }); }
+    for (let z = z0 + pitch / 2; z < z1; z += pitch) for (let x = x0 + TW / 2; x < x1; x += TW + 1) {
+      if (P.length ? !P.some(pl => inPoly(x, z, pl)) : (f.road && Math.abs(x - f.road) < 12)) continue;
+      if (!P.length) { const la = lat0 - z / KM, lo = lon0 + x / kx;                     // rectángulo aproximado: no pisar edificios ni lugares
+        if ((f.avoid || []).some(([id, r]) => PLACE[id] && distM(la, lo, PLACE[id].lat, PLACE[id].lon) < r)) continue;
+        if ([[0, 0], [25, 0], [-25, 0], [0, 25], [0, -25]].some(([dn, de]) => blockedLL(la + dn / KM, lo + de / kx))) continue; }
+      if (!P.length && Math.abs(((x - x0) % 160)) < TW + 2 && Math.abs(((z - z0) % 150)) < pitch) continue;   // pasillos entre bloques
+      tables.push([x, z, TW, TD, 0]); }
+  }
+  const n = tables.length; if (!n) return null;
+  const pv = new THREE.InstancedMesh(new THREE.BoxGeometry(1, .05, 1), M_PV, n), fr = new THREE.InstancedMesh(new THREE.BoxGeometry(1, .04, 1), M_PVFRAME, n), post = new THREE.InstancedMesh(new THREE.CylinderGeometry(.06, .06, 1, 5), M_PVFRAME, n * 2);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+  tables.forEach(([x, z, l, w, a], i) => {
+    e.set(tilt, a, 0, 'YXZ'); q.setFromEuler(e); m.compose(v.set(x, H, z), q, sc.set(l, 1, w)); pv.setMatrixAt(i, m);
+    m.compose(v.set(x, H - .05, z), q, sc.set(l + .1, 1, w + .1)); fr.setMatrixAt(i, m);
+    for (let k = 0; k < 2; k++) { const dx = (k ? .35 : -.35) * l, c = Math.cos(a), s2 = Math.sin(a); m.compose(v.set(x + dx * c, H / 2, z - dx * s2), new THREE.Quaternion(), sc.set(1, H, 1)); post.setMatrixAt(i * 2 + k, m); }
+  });
+  pv.receiveShadow = fr.receiveShadow = true; g.add(fr, pv, post);
+  // inversores (cajas blancas) cada ~150 m y la subestación en una esquina
+  const xs = tables.map(t => t[0]), zs = tables.map(t => t[1]), X0 = Math.min(...xs), X1 = Math.max(...xs), Z0 = Math.min(...zs), Z1 = Math.max(...zs);
+  const inv = []; for (let x = X0 + 80; x < X1; x += 160) for (let z = Z0 + 75; z < Z1; z += 150) inv.push([x, z]);
+  const invM = new THREE.InstancedMesh(new THREE.BoxGeometry(6, 2.8, 2.6), new THREE.MeshStandardMaterial({ color: 0xeef0ee, roughness: .6 }), Math.max(1, inv.length)); inv.forEach(([x, z], i) => { m.compose(v.set(x, 1.4, z), new THREE.Quaternion(), sc.set(1, 1, 1)); invM.setMatrixAt(i, m); }); invM.count = inv.length; g.add(invM);
+  const sub = new THREE.Group(); sub.position.set(X1 + 30, 0, Z1 + 30); const steel = new THREE.MeshStandardMaterial({ color: 0xa9aeb3, metalness: .6, roughness: .4 });
+  { const pad = new THREE.Mesh(new THREE.BoxGeometry(50, .3, 40), new THREE.MeshStandardMaterial({ color: 0xbdb7a8, roughness: 1 })); pad.position.y = .15; sub.add(pad); }
+  for (const [x, z] of [[-12, -8], [0, -8], [12, -8]]) { const t = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 3.5), new THREE.MeshStandardMaterial({ color: 0x7d8790, roughness: .5, metalness: .3 })); t.position.set(x, 2, z); sub.add(t); }
+  for (let k = 0; k < 6; k++) { const p = new THREE.Mesh(new THREE.BoxGeometry(.4, 12, .4), steel); p.position.set(-15 + k * 6, 6, 10); sub.add(p); }
+  const beamM = new THREE.Mesh(new THREE.BoxGeometry(32, .4, .4), steel); beamM.position.set(0, 12, 10); sub.add(beamM); g.add(sub);
+  g.userData.solar = { n, area: (X1 - X0) * (Z1 - Z0) };
+  return g;
+}
+function buildSolar() {
+  if (SOLAR.built || !CFG.solar) return; SOLAR.built = true;
+  for (const f of CFG.solar) {
+    const near = pl => { let a = 0, b = 0; pl.pts.forEach(([x, y]) => { a += x; b += y; }); return distM(a / pl.pts.length, b / pl.pts.length, f.lat, f.lon) < (f.match || 1500); };
+    const polys = SOLAR.plants.filter(near).map(p => p.pts), rows = SOLAR.rows.filter(r => near({ pts: r }));
+    const g = solarFarm(f, polys, rows); if (!g) continue; g.userData.osm = polys.length + rows.length > 0; placeAt(g, f.lat, f.lon, 0); SOLAR[f.id] = g;
+  }
+}
+async function loadSolar() {
+  if (!CFG.solar) return;
+  try { const bk = await baked(); if (bk) solarFromOSM(unpackOSM(bk)); } catch (e) {}
+  if (!SOLAR.plants.length && !SOLAR.rows.length) await Promise.race([BLD_P, new Promise(r => setTimeout(r, 15000))]);   // sin formas reales: esperar los edificios para no tapar ninguno
+  buildSolar();                                     // primero con lo que haya (copia guardada o rectángulos aproximados)
+  if (!SOLAR.plants.length && !SOLAR.rows.length && QS.get('osm') !== 'local') {   // y si faltaban las formas reales, se piden y se rehace
+    const d = await solarLive(); if (d) { solarFromOSM(d); if (SOLAR.plants.length || SOLAR.rows.length) { for (const f of CFG.solar) if (SOLAR[f.id]) { MODELS.remove(SOLAR[f.id]); delete SOLAR[f.id]; } SOLAR.built = false; buildSolar(); } } }
+}
 function redLight(g, x, y, z) {
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0xff3a2a, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true }));
   sp.position.set(x, y, z); sp.scale.set(5, 5, 1); g.add(sp); LIGHTS.push({ sprite: sp, always: true });
@@ -1251,7 +1338,8 @@ function loop(now) {
 }
 applyTimeOfDay();
 loadPOIs();
-loadBuildings().catch(e => { console.warn('Edificios OSM:', e); BLD.err = String(e); setChip('No se pudieron descargar los edificios de OpenStreetMap; las plataformas sí se ven', 9000); });
+const BLD_P = loadBuildings().catch(e => { console.warn('Edificios OSM:', e); BLD.err = String(e); setChip('No se pudieron descargar los edificios de OpenStreetMap; las plataformas sí se ven', 9000); });
+loadSolar().catch(e => console.warn('Campos solares:', e));
 requestAnimationFrame(t => { last = t; $('#loading').classList.add('done'); loop(t); });
 // lugar inicial: el del enlace (#39a, #slc40…) o vista general
 {
@@ -1259,5 +1347,5 @@ requestAnimationFrame(t => { last = t; $('#loading').classList.add('done'); loop
   if (PLACE[id]) setTimeout(() => select(id, true), 600);
   else setTimeout(() => flyTo(CFG.home.lat, CFG.home.lon, 0, CFG.home, 2600), 300);
 }
-window.__site = window.__cape = { WALK, enterWalk, exitWalk, tourGo, POIS, FOOT, blockedLL, PLACES, select, flyTo, CAM, TER, BLD, NET, MODELS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); } };
+window.__site = window.__cape = { SOLAR, solarFarm, WALK, enterWalk, exitWalk, tourGo, POIS, FOOT, blockedLL, PLACES, select, flyTo, CAM, TER, BLD, NET, MODELS, setTod: k => { todSel.value = k; todSel.dispatchEvent(new Event('change')); } };
 }

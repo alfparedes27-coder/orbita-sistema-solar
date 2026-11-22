@@ -129,6 +129,12 @@ const PLACES = [
   { id: 'puerto', walk: [28.4093, -80.6086, 300], name: 'Puerto Cañaveral', short: 'Base de las barcazas de aterrizaje de SpaceX', ops: ['pub', 'spacex'], lat: 28.4105, lon: -80.6200, lh: 30, view: { dist: 2600, el: 0.42, az: 2.9 }, minor: true,
     desc: 'Puerto público. Aquí atracan las barcazas autónomas de SpaceX, sobre las que aterrizan las primeras etapas en el océano, y vuelven con ellas de pie sobre la cubierta. También zarpan cruceros, y desde sus playas se ven muy bien los lanzamientos.',
     spec: [['Operador', 'Autoridad Portuaria de Cañaveral'], ['SpaceX', 'Barcazas de aterrizaje y barcos de apoyo']] },
+  { id: 'sol-discovery', label: 'Campo solar Discovery', name: 'Centro de Energía Solar Discovery (FPL)', short: '74,5 MW de paneles solares en terrenos de la NASA', ops: ['nasa'], lat: 28.52893, lon: -80.6789, lh: 30, view: { dist: 2200, el: 0.45, az: 3.6 }, minor: true,
+    desc: 'El campo solar más grande del Centro Espacial: casi 500 acres (unos 2 km²) de paneles fijos inclinados 20° hacia el sur, frente al Complejo de Visitantes. Lo construyó y lo opera la empresa eléctrica FPL en terreno que le arrienda la NASA, y lo inauguró en junio de 2021. Su energía va a la red de Florida, al programa de energía solar compartida SolarTogether.',
+    spec: [['Potencia', '74,5 MW (98,3 MW en paneles)'], ['Paneles', 'fijos, inclinados 20°, mirando al sur'], ['Superficie', 'casi 500 acres (≈ 2 km²)'], ['Abastece', 'unos 15.000 hogares'], ['Inaugurado', '11 jun. 2021']] },
+  { id: 'sol-nextgen', label: 'Campo solar Next Generation', name: 'Centro de Energía Solar Space Coast Next Generation (FPL)', short: '10 MW · unos 35.000 paneles', ops: ['nasa'], lat: 28.48528, lon: -80.68139, lh: 30, view: { dist: 1200, el: 0.45, az: 3.6 }, minor: true,
+    desc: 'El primer campo solar grande dentro del Centro Espacial, inaugurado en abril de 2010: unos 35.000 paneles en 60 acres. Fue parte de un acuerdo entre la NASA y FPL, que a cambio construyó también un campo de 1 MW que da energía directamente a Kennedy.',
+    spec: [['Potencia', '10 MW'], ['Paneles', '≈ 35.000 (SunPower)'], ['Superficie', '60 acres (≈ 0,24 km²)'], ['Inaugurado', '8 abr. 2010']] },
 ];
 PLACES.push({ id: 'slc41', label: 'SLC-41 · Starliner', name: 'Complejo de Lanzamiento Espacial 41', short: 'Boeing Starliner sobre el Atlas V', ops: ['boeing'], link: { href: 'starliner/', label: 'Subir a la cabina de la Starliner →' }, lat: 28.5834, lon: -80.5829, lh: 75, view: { dist: 600, el: 0.24, az: 3.4 }, major: true,
   desc: 'Plataforma de la empresa ULA (de Boeing y Lockheed Martin), donde se construyó una torre de acceso para tripulaciones para la Starliner de Boeing. De aquí despegó el 5 de junio de 2024 el primer vuelo con astronautas de la Starliner, con Butch Wilmore y Suni Williams. Por fallas en los propulsores y fugas de helio, la cápsula volvió vacía y ellos regresaron en una Dragon de SpaceX en marzo de 2025.',
@@ -148,6 +154,9 @@ const CFG = {
   decl: -16.6, eot: 16.1, tzMer: -75,           // 8 de noviembre; Florida usa UTC−5 (meridiano 75° O)
   tod: { dia: { hour: 9.5 }, tarde: { hour: 17.08 }, noche: { hour: 19.5 } },
   osmBoxes: ['28.44,-80.72,28.65,-80.53', '28.398,-80.64,28.42,-80.595'],
+  // campos solares de Kennedy (si OpenStreetMap trae su forma, se usa esa; si no, este rectángulo aproximado)
+  solar: [{ id: 'sol-discovery', lat: 28.52893, lon: -80.6789, w: 1150, d: 950, tilt: 20, avoid: [['kscvc', 520]] },
+          { id: 'sol-nextgen', lat: 28.48528, lon: -80.68139, w: 520, d: 470, tilt: 20 }],
   modelClear: [['39a', 0, 0, 70], ['39a-ss', 0, 0, 55], ['39b', 0, 0, 90], ['slc40', 0, 0, 60], ['lc34', 0, 0, 25], ['slc41', 0, 0, 45]],
   home: { lat: 28.57, lon: -80.615, az: 2.75, el: 0.55, dist: 30000 },
   ops: { boeing: { name: 'Boeing', color: '#5fb4d9' }, nasa: { name: 'NASA', color: '#7aa8ff' }, spacex: { name: 'SpaceX', color: '#ffffff' }, pub: { name: 'Abierto al público', short: 'Público', color: '#7ee2a8' }, hist: { name: 'Histórico', color: '#8d99b0' } },
