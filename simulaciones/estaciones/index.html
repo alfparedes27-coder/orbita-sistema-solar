@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Estaciones espaciales · Órbita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+:root{ color-scheme:dark; --void:#04060c; --line-strong:#2d3c5a; --ink:#e8ecf4; --dim:#8d99b0; --faint:#5c6884; --sol:#ffb547; --ok:#7ee2a8; --acc:#7cc4ff;
+  --f-display:"Jost","Futura","Century Gothic","Avenir Next",system-ui,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; }
+html{background:var(--void)}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 70% -10%,#16233b,transparent 70%),var(--void);color:var(--ink);font:15px/1.5 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(env(safe-area-inset-top,0px) + 28px) calc(env(safe-area-inset-bottom,0px) + 40px)}
+main{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.back{align-self:flex-start;display:inline-flex;padding:9px 14px;border-radius:99px;border:1px solid var(--line-strong);color:var(--ink);text-decoration:none;font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase}
+.back:hover{border-color:var(--sol)}
+.kind{font:600 11px/1 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+h1{margin:6px 0 6px;font:600 40px/1.05 var(--f-display);text-wrap:balance}
+h2{margin:18px 0 0;font:600 13px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+p{margin:0;color:var(--dim);max-width:64ch}
+.list{display:flex;flex-direction:column;gap:12px}
+.item{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;padding:16px;border-radius:14px;border:1px solid var(--line-strong);background:linear-gradient(135deg,rgba(255,181,71,.12),rgba(255,181,71,.02));color:var(--ink);text-decoration:none}
+a.item:hover{border-color:var(--sol)}
+.num{grid-row:span 3;font:600 26px/1 var(--f-display);color:var(--sol);font-variant-numeric:tabular-nums;padding-top:2px;min-width:44px}
+.st{font:600 10px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ok)}
+.item b{font:600 18px/1.25 var(--f-display)}
+.item span.d{font-size:13.5px;color:var(--dim)}
+.item.empty{background:none;border-style:dashed}.item.empty .num,.item.empty .st{color:var(--faint)}
+.item.fut{background:linear-gradient(135deg,rgba(124,196,255,.10),rgba(124,196,255,.02))}.item.fut .num{color:var(--acc)}.item.fut .st{color:var(--acc)}
+.note{border-left:3px solid var(--acc);padding:8px 12px;background:rgba(124,196,255,.06);border-radius:0 10px 10px 0;font-size:14px}
+@media (max-width:480px){h1{font-size:32px}}
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="../">← Simulaciones</a>
+  <header>
+    <span class="kind">Casas en órbita · 1971 – hoy</span>
+    <h1>Estaciones espaciales</h1>
+    <p>Cada estación en 3D: su órbita, los cohetes que llevaron cada pieza y un recorrido por dentro, como si fueras un astronauta. Se agregan de una en una.</p>
+  </header>
+
+  <div class="list">
+    <a class="item" href="iss/">
+      <span class="num">01</span><span class="st">Disponible</span>
+      <b>Estación Espacial Internacional (ISS) · 1998 – hoy</b>
+      <span class="d">Dónde está ahora mismo y cuándo pasa sobre Guayaquil; un recorrido flotando por sus 18 módulos con la Tierra real en las ventanas; y su armado completo de 1998 a 2026, con el despegue de cada pieza en su Protón, transbordador, Soyuz o Falcon 9.</span>
+    </a>
+    <div class="item empty"><span class="num">02</span><span class="st">Próxima</span><b>Mir · 1986 – 2001</b><span class="d">La estación soviética y rusa: siete módulos lanzados en cohetes Protón, el transbordador acoplado y el incendio y el choque de 1997.</span></div>
+    <div class="item empty"><span class="num">03</span><span class="st">Próxima</span><b>Tiangong, la estación china · 2021 – hoy</b><span class="d">Tianhe, Wentian y Mengtian, lanzados en cohetes Larga Marcha 5B desde la isla de Hainan, y las naves Shenzhou.</span></div>
+    <div class="item empty"><span class="num">04</span><span class="st">Próxima</span><b>Skylab · 1973 – 1979</b><span class="d">La primera estación de Estados Unidos: la última etapa de un Saturno V convertida en casa, y cómo la rescataron después de que perdió un panel al despegar.</span></div>
+    <div class="item empty"><span class="num">05</span><span class="st">Próxima</span><b>Saliut 1 a 7 · 1971 – 1991</b><span class="d">Las primeras estaciones de la historia, lanzadas por la Unión Soviética.</span></div>
+    <div class="item empty"><span class="num">06</span><span class="st">Próxima</span><b>Tiangong‑1 y Tiangong‑2 · 2011 – 2019</b><span class="d">Los laboratorios de prueba de China antes de su estación grande.</span></div>
+  </div>
+
+  <h2>Las que vienen</h2>
+  <p class="note">China no tiene una estación llamada Chang'e: <b>Chang'e</b> es su programa de naves a la Luna. La estación china se llama <b>Tiangong</b> («Palacio celestial») y ya está en órbita desde 2021. Las que todavía no existen son estas:</p>
+  <div class="list">
+    <div class="item fut"><span class="num">F1</span><span class="st">En construcción</span><b>Haven‑1 (Vast, Estados Unidos)</b><span class="d">Una estación privada de un solo módulo que despegará en un Falcon 9; la empresa la anuncia para el primer trimestre de 2027.</span></div>
+    <div class="item fut"><span class="num">F2</span><span class="st">En construcción</span><b>Axiom Station, Starlab y Orbital Reef</b><span class="d">Estaciones comerciales que quieren reemplazar a la ISS cuando se retire, cerca de 2030.</span></div>
+    <div class="item fut"><span class="num">F3</span><span class="st">Planeadas</span><b>Estación Orbital Rusa (ROS) y Bharatiya Antariksh (India)</b><span class="d">Las próximas estaciones nacionales de Rusia y de la India.</span></div>
+    <div class="item fut"><span class="num">F4</span><span class="st">En pausa</span><b>Gateway, la estación alrededor de la Luna</b><span class="d">La NASA la puso en pausa en marzo de 2026 para concentrarse en una base en la superficie de la Luna; varias piezas ya estaban construidas.</span></div>
+  </div>
+</main>
+</body>
+</html>

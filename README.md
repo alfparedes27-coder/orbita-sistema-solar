@@ -51,6 +51,10 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
 - `simulaciones/starbase/`: Starbase (Texas) en 3D: los cohetes de SpaceX en fila con su historia, la torre con los palillos,
   una galería para recorrer a pie (Dragon, motores, aletas, losetas, Starlink, trajes) y la línea del tiempo de Tesla.
   `starbase/dragon/`: el interior de la Crew Dragon, desde los asientos.
+- `simulaciones/estaciones/`: estaciones espaciales, una por tanda. `iss/` es la Estación Espacial Internacional: órbita en vivo con SGP4
+  (TLE de CelesTrak, `comun/satellite.min.js`) y pasos visibles desde Guayaquil; interior recorrible de los 18 módulos (`interior.js`, con volúmenes
+  de colisión y rutas entre escotillas) con la Tierra real en las ventanas; armado de 1998 a 2026 (`datos.js`) y el lanzamiento de cada pieza
+  en su Protón, transbordador, Soyuz o Falcon 9 (`lanzamiento.js`). Las texturas se dibujan en canvas (`tex.js`): no descarga imágenes nuevas.
 - `tools/hornear_osm.py`: descarga los edificios de OpenStreetMap y los guarda en `edificios-osm.bin` (formato compacto OSB2);
   un flujo de GitHub Actions lo ejecuta una vez al mes.
 - `datos/incrustado.js`: copia de datos y texturas para abrir `index.html` con doble clic (sin servidor). En la web no se descarga.

@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Estación Espacial Internacional · Órbita</title>
+<meta name="description" content="La Estación Espacial Internacional en 3D: dónde está ahora mismo, recorrido por dentro de sus 18 módulos, y su armado de 1998 a 2026 con el lanzamiento de cada pieza.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --panel:rgba(9,12,19,.9); --line:#222b3e; --line2:#33405c; --ink:#eef0f5; --dim:#9ba4b8; --acc:#7cc4ff; --warm:#ffb547; --ok:#7ee2a8;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif; --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px); color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:#000;color:var(--ink);font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none}
+button{font-family:var(--f-body)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+.top{position:fixed;top:calc(10px + var(--top));left:16px;right:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:8;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12.5px;padding:8px 11px}
+.title{padding:6px 13px}.title .kick{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}.title h1{margin:1px 0 0;font:700 17px var(--f-display)}
+.tabs{display:flex;gap:4px;padding:4px}
+.tab{background:none;border:1px solid transparent;color:var(--dim);border-radius:8px;padding:8px 12px;font:600 13px var(--f-display);letter-spacing:.02em;cursor:pointer}
+.tab[aria-selected=true]{background:var(--warm);color:#1a1100}
+.bar{position:fixed;left:16px;right:calc(390px + 32px);bottom:calc(14px + var(--bot));z-index:8;display:flex;gap:6px;flex-wrap:wrap;padding:8px;align-items:center}
+.bar .g{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.bar .g+.g{border-left:1px solid var(--line);padding-left:8px}
+.bar small{font:500 10.5px var(--f-data);color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.tb{background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:12.5px;cursor:pointer}
+.tb[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#04121f}
+.tb.pri{background:var(--warm);border-color:var(--warm);color:#1a1100;font-weight:600}
+.side{position:fixed;right:16px;top:calc(66px + var(--top));bottom:calc(14px + var(--bot));width:390px;z-index:9;display:flex;flex-direction:column;overflow:hidden}
+.side .hd{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.side .k{font:500 10.5px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--warm)}
+.side h2{margin:3px 0 4px;font:700 20px var(--f-display)}.side .hd p{margin:0;color:var(--dim);font-size:13px;line-height:1.5}
+.bd{flex:1;overflow-y:auto;padding:10px 14px 16px;font-size:13.5px;line-height:1.55}
+.bd h3{font:600 12px var(--f-data);text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:16px 0 6px}
+dl.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:6px 0}dl.kv dt{color:var(--dim);font-size:12.5px}dl.kv dd{margin:0;font:500 13px var(--f-data);text-align:right}
+.big{font:600 26px var(--f-display);font-variant-numeric:tabular-nums}
+.pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.pl button{width:100%;display:grid;grid-template-columns:30px 1fr;gap:2px 9px;text-align:left;background:none;border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--ink);cursor:pointer;font-size:13px}
+.pl .n{grid-row:span 2;min-width:26px;height:22px;border-radius:11px;background:#1a2336;display:grid;place-items:center;font:600 10.5px var(--f-data);padding:0 4px}
+.pl button[aria-current=true]{border-color:var(--warm)}.pl button[aria-current=true] .n{background:var(--warm);color:#1a1100}
+.pl .s{grid-column:2;color:var(--dim);font-size:12px}
+.pl .d{grid-column:2;color:#c9cfdb;margin-top:4px}.pl button:not([aria-current=true]) .d{display:none}
+.mods{display:flex;flex-wrap:wrap;gap:5px}.mods button{background:none;border:1px solid var(--line2);color:var(--ink);border-radius:99px;padding:5px 10px;font-size:12px;cursor:pointer}
+.mods button[aria-current=true]{border-color:var(--warm);color:var(--warm)}
+.pass{border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin:5px 0;font-size:12.5px}.pass b{font:600 13px var(--f-data)}.pass.vis{border-color:var(--ok)}
+.src{margin:14px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--dim)}.src ul{margin:4px 0 0;padding-left:16px}.src a{color:var(--acc);word-break:break-word}
+#pts{position:fixed;inset:0;pointer-events:none;z-index:6}
+.pt{position:absolute;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:1.5px solid #fff;background:rgba(8,12,20,.78);color:#fff;font:600 11px var(--f-data);display:grid;place-items:center;cursor:pointer;pointer-events:auto;padding:0}
+.pt:hover,.pt.on{background:var(--warm);color:#1a1100;border-color:var(--warm)}
+.lbl{position:absolute;left:0;top:0;transform:translate(-50%,-130%);font:600 11.5px var(--f-body);color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;pointer-events:none}
+.hud{position:fixed;left:16px;top:calc(66px + var(--top));z-index:7;padding:8px 12px;font:500 12px var(--f-data);color:var(--dim);max-width:340px;line-height:1.55}
+.hud b{color:var(--ink);font-weight:500}
+.where{position:fixed;left:50%;top:calc(72px + var(--top));transform:translateX(-50%);z-index:7;padding:7px 14px;font:600 14px var(--f-display);pointer-events:none;transition:opacity .4s}
+.move{position:fixed;left:16px;bottom:calc(82px + var(--bot));z-index:8;display:grid;grid-template-columns:repeat(3,52px);gap:6px}
+.move button{height:52px;border-radius:12px;border:1px solid var(--line2);background:rgba(9,12,19,.8);color:var(--ink);font-size:20px;touch-action:none;user-select:none;-webkit-user-select:none}
+.move button:active{background:var(--acc);color:#04121f}
+.cross{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:rgba(255,255,255,.6);z-index:5;pointer-events:none}
+.tl{width:100%;accent-color:var(--warm)}
+.date{font:600 22px var(--f-display);color:var(--warm)}
+.ldg{position:fixed;inset:0;display:grid;place-items:center;z-index:20;background:#000;color:var(--dim);font:500 13px var(--f-data);transition:opacity .6s}
+.lnch{position:fixed;left:50%;top:calc(70px + var(--top));transform:translateX(-50%);z-index:8;padding:10px 16px;text-align:center;min-width:280px}
+.lnch .t{font:700 30px var(--f-data);color:var(--warm);font-variant-numeric:tabular-nums}
+.lnch .ev{font:600 14px var(--f-display);margin-top:2px}
+.lnch .tel{display:flex;gap:16px;justify-content:center;font:500 12px var(--f-data);color:var(--dim);margin-top:6px}.lnch .tel b{color:var(--ink);font-weight:500}
+@media (max-width:900px){
+  .side{left:0;right:0;top:auto;bottom:0;width:auto;height:42vh;border-radius:14px 14px 0 0}
+  .bar{left:8px;right:8px;bottom:calc(42vh + 6px);padding:6px}
+  .hud{display:none}.title{display:none}
+  .move{bottom:calc(42vh + 64px);left:8px;grid-template-columns:repeat(3,46px)}.move button{height:46px}
+  .lnch{top:calc(58px + var(--top));min-width:0;width:calc(100% - 32px)}.lnch .t{font-size:24px}
+  .hint{display:none}
+  body[data-mode=dentro] .side{height:30vh} body[data-mode=dentro] .bar{bottom:calc(30vh + 6px)} body[data-mode=dentro] .move{bottom:calc(30vh + 112px);left:auto;right:8px}
+  .where{top:calc(60px + var(--top))}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="Estación Espacial Internacional en 3D"></canvas>
+<div id="pts"></div>
+<div class="cross" id="cross" hidden></div>
+<div class="ldg" id="ldg">Preparando la estación…</div>
+<div class="top">
+  <a class="back panel" href="../">← Estaciones</a>
+  <div class="title panel"><div class="kick">Estación espacial · 1998 – hoy</div><h1>Estación Espacial Internacional</h1></div>
+  <div class="tabs panel" role="tablist">
+    <button class="tab" role="tab" data-mode="orbita" aria-selected="true">🌍 En órbita</button>
+    <button class="tab" role="tab" data-mode="dentro" aria-selected="false">🧑‍🚀 Por dentro</button>
+    <button class="tab" role="tab" data-mode="armado" aria-selected="false">🚀 Armado</button>
+  </div>
+</div>
+<div class="hud panel" id="hud"></div>
+<div class="where panel" id="where" hidden></div>
+<div class="lnch panel" id="lnch" hidden><div class="t" id="l-t">T+00:00</div><div class="ev" id="l-ev"></div><div class="tel"><span>Altura <b id="l-h">0 km</b></span><span>Velocidad <b id="l-v">0 km/h</b></span></div></div>
+<div class="move" id="move" hidden>
+  <span></span><button data-k="up" aria-label="Subir">⤒</button><span></span>
+  <button data-k="left" aria-label="Izquierda">◀</button><button data-k="fwd" aria-label="Avanzar">▲</button><button data-k="right" aria-label="Derecha">▶</button>
+  <span></span><button data-k="back" aria-label="Retroceder">▼</button><button data-k="down" aria-label="Bajar">⤓</button>
+</div>
+<div class="bar panel" id="bar"></div>
+<aside class="side panel"><div class="hd" id="hd"></div><div class="bd" id="bd"></div></aside>
+
+<script src="../comun/satellite.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { MODS, MOD, FLIGHTS, VEH, SITES, STATS, SPOTS, D, fdate } from './datos.js';
+import { buildStation } from './modelo.js';
+import { buildInterior } from './interior.js';
+import { loadTLE, Orbit, sunECI, inShadow, passes, compass, makeSky, stationBasis } from './orbita.js';
+import { Launch } from './lanzamiento.js';
+
+const $ = (id) => document.getElementById(id);
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const canvasEl = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas:canvasEl, antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0; renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.autoClear = false; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const pmrem = new THREE.PMREMGenerator(renderer);
+
+// ---------- escenas ----------
+const sky = makeSky();
+const ext = new THREE.Scene(), inn = new THREE.Scene();
+// reflejos del exterior: negro arriba, Tierra azul abajo
+{ const es = new THREE.Scene(); const sph = new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), new THREE.ShaderMaterial({ side:THREE.BackSide,
+    vertexShader:'varying vec3 p; void main(){ p = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+    fragmentShader:'varying vec3 p; void main(){ float y = normalize(p).y; vec3 c = mix(vec3(.32,.45,.62), vec3(.0), smoothstep(-.25,.15,y)); gl_FragColor = vec4(c,1.); }' })); es.add(sph);
+  ext.environment = pmrem.fromScene(es, .02).texture; }
+inn.environment = pmrem.fromScene(new RoomEnvironment(renderer), .04).texture;
+const sun = new THREE.DirectionalLight(0xfff6ea, 3.4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left:-70, right:70, top:70, bottom:-70, near:1, far:260 }); sun.shadow.bias = -.0004; sun.shadow.normalBias = .04;
+ext.add(sun, sun.target);
+const earthShine = new THREE.HemisphereLight(0x000000, 0x5a7fb0, .5); ext.add(earthShine);
+ext.add(new THREE.AmbientLight(0xffffff, .03));
+const innAmb = new THREE.HemisphereLight(0xf4f2ea, 0x7a8088, .32); inn.add(innAmb);
+const head = new THREE.PointLight(0xfff4e6, 1.6, 6, 1.6); inn.add(head);
+const modLights = [0,1,2].map(() => { const l = new THREE.PointLight(0xf2f5ff, 3.2, 8, 1.5); inn.add(l); return l; });
+
+const station = buildStation(); ext.add(station.root);
+station.root.traverse(o => { if (o.isMesh){ o.castShadow = true; o.receiveShadow = true; } });
+const intr = buildInterior(); inn.add(intr.root);
+
+const cam = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, .05, 2000);
+const ctl = new OrbitControls(cam, canvasEl); ctl.enableDamping = true; ctl.dampingFactor = .08; ctl.minDistance = 12; ctl.maxDistance = 400; ctl.target.set(0, 0, 0);
+cam.position.set(70, 32, 95);
+const gcam = sky.cam; const gctl = new OrbitControls(gcam, canvasEl); gctl.enableDamping = true; gctl.minDistance = 8000; gctl.maxDistance = 90000; gctl.enabled = false;
+
+// ---------- reloj y órbita ----------
+let orbit = null, tleSrc = null, simT = Date.now(), speed = 1, lastReal = performance.now();
+const sunE = new THREE.Vector3();
+let passList = [];
+async function initOrbit(){
+  const t = await loadTLE(); tleSrc = t.src; orbit = new Orbit(t.l); orbit.at(new Date(simT));
+  setTimeout(() => { passList = passes(orbit); if (mode === 'orbita') panelOrbit(); }, 50);
+}
+
+// ---------- vista del globo: órbita, traza y Guayaquil ----------
+const globe = new THREE.Group(); sky.scene.add(globe); globe.visible = false;
+const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color:0xffb547, transparent:true, opacity:.9 })); globe.add(orbitLine);
+const trackLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color:0x7cc4ff, dashSize:120, gapSize:80 })); globe.add(trackLine);
+const mkSprite = (col, s) => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'#fff'); gr.addColorStop(.25,col); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0,0,64,64);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), depthTest:true, transparent:true })); sp.scale.setScalar(s); return sp; };
+const issDot = mkSprite('#ffb547', 900); globe.add(issDot);
+const mkLbl = (t) => { const d = document.createElement('div'); d.className = 'lbl'; d.textContent = t; d.hidden = true; document.body.append(d); return d; };
+const lblISS = mkLbl('Estación Espacial'), lblGYE = mkLbl('Guayaquil');
+const gyeDot = mkSprite('#7ee2a8', 500); globe.add(gyeDot);
+let orbitDrawnAt = 0;
+function drawOrbitGlobe(){
+  const pts = [], trk = [], P = orbit.periodMin()*60e3, M = new THREE.Matrix4();
+  const toG = new THREE.Matrix4().makeBasis(V(1,0,0), V(0,0,-1), V(0,1,0));
+  for (let k = -.5; k <= 1.0001; k += 1/240){
+    const d = new Date(simT + k*P); if (!orbit.at(d)) continue;
+    pts.push(orbit.r.clone().applyMatrix4(toG));
+    // traza sobre el suelo: punto debajo, girando con la Tierra (se dibuja en el marco del globo con la Tierra de ahora)
+    const ecef = orbit.r.clone().applyAxisAngle(V(0,0,1), -orbit.gmst).normalize().multiplyScalar(6378 + 15);
+    const nowG = satellite.gstime(new Date(simT)); trk.push(ecef.applyAxisAngle(V(0,0,1), nowG).applyMatrix4(toG));
+  }
+  orbitLine.geometry.dispose(); orbitLine.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+  trackLine.geometry.dispose(); trackLine.geometry = new THREE.BufferGeometry().setFromPoints(trk); trackLine.computeLineDistances();
+  orbit.at(new Date(simT)); orbitDrawnAt = simT;
+}
+
+// ---------- modos ----------
+let mode = 'orbita', view = 'cerca';
+const tabs = [...document.querySelectorAll('.tab')];
+tabs.forEach(b => b.onclick = () => setMode(b.dataset.mode));
+function setMode(m){
+  if (launch){ launch.dispose(); launch = null; $('lnch').hidden = true; }
+  mode = m; document.body.dataset.mode = m; tabs.forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
+  $('move').hidden = m !== 'dentro'; $('hud').hidden = m !== 'orbita'; $('cross').hidden = m !== 'dentro'; $('where').hidden = m !== 'dentro'; $('pts').innerHTML = ''; spotEls = [];
+  ctl.enabled = m !== 'dentro' && !(m === 'orbita' && view === 'globo'); gctl.enabled = m === 'orbita' && view === 'globo';
+  station.root.visible = m !== 'dentro'; intr.root.visible = m === 'dentro'; lblISS.hidden = lblGYE.hidden = true;
+  if (m !== 'dentro' && cam.position.length() < 30){ cam.position.set(70, 32, 95); } if (m !== 'dentro') cam.fov = innerWidth < innerHeight ? 72 : 55;
+  if (m === 'orbita'){ station.setDate(Date.now()); barOrbit(); panelOrbit(); if (view === 'cerca') { cam.near = .5; ctl.target.set(0,0,0); } }
+  if (m === 'dentro'){ station.setDate(Date.now()); enterInside(); }
+  if (m === 'armado'){ view = 'cerca'; globe.visible = false; cam.near = .5; ctl.target.set(0,0,0); barArmado(); pickFlight(flightIdx); }
+  cam.updateProjectionMatrix(); history.replaceState(null, '', '#' + m);
+}
+
+// ---------- 1 · en órbita ----------
+function barOrbit(){
+  $('bar').innerHTML = `<div class="g"><small>Vista</small><button class="tb" data-v="cerca" aria-pressed="${view==='cerca'}">🛰️ Cerca</button><button class="tb" data-v="globo" aria-pressed="${view==='globo'}">🌍 Toda la Tierra</button></div>
+    <div class="g"><small>Tiempo</small>${[[1,'×1 real'],[10,'×10'],[60,'×60'],[600,'×600']].map(([s,t]) => `<button class="tb" data-s="${s}" aria-pressed="${speed===s}">${t}</button>`).join('')}<button class="tb" id="bNow">Ahora</button></div>`;
+  $('bar').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; globe.visible = view === 'globo'; setMode('orbita');
+    if (view === 'globo'){ gcam.near = 50; gcam.far = 5e5; gcam.updateProjectionMatrix(); const G = new THREE.Matrix4().makeBasis(V(1,0,0), V(0,0,-1), V(0,1,0));
+      // cámara entre la estación y el Sol, para ver la Tierra iluminada con la estación encima
+      const p = orbit ? orbit.r.clone().normalize().add(sunE.clone().multiplyScalar(.9)).applyMatrix4(G).normalize().multiplyScalar(26000) : V(0,8000,26000); gcam.position.copy(p); gcam.up.set(0,1,0); gctl.target.set(0,0,0); drawOrbitGlobe(); }
+    else { gcam.near = .5; gcam.far = 4e5; gcam.updateProjectionMatrix(); } });
+  $('bar').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { speed = +b.dataset.s; $('bar').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+  $('bNow').onclick = () => { simT = Date.now(); speed = 1; barOrbit(); };
+}
+const fmtT = (t) => new Date(t).toLocaleString('es-EC', { timeZone:'America/Guayaquil', weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+function panelOrbit(){
+  $('hd').innerHTML = `<div class="k">Órbita real · SGP4</div><h2>¿Dónde está ahora?</h2><p>La estación da una vuelta a la Tierra cada 93 minutos. Arrastra para girar alrededor de ella y usa la rueda o dos dedos para acercarte. Lo que ves abajo es el lugar real por donde pasa.</p>`;
+  const vis = passList.filter(p => p.lit).slice(0, 5), any = passList.slice(0, 3);
+  $('bd').innerHTML = `<div id="live"></div>
+    <h3>Pasos que se verán desde Guayaquil</h3>
+    ${vis.length ? vis.map(p => `<div class="pass vis"><b>${fmtT(p.t0)}</b> · ${Math.round((p.t1 - p.t0)/60e3)} min<br>Aparece por el ${compass(p.az0)}, sube hasta ${Math.round(p.maxEl)}° y se va por el ${compass(p.az1)}.</div>`).join('')
+      : `<p style="color:var(--dim)">${orbit ? 'En los próximos 4 días no pasa de noche con la estación iluminada por el Sol. Pasa por encima, pero de día o en la sombra de la Tierra no se ve.' : 'Calculando…'}</p>`}
+    <p style="color:var(--dim);font-size:12.5px">Se ve como una estrella muy brillante que cruza el cielo en unos minutos, sin parpadear. Solo se ve poco después del atardecer o antes del amanecer: el cielo ya está oscuro, pero a 420 km de altura todavía le llega el Sol.</p>
+    ${!vis.length && any.length ? `<h3>Próximos pasos (no visibles)</h3>${any.map(p => `<div class="pass"><b>${fmtT(p.t0)}</b> · hasta ${Math.round(p.maxEl)}° de altura</div>`).join('')}` : ''}
+    <h3>Datos de la estación</h3><dl class="kv">${STATS.map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    <div class="src">Fuentes:<ul><li>Elementos orbitales (TLE): ${tleSrc ? tleSrc + ', actualizados cada pocas horas' : '<b>sin conexión</b>: posición aproximada'}; propagación SGP4 con <a href="https://github.com/shashwatak/satellite-js">satellite.js</a>.</li>
+    <li><a href="https://www.nasa.gov/reference/international-space-station/">NASA · Estación Espacial Internacional</a></li><li>Configuración de noviembre de 2026: <a href="https://www.nasa.gov/blogs/spacestation/">blog de la estación de la NASA</a>.</li></ul></div>`;
+}
+function liveOrbit(){
+  const el = $('live'); if (!el || !orbit) return;
+  const g = orbit.geo(), v = orbit.v.length(), lit = !inShadow(orbit.r, sunE);
+  el.innerHTML = `<div class="big">${Math.abs(g.lat).toFixed(2)}° ${g.lat >= 0 ? 'N' : 'S'} · ${Math.abs(g.lon).toFixed(2)}° ${g.lon >= 0 ? 'E' : 'O'}</div>
+    <dl class="kv"><dt>Hora (Guayaquil)</dt><dd>${new Date(simT).toLocaleTimeString('es-EC', { timeZone:'America/Guayaquil' })}</dd><dt>Altura</dt><dd>${g.h.toFixed(1)} km</dd><dt>Velocidad</dt><dd>${v.toFixed(3)} km/s · ${Math.round(v*3600).toLocaleString('es')} km/h</dd>
+    <dt>Debajo</dt><dd>${lit ? '☀️ de día' : '🌙 de noche'}</dd><dt>Vueltas por día</dt><dd>${(1440/orbit.periodMin()).toFixed(2)}</dd></dl>`;
+  $('hud').innerHTML = `<b>${speed === 1 ? 'Tiempo real' : '×' + speed}</b> · ${new Date(simT).toLocaleString('es-EC', { timeZone:'America/Guayaquil' })}<br>${lit ? 'La estación está al Sol' : 'La estación está en la sombra de la Tierra'}`;
+}
+
+// ---------- 2 · por dentro ----------
+const look = { yaw:Math.PI/2, pitch:0 }, vel = V(0,0,0), keys = new Set();
+let curMod = null, spotEls = [], travel = null, spotSel = -1;
+function enterInside(){
+  cam.near = .05; cam.fov = 70; cam.updateProjectionMatrix();
+  if (!intr.inside(cam.position)){ cam.position.copy(intr.center('destiny')); look.yaw = -Math.PI/2; look.pitch = 0; }
+  barInside(); curMod = null; updateWhere(true);
+}
+function barInside(){
+  $('bar').innerHTML = `<div class="g"><small>Ir a</small><select class="tb" id="go">${MODS.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}</select><button class="tb pri" id="goB">Flotar hasta allá</button></div>
+    <div class="g"><button class="tb" id="bSnd" aria-pressed="false">🔊 Sonido</button><small class="hint">Arrastra para mirar · W A S D / flechas para flotar</small></div>`;
+  $('goB').onclick = () => goTo($('go').value);
+  $('bSnd').onclick = () => toggleSound($('bSnd'));
+}
+function goTo(id){
+  const from = intr.whichModule(cam.position) || 'destiny', r = intr.route(from, id); if (!r) return;
+  const pts = [cam.position.clone(), ...r.pts.slice(1)]; if (pts.length < 2) return;
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', .2);
+  travel = { curve, t:0, len:curve.getLength(), id };
+}
+function panelInside(id){
+  const m = MOD[id]; if (!m) return;
+  const sp = intr.spots.filter(s => s.m === id);
+  $('hd').innerHTML = `<div class="k">${m.ag} · ${m.masa}</div><h2>${m.name}</h2><p>${m.txt}</p>`;
+  $('bd').innerHTML = `<dl class="kv"><dt>Llegó</dt><dd>${m.lanz}</dd><dt>Largo</dt><dd>${m.L.toFixed(1).replace('.', ',')} m</dd><dt>Diámetro</dt><dd>${(m.R*2).toFixed(1).replace('.', ',')} m</dd></dl>
+    ${sp.length ? `<h3>Qué hay aquí · toca un número</h3><ul class="pl">${sp.map(s => `<li><button data-i="${s.i}" aria-current="${s.i === spotSel}"><span class="n">${s.i+1}</span><b>${s.t}</b><span class="d">${s.x}</span></button></li>`).join('')}</ul>` : ''}
+    <h3>Todos los módulos</h3><div class="mods">${MODS.map(x => `<button data-m="${x.id}" aria-current="${x.id === id}">${x.short || x.name.split(' (')[0]}</button>`).join('')}</div>
+    <div class="src">Medidas y fechas: NASA, ESA, JAXA y Roscosmos. El interior está modelado a escala real; la distribución de los equipos está simplificada.</div>`;
+  $('bd').querySelectorAll('[data-i]').forEach(b => b.onclick = () => selectSpot(+b.dataset.i));
+  $('bd').querySelectorAll('[data-m]').forEach(b => b.onclick = () => goTo(b.dataset.m));
+}
+function selectSpot(i){
+  spotSel = i; const s = intr.spots[i];
+  // girar la cabeza hacia el punto
+  const d = s.p.clone().sub(cam.position); if (d.length() > 7) goTo(s.m);
+  const tgtYaw = Math.atan2(-d.x, -d.z), tgtPitch = Math.atan2(d.y, Math.hypot(d.x, d.z));
+  turn = { yaw:tgtYaw, pitch:tgtPitch, k:0 };
+  $('bd').querySelectorAll('[data-i]').forEach(b => b.setAttribute('aria-current', String(+b.dataset.i === i)));
+  spotEls.forEach(e => e.classList.toggle('on', +e.dataset.i === i));
+}
+let turn = null;
+function updateWhere(force){
+  const id = intr.whichModule(cam.position);
+  if (id && (id !== curMod || force)){ curMod = id; $('where').textContent = 'Estás en ' + MOD[id].name; $('where').style.opacity = 1; clearTimeout(updateWhere.t); updateWhere.t = setTimeout(() => $('where').style.opacity = .0, 2600); panelInside(id); buildSpotEls(); }
+}
+function buildSpotEls(){
+  $('pts').innerHTML = ''; spotEls = intr.spots.map(s => { const b = document.createElement('button'); b.className = 'pt'; b.textContent = s.i + 1; b.dataset.i = s.i; b.title = s.t; b.onclick = () => selectSpot(s.i); $('pts').append(b); return b; });
+}
+function updateSpots(){
+  const w = innerWidth, h = innerHeight, p = V(0,0,0);
+  for (const b of spotEls){ const s = intr.spots[+b.dataset.i], d = s.p.distanceTo(cam.position);
+    p.copy(s.p).project(cam); const vis = d < 6.5 && p.z < 1 && Math.abs(p.x) < 1.05 && Math.abs(p.y) < 1.05;
+    b.hidden = !vis; if (vis) b.style.transform = `translate(${(p.x*.5+.5)*w}px,${(-p.y*.5+.5)*h}px)`; }
+}
+// mirar arrastrando
+let drag = null;
+canvasEl.addEventListener('pointerdown', e => { if (mode !== 'dentro') return; drag = { x:e.clientX, y:e.clientY, id:e.pointerId }; canvasEl.setPointerCapture(e.pointerId); turn = null; });
+canvasEl.addEventListener('pointermove', e => { if (!drag || drag.id !== e.pointerId) return; const k = e.pointerType === 'touch' ? .006 : .004;
+  look.yaw += (e.clientX - drag.x)*k; look.pitch = Math.max(-1.45, Math.min(1.45, look.pitch + (e.clientY - drag.y)*k)); drag.x = e.clientX; drag.y = e.clientY; });
+canvasEl.addEventListener('pointerup', () => drag = null); canvasEl.addEventListener('pointercancel', () => drag = null);
+canvasEl.addEventListener('wheel', e => { if (mode !== 'dentro') return; e.preventDefault(); vel.addScaledVector(fwdVec(), -Math.sign(e.deltaY)*.9); }, { passive:false });
+addEventListener('keydown', e => { if (mode === 'dentro' && !e.target.closest('select')){ keys.add(e.code); if (e.code.startsWith('Arrow')) e.preventDefault(); } });
+addEventListener('keyup', e => keys.delete(e.code));
+$('move').querySelectorAll('button').forEach(b => { const k = 'btn-' + b.dataset.k;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); keys.add(k); b.setPointerCapture(e.pointerId); }); for (const ev of ['pointerup','pointercancel','pointerleave']) b.addEventListener(ev, () => keys.delete(k)); });
+const fwdVec = () => V(-Math.sin(look.yaw)*Math.cos(look.pitch), Math.sin(look.pitch), -Math.cos(look.yaw)*Math.cos(look.pitch));
+function stepInside(dt){
+  if (travel){
+    travel.t = Math.min(1, travel.t + dt*1.6/travel.len); const p = travel.curve.getPointAt(travel.t), ahead = travel.curve.getPointAt(Math.min(1, travel.t + .04));
+    cam.position.copy(p); const d = ahead.sub(p); if (d.length() > 1e-3){ const ty = Math.atan2(-d.x, -d.z), tp = Math.atan2(d.y, Math.hypot(d.x, d.z));
+      look.yaw += Math.atan2(Math.sin(ty - look.yaw), Math.cos(ty - look.yaw))*Math.min(1, dt*4); look.pitch += (tp*.6 - look.pitch)*Math.min(1, dt*4); }
+    if (travel.t >= 1) travel = null;
+  } else {
+    const f = fwdVec(), rt = V(-Math.cos(look.yaw), 0, Math.sin(look.yaw)).negate(), up = V(0,1,0), acc = V(0,0,0);
+    if (keys.has('KeyW') || keys.has('ArrowUp') || keys.has('btn-fwd')) acc.add(f);
+    if (keys.has('KeyS') || keys.has('ArrowDown') || keys.has('btn-back')) acc.sub(f);
+    if (keys.has('KeyD') || keys.has('ArrowRight') || keys.has('btn-right')) acc.add(rt);
+    if (keys.has('KeyA') || keys.has('ArrowLeft') || keys.has('btn-left')) acc.sub(rt);
+    if (keys.has('KeyE') || keys.has('Space') || keys.has('btn-up')) acc.add(up);
+    if (keys.has('KeyQ') || keys.has('ShiftLeft') || keys.has('btn-down')) acc.sub(up);
+    vel.addScaledVector(acc, dt*3.2); vel.multiplyScalar(Math.pow(.18, dt)); if (vel.length() > 1.6) vel.setLength(1.6);
+    const step = vel.clone().multiplyScalar(dt), np = cam.position.clone().add(step);
+    if (intr.inside(np)) cam.position.copy(np);
+    else { for (const ax of ['x','y','z']){ const t = cam.position.clone(); t[ax] += step[ax]; if (intr.inside(t)) cam.position.copy(t); else vel[ax] *= -.2; } }
+  }
+  if (turn){ turn.k += dt*2.5; const k = Math.min(1, dt*4); look.yaw += Math.atan2(Math.sin(turn.yaw - look.yaw), Math.cos(turn.yaw - look.yaw))*k; look.pitch += (turn.pitch - look.pitch)*k; if (turn.k > 2) turn = null; }
+  // cabeceo suave, como flotando
+  const bob = Math.sin(performance.now()*.0007)*.004;
+  cam.quaternion.setFromEuler(new THREE.Euler(look.pitch + bob, look.yaw, 0, 'YXZ'));
+  head.position.copy(cam.position);
+  // las tres luces del techo más cercanas
+  const near = intr.spots.slice().sort((a, b) => a.p.distanceTo(cam.position) - b.p.distanceTo(cam.position));
+  modLights.forEach((l, i) => { const c = intr.center(MOD[near[i]?.m || 'destiny'].id); l.position.copy(c).add(V(0, .7, 0)); });
+  updateWhere(); updateSpots();
+}
+// sonido de la estación: ventiladores (ruido rosa filtrado) y un zumbido grave
+let snd = null;
+function toggleSound(btn){
+  if (snd){ snd.ctx.close(); snd = null; btn.setAttribute('aria-pressed','false'); return; }
+  const ctx = new AudioContext(), n = ctx.sampleRate*2, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0); let b0=0,b1=0,b2=0;
+  for (let i = 0; i < n; i++){ const w = Math.random()*2-1; b0 = .997*b0 + w*.029; b1 = .985*b1 + w*.032; b2 = .95*b2 + w*.048; d[i] = (b0+b1+b2)*.35; }
+  const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+  const g = ctx.createGain(); g.gain.value = .35; src.connect(lp).connect(g).connect(ctx.destination); src.start();
+  const o = ctx.createOscillator(); o.frequency.value = 118; const og = ctx.createGain(); og.gain.value = .012; o.connect(og).connect(ctx.destination); o.start();
+  snd = { ctx }; btn.setAttribute('aria-pressed','true');
+}
+
+// ---------- 3 · armado ----------
+let flightIdx = FLIGHTS.length - 1, playing = null, hl = [];
+function barArmado(){
+  $('bar').innerHTML = `<div class="g" style="flex:1;min-width:220px"><input type="range" class="tl" id="tl" min="0" max="${FLIGHTS.length-1}" value="${flightIdx}" aria-label="Vuelo de armado"></div>
+    <div class="g"><button class="tb" id="bPrev">◀</button><button class="tb" id="bPlay">▶ Reproducir</button><button class="tb" id="bNext">▶|</button></div>
+    <div class="g"><button class="tb pri" id="bLaunch">🚀 Ver el lanzamiento</button></div>`;
+  $('tl').oninput = () => pickFlight(+$('tl').value);
+  $('bPrev').onclick = () => pickFlight(Math.max(0, flightIdx - 1)); $('bNext').onclick = () => pickFlight(Math.min(FLIGHTS.length-1, flightIdx + 1));
+  $('bPlay').onclick = () => { if (playing){ clearInterval(playing); playing = null; $('bPlay').textContent = '▶ Reproducir'; return; }
+    if (flightIdx >= FLIGHTS.length - 1) pickFlight(0); $('bPlay').textContent = '⏸ Pausa';
+    playing = setInterval(() => { if (flightIdx >= FLIGHTS.length - 1){ clearInterval(playing); playing = null; $('bPlay').textContent = '▶ Reproducir'; return; } pickFlight(flightIdx + 1); }, 2600); };
+  $('bLaunch').onclick = () => startLaunch(FLIGHTS[flightIdx]);
+}
+function pickFlight(i){
+  flightIdx = i; const f = FLIGHTS[i], t = D(f.d) + 20*864e5; station.setDate(i === FLIGHTS.length - 1 ? Date.now() : t);
+  if ($('tl')) $('tl').value = i;
+  hl.forEach(h => h.parent && h.parent.remove(h)); hl = [];
+  // encuadre: la cámara se aleja o se acerca según el tamaño de la estación en esa fecha
+  const bb = new THREE.Box3(); station.root.children.forEach(o => { if (o.visible) bb.expandByObject(o); });
+  if (!bb.isEmpty()){ const c = bb.getCenter(V(0,0,0)), rad = bb.getSize(V(0,0,0)).length()/2, d = Math.max(28, rad*2.1);
+    const dir = cam.position.clone().sub(ctl.target).normalize(); ctl.target.copy(c); cam.position.copy(c).addScaledVector(dir, d); }
+  for (const id of [...f.add, ...(f.move || [])]){ const o = station.parts.get(id); if (!o || !o.visible) continue; const b = new THREE.Box3().setFromObject(o); if (b.isEmpty()) continue; const h = new THREE.Box3Helper(b, 0xffb547); ext.add(h); hl.push(h); }
+  const veh = VEH[f.veh];
+  $('hd').innerHTML = `<div class="k">Vuelo ${f.id} · ${i+1} de ${FLIGHTS.length}</div><div class="date">${fdate(f.d)}</div><h2>${f.t}</h2><p>${f.x}</p>`;
+  $('bd').innerHTML = `<dl class="kv"><dt>Cohete</dt><dd>${veh.name}${f.orb ? ' ' + f.orb : ''}</dd><dt>Desde</dt><dd>${SITES[f.site]}</dd><dt>País</dt><dd>${veh.pais}</dd></dl>
+    <button class="tb pri" id="bL2" style="width:100%;margin:6px 0 10px">🚀 Ver cómo despegó</button>
+    <h3>Todos los vuelos del armado</h3><ul class="pl">${FLIGHTS.map((x, k) => `<li><button data-f="${k}" aria-current="${k === i}"><span class="n">${k+1}</span><b>${x.t}</b><span class="s">${fdate(x.d)} · ${VEH[x.veh].name}${x.orb ? ' ' + x.orb : ''}</span></button></li>`).join('')}</ul>
+    <div class="src">Fuentes: <ul><li><a href="https://en.wikipedia.org/wiki/Assembly_of_the_International_Space_Station">Armado de la ISS (cronología de vuelos)</a></li><li><a href="https://www.nasa.gov/international-space-station/">NASA · ISS</a> y <a href="https://www.nasa.gov/blogs/spacestation/">blog de la estación</a> (iROSA 7 y 8, oct.–nov. 2026)</li></ul></div>`;
+  $('bL2').onclick = () => startLaunch(f);
+  $('bd').querySelectorAll('[data-f]').forEach(b => b.onclick = () => pickFlight(+b.dataset.f));
+  $('bd').querySelector('[aria-current=true]')?.scrollIntoView({ block:'nearest' });
+}
+
+// ---------- lanzamiento ----------
+let launch = null;
+function startLaunch(f){
+  if (playing){ clearInterval(playing); playing = null; }
+  hl.forEach(h => h.parent && h.parent.remove(h)); hl = [];
+  launch = new Launch({ renderer, station, ext, cam, ctl, draw:drawStation, onOrbit:() => { $('hd').querySelector('h2') && ($('hd').querySelector('p').textContent = 'Arrastra para mirar la llegada desde cualquier lado.'); } }, f, VEH[f.veh], SITES[f.site], (s) => {
+    $('l-t').textContent = s.t; $('l-ev').textContent = s.ev; $('l-h').textContent = s.h; $('l-v').textContent = s.v; });
+  $('lnch').hidden = false; ctl.enabled = false;
+  $('bar').innerHTML = `<div class="g"><small>Velocidad</small>${[1,5,20].map(s => `<button class="tb" data-ls="${s}" aria-pressed="${s===5}">×${s}</button>`).join('')}</div>
+    <div class="g"><button class="tb" id="lCam">🎥 Cambiar cámara</button><button class="tb" id="lSkip">⏭ Ir a la estación</button><button class="tb" id="lEnd">✕ Salir</button></div>`;
+  $('bar').querySelectorAll('[data-ls]').forEach(b => b.onclick = () => { launch.speed = +b.dataset.ls; $('bar').querySelectorAll('[data-ls]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+  $('lCam').onclick = () => launch.nextCam(); $('lSkip').onclick = () => launch.skip();
+  $('lEnd').onclick = () => setMode('armado');
+  const veh = VEH[f.veh];
+  $('hd').innerHTML = `<div class="k">${veh.name}${f.orb ? ' ' + f.orb : ''} · ${fdate(f.d)}</div><h2>${f.t}</h2><p>${SITES[f.site]}. ${veh.name} mide ${veh.alto}.</p>`;
+  $('bd').innerHTML = `<h3>Cronología del ascenso</h3><ul class="pl">${veh.ev.map(([t, e]) => `<li><button><span class="n">${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}</span><b>${e}</b></button></li>`).join('')}</ul>
+    <p style="color:var(--dim);font-size:12.5px;margin-top:10px">Tiempos aproximados de cada etapa para este cohete. Después del despegue la carga tarda horas o días en alcanzar a la estación: aquí lo resumimos en el acoplamiento final.</p>`;
+}
+
+// ---------- bucle ----------
+function resize(){ renderer.setSize(innerWidth, innerHeight); if (mode !== 'dentro') cam.fov = innerWidth < innerHeight ? 72 : 55; for (const c of [cam, gcam]){ c.aspect = innerWidth/innerHeight; c.updateProjectionMatrix(); } }
+addEventListener('resize', resize);
+let frames = 0, tPrev = performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt = Math.min(.05, (now - tPrev)/1000); tPrev = now;
+  simT += dt*1000*(mode === 'orbita' ? speed : 1);
+  if (!orbit) return;
+  if (launch){ launch.step(dt); if (launch.phase === 'orb'){ ctl.update(); orbit.at(new Date(simT)); sunECI(simT, sunE); } launch.render(); return; }
+  orbit.at(new Date(simT)); sunECI(simT, sunE);
+  if (mode === 'orbita' && view === 'globo'){
+    const s = sky.update(orbit, sunE, simT, 'globe');
+    const toG = new THREE.Matrix4().makeBasis(V(1,0,0), V(0,0,-1), V(0,1,0));
+    issDot.position.copy(orbit.r).applyMatrix4(toG);
+    const lat = -2.19*Math.PI/180, lon = -79.89*Math.PI/180, ecef = V(Math.cos(lat)*Math.cos(lon), Math.cos(lat)*Math.sin(lon), Math.sin(lat)).multiplyScalar(6378 + 20);
+    gyeDot.position.copy(ecef.applyAxisAngle(V(0,0,1), orbit.gmst)).applyMatrix4(toG);
+    if (Math.abs(simT - orbitDrawnAt) > 60e3) drawOrbitGlobe();
+    gctl.update(); renderer.setClearColor(0x000000); renderer.clear(); renderer.render(sky.scene, gcam);
+    for (const [el, p] of [[lblISS, issDot.position], [lblGYE, gyeDot.position]]){ const q = p.clone().project(gcam), occl = p.clone().normalize().dot(gcam.position.clone().sub(p)) < 0;
+      el.hidden = q.z > 1 || occl; el.style.left = (q.x*.5+.5)*innerWidth + 'px'; el.style.top = (-q.y*.5+.5)*innerHeight + 'px'; }
+    if ((frames++ % 15) === 0) liveOrbit();
+    return;
+  }
+  if (mode === 'dentro'){ stepInside(dt); intr.update(now/1000); }
+  else ctl.update();
+  drawStation(mode === 'dentro' ? inn : ext);
+  if ((frames++ % 15) === 0 && mode === 'orbita') liveOrbit();
+}
+// dibuja la Tierra de fondo y la estación (por fuera o por dentro) con la luz real del Sol
+function drawStation(scn = ext){
+  const s = sky.update(orbit, sunE, simT, 'station');
+  sun.position.copy(s.sunLocal).multiplyScalar(150); sun.target.position.set(0,0,0); sun.intensity = s.lit ? 3.4 : 0;
+  earthShine.intensity = .55*Math.max(0, Math.min(1, s.sunLocal.y + .25)) + .03;
+  station.track(s.sunLocal);
+  gcam.quaternion.copy(cam.quaternion); gcam.position.copy(cam.position).multiplyScalar(.001); gcam.fov = cam.fov; gcam.aspect = cam.aspect; gcam.near = .02; gcam.far = 4e5; gcam.updateProjectionMatrix();
+  renderer.setClearColor(0x000000); renderer.clear(); renderer.render(sky.scene, gcam); renderer.clearDepth();
+  renderer.toneMappingExposure = scn === inn ? .78 : 1; renderer.render(scn, cam); renderer.toneMappingExposure = 1;
+}
+
+// ---------- inicio ----------
+await initOrbit();
+const startMode = (location.hash || '').slice(1);
+setMode(['orbita','dentro','armado'].includes(startMode) ? startMode : 'orbita');
+$('ldg').style.opacity = 0; setTimeout(() => $('ldg').hidden = true, 700);
+requestAnimationFrame(loop);
+window.__iss = { FLIGHTS, renderer, look, setTime:(t) => { simT = t; }, get simT(){ return simT; }, cam, station, intr, setMode, goTo, get orbit(){ return orbit; }, selectSpot, pickFlight, startLaunch, get launch(){ return launch; } };
+</script>
+</body>
+</html>
