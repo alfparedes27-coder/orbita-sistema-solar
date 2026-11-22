@@ -55,6 +55,19 @@ dl.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:6px 0}dl.k
 #pts{position:fixed;inset:0;pointer-events:none;z-index:6}
 .pt{position:absolute;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:1.5px solid #fff;background:rgba(8,12,20,.78);color:#fff;font:600 11px var(--f-data);display:grid;place-items:center;cursor:pointer;pointer-events:auto;padding:0}
 .pt:hover,.pt.on{background:var(--warm);color:#1a1100;border-color:var(--warm)}
+.pt.act{width:auto;height:30px;margin:-15px 0 0 -16px;border-radius:15px;padding:0 9px;display:flex;align-items:center;gap:6px;background:rgba(255,181,71,.94);border-color:#ffe2b0;color:#1a1100;font:600 12px var(--f-body);font-size:15px;box-shadow:0 0 0 4px rgba(255,181,71,.25)}
+.pt.act span{font:600 12px var(--f-body);display:none}.pt.act:hover span,.pt.act:focus-visible span{display:inline}
+.pl .ico{grid-row:span 2;font-size:20px;line-height:1;padding-top:2px}
+.pl .go{grid-column:2;justify-self:start;margin-top:6px;background:var(--warm);color:#1a1100;border-radius:7px;padding:5px 10px;font:600 12px var(--f-body)}
+.pl button:not([aria-current=true]) .go{display:none}
+.steps{list-style:none;margin:0;padding:0;counter-reset:st}.steps li{position:relative;padding:7px 8px 7px 36px;border:1px solid var(--line);border-radius:8px;margin:5px 0;color:var(--dim)}
+.steps li::before{counter-increment:st;content:counter(st);position:absolute;left:8px;top:8px;width:20px;height:20px;border-radius:50%;background:#1a2336;color:var(--ink);font:600 11px var(--f-data);display:grid;place-items:center}
+.steps li.done{color:var(--ink)}.steps li.done::before{content:'✓';background:var(--ok);color:#06210f}.steps li.now{border-color:var(--warm);color:var(--ink)}.steps li.now::before{background:var(--warm);color:#1a1100}
+.steps li b{display:block;color:var(--ink);font-weight:600}.steps li .x{display:none;margin-top:4px;font-size:12.5px;color:#c9cfdb}.steps li.now .x{display:block}
+.prog{height:6px;border-radius:3px;background:#1a2336;overflow:hidden;margin-top:6px}.prog i{display:block;height:100%;background:var(--warm);width:0}
+#helmet{position:fixed;inset:0;z-index:5;pointer-events:none;background:radial-gradient(ellipse 72% 64% at 50% 48%,transparent 60%,rgba(0,0,0,.45) 76%,rgba(0,0,0,.92) 90%,#000 100%);transition:opacity .8s}
+#helmet::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.07) 0 18%,transparent 30% 100%),radial-gradient(ellipse 72% 64% at 50% 48%,transparent 70%,rgba(200,160,60,.08) 100%)}
+#suitHud{position:fixed;left:50%;top:calc(110px + var(--top));transform:translateX(-50%);z-index:6;background:rgba(0,8,4,.55);padding:5px 12px;border-radius:8px;font:500 12px var(--f-data);color:#8ff0b4;text-shadow:0 0 6px rgba(80,255,150,.5);letter-spacing:.04em;text-align:center;pointer-events:none;white-space:nowrap}
 .lbl{position:absolute;left:0;top:0;transform:translate(-50%,-130%);font:600 11.5px var(--f-body);color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;pointer-events:none}
 .hud{position:fixed;left:16px;top:calc(66px + var(--top));z-index:7;padding:8px 12px;font:500 12px var(--f-data);color:var(--dim);max-width:340px;line-height:1.55}
 .hud b{color:var(--ink);font-weight:500}
@@ -77,6 +90,7 @@ dl.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:6px 0}dl.k
   .move{bottom:calc(42vh + 64px);left:8px;grid-template-columns:repeat(3,46px)}.move button{height:46px}
   .lnch{top:calc(58px + var(--top));min-width:0;width:calc(100% - 32px)}.lnch .t{font-size:24px}
   .hint{display:none}
+  #suitHud{white-space:normal;width:92vw;font-size:10.5px;top:calc(100px + var(--top))}
   body[data-mode=dentro] .side{height:30vh} body[data-mode=dentro] .bar{bottom:calc(30vh + 6px)} body[data-mode=dentro] .move{bottom:calc(30vh + 112px);left:auto;right:8px}
   .where{top:calc(60px + var(--top))}
 }
@@ -86,6 +100,7 @@ dl.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:6px 0}dl.k
 <canvas id="gl" aria-label="Estación Espacial Internacional en 3D"></canvas>
 <div id="pts"></div>
 <div class="cross" id="cross" hidden></div>
+<div id="helmet" hidden></div><div id="suitHud" hidden></div>
 <div class="ldg" id="ldg">Preparando la estación…</div>
 <div class="top">
   <a class="back panel" href="../">← Estaciones</a>
@@ -195,6 +210,9 @@ let mode = 'orbita', view = 'cerca';
 const tabs = [...document.querySelectorAll('.tab')];
 tabs.forEach(b => b.onclick = () => setMode(b.dataset.mode));
 function setMode(m){
+  if (EVA.step >= 0 || EVA.out){ if (EVA.out){ goInsideLock(); } tasks.length = 0; Q.outer(false); Q.inner(true); Q.state.inLock = false; Q.suit(true); Q.press(101.3, 'CABINA NORMAL'); helmet(false); setSoundLevel(1); EVA.step = -1; EVA.busy = false; }
+  if (cine){ ext.remove(cine.g); cine = null; }
+  windowMode(false);
   if (launch){ launch.dispose(); launch = null; $('lnch').hidden = true; }
   mode = m; document.body.dataset.mode = m; tabs.forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
   $('move').hidden = m !== 'dentro'; $('hud').hidden = m !== 'orbita'; $('cross').hidden = m !== 'dentro'; $('where').hidden = m !== 'dentro'; $('pts').innerHTML = ''; spotEls = [];
@@ -256,22 +274,69 @@ function barInside(){
   $('goB').onclick = () => goTo($('go').value);
   $('bSnd').onclick = () => toggleSound($('bSnd'));
 }
-function goTo(id){
-  const from = intr.whichModule(cam.position) || 'destiny', r = intr.route(from, id); if (!r) return;
-  const pts = [cam.position.clone(), ...r.pts.slice(1)]; if (pts.length < 2) return;
+function goTo(id, done){
+  if (EVA.out || cine) return;
+  windowMode(false);
+  const from = intr.whichModule(cam.position) || 'destiny', r = intr.route(from, id); if (!r){ done && done(); return; }
+  const pts = [cam.position.clone(), ...r.pts.slice(1)]; if (pts.length < 2){ done && done(); return; }
   const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', .2);
-  travel = { curve, t:0, len:curve.getLength(), id };
+  travel = { curve, t:0, len:curve.getLength(), id, done };
 }
 function panelInside(id){
   const m = MOD[id]; if (!m) return;
-  const sp = intr.spots.filter(s => s.m === id);
+  if (EVA.step >= 0) return panelEVA();
+  const sp = intr.spots.filter(s => s.m === id), ac = intr.acts.filter(a => a.m === id);
   $('hd').innerHTML = `<div class="k">${m.ag} · ${m.masa}</div><h2>${m.name}</h2><p>${m.txt}</p>`;
   $('bd').innerHTML = `<dl class="kv"><dt>Llegó</dt><dd>${m.lanz}</dd><dt>Largo</dt><dd>${m.L.toFixed(1).replace('.', ',')} m</dd><dt>Diámetro</dt><dd>${(m.R*2).toFixed(1).replace('.', ',')} m</dd></dl>
+    ${ac.length ? `<h3>Cosas que puedes hacer aquí</h3><ul class="pl">${ac.map(a => `<li><button data-a="${a.id}" aria-current="${a.id === actSel}"><span class="ico">${a.icon}</span><b>${a.t}</b><span class="d">${a.x}</span><span class="go" data-run="${a.id}">${a.label()}</span></button></li>`).join('')}</ul>` : ''}
     ${sp.length ? `<h3>Qué hay aquí · toca un número</h3><ul class="pl">${sp.map(s => `<li><button data-i="${s.i}" aria-current="${s.i === spotSel}"><span class="n">${s.i+1}</span><b>${s.t}</b><span class="d">${s.x}</span></button></li>`).join('')}</ul>` : ''}
     <h3>Todos los módulos</h3><div class="mods">${MODS.map(x => `<button data-m="${x.id}" aria-current="${x.id === id}">${x.short || x.name.split(' (')[0]}</button>`).join('')}</div>
     <div class="src">Medidas y fechas: NASA, ESA, JAXA y Roscosmos. El interior está modelado a escala real; la distribución de los equipos está simplificada.</div>`;
   $('bd').querySelectorAll('[data-i]').forEach(b => b.onclick = () => selectSpot(+b.dataset.i));
   $('bd').querySelectorAll('[data-m]').forEach(b => b.onclick = () => goTo(b.dataset.m));
+  $('bd').querySelectorAll('button[data-a]').forEach(b => b.onclick = (e) => { if (e.target.dataset.run || b.getAttribute('aria-current') === 'true') runAct(b.dataset.a); else { actSel = b.dataset.a; panelInside(id); } });
+}
+let actSel = null;
+// ---------- acciones interactivas ----------
+function runAct(id){
+  const a = intr.acts.find(x => x.id === id); if (!a || travel || EVA.busy) return;
+  actSel = id; windowMode(false);
+  const r = a.run() || {};
+  if (r.special === 'eva') return startEVA();
+  if (r.special === 'cubesat') return startCubesat();
+  if (r.fly) flyTo(r.fly, r.look, r.special === 'window' ? () => windowMode(true) : null);
+  panelInside(intr.whichModule(cam.position) || a.m);
+}
+function flyTo(p, lookAt, done){
+  const a = cam.position.clone(), mid = a.clone().lerp(p, .5);
+  const curve = new THREE.CatmullRomCurve3([a, mid, p.clone()]);
+  travel = { curve, t:0, len:Math.max(.3, curve.getLength()), look:lookAt, done };
+}
+// mirar por la ventana: menos campo de visión y lo que hay debajo
+let winOn = false;
+function windowMode(on){
+  if (winOn === on) return; winOn = on; cam.fov = on ? 38 : 70; cam.updateProjectionMatrix();
+  $('where').style.opacity = on ? 1 : 0;
+}
+// CubeSats desde Kibō: escena breve por fuera
+let cine = null;
+function startCubesat(){
+  const g = new THREE.Group(), M1 = new THREE.MeshStandardMaterial({ color:0x2a2d31, roughness:.4, metalness:.6 }), M2 = new THREE.MeshStandardMaterial({ color:0x1d2850, roughness:.3, metalness:.5 }), M3 = new THREE.MeshStandardMaterial({ color:0xd8a64a, roughness:.3, metalness:.9 });
+  const base = V(16.4, -2.3, -19.6), dir = V(-.5, -.78, -.38).normalize();
+  const dep = new THREE.Mesh(new THREE.BoxGeometry(.5, .5, 1.1), M1); dep.position.copy(base); dep.quaternion.setFromUnitVectors(V(0,0,1), dir); g.add(dep);
+  const cubes = [0, 1, 2].map(i => { const c = new THREE.Group(); const b = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .34), [M3, M3, M2, M2, M3, M3]); c.add(b); c.scale.setScalar(1.6);
+    for (const s of [-1, 1]){ const pnl = new THREE.Mesh(new THREE.PlaneGeometry(.1, .3), M2); pnl.position.set(s*.051, 0, 0); pnl.rotation.y = s*Math.PI/2; c.add(pnl); }
+    c.position.copy(base); c.quaternion.copy(dep.quaternion); c.visible = false; g.add(c); return { c, t0:1 + i*2.2, spin:V(Math.random()-.5, Math.random()-.5, Math.random()-.5) }; });
+  ext.add(g); station.setDate(Date.now()); station.root.visible = true; intr.root.visible = false;
+  const cc = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, .1, 3000); cc.position.set(24, 1.5, -11.5); cc.lookAt(14.5, -4, -21);
+  cine = { t:0, g, cubes, cam:cc, base, dir }; [...spotEls, ...actEls].forEach(b => b.hidden = true);
+  $('where').textContent = 'Kibō suelta tres CubeSats hacia atrás y hacia abajo'; $('where').style.opacity = 1;
+}
+function stepCine(dt){
+  cine.t += dt; const t = cine.t;
+  for (const c of cine.cubes){ if (t < c.t0) continue; c.c.visible = true; const e = t - c.t0; c.c.position.copy(cine.base).addScaledVector(cine.dir, .55 + e*1.1); c.c.rotation.x += c.spin.x*dt; c.c.rotation.y += c.spin.y*dt; }
+  cine.cam.position.lerp(V(23, 0, -12.5), dt*.1); cine.cam.lookAt(14, -5, -21.5);
+  if (t > 11){ ext.remove(cine.g); cine = null; station.root.visible = false; intr.root.visible = true; $('where').style.opacity = 0; }
 }
 function selectSpot(i){
   spotSel = i; const s = intr.spots[i];
@@ -289,11 +354,16 @@ function updateWhere(force){
 }
 function buildSpotEls(){
   $('pts').innerHTML = ''; spotEls = intr.spots.map(s => { const b = document.createElement('button'); b.className = 'pt'; b.textContent = s.i + 1; b.dataset.i = s.i; b.title = s.t; b.onclick = () => selectSpot(s.i); $('pts').append(b); return b; });
+  actEls = intr.acts.map(a => { const b = document.createElement('button'); b.className = 'pt act'; b.innerHTML = `${a.icon}<span>${a.t}</span>`; b.dataset.a = a.id; b.title = a.t; b.onclick = () => runAct(a.id); $('pts').append(b); return b; });
 }
+let actEls = [];
 function updateSpots(){
   const w = innerWidth, h = innerHeight, p = V(0,0,0);
   for (const b of spotEls){ const s = intr.spots[+b.dataset.i], d = s.p.distanceTo(cam.position);
     p.copy(s.p).project(cam); const vis = d < 6.5 && p.z < 1 && Math.abs(p.x) < 1.05 && Math.abs(p.y) < 1.05;
+    b.hidden = !vis || EVA.out || !!cine || (s.m !== curMod && d > 2.5); if (vis) b.style.transform = `translate(${(p.x*.5+.5)*w}px,${(-p.y*.5+.5)*h}px)`; }
+  for (const b of actEls){ const a = intr.acts.find(x => x.id === b.dataset.a), d = a.p.distanceTo(cam.position);
+    p.copy(a.p).project(cam); const vis = d < 7 && d > .35 && (a.m === curMod || d < 2.5) && p.z < 1 && Math.abs(p.x) < 1.05 && Math.abs(p.y) < 1.05 && !EVA.out && !cine && EVA.step < 0;
     b.hidden = !vis; if (vis) b.style.transform = `translate(${(p.x*.5+.5)*w}px,${(-p.y*.5+.5)*h}px)`; }
 }
 // mirar arrastrando
@@ -313,7 +383,9 @@ function stepInside(dt){
     travel.t = Math.min(1, travel.t + dt*1.6/travel.len); const p = travel.curve.getPointAt(travel.t), ahead = travel.curve.getPointAt(Math.min(1, travel.t + .04));
     cam.position.copy(p); const d = ahead.sub(p); if (d.length() > 1e-3){ const ty = Math.atan2(-d.x, -d.z), tp = Math.atan2(d.y, Math.hypot(d.x, d.z));
       look.yaw += Math.atan2(Math.sin(ty - look.yaw), Math.cos(ty - look.yaw))*Math.min(1, dt*4); look.pitch += (tp*.6 - look.pitch)*Math.min(1, dt*4); }
-    if (travel.t >= 1) travel = null;
+    if (travel.t >= 1){ const tr = travel; travel = null;
+      if (tr.look){ const d = tr.look.clone().sub(cam.position); turn = { yaw:Math.atan2(-d.x, -d.z), pitch:Math.atan2(d.y, Math.hypot(d.x, d.z)), k:0 }; }
+      tr.done && tr.done(); }
   } else {
     const f = fwdVec(), rt = V(-Math.cos(look.yaw), 0, Math.sin(look.yaw)).negate(), up = V(0,1,0), acc = V(0,0,0);
     if (keys.has('KeyW') || keys.has('ArrowUp') || keys.has('btn-fwd')) acc.add(f);
@@ -322,10 +394,12 @@ function stepInside(dt){
     if (keys.has('KeyA') || keys.has('ArrowLeft') || keys.has('btn-left')) acc.sub(rt);
     if (keys.has('KeyE') || keys.has('Space') || keys.has('btn-up')) acc.add(up);
     if (keys.has('KeyQ') || keys.has('ShiftLeft') || keys.has('btn-down')) acc.sub(up);
-    vel.addScaledVector(acc, dt*3.2); vel.multiplyScalar(Math.pow(.18, dt)); if (vel.length() > 1.6) vel.setLength(1.6);
+    if (acc.lengthSq() && winOn) windowMode(false);
+    const vmax = EVA.out ? .9 : 1.6, ok = EVA.out ? evaOK : (q) => intr.inside(q);
+    vel.addScaledVector(acc, dt*(EVA.out ? 1.6 : 3.2)); vel.multiplyScalar(Math.pow(EVA.out ? .45 : .18, dt)); if (vel.length() > vmax) vel.setLength(vmax);
     const step = vel.clone().multiplyScalar(dt), np = cam.position.clone().add(step);
-    if (intr.inside(np)) cam.position.copy(np);
-    else { for (const ax of ['x','y','z']){ const t = cam.position.clone(); t[ax] += step[ax]; if (intr.inside(t)) cam.position.copy(t); else vel[ax] *= -.2; } }
+    if (ok(np)) cam.position.copy(np);
+    else { for (const ax of ['x','y','z']){ const t = cam.position.clone(); t[ax] += step[ax]; if (ok(t)) cam.position.copy(t); else vel[ax] *= -.2; } }
   }
   if (turn){ turn.k += dt*2.5; const k = Math.min(1, dt*4); look.yaw += Math.atan2(Math.sin(turn.yaw - look.yaw), Math.cos(turn.yaw - look.yaw))*k; look.pitch += (turn.pitch - look.pitch)*k; if (turn.k > 2) turn = null; }
   // cabeceo suave, como flotando
@@ -335,7 +409,8 @@ function stepInside(dt){
   // las tres luces del techo más cercanas
   const near = intr.spots.slice().sort((a, b) => a.p.distanceTo(cam.position) - b.p.distanceTo(cam.position));
   modLights.forEach((l, i) => { const c = intr.center(MOD[near[i]?.m || 'destiny'].id); l.position.copy(c).add(V(0, .7, 0)); });
-  updateWhere(); updateSpots();
+  if (!EVA.out && !cine) updateWhere(); updateSpots();
+  if (EVA.out) stepTether();
 }
 // sonido de la estación: ventiladores (ruido rosa filtrado) y un zumbido grave
 let snd = null;
@@ -346,7 +421,82 @@ function toggleSound(btn){
   const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
   const g = ctx.createGain(); g.gain.value = .35; src.connect(lp).connect(g).connect(ctx.destination); src.start();
   const o = ctx.createOscillator(); o.frequency.value = 118; const og = ctx.createGain(); og.gain.value = .012; o.connect(og).connect(ctx.destination); o.start();
-  snd = { ctx }; btn.setAttribute('aria-pressed','true');
+  snd = { ctx, gain:g, hum:og }; setSoundLevel(sndLevel); btn.setAttribute('aria-pressed','true');
+}
+
+let sndLevel = 1;
+function setSoundLevel(k){ sndLevel = k; if (snd){ snd.gain.gain.value = .35*k; snd.hum.gain.value = .012*k; } }
+
+// ---------- caminata espacial desde Quest ----------
+const EVA = { step:-1, out:false, busy:false, t0:0, anchor:null, boxes:[] };
+const Q = intr.quest, tasks = [];
+const tween = (dur, fn, done) => tasks.push({ t:0, dur, fn, done });
+const EVA_STEPS = [
+  { t:'Ponerse el traje', x:'El traje EMU es una nave espacial pequeña: trae oxígeno para unas 8 horas, batería, radio, agua que circula por una ropa interior con tubitos para enfriar el cuerpo y un propulsor de emergencia (SAFER) por si te sueltas. En la Tierra pesaría unos 145 kg.',
+    run(next){ const go = () => { Q.suit(false); helmet(true); next(); }; if (intr.whichModule(cam.position) !== 'quest') goTo('quest', go); else go(); } },
+  { t:'Respirar oxígeno puro', x:'El aire de la estación tiene nitrógeno, como el de la Tierra. El traje trabaja a menos presión, y si la presión baja de golpe ese nitrógeno forma burbujas en la sangre (lo que les pasa a los buzos). Por eso antes de salir se respira oxígeno puro: en la realidad toma unas dos horas; aquí, 8 segundos.',
+    run(next){ tween(8, (k) => setProg(k), next); } },
+  { t:'Entrar a la esclusa y cerrar la escotilla', x:'La esclusa de tripulación es un cilindro pequeño donde caben dos astronautas con sus trajes. Se cierra la escotilla interior para que, al sacar el aire, no se escape el de la estación.',
+    run(next){ Q.state.inLock = true; Q.inner(true); tween(1.7, () => {}, () => flyTo(Q.lockCenter, Q.lockLook, () => { Q.inner(false); tween(1.7, () => {}, next); })); } },
+  { t:'Sacar el aire', x:'Una bomba devuelve casi todo el aire a la estación, para no desperdiciarlo. A 34 kPa se detiene para revisar que el traje no tenga fugas. Después se abre una válvula y el resto se va al espacio. Al final ya no se escucha nada: el sonido no viaja en el vacío.',
+    run(next){ tween(5, (k) => { const p = 101.3 - 66.8*k; Q.press(p, 'BOMBEANDO AIRE'); setSoundLevel(p/101.3); setProg(k*.45); },
+      () => tween(2.5, (k) => { Q.press(34.5, 'REVISIÓN DE FUGAS…'); setProg(.45 + k*.1); },
+      () => tween(5, (k) => { const p = 34.5*(1 - k); Q.press(p, p < .5 ? 'VACÍO' : 'VENTEO AL ESPACIO'); setSoundLevel(p/101.3*.6); setProg(.55 + k*.45); }, next))); } },
+  { t:'Abrir la escotilla exterior', x:'La escotilla de un metro se abre hacia afuera. Primero sale un astronauta, engancha su cuerda de seguridad a la estación y después ayuda al compañero.',
+    run(next){ Q.outer(true); tween(2.4, () => {}, next); } },
+  { t:'Salir al espacio', x:'Ya estás afuera, atado a la estación con una cuerda de acero de 25 m. Muévete con las flechas o W A S D; arrastra para mirar. Cada 45 minutos pasas del día a la noche. Cuando termines, vuelve a la esclusa.',
+    run(next){ goOutside(); next(); } },
+  { t:'Volver a la esclusa y cerrar', x:'Se entra con los pies primero, se cierra la escotilla exterior y se asegura con la manija.',
+    run(next){ goInsideLock(); Q.outer(false); tween(2.4, () => {}, next); } },
+  { t:'Meter aire a la esclusa', x:'Se vuelve a llenar la esclusa con aire de la estación hasta la presión normal: 101,3 kPa, la misma que al nivel del mar.',
+    run(next){ tween(6, (k) => { const p = 101.3*k; Q.press(p, k < 1 ? 'PRESURIZANDO' : 'CABINA NORMAL'); setSoundLevel(k); setProg(k); }, next); } },
+  { t:'Abrir la escotilla y quitarse el traje', x:'De vuelta en la estación. Después de una caminata de unas seis horas y media, los astronautas suelen tener las manos cansadas y a veces las uñas lastimadas de tanto apretar dentro de los guantes.',
+    run(next){ Q.inner(true); tween(1.7, () => {}, () => flyTo(Q.eqCenter, Q.backLook, () => { Q.state.inLock = false; Q.suit(true); helmet(false); next(); })); } },
+];
+function setProg(k){ const i = document.querySelector('#evaProg i'); if (i) i.style.width = (k*100).toFixed(0) + '%'; }
+function helmet(on){ $('helmet').hidden = !on; $('suitHud').hidden = !on; }
+function startEVA(){ EVA.step = 0; EVA.busy = false; panelEVA(); barEVA(); }
+function nextEVA(){
+  if (EVA.busy || EVA.step < 0 || EVA.step >= EVA_STEPS.length) return;
+  EVA.busy = true; barEVA(); setProg(0);
+  EVA_STEPS[EVA.step].run(() => { EVA.busy = false; EVA.step++; if (EVA.step >= EVA_STEPS.length){ EVA.step = -1; barInside(); panelInside('quest'); return; } panelEVA(); barEVA(); });
+}
+function cancelEVA(){ if (EVA.out || EVA.step > 4) return; Q.inner(true); Q.state.inLock = false; Q.suit(true); helmet(false); Q.press(101.3, 'CABINA NORMAL'); setSoundLevel(1); EVA.step = -1; EVA.busy = false; barInside(); panelInside('quest'); }
+function panelEVA(){
+  $('hd').innerHTML = `<div class="k">Esclusa Quest · actividad extravehicular</div><h2>Caminata espacial</h2><p>Haz cada paso como lo hacen los astronautas de verdad.</p>`;
+  $('bd').innerHTML = `<ol class="steps">${EVA_STEPS.map((s, i) => `<li class="${i < EVA.step ? 'done' : i === EVA.step ? 'now' : ''}"><b>${s.t}</b><div class="x">${s.x}${i === EVA.step ? '<div class="prog" id="evaProg"><i></i></div>' : ''}</div></li>`).join('')}</ol>
+    <div class="src">En la estación se han hecho más de 270 caminatas espaciales. La más larga duró 8 horas y 56 minutos (2001).</div>`;
+  $('bd').querySelector('li.now')?.scrollIntoView({ block:'nearest' });
+}
+function barEVA(){
+  const s = EVA_STEPS[EVA.step];
+  $('bar').innerHTML = `<div class="g"><button class="tb pri" id="evaGo" ${EVA.busy ? 'disabled' : ''}>${EVA.busy ? '⏳ ' + s.t + '…' : '▶ ' + s.t}</button>${!EVA.out && EVA.step <= 4 ? '<button class="tb" id="evaX">✕ Cancelar</button>' : ''}</div>
+    <div class="g"><button class="tb" id="bSnd" aria-pressed="${!!snd}">🔊 Sonido</button></div>`;
+  $('evaGo').onclick = nextEVA; $('evaX') && ($('evaX').onclick = cancelEVA); $('bSnd').onclick = () => toggleSound($('bSnd'));
+}
+// afuera: la escena exterior, atado a la escotilla
+let tether = null;
+function goOutside(){
+  EVA.out = true; EVA.t0 = performance.now(); EVA.anchor = Q.hatchOut.clone().addScaledVector(Q.hatchDir, -.4);
+  station.setDate(Date.now()); station.root.visible = true; intr.root.visible = false;
+  EVA.boxes = [];
+  for (const id of [...MODS.map(m => m.id), 'pma2','pma3','ida2','ida3','z1','s0','s1','p1','bishop','v-crew','v-cargo','v-soyuz','v-prog1','v-prog2']){
+    const o = station.parts.get(id); if (o && o.visible) EVA.boxes.push(new THREE.Box3().setFromObject(o).expandByScalar(.35)); }
+  cam.position.copy(Q.hatchOut).addScaledVector(Q.hatchDir, .9); const d = Q.hatchDir; look.yaw = Math.atan2(-d.x, -d.z); look.pitch = -.25; vel.set(0,0,0);
+  if (!tether){ tether = new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length:16 }, () => V(0,0,0))), new THREE.LineBasicMaterial({ color:0xd8d8d0 })); }
+  ext.add(tether); setSoundLevel(0);
+}
+function goInsideLock(){ EVA.out = false; ext.remove(tether); station.root.visible = false; intr.root.visible = true; cam.position.copy(Q.lockCenter); const d = Q.lockLook.clone().sub(Q.lockCenter); look.yaw = Math.atan2(-d.x, -d.z); look.pitch = 0; }
+function evaOK(p){ if (p.distanceTo(EVA.anchor) > 25) return false; for (const b of EVA.boxes) if (b.containsPoint(p)) return p.distanceTo(Q.hatchOut) < 1.6; return true; }
+function stepTether(){
+  const a = EVA.anchor, b = cam.position.clone().add(V(0, -.35, 0).applyQuaternion(cam.quaternion)), pts = [], sag = Math.max(0, 25 - a.distanceTo(b))*.06;
+  for (let i = 0; i < 16; i++){ const t = i/15, p = a.clone().lerp(b, t); p.y -= Math.sin(t*Math.PI)*sag; pts.push(p); }
+  tether.geometry.setFromPoints(pts);
+}
+function suitHud(){
+  if ($('suitHud').hidden) return;
+  const min = EVA.out ? (performance.now() - EVA.t0)/60000 : 0, o2 = Math.max(0, 100 - min*.21), dist = EVA.out ? cam.position.distanceTo(EVA.anchor) : 0;
+  $('suitHud').innerHTML = `EMU · O₂ ${o2.toFixed(0)} % · TRAJE ${EVA.out || EVA.step >= 4 ? '29,6' : '101,3'} kPa · ${EVA.out ? `CUERDA ${dist.toFixed(1)} / 25 m · ${lastLit ? '☀ AL SOL' : '🌙 SOMBRA'}` : 'DENTRO DE LA ESTACIÓN'}`;
 }
 
 // ---------- 3 · armado ----------
@@ -425,20 +575,24 @@ function loop(now){
     if ((frames++ % 15) === 0) liveOrbit();
     return;
   }
-  if (mode === 'dentro'){ stepInside(dt); intr.update(now/1000); }
+  for (let i = tasks.length - 1; i >= 0; i--){ const t = tasks[i]; t.t += dt; t.fn(Math.min(1, t.t/t.dur)); if (t.t >= t.dur){ tasks.splice(i, 1); t.done && t.done(); } }
+  if (mode === 'dentro'){ if (cine) stepCine(dt); else stepInside(dt); intr.update(now/1000, dt); }
   else ctl.update();
-  drawStation(mode === 'dentro' ? inn : ext);
+  if (mode === 'dentro' && cine) drawStation(ext, cine.cam);
+  else drawStation(mode === 'dentro' && !EVA.out ? inn : ext);
+  if ((frames++) % 10 === 0){ suitHud(); if (winOn && orbit){ const g = orbit.geo(); $('where').textContent = `Debajo de ti: ${Math.abs(g.lat).toFixed(1)}° ${g.lat >= 0 ? 'N' : 'S'}, ${Math.abs(g.lon).toFixed(1)}° ${g.lon >= 0 ? 'E' : 'O'} · ${lastLit ? 'de día' : 'de noche'}`; } }
   if ((frames++ % 15) === 0 && mode === 'orbita') liveOrbit();
 }
 // dibuja la Tierra de fondo y la estación (por fuera o por dentro) con la luz real del Sol
-function drawStation(scn = ext){
-  const s = sky.update(orbit, sunE, simT, 'station');
+let lastLit = true;
+function drawStation(scn = ext, c = cam){
+  const s = sky.update(orbit, sunE, simT, 'station'); lastLit = s.lit;
   sun.position.copy(s.sunLocal).multiplyScalar(150); sun.target.position.set(0,0,0); sun.intensity = s.lit ? 3.4 : 0;
   earthShine.intensity = .55*Math.max(0, Math.min(1, s.sunLocal.y + .25)) + .03;
   station.track(s.sunLocal);
-  gcam.quaternion.copy(cam.quaternion); gcam.position.copy(cam.position).multiplyScalar(.001); gcam.fov = cam.fov; gcam.aspect = cam.aspect; gcam.near = .02; gcam.far = 4e5; gcam.updateProjectionMatrix();
+  gcam.quaternion.copy(c.quaternion); gcam.position.copy(c.position).multiplyScalar(.001); gcam.fov = c.fov; gcam.aspect = c.aspect; gcam.near = .02; gcam.far = 4e5; gcam.updateProjectionMatrix();
   renderer.setClearColor(0x000000); renderer.clear(); renderer.render(sky.scene, gcam); renderer.clearDepth();
-  renderer.toneMappingExposure = scn === inn ? .78 : 1; renderer.render(scn, cam); renderer.toneMappingExposure = 1;
+  renderer.toneMappingExposure = scn === inn ? .78 : 1; renderer.render(scn, c); renderer.toneMappingExposure = 1;
 }
 
 // ---------- inicio ----------
@@ -447,7 +601,7 @@ const startMode = (location.hash || '').slice(1);
 setMode(['orbita','dentro','armado'].includes(startMode) ? startMode : 'orbita');
 $('ldg').style.opacity = 0; setTimeout(() => $('ldg').hidden = true, 700);
 requestAnimationFrame(loop);
-window.__iss = { FLIGHTS, renderer, look, setTime:(t) => { simT = t; }, get simT(){ return simT; }, cam, station, intr, setMode, goTo, get orbit(){ return orbit; }, selectSpot, pickFlight, startLaunch, get launch(){ return launch; } };
+window.__iss = { tasks, EVA, runAct, nextEVA, get cine(){ return cine; }, FLIGHTS, renderer, look, setTime:(t) => { simT = t; }, get simT(){ return simT; }, cam, station, intr, setMode, goTo, get orbit(){ return orbit; }, selectSpot, pickFlight, startLaunch, get launch(){ return launch; } };
 </script>
 </body>
 </html>

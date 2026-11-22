@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { MODS, MOD, LINKS, CLOSED, SPOTS } from './datos.js';
 import { modDir, orientQ } from './modelo.js';
 import { rng, canvas, tex, grain, normalFrom } from './tex.js';
+import { addInteractive } from './interactivo.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const AXV = { '+x':V(1,0,0), '-x':V(-1,0,0), '+y':V(0,1,0), '-y':V(0,-1,0), '+z':V(0,0,1), '-z':V(0,0,-1) };
@@ -154,6 +155,9 @@ function holed(w, h, hole, m, uvRep = 1){
   const s = new THREE.Shape(); s.moveTo(-w/2, -h/2); s.lineTo(w/2, -h/2); s.lineTo(w/2, h/2); s.lineTo(-w/2, h/2); s.closePath();
   const p = new THREE.Path();
   if (hole.r) p.absarc(hole.x || 0, hole.y || 0, hole.r, 0, Math.PI*2, true);
+  else if (hole.w){ const a = hole.w/2, b = hole.h/2, k = hole.k || .06;
+    p.moveTo(-a + k, -b); p.lineTo(a - k, -b); p.quadraticCurveTo(a, -b, a, -b + k); p.lineTo(a, b - k); p.quadraticCurveTo(a, b, a - k, b);
+    p.lineTo(-a + k, b); p.quadraticCurveTo(-a, b, -a, b - k); p.lineTo(-a, -b + k); p.quadraticCurveTo(-a, -b, -a + k, -b); }
   else { const a = hole.a, k = hole.k || .12, x = hole.x || 0, y = hole.y || 0;
     p.moveTo(x - a + k, y - a); p.lineTo(x + a - k, y - a); p.quadraticCurveTo(x + a, y - a, x + a, y - a + k); p.lineTo(x + a, y + a - k); p.quadraticCurveTo(x + a, y + a, x + a - k, y + a);
     p.lineTo(x - a + k, y + a); p.quadraticCurveTo(x - a, y + a, x - a, y + a - k); p.lineTo(x - a, y - a + k); p.quadraticCurveTo(x - a, y - a, x - a + k, y - a); }
@@ -250,7 +254,8 @@ export function buildInterior(opts = {}){
   }
   // ventanas (agujeros con vidrio por donde se ve la Tierra)
   openings.zvezda.push({ kind:'radial', pos:-1.85, dir:V(0,-1,0), win:true });
-  openings.zvezda.push({ kind:'radial', pos:.6, dir:V(0,0,1), win:true });
+  openings.zvezda.push({ kind:'radial', pos:-.5, dir:V(0,0,1), win:true }, { kind:'radial', pos:-.5, dir:V(0,0,-1), win:true }); // ventanitas de las kayutas
+  openings.quest.push({ kind:'axial', dir:1, pos:2.0, inter:true });                     // hacia la esclusa de tripulación
   // punto de la abertura en coordenadas locales del módulo
   const openPt = (m, o) => {
     if (o.kind === 'axial'){ const x = o.pos; return V(x, 0, 0); }
@@ -272,8 +277,8 @@ export function buildInterior(opts = {}){
   const cables = (pts, k = 0) => { const c = new THREE.CatmullRomCurve3(pts); return new THREE.Mesh(new THREE.TubeGeometry(c, 40, .012 + r()*.012, 6), M.cable[k % 4]); };
 
   // ======= módulo estadounidense / europeo / japonés =======
-  function usInterior(m){
-    const g = new THREE.Group(), hl = half(m), L = 2*hl, ops = openings[m.id];
+  function usInterior(m, opt = {}){
+    const g = new THREE.Group(), hl = opt.hl ?? half(m), sh = opt.sh || 0, L = 2*hl, ops = openings[m.id];
     const kinds = { destiny:['exp','sys','exp','lockers','exp','exp'], harmony:['stow','sys','lockers','stow'], columbus:['esa','esa','esa','esa'], kibo:['jaxa','jaxa','lockers','jaxa','jaxa','stow','jaxa','jaxa','jaxa'],
       jlp:['stow','stow'], tranquility:['sys','sys','stow','sys'], pmm:['stow','stow','stow','lockers','stow'], quest:['sys','lockers'], unity:['stow','sys','stow'] }[m.id] || ['stow'];
     // cuatro paredes: (normal local, vector "arriba" de la cara, posición)
@@ -296,11 +301,13 @@ export function buildInterior(opts = {}){
           const hole = kind === 'worf' ? { r:.25 } : { a:.46, k:.14 };
           mesh = holed(s.w, FW, hole, s.k === 'hole' ? rackMat('hatch') : rackMat('worf'));
         } else if (s.k === 'fill'){ mesh = plane(s.w, FW, M.chamfer); }
+        else if (kind === 'cq') mesh = null;
         else mesh = plane(RW, FW, rackMat(kind));
         // orientar la cara: mirando hacia el centro, a lo largo del eje x
         const o = new THREE.Object3D(); o.position.copy(w.n).multiplyScalar(HW); o.position.x = s.x;
         // las paredes laterales quedan con el texto derecho (arriba = techo)
         const xAx = V(w.n.z > .5 ? -1 : 1, 0, 0), zAx = w.n.clone().negate(), yAx = zAx.clone().cross(xAx);
+        if (!mesh){ cqFaces.push({ m:m.id, pos:o.position.clone().add(V(sh, 0, 0)), q:new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAx, yAx, zAx)), n:w.n.clone(), xAx, yAx, zAx }); return; }
         mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAx, yAx, zAx));
         mesh.position.copy(o.position); g.add(mesh);
         if (kind === 'worf' || (s.o && s.o.win)){ const gl = new THREE.Mesh(new THREE.CircleGeometry(.25, 32), M.glass); gl.quaternion.copy(mesh.quaternion); gl.position.copy(mesh.position).addScaledVector(w.n, .02); g.add(gl);
@@ -308,7 +315,7 @@ export function buildInterior(opts = {}){
         if (s.k === 'hole' && s.o){
           const ring = hatchRing({ a:.46 }, M.ring); ring.position.copy(mesh.position).addScaledVector(w.n, -.04); ring.quaternion.copy(mesh.quaternion); g.add(ring);
           if (s.o.closed) closedHatch(g, mesh.position.clone().addScaledVector(w.n, .25), mesh.quaternion, s.o.closed, false);
-          else tunnelFrom(m, s.o, mesh.position.clone());
+          else tunnelFrom(m, s.o, mesh.position.clone().add(V(sh, 0, 0)));
         }
         if (s.k === 'rack' && kind !== 'cq'){
           // pasamanos y algo de equipo sobre la cara
@@ -339,11 +346,13 @@ export function buildInterior(opts = {}){
       }
       const ring = hatchRing({ a:.46 }, M.ring); ring.rotation.y = ew.rotation.y; ring.position.x = s*(hl - .03); g.add(ring);
       for (const z of [-.62, .62]){ const h = handrail(.7); h.rotation.set(0, ew.rotation.y, Math.PI/2); h.position.set(s*(hl - .06), 0, z); g.add(h); }
+      if (o.inter) continue;
       if (o.closed) closedHatch(g, V(s*(hl + .2), 0, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ew.rotation.y, 0)), o.closed, false);
-      else tunnelFrom(m, o, V(s*hl, 0, 0));
+      else tunnelFrom(m, o, V(s*hl + sh, 0, 0));
     }
     // volúmenes recorribles
-    vols.push({ m:m.id, kind:'box', inv:local[m.id].inv, min:V(-hl + .25, -HW + .3, -HW + .3), max:V(hl - .25, HW - .3, HW - .3) });
+    vols.push({ m:m.id, kind:'box', inv:local[m.id].inv, min:V(-hl + .25 + sh, -HW + .3, -HW + .3), max:V(hl - .25 + sh, HW - .3, HW - .3) });
+    if (sh) g.children.forEach(c => c.position.x += sh);
     return g;
   }
 
@@ -499,26 +508,27 @@ export function buildInterior(opts = {}){
         for (const a of [-1, 1]){ const arm = new THREE.Mesh(new THREE.CapsuleGeometry(.08, .5, 4, 10), M.suitW); arm.position.set(a*.36, .05, 0); arm.rotation.z = a*.25; suit.add(arm);
           const leg = new THREE.Mesh(new THREE.CapsuleGeometry(.1, .55, 4, 10), M.suitW); leg.position.set(a*.13, -.7, 0); suit.add(leg); }
         const flag = new THREE.Mesh(new THREE.PlaneGeometry(.12, .07), M.blue); flag.position.set(.27, .2, .2); suit.add(flag);
-        suit.position.set(-.6 + (s+1)*.55, -.1, s*.45); suit.rotation.y = s > 0 ? -Math.PI/2 : Math.PI/2; suit.rotation.x = .1; g.add(suit); }
+        suit.position.set(-1.25 + (s+1)*.5, -.1, s*.45); suit.rotation.y = s > 0 ? -Math.PI/2 : Math.PI/2; suit.rotation.x = .1; g.add(suit); suits.push(suit); }
     }
     if (m.id === 'zvezda'){ // mesa y cabinas
       const t = new THREE.Mesh(new THREE.BoxGeometry(.9, .06, .7), M.table); t.position.set(0, -1.05, 0); g.add(t);
       for (let k = 0; k < 5; k++){ const can = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .06, 14), M.alu); can.position.set(-.2 + k*.1, -1.0, (r()-.5)*.4); g.add(can); }
-      for (const s of [-1, 1]){ const cab = new THREE.Mesh(new THREE.BoxGeometry(.8, 1.7, .35), ruMat('wall')); cab.position.set(-.5, 0, s*(apo(m, -.5) - .25)); g.add(cab);
-        const w = new THREE.Mesh(new THREE.CircleGeometry(.09, 20), M.glass); w.position.set(-.5, .5, s*(apo(m, -.5) - .43)); w.rotation.y = s > 0 ? Math.PI : 0; g.add(w); }
       const bd2 = new THREE.Mesh(new THREE.BoxGeometry(1.3, .14, .5), M.dark); bd2.position.set(-3.4, -apo(m, -3.4) + .1, 0); g.add(bd2);
     }
     if (m.id === 'kibo'){ const con = new THREE.Group(); for (let k = 0; k < 3; k++){ const lt = laptop(); lt.position.set(-.4 + k*.4, 0, 0); con.add(lt); } con.position.set(3.4, -.75, .55); g.add(con); }
   }
 
+  const cqFaces = [], solids = [], suits = [];
   for (const m of MODS){
     let g;
-    if (US.has(m.tipo)) g = usInterior(m);
+    if (m.id === 'quest') g = usInterior(m, { hl:1.3, sh:-.7 });   // la esclusa de equipos; la de tripulación la arma interactivo.js
+    else if (US.has(m.tipo)) g = usInterior(m);
     else if (m.tipo === 'cupula') g = cupolaInterior(m);
     else g = ruInterior(m);
     extras(m, g);
     g.position.set(...m.c); g.quaternion.copy(local[m.id].q); g.userData.mod = m.id; root.add(g); info[m.id] = g;
   }
+  const IA = addInteractive({ M, local, vols, solids, info, HW, FW, RW, apo, half, laptop, ctb, handrail, holed, hatchRing, ruMat, cqFaces, suits, MOD });
   // objetos que flotan (cámara, bolígrafo, bolsa de comida, botella)
   const floaters = [];
   for (const [mid, sx, kind] of [['destiny',.3,'cam'],['harmony',.7,'pen'],['unity',.5,'food'],['kibo',.4,'bottle'],['zvezda',.4,'food'],['tranquility',.5,'pen'],['columbus',.5,'bottle']]){
@@ -554,8 +564,11 @@ export function buildInterior(opts = {}){
   }
   // ¿está el punto dentro de algún volumen? devuelve el módulo
   const tmp = V(0,0,0);
+  const inBox = (v, p) => { tmp.copy(p).applyMatrix4(v.inv); return tmp.x > v.min.x && tmp.x < v.max.x && tmp.y > v.min.y && tmp.y < v.max.y && tmp.z > v.min.z && tmp.z < v.max.z; };
   function inside(p){
+    for (const s of solids) if (s.enabled() && inBox(s, p)) return null;
     for (const v of vols){
+      if (v.enabled && !v.enabled()) continue;
       if (v.kind === 'seg'){ const ab = v.b.clone().sub(v.a), t = Math.max(0, Math.min(1, p.clone().sub(v.a).dot(ab) / ab.lengthSq())); if (v.a.clone().addScaledVector(ab, t).distanceTo(p) < v.r) return v.link[0]; continue; }
       tmp.copy(p).applyMatrix4(v.inv);
       if (v.kind === 'box'){ if (tmp.x > v.min.x && tmp.x < v.max.x && tmp.y > v.min.y && tmp.y < v.max.y && tmp.z > v.min.z && tmp.z < v.max.z) return v.m; }
@@ -564,12 +577,12 @@ export function buildInterior(opts = {}){
     return null;
   }
   function whichModule(p){ // el módulo cuyo volumen (no túnel) contiene p
-    for (const v of vols){ if (v.kind === 'seg') continue; tmp.copy(p).applyMatrix4(v.inv);
+    for (const v of vols){ if (v.kind === 'seg' || v.cabin) continue; tmp.copy(p).applyMatrix4(v.inv);
       if (v.kind === 'box' && tmp.x > v.min.x - .5 && tmp.x < v.max.x + .5 && Math.abs(tmp.y) < HW && Math.abs(tmp.z) < HW) return v.m;
       if (v.kind === 'cyl' && tmp.x > v.x0 - .3 && tmp.x < v.x1 + .3 && Math.hypot(tmp.y, tmp.z) < v.r + .4) return v.m; }
     return null;
   }
-  const update = (t) => { for (const o of floaters){ const u = o.userData, k = t*.25 + u.ph; o.position.copy(u.p0).add(V(Math.sin(k)*.15, Math.sin(k*.7)*.1, Math.cos(k*.8)*.12)); o.rotation.x += u.w.x*.01; o.rotation.y += u.w.y*.01; o.rotation.z += u.w.z*.01; } };
+  const update = (t, dt = .016) => { IA.update(t, dt); for (const o of floaters){ const u = o.userData, k = t*.25 + u.ph; o.position.copy(u.p0).add(V(Math.sin(k)*.15, Math.sin(k*.7)*.1, Math.cos(k*.8)*.12)); o.rotation.x += u.w.x*.01; o.rotation.y += u.w.y*.01; o.rotation.z += u.w.z*.01; } };
   root.traverse(o => { if (o.isMesh && o.material && 'envMapIntensity' in o.material) o.material.envMapIntensity = .45; });
-  return { root, vols, spots, inside, whichModule, route, center, update, local, half };
+  return { root, vols, spots, inside, whichModule, route, center, update, local, half, acts:IA.acts, quest:IA.quest };
 }
