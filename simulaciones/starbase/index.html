@@ -61,6 +61,17 @@ button{font-family:var(--f-body)}
 .lb{position:absolute;left:0;top:0;transform:translate(-50%,-100%);white-space:nowrap;font:600 12px var(--f-display);color:#fff;background:rgba(8,12,20,.7);border:1px solid rgba(255,255,255,.25);border-radius:7px;padding:3px 8px;pointer-events:auto;cursor:pointer}
 .lb small{font:500 10px var(--f-data);color:var(--dim);margin-left:5px}
 .lb:hover{border-color:var(--acc)}
+#pts{position:fixed;inset:0;pointer-events:none;z-index:6}
+.pt{position:absolute;left:0;top:0;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:1.5px solid #fff;background:rgba(8,12,20,.8);color:#fff;font:600 11px var(--f-data);display:grid;place-items:center;cursor:pointer;pointer-events:auto;padding:0}
+.pt:hover,.pt.on{background:var(--warm);color:#1a1100;border-color:var(--warm)}
+.ph{margin:12px 0 6px;font:500 10.5px var(--f-data);letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+.pl{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:5px}
+.pl button{width:100%;display:grid;grid-template-columns:24px 1fr;gap:2px 9px;text-align:left;background:none;border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--ink);cursor:pointer;font-size:13px}
+.pl .n{grid-row:span 2;width:22px;height:22px;border-radius:50%;background:#1a2336;display:grid;place-items:center;font:600 11px var(--f-data)}
+.pl button[aria-current=true]{border-color:var(--warm)} .pl button[aria-current=true] .n{background:var(--warm);color:#1a1100}
+.pl .d{grid-column:2;color:#c9cfdb} .pl button:not([aria-current=true]) .d{display:none}
+#csHud{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + var(--bot));z-index:10;padding:10px 14px;font:500 13px var(--f-data);text-align:center;max-width:min(92vw,520px)}
+#csHud small{color:var(--dim);font-family:var(--f-body)}
 /* caminar: cruz y mandos táctiles */
 #cross{position:fixed;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;z-index:6;pointer-events:none}
 #cross::before,#cross::after{content:"";position:absolute;background:rgba(255,255,255,.8)}
@@ -103,6 +114,7 @@ button{font-family:var(--f-body)}
   <span></span><button data-k="f" aria-label="Adelante">▲</button><button class="run" data-k="run" aria-label="Correr">Correr</button>
   <button data-k="l" aria-label="Izquierda">◀</button><button data-k="b" aria-label="Atrás">▼</button><button data-k="r" aria-label="Derecha">▶</button>
 </div>
+<div class="panel" id="csHud" hidden aria-live="polite"></div>
 <div class="hint panel" id="hint">Arrastra para girar · toca un cohete o una etiqueta para ver su historia</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
@@ -196,6 +208,46 @@ const TESLA=[
 ];
 
 
+Object.assign(SRC,{d1:['Dragon 1 (resumen con referencias)','https://www.wikiwand.com/en/articles/Dragon_1'],d1last:['NASASpaceflight · Último regreso de Dragon 1','https://www.nasaspaceflight.com/2020/04/final-dragon-1-return-earth/'],berth:['Planetary Society · Dragon hace historia (2012)','https://www.planetary.org/articles/dragon-makes-history-berths'],sfn26:['NASASpaceflight · Starbase 2026','https://www.nasaspaceflight.com/2026/03/steel-rolls-to-starship/']});
+Object.assign(INFO,{
+ dragon1:{grp:'edificio',name:'Dragon 1 (carga)',yrs:'2010–2020',
+  data:[['Misiones','23 (de COTS Demo 1 a CRS‑20)'],['Carga','hasta ~3.310 kg a la Estación y de vuelta'],['Propulsores','18 Draco'],['Primera en la Estación','25 may 2012'],['Reutilizada','desde CRS‑11 (2017); una cápsula voló 3 veces']],
+  hist:`<p>La primera nave de una empresa privada que llegó a la Estación Espacial, en mayo de 2012. No se acoplaba sola: se acercaba y se quedaba quieta a unos metros, y los astronautas la atrapaban con el brazo robótico de la estación por el pin que ves junto al anillo de atraque.</p><p>Era la única nave de carga de su época que podía <b>traer cosas de vuelta</b> a la Tierra: experimentos, muestras y equipos. Sus paneles solares se abrían en el espacio como alas. Su último vuelo fue CRS‑20, en 2020; la reemplazó la Cargo Dragon, versión de carga de la Crew Dragon.</p>`,src:['d1','berth','d1last']},
+ mb:{grp:'sitio',name:'Megabays',yrs:'Starbase',
+  data:[['Megabay 1','apilado de propulsores Super Heavy'],['Megabay 2','apilado de naves Starship'],['Starfactory','fabricación de secciones (la galería de esta simulación)']],
+  hist:`<p>Los edificios más altos de Starbase. Adentro, grúas gigantes apilan los anillos de acero inoxidable uno sobre otro hasta formar un propulsor o una nave completa. Luego salen por sus enormes puertas, acostados o de pie sobre transportes, rumbo a la plataforma.</p><p>Los anillos se fabrican en la Starfactory, la fábrica de secciones, que en esta simulación funciona como galería de visitantes.</p>`,src:['sfn26','ttx']},
+ barge:{grp:'cohete',name:'Barcaza en el mar (a escala)',yrs:'2015–hoy',
+  data:[['Barcazas','Of Course I Still Love You, Just Read the Instructions y A Shortfall of Gravitas'],['Primer aterrizaje','8 abr 2016 (CRS‑8)'],['Aterrizajes de OCISLY','238 (hasta oct 2026)']],
+  hist:`<p>Así queda un propulsor Falcon 9 después de aterrizar en el mar: negro de hollín, apoyado en sus cuatro patas sobre la cubierta de una barcaza que se mantiene en su lugar sola, con motores.</p><p>El robot amarillo (los técnicos lo apodan «Octagrabber») se mete debajo del cohete y lo sujeta para que no se caiga con las olas durante el viaje de regreso al puerto. Allí una grúa lo levanta, se revisa y puede volver a volar en pocas semanas.</p>`,src:['asds','wft']},
+});
+// piezas numeradas de los cohetes (posición en el mundo)
+const PARTS={
+ b5:[['9 motores Merlin 1D','Dispuestos en «octaweb»: 8 en anillo y 1 al centro. Para aterrizar se enciende solo el central.',[-55,3.5,2]],
+  ['Patas de aterrizaje','4 patas de fibra de carbono con panal de aluminio. Viajan plegadas contra el cohete y se abren unos segundos antes de tocar el suelo.',[-50,4,4]],
+  ['Tanque de queroseno (RP‑1)','La parte de abajo de la primera etapa: el combustible.',[-55,14,2]],
+  ['Tanque de oxígeno líquido','Arriba del queroseno: el oxígeno, a −183 °C, que permite quemar el combustible en el vacío.',[-55,32,2]],
+  ['Interetapa negra','De fibra de carbono. Une las dos etapas, protege el motor de la segunda y lleva los propulsores de gas frío (nitrógeno) que giran el cohete al volver.',[-55,46,2.2]],
+  ['Aletas de rejilla de titanio','Se despliegan al caer y guían el propulsor como timones hasta el punto de aterrizaje.',[-52,49,3]],
+  ['Segunda etapa','Un solo motor Merlin Vacuum la lleva hasta la órbita. Esta etapa no se recupera.',[-55,54,2]],
+  ['Cofia','Protege los satélites al atravesar el aire y se abre en dos mitades al llegar al espacio. Las mitades sí se recuperan.',[-55,66,2.7]]],
+ ss:[['33 motores Raptor','13 centrales que se pueden orientar para dirigir el cohete y 20 fijos alrededor. Para volver, se encienden solo algunos de los centrales.',[110,22,7]],
+  ['Super Heavy','El propulsor: unos 71 m de acero inoxidable con metano y oxígeno líquidos. No tiene patas: la torre lo atrapa.',[110,55,3]],
+  ['Carenados (chines)','Las franjas a los costados protegen cables y tuberías y ayudan a controlar la caída.',[105.5,60,-2]],
+  ['Aletas de rejilla','Más grandes que las del Falcon 9; guían al propulsor en su regreso hacia la torre.',[115.5,88,-2]],
+  ['Pines de captura','Dos salientes cerca de la cima del propulsor: son lo que se apoya sobre los palillos de la torre.',[105,93.5,-2]],
+  ['Anillo de separación en caliente','La nave enciende sus motores <b>antes</b> de soltarse; los gases salen por las ventanas de este anillo.',[110,95,2.6]],
+  ['Losetas del escudo térmico','El lado de la nave que mira hacia abajo al volver va cubierto de losetas negras hexagonales.',[110,120,2.8]],
+  ['Puerta de satélites','Una ranura en la nave por donde salen los Starlink uno tras otro, como de un dispensador.',[110,125.6,-6.6]],
+  ['Aletas de la nave','2 delanteras y 2 traseras: al volver, la nave cae «de panza» y las mueve como un paracaidista sus brazos; al final se pone de pie.',[115,102,-2]],
+  ['6 motores de la nave','3 para el aire y 3 de vacío, con toberas más grandes, para seguir acelerando en el espacio.',[110,96.5,-2]]],
+ tower:[['Palillos («chopsticks»)','Dos brazos de acero que suben y bajan por la torre en un carro, se abren y se cierran. Atrapan al propulsor (y desde noviembre de 2026 también a la nave) por sus pines.',[110,93,-6]],
+  ['Brazo de abastecimiento de la nave','Conecta mangueras a la nave para llenarla de combustible y la sostiene hasta segundos antes del despegue.',[113,128,-10]],
+  ['Mesa de lanzamiento','Un anillo de acero sobre 6 patas donde se apoya el propulsor, con abrazaderas que lo sujetan hasta que todos los motores están encendidos.',[110,23,8]],
+  ['Placa de agua (deluge)','Debajo de los motores, una placa de acero lanza agua hacia arriba durante el despegue para proteger el suelo. Se agregó después del primer vuelo, que destrozó el concreto.',[110,14,-2]],
+  ['Granja de tanques','Aquí se guardan el metano y el oxígeno líquidos que llenan el cohete.',[185,32,-42]],
+  ['Torre de celosía','~146 m de acero: más alta que el cohete apilado.',[104,140,-26]]],
+};
+
 /* ================= RENDER ================= */
 const canvas=$('gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',logarithmicDepthBuffer:true});
@@ -231,6 +283,9 @@ const concTex=ctex(512,512,(g,w,h)=>{ g.fillStyle='#a9a7a1'; g.fillRect(0,0,w,h)
 const brushed=normalFrom(256,256,(x,y)=>Math.sin(x*1.7+Math.sin(y*.05)*2)*.3+((x*7919+y*13)%97)/97*.15,1.2);
 const corrN=normalFrom(64,64,(x)=>Math.sin(x/64*Math.PI*2*4)*.5,3);
 const hexN=normalFrom(256,256,(x,y)=>{ const s=32,hx=x/s,hy=y/(s*.866); const r=Math.floor(hy), q=Math.floor(hx-(r%2)*.5); const cx=(q+.5+(r%2)*.5)*s, cy=(r+.5)*s*.866; const d=Math.hypot(x-cx,y-cy)/s; return d>.47?-1:0; },2.5);
+const weldN=normalFrom(16,64,(x,y)=>y<2?-1:0,3);
+const regenN=normalFrom(256,8,(x)=>Math.abs(Math.sin(x/256*Math.PI*60)),1.5);
+const waterN=normalFrom(256,256,(x,y)=>Math.sin(x*.09)*Math.sin(y*.07)+.5*Math.sin((x+y)*.21)+.3*Math.sin(x*.4-y*.33),1.2);
 const soot=ctex(64,512,(g,w,h)=>{ const gr=g.createLinearGradient(0,h,0,0); gr.addColorStop(0,'#3b3836'); gr.addColorStop(.12,'#6a6560'); gr.addColorStop(.35,'#c9c6c0'); gr.addColorStop(.7,'#eceae5'); gr.addColorStop(1,'#cfcac2'); g.fillStyle=gr; g.fillRect(0,0,w,h);
   for(let i=0;i<160;i++){ g.fillStyle=`rgba(40,36,32,${.05+rnd()*.12})`; const x=rnd()*w, y=h*(.25+rnd()*.75); g.fillRect(x,y-80*rnd(),1+rnd()*3,40+rnd()*160); } },{rep:[1,1]});
 
@@ -241,7 +296,7 @@ const M={
   sooty:P({color:0xffffff,map:soot,roughness:.6}),
   black:P({color:0x1c1d20,roughness:.55,clearcoat:.2}),
   carbon:P({color:0x18191b,roughness:.38,clearcoat:.5,normalMap:corrN,normalScale:new THREE.Vector2(.08,.08)}),
-  bell:P({color:0x4a4d52,metalness:.85,roughness:.38}),
+  bell:P({color:0x4a4d52,metalness:.85,roughness:.38,normalMap:regenN,normalScale:new THREE.Vector2(.6,.6)}),
   bellIn:P({color:0x2a2420,metalness:.6,roughness:.6,side:THREE.BackSide}),
   copper:P({color:0xb8734a,metalness:1,roughness:.35}),
   niob:P({color:0x2f3034,metalness:.8,roughness:.45}),
@@ -251,7 +306,7 @@ const M={
   tower:P({color:0x9c9fa5,metalness:.7,roughness:.5}),
   conc:P({color:0xffffff,map:concTex,roughness:.85}),
   sand:new THREE.MeshStandardMaterial({color:0xffffff,map:sandTex,roughness:1}),
-  water:P({color:0x2a5f78,roughness:.08,metalness:.1,clearcoat:1,transparent:true,opacity:.92}),
+  water:P({color:0x2a5f78,roughness:.12,metalness:.1,clearcoat:1,normalMap:waterN,normalScale:new THREE.Vector2(.5,.5)}),
   wall:P({color:0xc3c8cf,roughness:.55,metalness:.3,normalMap:corrN,normalScale:new THREE.Vector2(.6,.6),side:THREE.DoubleSide}),
   floorIn:P({color:0x5f6266,roughness:.25,clearcoat:.6,clearcoatRoughness:.25,map:concTex}),
   glass:P({color:0x9fc3dc,roughness:.05,metalness:.2,transparent:true,opacity:.35}),
@@ -273,11 +328,13 @@ function ogive(r,h,m,parent,y,seg=48){ const pts=[]; for(let i=0;i<=24;i++){ con
 // tobera de motor (perfil de campana)
 function bellGeo(rT,rE,h,seg=40){ const pts=[]; for(let i=0;i<=20;i++){ const t=i/20; pts.push(new THREE.Vector2(rT+(rE-rT)*Math.pow(t,.62),h*(1-t))); } return new THREE.LatheGeometry(pts,seg); }
 function engine(parent,x,y,z,rE,h,mat=M.bell){ const g=new THREE.Group(); g.position.set(x,y,z); parent.add(g); mesh(bellGeo(rE*.35,rE,h),mat,g,0,-h,0); const inn=mesh(bellGeo(rE*.33,rE*.97,h*.98),M.bellIn,g,0,-h*.98,0); inn.castShadow=false; return g; }
-function gridFin(parent,w=1.5,h=1.2){ const g=new THREE.Group(); parent.add(g); const t=.05;
-  box(w,t*1.6,.18,M.ti,g,0,h/2,0); box(w,t*1.6,.18,M.ti,g,0,-h/2,0); box(t*1.6,h,.18,M.ti,g,-w/2,0,0); box(t*1.6,h,.18,M.ti,g,w/2,0,0);
-  for(let i=-3;i<=3;i++){ const a=mesh(new THREE.BoxGeometry(t,Math.hypot(w,h)*.9,.16),M.ti,g,i*w/8,0,0); a.rotation.z=.75; const b=mesh(new THREE.BoxGeometry(t,Math.hypot(w,h)*.9,.16),M.ti,g,i*w/8,0,0); b.rotation.z=-.75; }
-  // recorte: las diagonales se salen un poco del marco; queda como rejilla
-  return g; }
+// aleta de rejilla: marco de titanio y celdas en diagonal (textura recortada)
+const latticeTex=ctex(128,128,(g,w,h)=>{ g.fillStyle='#000'; g.fillRect(0,0,w,h); g.strokeStyle='#fff'; g.lineWidth=9; for(let i=-w;i<2*w;i+=32){ g.beginPath(); g.moveTo(i,0); g.lineTo(i+h,h); g.stroke(); g.beginPath(); g.moveTo(i,h); g.lineTo(i+h,0); g.stroke(); } },{srgb:false});
+function gridFin(parent,w=1.5,h=1.2){ const g=new THREE.Group(); parent.add(g); const t=Math.max(.06,w*.04), d=w*.14;
+  box(w+t,t*1.4,d,M.ti,g,0,h/2,0); box(w+t,t*1.4,d,M.ti,g,0,-h/2,0); box(t*1.4,h,d,M.ti,g,-w/2,0,0); box(t*1.4,h,d,M.ti,g,w/2,0,0);
+  const lt=latticeTex.clone(); lt.needsUpdate=true; lt.repeat.set(w/.5,h/.5); const m=M.ti.clone(); m.alphaMap=lt; m.alphaTest=.5; m.side=THREE.DoubleSide;
+  for(const z of[-d*.45,0,d*.45]){ const p=mesh(new THREE.PlaneGeometry(w,h),m,g,0,0,z); }
+  box(t*1.6,t*1.6,d*1.6,M.black,g,0,-h/2-t*1.2,0); return g; }
 const tag=(o,key)=>{ o.traverse(c=>{ c.userData.key=key; }); return o; };
 
 /* ================= TERRENO, MAR Y CAMINOS ================= */
@@ -332,45 +389,107 @@ addRocket('sn15',60,g=>{ const y0=2.5; for(let i=0;i<6;i++){ const a=i/6*Math.PI
   ogive(4.5,13,M.steel,g,y0+36);
   for(const s of[-1,1]){ const af=box(.35,9,4.2,M.steel,g,s*5.4,y0+5,0); af.rotation.z=s*.05; const ff=box(.3,5.5,2.6,M.steel,g,s*4.3,y0+41.5,0); ff.rotation.z=-s*.25; } return 51.5; });
 
-/* ---- torre, mesa de lanzamiento y Starship V3 ---- */
-{ const base=new THREE.Group(); base.position.set(110,0,-8); scene.add(base); tag(base,'tower');
-  // mesa de lanzamiento (OLM)
-  const OLM=new THREE.Group(); base.add(OLM); OLM.position.z=6;
-  for(let i=0;i<6;i++){ const a=i/6*Math.PI*2+.3; const c=box(2.4,20,2.4,M.conc,OLM,Math.cos(a)*9,10,Math.sin(a)*9); }
-  const ring=mesh(new THREE.TorusGeometry(7.2,1.6,16,64),M.tower,OLM,0,21,0); ring.rotation.x=Math.PI/2;
-  cyl(10,10,1.5,M.tower,OLM,18.5,48,true);
+/* ---- torre, mesa de lanzamiento y Starship V3 (detallado) ---- */
+const SS={};
+{ const base=new THREE.Group(); base.position.set(110,0,-8); scene.add(base); SS.base=base;
+  const steelH=h=>{ const m=M.steel.clone(); m.normalMap=weldN.clone(); m.normalMap.needsUpdate=true; m.normalMap.repeat.set(1,Math.round(h/1.83)); m.normalScale=new THREE.Vector2(.7,.7); return m; };
+  // mesa de lanzamiento (OLM): 6 patas, anillo con abrazaderas y placa de agua debajo
+  const OLM=new THREE.Group(); base.add(OLM); OLM.position.z=6; tag(OLM,'tower');
+  for(let i=0;i<6;i++){ const a=i/6*Math.PI*2+.3; box(2.6,19,2.6,M.conc,OLM,Math.cos(a)*9.5,9.5,Math.sin(a)*9.5); rod(V3(Math.cos(a)*9.5,17,Math.sin(a)*9.5),V3(Math.cos(a)*6.5,20.5,Math.sin(a)*6.5),.6,M.tower,OLM); }
+  const ring=mesh(new THREE.TorusGeometry(7.4,1.3,16,72),M.tower,OLM,0,21,0); ring.rotation.x=Math.PI/2;
+  for(let i=0;i<20;i++){ const a=i/20*Math.PI*2; const c=box(.9,1.6,1.2,M.black,OLM,Math.cos(a)*5.6,22.2,Math.sin(a)*5.6); c.rotation.y=-a; }
+  const del=cyl(6.5,6.5,.6,M.steel,OLM,12.5,48); const delP=cyl(.9,.9,12,M.steel,OLM,.5);
+  for(let i=0;i<3;i++){ const a=i/3*Math.PI*2; rod(V3(Math.cos(a)*1,1,Math.sin(a)*1),V3(Math.cos(a)*16,1,Math.sin(a)*16),.5,M.steel,OLM); }
   // torre de celosía de ~146 m
-  const H=146, S=13, lv=24; const beam=new THREE.BoxGeometry(1,1,1); const im=new THREE.InstancedMesh(beam,M.tower,lv*16+4); let n=0; const mt=new THREE.Matrix4(), q=new THREE.Quaternion();
+  const H=146, S=13, lv=30; const im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),M.tower,lv*16+8); let n=0; const mt=new THREE.Matrix4(), q=new THREE.Quaternion();
   const put=(a,b,w)=>{ const d=b.clone().sub(a), L=d.length(); q.setFromUnitVectors(V3(0,1,0),d.clone().normalize()); mt.compose(a.clone().add(b).multiplyScalar(.5),q,V3(w,L,w)); im.setMatrixAt(n++,mt); };
   const T=V3(0,0,-18); const cr=[[-S/2,-S/2],[S/2,-S/2],[S/2,S/2],[-S/2,S/2]];
-  for(const [x,z] of cr) put(V3(T.x+x,0,T.z+z),V3(T.x+x,H,T.z+z),1.2);
+  for(const [x,z] of cr) put(V3(T.x+x,0,T.z+z),V3(T.x+x,H,T.z+z),1.3);
   for(let k=0;k<lv;k++){ const y0=k*H/lv, y1=(k+1)*H/lv; for(let f=0;f<4;f++){ const [ax,az]=cr[f], [bx,bz]=cr[(f+1)%4];
-    put(V3(T.x+ax,y1,T.z+az),V3(T.x+bx,y1,T.z+bz),.55); put(V3(T.x+ax,y0,T.z+az),V3(T.x+bx,y1,T.z+bz),.4); put(V3(T.x+bx,y0,T.z+bz),V3(T.x+ax,y1,T.z+az),.4); } }
-  im.count=n; im.castShadow=true; im.receiveShadow=true; base.add(im); tag(im,'tower');
-  cyl(1,1,8,M.tower,base,H).position.set(T.x,H+4,T.z);
-  // palillos (chopsticks) abiertos a los lados del cohete
-  const car=box(15,6,4,M.tower,base,T.x,96,T.z+S/2+2);
-  for(const s of[-1,1]){ const arm=new THREE.Group(); arm.position.set(T.x+s*6,96,T.z+S/2+3); base.add(arm); arm.rotation.y=s*.12;
-    box(2,4.5,34,M.tower,arm,0,0,17); box(2.2,.6,32,M.steel,arm,-s*1.05,-1.6,17); }
-  // brazo de abastecimiento de la nave
-  box(3,3,16,M.tower,base,T.x+2,118,T.z+S/2+8);
-  // Starship V3: propulsor Super Heavy + anillo de separación + nave
-  const st=new THREE.Group(); st.position.set(0,22,6); base.add(st);
-  for(let i=0;i<33;i++){ const r=i<3?1.4:i<13?3.6:6.6, n0=i<3?3:i<13?10:20, k=i<3?i:i<13?i-3:i-13, a=k/n0*Math.PI*2; engine(st,Math.cos(a)*r,.6,Math.sin(a)*r,.62,1.4,M.copper); }
-  cyl(4.5,4.5,71,M.steel,st,.6); const hs=cyl(4.55,4.55,1.8,M.black,st,71.6,48,true);
-  for(let i=0;i<3;i++){ const a=i/3*Math.PI*2+.4, gf=gridFin(st,4,3.2); gf.position.set(Math.cos(a)*5.9,66,Math.sin(a)*5.9); gf.rotation.y=-a+Math.PI/2; }
-  const ship=new THREE.Group(); ship.position.y=73.4; st.add(ship);
-  cyl(4.5,4.5,38.6,M.steel,ship,0); mesh(new THREE.CylinderGeometry(4.53,4.53,38.6,48,1,true,Math.PI*.5,Math.PI),M.tile,ship,0,19.3,0); ogive(4.5,13,M.steel,ship,38.6);
-  for(const s of[-1,1]){ const af=box(.4,10,4.6,M.steel,ship,s*5.5,6,0); const ff=box(.35,6,2.8,M.steel,ship,s*4.4,43,0); ff.rotation.z=-s*.25; }
+    put(V3(T.x+ax,y1,T.z+az),V3(T.x+bx,y1,T.z+bz),.6); if(k%2) put(V3(T.x+ax,y0,T.z+az),V3(T.x+bx,y1,T.z+bz),.42); else put(V3(T.x+bx,y0,T.z+bz),V3(T.x+ax,y1,T.z+az),.42); } }
+  im.count=n; im.castShadow=true; im.receiveShadow=true; base.add(im);
+  // ascensor, tuberías y techo con pararrayos
+  box(4,6,4,M.white,base,T.x-2,52,T.z); for(const dx of[-5.6,-4.4]) cyl(.45,.45,H,M.steel,base,0).position.set(T.x+dx,H/2,T.z+S/2-.6);
+  box(S+2,1.2,S+2,M.tower,base,T.x,H+.6,T.z); cyl(.25,.25,14,M.tower,base,H+1).position.set(T.x+5,H+8,T.z+5); box(5,3,5,M.white,base,T.x-3,H+2.7,T.z-3);
+  tag(base,'tower');
+  // palillos: carro sobre rieles en la cara de la torre y dos brazos con almohadillas de captura
+  const catchY=91; const carr=new THREE.Group(); carr.position.set(T.x,catchY,T.z+S/2); base.add(carr); SS.carr=carr;
+  box(16,7,3,M.tower,carr,0,1.5,.8); for(const dx of[-6,6]) cyl(1.1,1.1,2,M.steel,carr,4).position.set(dx,5.5,.8);
+  rod(V3(-6,6.5,.8),V3(-6,H-catchY,.2),.08,M.steel,carr,4); rod(V3(6,6.5,.8),V3(6,H-catchY,.2),.08,M.steel,carr,4);
+  SS.arms=[];
+  for(const s of[-1,1]){ const piv=new THREE.Group(); piv.position.set(s*5.9,0,2); carr.add(piv);
+    const a=new THREE.Group(); piv.add(a); box(2,4,25,M.tower,a,0,0,12.5); box(2.3,.5,25,M.steel,a,0,2.1,12.5);
+    for(let k=0;k<8;k++){ const b=box(.25,3.8,.25,M.steel,a,-s*1.05,0,1.5+k*3); b.rotation.x=k%2?.5:-.5; }
+    box(.6,2.2,3.2,M.black,a,-s*1.3,0,17.5); box(.6,2.2,3.2,M.black,a,-s*1.3,0,22); // carriles de deslizamiento donde se apoyan los pines
+    piv.rotation.y=s*.42; SS.arms.push([piv,s]); }
+  // brazo de abastecimiento de la nave (QD) con su placa
+  const qd=new THREE.Group(); qd.position.set(T.x+3,128,T.z+S/2); base.add(qd); box(2.4,2.6,15,M.tower,qd,0,0,7.5); box(3.2,3.6,1,M.black,qd,0,0,15.2); rod(V3(0,1.4,0),V3(0,1.4,14.5),.18,M.steel,qd,6);
+  // Starship V3: propulsor Super Heavy + anillo de separación en caliente + nave
+  const st=new THREE.Group(); st.position.set(0,22,6); base.add(st); SS.st=st;
+  const bst=new THREE.Group(); st.add(bst);
+  for(let i=0;i<33;i++){ const r=i<3?1.2:i<13?3.3:6.4, n0=i<3?3:i<13?10:20, k=i<3?i:i<13?i-3:i-13, a=k/n0*Math.PI*2+(i>=13?.15:0); engine(bst,Math.cos(a)*r,.9,Math.sin(a)*r,.6,1.5,M.copper); }
+  cyl(4.55,4.55,1.8,M.black,bst,-.2,48,true); const bplate=cyl(4.4,4.4,.2,M.niob,bst,1.0);
+  cyl(4.5,4.5,70.2,steelH(70),bst,1.4);
+  for(const s of[-1,1]){ const ch=box(.7,58,1.6,M.steel,bst,s*4.5,34,0); } box(.6,62,.8,M.steel,bst,0,34,-4.6); // carenados laterales (chines) y conducto de cables
+  for(let i=0;i<3;i++){ const a=i/3*Math.PI*2+.5, gf=gridFin(bst,4.4,3.4); gf.position.set(Math.cos(a)*6.2,66,Math.sin(a)*6.2); gf.rotation.y=-a+Math.PI/2; }
+  for(const s of[-1,1]){ box(1.6,.9,1.4,M.niob,bst,s*5,71.2,0); } // pines de captura
+  // anillo de separación en caliente: con ventanas para que salgan los gases de los motores de la nave
+  const hsr=new THREE.Group(); hsr.position.y=71.6; bst.add(hsr); cyl(4.5,4.5,.3,M.steel,hsr,0,48); cyl(4.5,4.5,.3,M.steel,hsr,1.7,48); cyl(4.2,4.2,1.7,M.black,hsr,.15,48,true);
+  for(let i=0;i<24;i++){ const a=i/24*Math.PI*2; const p=box(.5,1.5,.35,M.steel,hsr,Math.cos(a)*4.45,1.0,Math.sin(a)*4.45); p.rotation.y=-a; }
+  const ship=new THREE.Group(); ship.position.y=73.6; st.add(ship); SS.ship=ship;
+  cyl(4.5,4.5,38.4,steelH(38),ship,0); const tl=mesh(new THREE.CylinderGeometry(4.53,4.53,38.4,64,1,true,Math.PI*.5,Math.PI),M.tile,ship,0,19.2,0); tl.material=M.tile.clone(); tl.material.normalMap=hexN.clone(); tl.material.normalMap.needsUpdate=true; tl.material.normalMap.repeat.set(16,36);
+  ogive(4.5,13,M.steel,ship,38.4); const nt=mesh(new THREE.LatheGeometry(Array.from({length:25},(_,i)=>{ const t=i/24; return new THREE.Vector2(4.53*Math.sqrt(1-t*t)+.002,t*13); }),48,Math.PI*.5,Math.PI),tl.material,ship,0,38.4,0);
+  for(const s of[-1,1]){ const sh=new THREE.Shape(); sh.moveTo(0,0); sh.lineTo(4.2,1.4); sh.lineTo(4.2,9.2); sh.lineTo(0,10.4);
+    const af=mesh(new THREE.ExtrudeGeometry(sh,{depth:.45,bevelEnabled:false}),M.tile,ship,s*4.3,3,-.2); af.scale.x=s; af.rotation.y=0;
+    const sf=new THREE.Shape(); sf.moveTo(0,0); sf.lineTo(2.6,1.0); sf.lineTo(2.2,5.2); sf.lineTo(0,6.4);
+    const ff=mesh(new THREE.ExtrudeGeometry(sf,{depth:.4,bevelEnabled:false}),M.tile,ship,s*3.7,40.5,-.2); ff.scale.x=s; ff.rotation.z=-s*.18; }
+  box(5,2.4,.25,M.black,ship,0,30,-4.45); // puerta del dispensador de satélites
+  for(const s of[-1,1]) box(1.2,.8,1.2,M.niob,ship,s*4.8,34,0); // pines de captura de la nave
+  // motores de la nave: 3 de nivel del mar y 3 de vacío (más grandes)
+  for(let i=0;i<3;i++){ const a=i/3*Math.PI*2; engine(ship,Math.cos(a)*1.2,.3,Math.sin(a)*1.2,.6,1.4,M.copper); engine(ship,Math.cos(a+1.05)*3,.3,Math.sin(a+1.05)*3,1.15,2.6,M.niob); }
+  // llama (para la animación de la captura)
+  const fl=new THREE.Group(); fl.position.y=-.2; bst.add(fl); fl.visible=false; SS.flame=fl;
+  const fm=new THREE.MeshBasicMaterial({color:0xffb36b,transparent:true,opacity:.75,blending:THREE.AdditiveBlending,depthWrite:false});
+  for(let i=0;i<3;i++){ const a=i/3*Math.PI*2; const c=mesh(new THREE.ConeGeometry(.9,14,16,1,true),fm,fl,Math.cos(a)*1.2,-7,Math.sin(a)*1.2,false); c.rotation.x=Math.PI; }
+  const core=mesh(new THREE.ConeGeometry(2.4,9,20,1,true),new THREE.MeshBasicMaterial({color:0xfff2d6,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false}),fl,0,-4.5,0,false); core.rotation.x=Math.PI;
+  tag(st,'ss'); tag(carr,'tower'); tag(qd,'tower');
+  // granja de tanques del sitio de lanzamiento
+  const tf=new THREE.Group(); tf.position.set(170,0,-48); scene.add(tf); tag(tf,'tower');
+  for(let i=0;i<8;i++){ const x=(i%4)*11, z=Math.floor(i/4)*12; cyl(4.2,4.2,28,M.white,tf,0).position.set(x,14,z); const d=mesh(new THREE.SphereGeometry(4.2,32,12,0,Math.PI*2,0,Math.PI/2),M.white,tf,x,28,z); }
+  for(let i=0;i<3;i++){ const h=cyl(2.2,2.2,16,M.steel,tf,0); h.rotation.z=Math.PI/2; h.position.set(52,2.6,i*6-2); }
+  rod(V3(-6,3,6),V3(-58,3,48),.6,M.steel,tf); rod(V3(-6,4.4,6),V3(-58,4.4,48),.45,M.steel,tf);
   LBL.push({key:'ss',pos:V3(110,152,-2)}); LBL.push({key:'tower',pos:V3(110,150,-26)});
-  ROCK.push({key:'ss',g:base,h:146,center:V3(110,73,-2)}); ROCK.push({key:'tower',g:base,h:146,center:V3(110,73,-26)});
-  tag(st,'ss'); }
+  ROCK.push({key:'ss',g:base,h:146,center:V3(110,73,-2)}); ROCK.push({key:'tower',g:base,h:146,center:V3(110,73,-26)}); }
+
+/* ---- Megabays (naves de apilado) y la barcaza en el mar con un propulsor recién aterrizado ---- */
+{ const mb=new THREE.Group(); scene.add(mb); const wm=M.wall.clone(); wm.normalMap=corrN.clone(); wm.normalMap.needsUpdate=true; wm.normalMap.repeat.set(30,1);
+  const bay=(x,z,w,h,d)=>{ const b=mesh(new THREE.BoxGeometry(w,h,d),wm,mb,x,h/2,z); const door=box(w*.36,h*.92,.4,M.black,mb,x,h*.46,z+d/2+.2); box(w*.36+1,1.5,.6,M.tower,mb,x,h*.92+.7,z+d/2+.3); };
+  bay(-180,-150,44,82,56); bay(-130,-160,34,64,44);
+  tag(mb,'mb'); LBL.push({key:'mb',pos:V3(-160,92,-150)}); ROCK.push({key:'mb',g:mb,h:82,center:V3(-160,40,-150)}); }
+{ const bg=new THREE.Group(); bg.position.set(560,0,40); scene.add(bg); SS.barge=bg;
+  const hull=P({color:0x3d4249,roughness:.75,metalness:.3}); box(95,5,56,hull,bg,0,.6,0); box(95,4,2,hull,bg,0,5,-27); box(95,4,2,hull,bg,0,5,27);
+  box(10,7,56,P({color:0x5a5f66,roughness:.7}),bg,-48,4.5,0); box(10,7,56,P({color:0x5a5f66,roughness:.7}),bg,48,4.5,0);
+  const deck=mesh(new THREE.RingGeometry(14,15.5,64),M.paint,bg,0,3.15,0,false); deck.rotation.x=-Math.PI/2;
+  for(const r of[.785,-.785]){ const x=box(28,.02,1.6,M.paint,bg,0,3.15,0); x.rotation.y=r; x.castShadow=false; }
+  const oct=box(4,1.6,4,P({color:0xc8a12c,roughness:.6}),bg,6,4,4); // robot que sujeta el propulsor
+  const lb=new THREE.Group(); lb.position.set(0,3.1,0); bg.add(lb);
+  const y0=2.2; engine(lb,0,y0+1.7,0,.5,1.6); for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; engine(lb,Math.cos(a)*1.25,y0+1.7,Math.sin(a)*1.25,.46,1.6); }
+  cyl(1.85,1.85,.6,M.black,lb,y0+1.1); cyl(1.83,1.83,40.5,M.sooty,lb,y0+1.7); cyl(1.84,1.84,6.6,M.carbon,lb,y0+42.2);
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, gf=gridFin(lb); gf.position.set(Math.cos(a)*2.55,y0+46.8,Math.sin(a)*2.55); gf.rotation.y=-a+Math.PI/2; }
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4, c=Math.cos(a), s=Math.sin(a), f=V3(c*7.2,.25,s*7.2); rod(V3(c*1.95,y0+9.5,s*1.95),f,.38,M.carbon,lb,8); rod(V3(c*1.95,y0+.8,s*1.95),V3(c*5.4,1.8,s*5.4),.16,M.carbon,lb,8); }
+  tag(bg,'barge'); LBL.push({key:'barge',pos:V3(560,58,40)}); ROCK.push({key:'barge',g:bg,h:50,center:V3(560,22,40)}); }
+// personas a escala (1,75 m) junto a cada cohete
+function person(x,z,parent=scene){ const g=new THREE.Group(); g.position.set(x,0,z); parent.add(g); const m=P({color:0x2f5d8a,roughness:.7});
+  mesh(new THREE.CapsuleGeometry(.2,.75,6,12),m,g,0,1.05,0); mesh(new THREE.SphereGeometry(.12,16,12),P({color:0xc8a07a,roughness:.7}),g,0,1.62,0); mesh(new THREE.CapsuleGeometry(.08,.7,4,8),P({color:0x2a2c33}),g,-.1,.42,0); mesh(new THREE.CapsuleGeometry(.08,.7,4,8),P({color:0x2a2c33}),g,.1,.42,0);
+  const hat=mesh(new THREE.SphereGeometry(.14,16,8,0,Math.PI*2,0,Math.PI/2),P({color:0xf1f1ee,roughness:.4}),g,0,1.66,0); return g; }
+for(const r of ROCK){ if(r.key==='ss'||r.key==='tower'||r.key==='mb'||r.key==='barge') continue; person(r.g.position.x+4.6,9); }
+person(98,22); person(101,22.5);
 
 /* ================= LA GALERÍA (Starfactory) ================= */
 const B={x0:-85,x1:5,z0:-162,z1:-118,h:24,door:[-47,-33]};
 const hall=new THREE.Group(); scene.add(hall);
 { const t=.6, W=B.x1-B.x0, D=B.z1-B.z0, cx=(B.x0+B.x1)/2, cz=(B.z0+B.z1)/2;
-  const fl=mesh(new THREE.PlaneGeometry(W,D),M.floorIn,hall,cx,.08,cz,false); fl.rotation.x=-Math.PI/2; M.floorIn.map=concTex.clone(); M.floorIn.map.needsUpdate=true; M.floorIn.map.repeat.set(12,6);
+  const fl=mesh(new THREE.PlaneGeometry(W,D),M.floorIn,hall,cx,.08,cz,false); fl.rotation.x=-Math.PI/2; M.water.normalMap.repeat.set(400,600); M.floorIn.map=concTex.clone(); M.floorIn.map.needsUpdate=true; M.floorIn.map.repeat.set(12,6);
   box(t,B.h,D,M.wall,hall,B.x0,B.h/2,cz); box(t,B.h,D,M.wall,hall,B.x1,B.h/2,cz); box(W,B.h,t,M.wall,hall,cx,B.h/2,B.z0);
   // fachada con puerta de vidrio
   const dl=B.door[0]-B.x0, dr=B.x1-B.door[1]; box(dl,B.h,t,M.wall,hall,B.x0+dl/2,B.h/2,B.z1); box(dr,B.h,t,M.wall,hall,B.door[1]+dr/2,B.h/2,B.z1);
@@ -386,15 +505,31 @@ const hall=new THREE.Group(); scene.add(hall);
 // pedestal con nombre
 function pedestal(x,z,w,d,key,h=.6){ const p=mesh(new RoundedBoxGeometry(w,h,d,3,.08),M.ped,hall,x,h/2,z); tag(p,key); return p; }
 const EX={}; const exhibit=(key,x,z,view)=>{ EX[key]={pos:V3(x,0,z),view}; };
-// Crew Dragon (pieza central) y escudo PICA‑X
-{ const g=new THREE.Group(); g.position.set(-40,1.2,-142); hall.add(g); pedestal(-40,-142,7,7,'dragon',1.2);
-  cyl(2,2,3.6,M.white,g,0); for(const s of[-1,1]){ const pv=mesh(new THREE.CylinderGeometry(2.02,2.02,3.2,48,1,true,s>0?.3:Math.PI+.3,1.6),M.pv,g,0,1.8,0); }
-  cyl(2.05,2.05,.35,M.pica,g,3.6); const cap=cyl(1.25,2,2.9,M.white,g,3.95); cyl(1.25,1.25,.4,M.white,g,6.85);
-  const nose=mesh(new THREE.SphereGeometry(1.25,40,16,0,Math.PI*2,0,Math.PI*.38),M.white,g,0,7.15,0); nose.scale.y=.6;
-  for(let i=0;i<4;i++){ const a=i*Math.PI/2+.4; const w=mesh(new THREE.CircleGeometry(.22,20),M.black,g,Math.cos(a)*1.75,5.2,Math.sin(a)*1.75,false); w.lookAt(V3(Math.cos(a)*5,5.2,Math.sin(a)*5).add(g.position)); w.rotation.x+=-.25; }
-  for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4; const pod=box(.7,.9,.35,M.black,g,Math.cos(a)*1.55,6.2,Math.sin(a)*1.55); pod.rotation.y=-a+Math.PI/2; pod.rotation.x=.3; }
-  tag(g,'dragon'); exhibit('dragon',-40,-142,[0,4,12]);
-  const sh=new THREE.Group(); sh.position.set(-29,2.4,-150); hall.add(sh); const disc=mesh(new THREE.CylinderGeometry(1.8,1.8,.25,48),M.pica,sh); disc.rotation.x=1.2; pedestal(-29,-150,3,2,'tiles',.6); tag(sh,'tiles'); }
+// Crew Dragon (pieza central): cápsula, escudo, tronco con aletas y celdas solares, SuperDraco, Draco, ventanas y nariz abierta
+function capsule(g,crew){ const prof=[[2.0,0],[2.02,.25],[1.96,.45],[1.36,3.05],[1.3,3.2],[.001,3.2]].map(([r,y])=>new THREE.Vector2(r,y));
+  const cap=mesh(new THREE.LatheGeometry(prof,64),M.white,g,0,0,0); const hs=cyl(2.04,1.9,.32,M.pica,g,-.3,48);
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+.35, r=1.62; const w=mesh(new THREE.CircleGeometry(.2,24),P({color:0x0b0d12,roughness:.05,metalness:.6}),g,Math.cos(a)*r,1.9,Math.sin(a)*r,false); w.rotation.set(-.2,Math.PI/2-a,0,'YXZ'); }
+  const hatch=mesh(new THREE.RingGeometry(.42,.48,32),M.black,g,0,1.55,1.74,false); hatch.rotation.x=-.26;
+  for(let i=0;i<16;i++){ const a=i/16*Math.PI*2; const d=mesh(new THREE.CircleGeometry(.05,10),M.black,g,Math.cos(a)*1.36,3.0,Math.sin(a)*1.36,false); d.rotation.set(-.2,Math.PI/2-a,0,'YXZ'); }
+  if(crew){ for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4; const pod=new THREE.Group(); pod.position.set(Math.cos(a)*1.72,1.1,Math.sin(a)*1.72); pod.rotation.y=-a+Math.PI/2; g.add(pod);
+      box(.75,.95,.18,M.black,pod,0,0,0); for(const s of[-1,1]){ const nz=mesh(new THREE.ConeGeometry(.12,.3,14,1,true),M.bell,pod,s*.18,-.42,.06); } }
+    const nose=new THREE.Group(); nose.position.set(0,3.2,-1.05); g.add(nose); const nc=mesh(new THREE.SphereGeometry(1.3,48,16,0,Math.PI*2,0,Math.PI*.42),M.white,nose,0,0,1.05); nc.scale.y=.55; nose.rotation.x=-1.25;
+    const port=mesh(new THREE.TorusGeometry(.75,.09,12,40),M.ti,g,0,3.26,0); port.rotation.x=Math.PI/2; }
+  else { const cbm=mesh(new THREE.TorusGeometry(.82,.12,12,40),M.ti,g,0,3.3,0); cbm.rotation.x=Math.PI/2; box(.25,.5,.25,M.ti,g,1.0,2.7,0); }
+  return cap; }
+{ const g=new THREE.Group(); g.position.set(-46,5.0,-142); hall.add(g); pedestal(-46,-142,7,7,'dragon',1.2);
+  capsule(g,true);
+  const tr=new THREE.Group(); tr.position.y=-3.9; g.add(tr); cyl(2,2,3.55,M.white,tr,0,48); mesh(new THREE.CylinderGeometry(2.015,2.015,3.2,48,1,true,-.2,Math.PI),M.pv,tr,0,1.75,0);
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+.78; const sh=new THREE.Shape(); sh.moveTo(0,0); sh.lineTo(.9,0); sh.lineTo(0,1.6); const f=mesh(new THREE.ExtrudeGeometry(sh,{depth:.08,bevelEnabled:false}),M.white,tr,Math.cos(a)*2,0,Math.sin(a)*2); f.rotation.y=-a; }
+  tag(g,'dragon'); exhibit('dragon',-46,-142,[0,4.5,17]);
+  const sh=new THREE.Group(); sh.position.set(-31,2.4,-151); hall.add(sh); const disc=mesh(new THREE.CylinderGeometry(1.8,1.8,.25,48),M.pica,sh); disc.rotation.x=1.2; pedestal(-31,-151,3,2,'tiles',.6); tag(sh,'tiles'); }
+// Dragon 1 (carga) con sus paneles solares abiertos
+{ const g=new THREE.Group(); g.position.set(-26,5.0,-137); g.rotation.y=-.5; hall.add(g); pedestal(-26,-137,5.5,5.5,'dragon1',1.2);
+  capsule(g,false); const tr=new THREE.Group(); tr.position.y=-3.9; g.add(tr); cyl(2,2,3.55,M.white,tr,0,48);
+  for(const s of[-1,1]){ const arm=new THREE.Group(); arm.position.set(s*2.05,1.6,0); tr.add(arm); rod(V3(0,0,0),V3(s*1.2,0,0),.06,M.ti,arm,6);
+    for(let k=0;k<3;k++){ const p=box(2.1,.05,1.5,M.pv,arm,s*(2.3+k*2.2),0,0); box(2.1,.07,.06,M.ti,arm,s*(2.3+k*2.2),0,.76); } }
+  tag(g,'dragon1'); exhibit('dragon1',-26,-137,[2,4,13]); }
+
 // motores
 function stand1(x,z,key){ return pedestal(x,z,3.4,3.4,key,.8); }
 { // Merlin 1D
@@ -452,20 +587,44 @@ function stand1(x,z,key){ return pedestal(x,z,3.4,3.4,key,.8); }
 
 /* ================= INTERFAZ ================= */
 const NAME=k=>k.startsWith('tesla')?'Tesla '+TESLA[+k.slice(5)][0]:k==='hall'?'Galería Starfactory':INFO[k].name;
-const idx=$('idx'); const groups=[['Cohetes (de izquierda a derecha)',['f1','v10','grass','v11','b5','fh','hop','sn15','ss','tower']],['Galería · entra caminando',['dragon','merlin','mvac','raptor','grid','sdraco','tiles','fairing','starlink','suits','asds','timeline']],['Estacionamiento · Tesla',TESLA.map((_,i)=>'tesla'+i)]];
+const idx=$('idx'); const groups=[['Cohetes (de izquierda a derecha)',['f1','v10','grass','v11','b5','fh','hop','sn15','ss']],['Starbase',['tower','mb','barge']],['Galería · entra caminando',['dragon','dragon1','merlin','mvac','raptor','grid','sdraco','tiles','fairing','starlink','suits','asds','timeline']],['Estacionamiento · Tesla',TESLA.map((_,i)=>'tesla'+i)]];
 idx.innerHTML=groups.map(([t,ks])=>`<h3>${t}</h3>`+ks.map(k=>`<button data-k="${k}"><span>${k.startsWith('tesla')?TESLA[+k.slice(5)][0]:INFO[k].name}</span><small>${k.startsWith('tesla')?TESLA[+k.slice(5)][1]:INFO[k].yrs.split(' ')[0]}</small></button>`).join('')).join('');
 idx.onclick=e=>{ const b=e.target.closest('button'); if(b){ goTo(b.dataset.k); if(innerWidth<=900) idx.classList.remove('open'); } };
 $('bIdx').onclick=()=>idx.classList.toggle('open');
 const lblBox=$('lbl'); LBL.forEach(l=>{ const d=document.createElement('div'); d.className='lb'; const I=INFO[l.key]; d.innerHTML=l.text||(l.key==='hall'?'Galería Starfactory <small>entra caminando</small>':`${I.name}<small>${I.yrs.split(' ')[0]}</small>`); d.onclick=()=>{ if(l.key==='hall') enterHall(); else goTo(l.key); }; lblBox.appendChild(d); l.el=d; });
 function showCard(k){ let kick,name,html;
   if(k.startsWith('tesla')){ const t=TESLA[+k.slice(5)]; kick='Tesla · '+t[1]; name=t[0]; html=`<p>${t[2]}</p><p class="note">Tesla fue fundada en 2003 por Martin Eberhard y Marc Tarpenning; Elon Musk fue el principal inversor desde 2004 y luego su director. Aquí ves la línea del tiempo de sus vehículos con sus datos; no incluimos modelos 3D de los autos porque sus diseños son obra protegida de la marca.</p><div class="src">Fuentes<ul>${[...t[3],'tsl'].map(s=>`<li><a href="${SRC[s][1]}" target="_blank" rel="noopener">${SRC[s][0]}</a></li>`).join('')}</ul></div>`; }
-  else { const I=INFO[k]; kick=(I.grp==='cohete'?'Cohete · ':'Galería · ')+I.yrs; name=I.name;
-    html=`<dl class="kv">${I.data.map(d=>`<dt>${d[0]}</dt><dd>${d[1]}</dd>`).join('')}</dl>${I.hist}${I.grp==='cohete'?'':`<button class="go" id="goWalk">🚶 Ir caminando hasta aquí</button>`}<div class="src">Fuentes<ul>${I.src.map(s=>`<li><a href="${SRC[s][1]}" target="_blank" rel="noopener">${SRC[s][0]}</a></li>`).join('')}</ul></div>`; }
+  else { const I=INFO[k]; kick=(I.grp==='cohete'?'Cohete · ':I.grp==='sitio'?'Starbase · ':'Galería · ')+I.yrs; name=I.name;
+    html=`<dl class="kv">${I.data.map(d=>`<dt>${d[0]}</dt><dd>${d[1]}</dd>`).join('')}</dl>${(k==='ss'||k==='tower')?`<button class="go" id="goCatch">▶ Simular la captura del propulsor</button>`:''}${partsHTML(k)}${I.hist}${I.grp!=='edificio'?'':`<button class="go" id="goWalk">🚶 Ir caminando hasta aquí</button>`}<div class="src">Fuentes<ul>${I.src.map(s=>`<li><a href="${SRC[s][1]}" target="_blank" rel="noopener">${SRC[s][0]}</a></li>`).join('')}</ul></div>`; }
   $('ck').textContent=kick; $('cn').textContent=name; $('cb').innerHTML=html; $('cb').scrollTop=0; $('card').hidden=false;
-  const gw=$('goWalk'); if(gw) gw.onclick=()=>walkTo(k);
+  const gw=$('goWalk'); if(gw) gw.onclick=()=>walkTo(k); const gc=$('goCatch'); if(gc) gc.onclick=startCatch; buildPartTags(k);
   idx.querySelectorAll('button').forEach(b=>b.setAttribute('aria-current',b.dataset.k===k));
   try{ history.replaceState(null,'','#'+k); }catch(e){} }
-$('cx').onclick=()=>{ $('card').hidden=true; };
+$('cx').onclick=()=>{ $('card').hidden=true; ptBox.innerHTML=''; curKey=null; };
+
+/* ---- piezas numeradas, etiquetas de la galería y simulación de captura ---- */
+let curKey=null; const ptBox=document.createElement('div'); ptBox.id='pts'; document.body.appendChild(ptBox);
+function partsHTML(k){ const L=PARTS[k]; if(!L) return '';
+  return `<h4 class="ph">Pieza por pieza</h4><ol class="pl">${L.map((p,i)=>`<li><button data-i="${i}"><span class="n">${i+1}</span><b>${p[0]}</b><span class="d">${p[1]}</span></button></li>`).join('')}</ol>`; }
+function openPart(i){ $('cb').querySelectorAll('.pl button').forEach(b=>b.setAttribute('aria-current',+b.dataset.i===i)); ptBox.querySelectorAll('.pt').forEach(t=>t.classList.toggle('on',+t.dataset.i===i));
+  const b=$('cb').querySelector(`.pl button[data-i="${i}"]`); if(b) b.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+function buildPartTags(k){ ptBox.innerHTML=''; curKey=k; const L=PARTS[k]; if(!L) return;
+  L.forEach((p,i)=>{ const t=document.createElement('button'); t.className='pt'; t.dataset.i=i; t.textContent=i+1; t.setAttribute('aria-label',p[0]); t.onclick=()=>openPart(i); ptBox.appendChild(t); });
+  $('cb').querySelectorAll('.pl button').forEach(b=>b.onclick=()=>openPart(+b.dataset.i)); }
+// etiquetas de las piezas de la galería (solo caminando adentro y de cerca)
+const LH={dragon:10.5,dragon1:9.5,merlin:5.6,mvac:8.2,raptor:7,grid:4.2,sdraco:3.6,tiles:7.8,fairing:14.5,starlink:16.6,suits:2.9,asds:3.6,timeline:13};
+const HL=[]; for(const [k,h] of Object.entries(LH)){ if(!EX[k]) continue; const d=document.createElement('div'); d.className='lb'; d.innerHTML=INFO[k].name; d.onclick=()=>showCard(k); $('lbl').appendChild(d); HL.push({k,el:d,pos:V3(EX[k].pos.x,h,EX[k].pos.z)}); }
+// simulación: el propulsor vuelve y la torre lo atrapa
+let CS=null;
+function startCatch(){ setMode('drone'); $('card').hidden=innerWidth<=900; CS={t:0}; SS.ship.visible=false; SS.flame.visible=true; droneTo(V3(110,300,-2),330,.08,.9); $('csHud').hidden=false; }
+function stepCatch(dt){ if(!CS||CS.done) return; CS.t+=dt; const T=16, u=Math.min(1,CS.t/T), e=1-u;
+  const y=22+1500*e*e, x=-70*e*e*e; SS.st.position.set(x,y,6); SS.st.rotation.z=.35*e*e*e;
+  SS.flame.visible=u<.985; SS.flame.scale.setScalar(.7+.5*e+.08*Math.sin(CS.t*40));
+  const close=THREE.MathUtils.clamp((CS.t-(T-2.2))/2,0,1); SS.arms.forEach(([p,s])=>p.rotation.y=s*.42*(1-close));
+  controls.target.set(110,Math.max(60,y+30),-2);
+  const v=(2*1500*e/T)*3.6; if(u<1){ $('csHud').innerHTML=`Super Heavy regresando · altura ${Math.round(y-22)} m · ${Math.round(v)} km/h<br><small>${CS.t<T-2.2?'Los motores centrales frenan el propulsor y lo guían hacia la torre (animación aproximada)':'Los palillos se cierran: los pines se apoyan sobre los brazos'}</small>`; return; }
+  CS.done=true; SS.flame.visible=false; $('csHud').innerHTML=`¡Atrapado! <small>Así fue el 13 de octubre de 2024, la primera vez.</small><button class="go" id="csRe">Volver a apilar la nave</button>`;
+  $('csRe').onclick=()=>{ SS.ship.visible=true; $('csHud').hidden=true; CS=null; SS.arms.forEach(([p,s])=>p.rotation.y=s*.42); }; }
 
 /* ================= CÁMARA: dron y caminar ================= */
 let mode='drone', fly=null;
@@ -508,10 +667,14 @@ const clock=new THREE.Clock(), tmp=V3();
 function tick(){ const raw=clock.getDelta(), dt=Math.min(.05,raw);
   if(mode==='drone'){ if(fly){ fly.t=Math.min(1,fly.t+Math.min(raw,.5)/1.6); const k=fly.t*fly.t*(3-2*fly.t); camera.position.lerpVectors(fly.p0,fly.p1,k); controls.target.lerpVectors(fly.t0,fly.t1,k); if(fly.t>=1) fly=null; } controls.update(); }
   else stepWalk(dt);
+  stepCatch(dt); M.water.normalMap.offset.x+=dt*.004; M.water.normalMap.offset.y+=dt*.002;
   renderer.render(scene,camera);
   const w=innerWidth,h=innerHeight, inHall=mode==='walk'&&W.pos.z<B.z1&&W.pos.z>B.z0&&W.pos.x>B.x0&&W.pos.x<B.x1;
   for(const l of LBL){ tmp.copy(l.pos).project(camera); const d=camera.position.distanceTo(l.pos); const vis=tmp.z<1&&Math.abs(tmp.x)<1.1&&Math.abs(tmp.y)<1.1&&!inHall&&(mode==='drone'||d<160);
     l.el.style.display=vis?'':'none'; if(vis) l.el.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px) translate(-50%,-100%)`; }
+  for(const l of HL){ tmp.copy(l.pos).project(camera); const vis=inHall&&tmp.z<1&&Math.abs(tmp.x)<1.05&&Math.abs(tmp.y)<1.05&&camera.position.distanceTo(l.pos)<34; l.el.style.display=vis?'':'none'; if(vis) l.el.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px) translate(-50%,-100%)`; }
+  const L=PARTS[curKey], showP=L&&!$('card').hidden&&mode==='drone'&&!CS; ptBox.style.display=showP?'':'none';
+  if(showP) L.forEach((p,i)=>{ const t=ptBox.children[i]; if(!t) return; tmp.set(...p[2]).project(camera); const vis=tmp.z<1&&Math.abs(tmp.x)<1&&Math.abs(tmp.y)<1; t.style.display=vis?'':'none'; if(vis) t.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px)`; });
   requestAnimationFrame(tick); }
 camera.position.set(60,60,260); controls.target.set(-20,35,-20);
 $('load').hidden=true;
