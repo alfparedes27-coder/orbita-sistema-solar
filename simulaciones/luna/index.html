@@ -89,6 +89,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
   .hint{display:none}
 }
 </style>
+<link rel="stylesheet" href="../marte/rovers.css">
 </head>
 <body>
 <canvas id="gl" tabindex="0" aria-label="Globo 3D de la Luna con los sitios de alunizaje"></canvas>
@@ -124,6 +125,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { abrirRover } from '../marte/rovers.js';
 const $=id=>document.getElementById(id);
 
 /* ============ LUGARES EN LA SUPERFICIE (cara visible; latitud, longitud este) ============ */
@@ -378,6 +380,9 @@ function yr(s){ return +s.date.slice(-4); }
 
 /* ============ FICHA ============ */
 let tab='how'; const REVS={a11:30,a12:45,a14:34,a15:74,a16:64,a17:75};
+const EXP={luna9:[['luna9','🔍 Explorar la Luna 9 en 3D: piezas, la llegada y la primera foto']],surv3:[['surv3','🔍 Explorar la Surveyor 3 en 3D: rebotes, la pala y la visita del Apolo 12']],ce3:[['ce3','🔍 Explorar el módulo Chang\'e 3 en 3D: la rampa y las fotos mutuas'],['yutu','🐇 Explorar el rover Yutu en 3D: piezas y recorrido']],ce4:[['ce4','🔍 Explorar el módulo Chang\'e 4 en 3D: la rampa y la minibiosfera'],['yutu2','🐇 Explorar el rover Yutu‑2 en 3D: piezas y recorrido']]};
+const expBtns=s=>(EXP[s.id]||[]).map(([r,l])=>`<button class="go" data-exp="${r}" style="width:100%;border:0;cursor:pointer">${l} →</button>`).join('');
+function wireExp(s){ document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{ abrirRover(b.dataset.exp); history.replaceState(null,'','#'+s.id+'/3d-'+b.dataset.exp); }); }
 function openCard(s){
   stopAnim();
   $('card').hidden=false; const c='#'+GROUP[s.g][0].toString(16); $('cst').textContent=GROUP[s.g][1]+' · '+s.place; $('cst').style.color=c; $('cname').textContent=s.name;
@@ -387,8 +392,8 @@ function openCard(s){
   $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.k;openCard(s);});
   $('robo').hidden=!I; $('anim').hidden=true;
   const coords=`${Math.abs(s.lat).toFixed(2)}° ${s.lat>=0?'N':'S'}, ${Math.abs(s.lon).toFixed(2)}° ${s.lon>=0?'E':'O'}`;
-  if(!I){ $('cbody').innerHTML=`<p>${NOTE[s.id]||''}</p><div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${coords}</b><span>Quién y cómo</span><b>${s.who}</b></div>
-    ${s.id==='luna17'?`<a class="go" href="lunojod/">🎛 Manejar el Lunojod 1 desde la Tierra, con el retraso de la señal →</a>`:`<div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`}`; return; }
+  if(!I){ $('cbody').innerHTML=`${expBtns(s)}<p>${NOTE[s.id]||''}</p><div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${coords}</b><span>Quién y cómo</span><b>${s.who}</b></div>
+    ${s.id==='luna17'?`<a class="go" href="lunojod/">🎛 Manejar el Lunojod 1 desde la Tierra, con el retraso de la señal →</a>`:`<div class="soon">La ficha completa (modelo 3D, cómo funciona, historia y animación del alunizaje) se agregará en las próximas tandas.</div>`}`; wireExp(s); return; }
   if(tab==='lrv'){ buildLRVDetail(s.id==='a17'); rctl.target.set(0,.8,0); rcam.position.set(4.2,2.3,4.6); $('cbody').innerHTML=lrvHTML(s); $('cbody').scrollTop=0; return; }
   if(I.kind) buildProbe(I.l2?'lunojod2':I.y2?'change2':I.kind); else buildLM(['a15','a16','a17'].includes(s.id), s.id==='a12'); castAll(lm); castAll(stay); setPose(1e9,I.prof); if(I.kind==='lunojod'||I.kind==='change'){ rctl.target.set(.6,1.1,2.6); rcam.position.set(8,4.4,10); }
   let h=tab==='how'?I.how:tab==='story'?I.story:`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${coords}</b></div>
@@ -398,7 +403,7 @@ function openCard(s){
     ${s.id==='a17'?`<a class="go" href="paseo/?m=a17">🚙 Manejar el rover lunar por el valle Taurus‑Littrow →</a>`:''}
     ${REVS[s.id]?`<a class="go alt" href="apollo/#${s.id}">Ver la misión completa: Saturn V, viaje, ${REVS[s.id]} vueltas y regreso →</a>`:''}
     <p style="font-size:11.5px;color:var(--faint)">${I.kind==='change'?'Fechas: Planetary Society, Spaceflight Now, Nature Communications y LROC. El perfil de descenso es aproximado; el rover baja por la rampa acelerado.':I.kind==='lunojod'?'Fechas: NASA (Siddiqi, «Deep Space Chronicle») y LROC. El perfil de descenso es esquemático; el rover baja por la rampa acelerado (en la realidad tardó unas 2 a 3 horas).':'Tiempos y alturas de los registros de la misión (NASA); entre eventos se interpola.'}</p>`;
-  $('cbody').innerHTML=h; $('cbody').scrollTop=0;
+  $('cbody').innerHTML=expBtns(s)+h; $('cbody').scrollTop=0; wireExp(s);
   if($('play')) $('play').onclick=()=>startAnim(I.prof);
 }
 $('close').onclick=()=>{ stopAnim(); $('card').hidden=true; sel=null; SITES.forEach(x=>x.lbl.classList.remove('sel')); };
@@ -664,7 +669,7 @@ function loop(t){
 }
 requestAnimationFrame(loop);
 const [hId,hPart]=location.hash.slice(1).split('/'); const start=SITES.find(s=>s.id===hId);
-if(start){ select(start); if(hPart==='lrv' && LRVD[start.id]){ tab='lrv'; openCard(start); } if(hPart==='alunizaje' && INFO[start.id]){ tab='launch'; openCard(start); startAnim(INFO[start.id].prof); } }
+if(start){ select(start); if(hPart==='lrv' && LRVD[start.id]){ tab='lrv'; openCard(start); } if(hPart==='alunizaje' && INFO[start.id]){ tab='launch'; openCard(start); startAnim(INFO[start.id].prof); } if(hPart&&hPart.startsWith('3d-')) abrirRover(hPart.slice(3)); }
 window.__ml={select,SITES,startAnim:()=>startAnim(INFO.a11.prof)};
 </script>
 </body>

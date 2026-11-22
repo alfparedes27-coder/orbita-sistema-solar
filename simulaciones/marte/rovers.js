@@ -842,6 +842,158 @@ function buildSchia(hf) {
   return { group: g, parts, act, reset };
 }
 
+// ======================= Luna: Yutu y Yutu‑2, Chang'e 3 y 4, Surveyor 3 y Luna 9 (mismo visor, con cielo negro y suelo gris) =======================
+const GRAYM = Mt(0x8d8b86, { metalness: .3, roughness: .6 });
+// Yutu (2013) y Yutu‑2 (2019): 140 kg, 1,5 × 1,0 × 1,1 m, seis ruedas, dos alas solares, mástil con cámaras y antena
+function buildYutu(two, forLander) {
+  const g = new THREE.Group(), parts = [];
+  const part = (id, name, obj, dir, info) => { obj.userData.part = id; parts.push({ id, name, obj, dir, info, home: obj.position.clone() }); g.add(obj); return obj; };
+  const body = new THREE.Group(); body.add(at(box(.86, .34, 1.08, M.gold, .02), 0, .62, 0)); body.add(at(box(.88, .03, 1.1, M.alu), 0, .8, 0));
+  body.add(at(box(.3, .1, .2, M.white), -.2, .86, .3)); body.add(at(cyl(.05, .05, .04, M.dark, 12), .25, .84, .35));
+  part('cuerpo', 'Cuerpo', body, V3(0, -.4, 0), 'Una caja envuelta en manta dorada, con la computadora, las baterías y una pequeña fuente de calor de plutonio (RHU) que la mantiene tibia en las noches lunares de dos semanas, a −180 °C. Durante la noche el rover duerme: dobla un panel encima y baja el mástil.' + (two ? '' : ' Tras su segunda noche, en enero de 2014, Yutu dejó de moverse por una falla eléctrica; siguió hablando con la Tierra hasta 2016.'));
+  const sol = new THREE.Group();
+  for (const s of [-1, 1]) { const w = new THREE.Group(); w.position.set(s * .44, .8, 0); w.rotation.z = s * (s < 0 ? .25 : -.15); w.add(flatShape([[0, -.5], [s * .95, -.5], [s * .95, .5], [0, .5]], M_CELLS, 0, .02)); w.add(at(box(.02, .03, 1.0, M.alu), 0, 0, 0)); sol.add(w); }
+  part('solar', 'Dos alas solares', sol, V3(0, .6, 0), 'Dos paneles: de día dan electricidad; de noche, uno se dobla sobre el cuerpo como una tapa para guardar el calor. Igual que el Lunojod, pero con celdas solares modernas.');
+  const mast = new THREE.Group(); mast.position.set(0, .82, -.42); mast.add(rod(V3(0, 0, 0), V3(0, .55, 0), .03, M.white)); mast.add(at(box(.36, .12, .14, M.white, .01), 0, .62, 0));
+  for (const x of [-.12, .12]) { mast.add(at(cyl(.025, .025, .04, M.dark, 12), x, .64, -.08, Math.PI / 2)); mast.add(at(cyl(.016, .016, .01, M.lens, 12), x, .64, -.1, Math.PI / 2)); mast.add(at(cyl(.018, .018, .03, M.dark, 10), x * .6, .58, -.08, Math.PI / 2)); }
+  mast.add(rod(V3(.16, .62, 0), V3(.3, .74, .05), .015, M.alu)); mast.add(at(new THREE.Mesh(new THREE.SphereGeometry(.1, 18, 6, 0, Math.PI * 2, 0, .9), Mt(0xf2f0ea, { side: THREE.DoubleSide })), .3, .78, .05, .4));
+  part('mastil', 'Mástil, cámaras y antena', mast, V3(0, .6, -.3), 'Arriba van la cámara panorámica a color (PCAM) y las cámaras de navegación, que ven en 3D. La antena parabólica habla directo con la Tierra' + (two ? '... salvo que Yutu‑2 está en la cara oculta, donde la Tierra nunca se ve: sus señales van al módulo Chang\'e 4 y de ahí al satélite Queqiao, que flota detrás de la Luna.' : '.'));
+  const sci = new THREE.Group();
+  if (!two) { sci.add(rod(V3(.2, .5, -.55), V3(.2, .42, -.85), .02, M.alu)); sci.add(rod(V3(.2, .42, -.85), V3(.2, .2, -.95), .018, M.alu)); sci.add(at(box(.08, .08, .08, M.gold), .2, .16, -.96)); }
+  else sci.add(at(box(.16, .1, .1, M.white), .25, .62, -.58));
+  sci.add(at(box(.12, .08, .08, M.dark), -.2, .55, -.57)); sci.add(at(box(.5, .04, .3, M.dark), 0, .43, .3));
+  part('ciencia', two ? 'Espectrómetro, ASAN y radar' : 'Brazo, espectrómetros y radar', sci, V3(0, -.2, -.5), two ? 'Al frente, un espectrómetro de luz visible e infrarroja (VNIS) para saber de qué está hecho el suelo, y el ASAN, un instrumento sueco que mide cómo el viento del Sol choca con la Luna. Abajo, un radar que ve capas enterradas: en el cráter Von Kármán halló material que parece venir del manto, de las profundidades de la Luna.' : 'Un brazo con un espectrómetro de rayos X (APXS) que se apoya en el suelo, un espectrómetro infrarrojo al frente y, abajo, el primer radar que miró bajo la superficie de la Luna: vio capas de antiguas coladas de lava.');
+  const { wheels, susp } = rockerBogie(g, part, { WR: .15, X: .58, zF: -.5, zM: 0, zR: .5, PY: .45, PZ: -.1, BY: .32, BZ: .26, r: .03, wheelFn: () => plainWheel(.15, .15, 16),
+    info: 'Seis ruedas de malla metálica con tacos, con suspensión rocker‑bogie como los rovers de la NASA. Velocidad máxima: 200 m por hora, menos que una tortuga apurada.' });
+  shadows(g);
+  return { group: g, parts, wheels, susp, WR: .15, geo: { X: .58, zF: -.5, zM: 0, zR: .5, lift: .02 } };
+}
+
+// Chang'e 3 (2013) y Chang'e 4 (2019): módulo dorado de 4 patas que baja a su rover por una rampa de dos rieles
+function buildChangE(hf, n) {
+  const g = new THREE.Group(), parts = [], four = n === 4;
+  const part = (id, name, obj, dir, info) => { obj.userData.part = id; parts.push({ id, name, obj, dir, info, home: obj.position.clone() }); g.add(obj); return obj; };
+  const h0 = hf(0, 0), gy = (x, z) => hf(x, z) - h0;
+  const body = new THREE.Group(); const oct = []; for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; oct.push([Math.cos(a) * 1.05, Math.sin(a) * 1.05]); }
+  body.add(flatShape(oct, M.gold, 1.0, .85)); body.add(flatShape(oct.map(p => [p[0] * 1.01, p[1] * 1.01]), M.alu, 1.86, .03));
+  body.add(at(cyl(.32, .55, .5, M.dark, 20), 0, .78, 0)); body.add(at(cyl(.45, .45, .04, M.aluDark, 20), 0, 1.0, 0));
+  part('cuerpo', 'Cuerpo y motor', body, V3(0, -.4, 0), 'Debajo, un motor regulable de 7.500 newtons, el primero de China. Al bajar, la nave se detuvo flotando a unos 100 m, miró el suelo con un láser en 3D, eligió un lugar sin piedras y bajó despacio hasta unos pocos metros; ahí apagó el motor y cayó suave sobre sus patas. ' + (four ? 'Aterrizó el 3 de enero de 2019 en el cráter Von Kármán: el primer alunizaje en la cara oculta.' : 'Aterrizó el 14 de diciembre de 2013: el primer alunizaje suave en 37 años, desde Luna 24.'));
+  const legs = new THREE.Group();
+  for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.PI / 4, c = Math.cos(a), s = Math.sin(a), fx = c * 1.9, fz = s * 1.9, f = V3(fx, gy(fx, fz) + .1, fz);
+    legs.add(rod(V3(c * .9, 1.5, s * .9), f, .055, M.alu)); legs.add(rod(V3(c * .95, 1.0, s * .95), f.clone().add(V3(0, .08, 0)), .035, M.aluDark)); legs.add(at(cyl(.3, .32, .07, M.alu, 20), fx, f.y - .07, fz)); }
+  part('patas', 'Cuatro patas', legs, V3(0, -.3, 0), 'Cuatro patas con amortiguadores y platos de 60 cm. Están hechas para aguantar una pendiente de hasta 15° sin volcar.');
+  const sol = new THREE.Group(); for (const s of [-1, 1]) { const w = new THREE.Group(); w.position.set(s * 1.05, 1.75, 0); w.rotation.z = s * -.15; w.add(flatShape([[0, -.75], [s * 1.6, -.75], [s * 1.6, .75], [0, .75]], M_CELLS, 0, .025)); sol.add(w); }
+  part('solar', 'Paneles solares', sol, V3(0, .5, 0), 'Dos paneles grandes a los lados. De noche el módulo se apaga y lo mantiene tibio una fuente de calor de plutonio (RHU); cada amanecer lunar se vuelve a despertar solo.');
+  const sci = new THREE.Group(); sci.add(rod(V3(.6, 1.87, .5), V3(.6, 2.6, .5), .03, M.alu)); sci.add(at(box(.24, .12, .14, M.white), .6, 2.66, .5)); sci.add(at(cyl(.03, .03, .02, M.lens, 10), .6, 2.66, .42, Math.PI / 2));
+  let bio = null, sprout = null;
+  if (!four) { sci.add(at(box(.35, .3, .3, M.white), -.55, 2.02, .5)); sci.add(at(cyl(.07, .07, .3, M.dark, 14), -.55, 2.25, .5, -.4)); sci.add(at(box(.22, .16, .2, M.gold), .1, 1.95, .7)); }
+  else { for (const [a, l] of [[.3, 0], [2.4, 0], [4.4, 0]]) sci.add(rod(V3(Math.cos(a) * .7, 1.9, Math.sin(a) * .7), V3(Math.cos(a) * 2.2, 3.4, Math.sin(a) * 2.2), .01, M.gold));
+    bio = new THREE.Group(); bio.position.set(-.5, 1.88, .55); bio.add(at(cyl(.08, .08, .18, M.white, 18), 0, .09, 0)); const win = at(cyl(.06, .06, .002, new THREE.MeshPhysicalMaterial({ color: 0x9fd0ff, transparent: true, opacity: .5, roughness: .05 }), 16), 0, .182, 0); bio.add(win);
+    sprout = new THREE.Group(); sprout.add(at(cyl(.003, .003, .05, Mt(0x6fbf4a), 6), 0, .025, 0)); sprout.add(at(new THREE.Mesh(new THREE.SphereGeometry(.012, 8, 6), Mt(0x7fd05a)), .01, .05, 0)); sprout.position.set(0, .13, 0); bio.add(sprout); sci.add(bio);
+    sci.add(at(box(.2, .14, .16, M.gold), .1, 1.95, .7)); }
+  part('ciencia', four ? 'Cámara, radio, LND y la minibiosfera' : 'Cámara, telescopio y cámara ultravioleta', sci, V3(0, .6, .3), four ? 'Tres antenas de 5 m escuchan las ondas de radio del Sol y del universo desde el lugar más silencioso del sistema solar: la Tierra queda tapada. El LND, alemán, midió la radiación en el suelo: 2 a 3 veces más que en la Estación Espacial. Y el cilindro blanco es una minibiosfera de 3 kg con semillas de algodón, papa y colza, levadura y huevos de mosca: el algodón brotó, la primera planta en crecer en la Luna, pero murió al llegar la noche.' : 'La cámara del mástil gira 360°. El tubo inclinado es el primer telescopio que funcionó desde la Luna: miró estrellas y galaxias en luz ultravioleta durante años, sin aire que lo moleste. La caja dorada es una cámara ultravioleta que fotografió la «envoltura» de gas cargado que rodea a la Tierra.');
+  // rampa de dos rieles y el rover
+  const ramp = new THREE.Group(); ramp.position.set(0, 1.88, -1.0); const rails = new THREE.Group(); ramp.add(rails);
+  const RL = Math.hypot(1.88 - gy(0, -4.1), 3.1); for (const x of [-.32, .32]) { rails.add(at(box(.08, .05, RL, M.alu), x, 0, -RL / 2)); rails.add(at(box(.04, .12, RL, M.aluDark), x + Math.sign(x) * .05, .05, -RL / 2)); }
+  part('rampa', 'Rampa', ramp, V3(0, .2, -.6), 'Dos rieles que se despliegan desde el borde del módulo hasta el suelo. El rover baja por ellos de frente y muy despacio. ' + (four ? 'Yutu‑2 tocó el suelo de la cara oculta unas 12 horas después del alunizaje.' : 'Yutu bajó el 15 de diciembre de 2013, y después el rover y el módulo se sacaron fotos uno al otro.'));
+  const rv = buildYutu(four, true); rv.group.scale.setScalar(.92); g.add(rv.group); const rvG = rv.group;
+  const RP = V3(0, 1.88 + .05, -.15), slope = Math.atan2(1.88 - gy(0, -4.1), 3.1), rampEnd = V3(0, gy(0, -4.1) + .02, -4.1);
+  const T = 40, tmp = V3();
+  function act(time) {
+    const t = time % T, dep = sm(2, 6, t); rails.rotation.x = -dep * slope; rails.scale.z = .35 + dep * .65;
+    let step = t < 2 ? 0 : t < 6 ? 1 : t < 16 ? 2 : t < 26 ? 3 : 4, ry = 0, px, py, pz, pitch = 0;
+    const u1 = sm(7, 15, t), u2 = sm(15, 20, t), u3 = sm(20, 25, t);
+    if (t < 7) { px = 0; py = RP.y; pz = RP.z; }
+    else if (u1 < 1) { const s0 = Math.min(1, u1 * 1.25), z0 = RP.z - .85; if (s0 < .2) { pz = RP.z - s0 * 5 * .85; py = RP.y; } else { const f = (s0 - .2) / .8; pz = z0 - f * 3.0; py = RP.y - f * (RP.y - rampEnd.y); pitch = slope; } px = 0; }
+    else { pz = -4.1 - u2 * 2.2; px = u3 * 1.6; py = gy(px, pz) + .02; ry = -u3 * 2.2; }
+    rvG.position.set(px, py, pz); rvG.rotation.set(-pitch, ry, 0, 'YXZ');
+    rv.wheels.forEach(w => w.obj.rotation.x = -pz * 6);
+    if (sprout) { const sp = sm(22, 30, t) * (1 - sm(36, 38, t)); sprout.scale.setScalar(Math.max(.01, sp)); sprout.visible = sp > .02; }
+    const kv = four ? [['Rover', t < 7 ? 'sobre el módulo' : t < 15 ? 'bajando por la rampa' : 'en el suelo de la cara oculta'], ['Algodón en la minibiosfera', t < 22 ? 'semilla' : t < 36 ? 'brotó (día 9)' : 'murió con el frío de la noche (−52 °C afuera)'], ['Enlace con la Tierra', 'por el satélite Queqiao, detrás de la Luna'], ['Radiación en el suelo', '2–3 veces la de la Estación Espacial']]
+      : [['Rover', t < 7 ? 'sobre el módulo' : t < 15 ? 'bajando por la rampa' : 'en el Mar de las Lluvias'], ['Fotos mutuas', t < 26 ? '—' : 'el rover fotografía al módulo'], ['Telescopio ultravioleta', 'mirando estrellas'], ['Tierra en el cielo', 'alta, hacia el sur']];
+    return { step, kv, scan: t > 26 ? { f: Math.min(1, (t - 26) / 12), cycle: Math.floor(time / T), pos: V3(rvG.position.x, rvG.position.y + 1.4, rvG.position.z), look: V3(0, 1.2, 0) } : null };
+  }
+  function reset() { rails.rotation.x = 0; rails.scale.z = .35; rvG.position.copy(RP); rvG.rotation.set(0, 0, 0); if (sprout) { sprout.visible = true; sprout.scale.setScalar(1); } }
+  shadows(g); reset();
+  return { group: g, parts, act, reset };
+}
+
+// Surveyor 3 (1967): rebotó dos veces, cavó la primera zanja con una pala y en 1969 lo visitaron Conrad y Bean del Apolo 12
+function buildSurveyor(hf) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const frame = new THREE.Group(), P = [];
+  for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2 + Math.PI / 2; P.push(V3(Math.cos(a) * .62, .55, Math.sin(a) * .62)); }
+  for (let k = 0; k < 3; k++) { frame.add(rod(P[k], P[(k + 1) % 3], .025, M.alu)); frame.add(rod(P[k], V3(0, 1.45, 0), .022, M.alu)); }
+  frame.add(at(cyl(.06, .06, .3, M.dark, 12), 0, .5, 0)); for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2 + Math.PI / 6; frame.add(at(cyl(.035, .05, .14, M.dark, 10), Math.cos(a) * .45, .45, Math.sin(a) * .45)); kit.addFlame(Math.cos(a) * .45, .38, Math.sin(a) * .45, 1); }
+  frame.add(at(box(.42, .3, .32, Mt(0xf4f2ec, { roughness: .4 })), .38, .82, .05)); frame.add(at(box(.36, .26, .3, Mt(0xf4f2ec, { roughness: .4 })), -.36, .8, .1));
+  part('marco', 'Marco y compartimentos', frame, V3(0, -.3, 0), 'Un trípode de tubos de aluminio de solo 296 kg al llegar. Las dos cajas blancas guardan la electrónica y las baterías: el blanco refleja el Sol lunar, que calienta el suelo a más de 100 °C. Abajo, tres motores vernier pequeños para la bajada final.');
+  const legs = new THREE.Group(), feet = [];
+  for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2 + Math.PI / 2, c = Math.cos(a), s = Math.sin(a), fx = c * 1.55, fz = s * 1.55, f = V3(fx, gy(fx, fz) + .08, fz);
+    legs.add(rod(P[k], f, .03, M.alu)); legs.add(rod(V3(c * .3, .4, s * .3), f.clone().add(V3(0, .05, 0)), .02, M.aluDark)); legs.add(at(cyl(.15, .17, .07, M.alu, 16), fx, f.y - .05, fz)); }
+  part('patas', 'Patas', legs, V3(0, -.2, 0), 'Tres patas con amortiguadores y platos que se aplastan. Al llegar, los motores no se apagaron a 4 m como debían: la Surveyor 3 rebotó dos veces, una hasta unos 11 m de alto, antes de quedarse quieta.');
+  const mast = new THREE.Group(); mast.add(rod(V3(0, 1.45, 0), V3(0, 2.6, 0), .025, M.alu)); mast.add(at(box(.9, .02, .7, M.solar), .1, 2.35, -.2, -.5)); mast.add(at(box(.6, .02, .6, Mt(0xdedad0)), -.1, 2.7, .2, .7));
+  part('mastil', 'Panel solar y antena plana', mast, V3(0, .5, 0), 'Arriba, un panel solar que giraba para seguir al Sol y una antena plana que apuntaba a la Tierra. Funcionó solo hasta la primera noche lunar: el 3 de mayo de 1967 se apagó y el frío no la dejó despertar.');
+  const camG = new THREE.Group(); camG.position.set(.15, .95, -.5); camG.add(at(cyl(.08, .08, .45, Mt(0xd8d8d2, { metalness: .5 }), 16), 0, .22, 0)); camG.add(at(cyl(.1, .08, .14, M.dark, 16), 0, .5, 0)); camG.add(at(box(.1, .1, .02, Mt(0x9ab0c8, { metalness: .9, roughness: .05 })), 0, .5, -.07, -.6));
+  part('camara', 'Cámara de TV', camG, V3(.3, .4, -.3), 'Una cámara de televisión apuntando hacia arriba a un espejo que gira: así miraba alrededor. Mandó 6.315 fotos en dos semanas. En 1969 los astronautas Conrad y Bean la cortaron y la trajeron a la Tierra: hoy está en un museo.');
+  const arm = new THREE.Group(); arm.position.set(-.3, .7, -.45); const tongs = new THREE.Group(); arm.add(tongs);
+  for (let i = 0; i < 6; i++) { const a = at(box(.02, .012, .32, M.alu), 0, 0, -i * .25 - .14, 0, .25 * (i % 2 ? 1 : -1)); tongs.add(a); }
+  const scoop = at(box(.12, .07, .1, M.aluDark), 0, -.05, -1.6); tongs.add(scoop);
+  part('pala', 'Pala de muestreo', arm, V3(-.3, .2, -.4), 'Un brazo de tijera (como esos juguetes que se estiran) con una pala de 12 cm. Fue la primera vez que se cavó en la Luna: hizo cuatro zanjas de hasta 18 cm y probó lo firme que era el suelo, para saber si aguantaría a los astronautas.');
+  const trench = at(box(.13, .025, 1, Mt(0x46443f, { roughness: 1 })), -.4, gy(-.4, -1.6) - .005, 0); g.add(trench);
+  const prints = new THREE.InstancedMesh(new THREE.BoxGeometry(.12, .006, .28), Mt(0x5a5853, { roughness: 1 }), 40), pm = new THREE.Matrix4(); prints.count = 0; g.add(prints);
+  { let n = 0; for (let k = 0; k < 40; k++) { const a = -1.2 + k * .09, r = 2.4 + Math.sin(k * 1.7) * .3, x = Math.cos(a) * r + (k % 2 ? .15 : -.15), z = Math.sin(a) * r - 1.5; pm.compose(V3(x, gy(x, z) + .004, z), new THREE.Quaternion().setFromAxisAngle(V3(0, 1, 0), -a), V3(1, 1, 1)); prints.setMatrixAt(n++, pm); } prints.userData.n = n; }
+  const T = 40;
+  function act(time, env) {
+    const t = time % T; kit.reset(); let step, y = 0;
+    if (t < 7) { y = t < 1.2 ? 5 - 4.2 * t : t < 3.6 ? 3.9 * Math.sin((t - 1.2) / 2.4 * Math.PI) : t < 5 ? 1.2 * Math.sin((t - 3.6) / 1.4 * Math.PI) : 0;
+      y = Math.max(0, y); kit.flame.position.set(0, y, 0); kit.flames.forEach(f => { f.visible = t < 4.8; f.material.opacity = .7 * flick(t); }); step = 0; }
+    else step = t < 18 ? 1 : t < 25 ? 2 : 3;
+    inner.position.y = y;
+    const ext = sm(8, 10, t) * (1 - sm(16, 17.5, t)); tongs.scale.z = .25 + .75 * ext; tongs.rotation.x = -ext * .35;
+    const dig = sm(10.5, 15, t), len = Math.max(.001, dig * .6); trench.scale.z = len; trench.position.z = -1.35 - len / 2; trench.visible = len > .01;
+    const night = sm(18, 20, t) * (1 - sm(24, 26, t)); if (env && env.sun) env.sun.intensity = 3.2 * (1 - night * .97);
+    const gone = t > 26; camG.visible = arm.visible = !gone; prints.count = gone ? Math.min(prints.userData.n, Math.floor((t - 26) * 6)) : 0;
+    return { step, look: Math.max(1, y * .9 + 1), kv: [['Altura', t < 7 ? `${(y / .35).toFixed(0)} m` : 'en el suelo'], ['Pala', t < 8 ? 'guardada' : gone ? 'se la llevaron a la Tierra' : dig > 0 ? `zanja de ${Math.round(dig * 18)} cm de hondo` : 'estirándose'], ['Luz', night > .5 ? 'noche lunar: no despertará' : 'día lunar'], ['Visitantes', gone ? 'Conrad y Bean, del Apolo 12 (19 nov 1969)' : '—']] };
+  }
+  function reset() { kit.reset(); inner.position.set(0, 0, 0); camG.visible = arm.visible = true; prints.count = 0; tongs.scale.z = .25; tongs.rotation.x = 0; trench.visible = false; }
+  shadows(g); prints.castShadow = false; reset();
+  return { group: g, parts, act, reset };
+}
+
+// Luna 9 (1966): una pelota de 58 cm que rebotó en bolsas de aire, abrió cuatro pétalos y mandó las primeras fotos desde el suelo de la Luna
+function buildLuna9(hf) {
+  const { g, inner, parts, part, gy, kit } = crashBase(hf);
+  const ball = new THREE.Group(); ball.add(at(new THREE.Mesh(new THREE.SphereGeometry(.29, 28, 18), Mt(0xbfbdb6, { metalness: .6, roughness: .3 })), 0, .29, 0)); ball.add(at(cyl(.3, .3, .03, M.aluDark, 28), 0, .3, 0));
+  part('esfera', 'La pelota', ball, V3(0, .2, 0), 'La «estación lunar automática»: una esfera de 58 cm y 99 kg con la radio, las baterías y el calentador. Lo pesado va abajo, como un muñeco porfiado: rodara como rodara, quedaba derecha.');
+  const pet = new THREE.Group(), petals = [];
+  for (let k = 0; k < 4; k++) { const hinge = new THREE.Group(); hinge.rotation.y = -k / 4 * Math.PI * 2; const p = new THREE.Group(); p.position.set(.27, .3, 0); hinge.add(p);
+    const sh = new THREE.Shape(); sh.moveTo(0, -.22); sh.quadraticCurveTo(.5, -.18, .62, 0); sh.quadraticCurveTo(.5, .18, 0, .22); sh.lineTo(0, -.22); const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: .015, bevelEnabled: false }), Mt(0xd9d6cc, { metalness: .5, roughness: .4 })); m.rotation.x = -Math.PI / 2; p.add(m); pet.add(hinge); petals.push(p); }
+  part('petalos', 'Cuatro pétalos', pet, V3(0, -.1, 0), 'Cuatro pétalos cubrían la mitad de arriba. Unos 4 minutos después de llegar se abrieron: enderezaron la pelota y dejaron libres la cámara y las antenas.');
+  const ants = new THREE.Group(), antM = []; for (let k = 0; k < 4; k++) { const h = new THREE.Group(); h.position.set(0, .5, 0); h.rotation.y = -k / 4 * Math.PI * 2 - Math.PI / 4; h.add(at(cyl(.006, .006, .75, M.alu, 6), .375, 0, 0, 0, 0, Math.PI / 2)); ants.add(h); antM.push(h); }
+  part('antenas', 'Antenas', ants, V3(0, .4, 0), 'Cuatro antenas de varilla que se abren como resortes. Por ellas salieron 7 sesiones de radio, más de 8 horas en total, hasta que se agotaron las baterías el 6 de febrero de 1966.');
+  const cam = new THREE.Group(); cam.add(at(cyl(.045, .05, .2, Mt(0x9aa0a6, { metalness: .6 }), 14), 0, .62, 0)); cam.add(at(cyl(.055, .055, .06, M.dark, 14), 0, .75, 0)); cam.add(at(box(.05, .05, .01, Mt(0x9ab0c8, { metalness: .9, roughness: .05 })), 0, .75, -.05, -.6));
+  part('camara', 'Cámara panorámica', cam, V3(0, .5, -.2), 'Un espejo que gira arma la foto en tiras verticales, de a una. Mandó 9 imágenes, entre ellas 5 panorámicas con piedras a pocos metros y el horizonte a 1,4 km. En Inglaterra, el radiotelescopio de Jodrell Bank captó la señal, se dio cuenta de que era el formato de fax de los periódicos y las publicó antes que la propia URSS.');
+  // la nave de descenso, que lleva la pelota y se estrella al lado
+  const bus = new THREE.Group(); bus.add(at(new THREE.Mesh(new THREE.SphereGeometry(.45, 20, 14), Mt(0x9a9890, { metalness: .5 })), 0, .9, 0)); bus.add(at(cyl(.2, .35, .5, M.dark, 16), 0, .35, 0)); for (const s of [-1, 1]) bus.add(at(box(.35, .5, .35, M.gold), s * .6, .9, 0)); bus.add(at(new THREE.Mesh(new THREE.SphereGeometry(.29, 18, 12), Mt(0xbfbdb6, { metalness: .6 })), 0, 1.6, 0));
+  bus.visible = false; g.add(bus); kit.addFlame(0, .1, 0, 3);
+  const bag = new THREE.Group(); for (const s of [-1, 1]) bag.add(at(new THREE.Mesh(new THREE.SphereGeometry(.65, 20, 14, 0, Math.PI), Mt(0xe0d8c4, { roughness: .9, side: THREE.DoubleSide })), 0, 0, 0, 0, s > 0 ? 0 : Math.PI)); bag.visible = false; g.add(bag);
+  const T = 40;
+  function pose(o) { petals.forEach(p => p.rotation.z = (1 - o) * 1.45); antM.forEach(h => h.rotation.z = (1 - Math.min(1, o * 1.3)) * -1.3 + .15); }
+  function act(time) {
+    const t = time % T; kit.reset(); let step, look = 1.2;
+    if (t < 5) { const y = 10 - t * 1.9; bus.visible = true; bus.position.set(0, y, -2); kit.flame.position.set(0, y, -2); kit.flames[0].visible = true; kit.flames[0].material.opacity = .8 * flick(t); inner.visible = false; bag.visible = false; step = 0; look = y * .8 + 1; }
+    else if (t < 10) { const u = t - 5; bus.visible = u < 1.2; if (bus.visible) bus.position.set(u * 3, .5 + (1 - u) * 1.2, -2 - u * 2); if (u > 1) kit.impact(u - 1.0, .7, 0), kit.crater.position.set(3.6, kit.crater.position.y, -4.4), kit.dust.position.set(3.6, 0, -4.4);
+      const hb = Math.abs(Math.sin(u * 2.6)) * 1.6 * Math.exp(-u * .7); bag.visible = true; bag.position.set(-u * .5, .65 + hb, -2 + u * .4); bag.rotation.z = -u * 2; inner.visible = false; step = 1; look = 1 + hb * .6; }
+    else { bag.visible = t < 11.5; if (bag.visible) { const u = t - 10; bag.position.set(-2.5 - u * 2, .65 + u, -.5); bag.scale.setScalar(1 + u * .3); } else bag.scale.setScalar(1); inner.visible = true; step = t < 14 ? 2 : t < 30 ? 3 : 4; }
+    const o = sm(11.5, 13.5, t); pose(o); inner.rotation.z = t > 10 ? (1 - sm(10, 11.5, t)) * .9 : 0;
+    return { step, look, scan: t > 15 ? { f: Math.min(1, (t - 15) / 14), cycle: Math.floor(time / T), pos: V3(0, .78, -.1), look: V3(1.5, gy(1.5, -3), -3) } : null,
+      kv: [['Velocidad al tocar', t < 5 ? 'frenando con el retrocohete' : t < 10 ? 'unos 54 km/h, dentro de la bolsa' : '0'], ['Pétalos', o < .02 ? 'cerrados' : o < .98 ? 'abriéndose' : 'abiertos'], ['Foto', t < 15 ? '—' : t < 29 ? 'llegando tira por tira' : '¡primera foto desde el suelo de la Luna!'], ['Jodrell Bank (Inglaterra)', t < 15 ? '—' : 'también la está recibiendo']] };
+  }
+  function reset() { kit.reset(); inner.visible = true; inner.rotation.set(0, 0, 0); bus.visible = bag.visible = false; pose(1); kit.crater.position.x = 0; kit.dust.position.set(0, 0, 0); }
+  shadows(g); reset();
+  return { group: g, parts, act, reset };
+}
+
 // ---------- fichas: lanzamiento, viaje, llegada (datos NASA/JPL) ----------
 const ROVERS = {
   m2020: { name: 'Perseverance', sub: 'Mars 2020 · NASA/JPL', build: () => buildMSL('perse'), mass: '1.025 kg', size: '3,0 m de largo · 2,7 m de ancho · 2,2 m de alto', speed: 'hasta 152 m/h (0,042 m/s)',
@@ -935,6 +1087,36 @@ const ROVERS = {
     launch: [['Despegue', '14 de marzo de 2016, con el orbitador TGO'], ['Cohete', 'Protón‑M con etapa Briz‑M'], ['Plataforma', 'Baikonur (hoy Kazajistán)'], ['Separación', '16 de octubre de 2016'], ['Llegada', '19 de octubre de 2016'], ['Lugar', 'Meridiani Planum, cerca de donde trabajó Opportunity'], ['Estado', 'se estrelló; el orbitador TGO sigue funcionando']],
     edl: [['Entrada', 'escudo de 2,4 m; seis minutos de bajada'], ['Paracaídas', 'se abre unos 3 minutos después de entrar'], ['El error', 'el sensor de giro se satura un instante y la navegación queda mal'], ['Corte', 'suelta paracaídas y cubierta, y enciende 3 s en vez de 30'], ['Suelo', 'caída libre desde unos 3,7 km; impacto a unos 540 km/h']],
     firsts: ['Primera prueba europea de aterrizaje en Marte', 'Mandó datos durante casi toda la bajada: por eso se supo qué falló', 'Lo aprendido se usó para el rover europeo Rosalind Franklin'] },
+  yutu: { name: 'Yutu', sub: "Chang'e 3 · CNSA · el «Conejo de Jade»", build: () => buildYutu(false), world: 'luna', noSim: true, earth: [180, 44], mass: '140 kg', size: '1,5 × 1,0 × 1,1 m', speed: '200 m por hora como máximo', v: .056, small: true, edlTitle: 'El alunizaje (sin paracaídas: no hay aire)',
+    driveText: 'Yutu recorrió en total unos 114 m antes de quedarse quieto para siempre, tras su segunda noche lunar. Desde entonces escribía mensajes en redes sociales, como si hablara él: «Buenas noches, Tierra; buenas noches, humanidad».',
+    launch: [['Despegue', '1 de diciembre de 2013, 17:30 UTC'], ['Cohete', 'Larga Marcha 3B'], ['Plataforma', 'Xichang (China)'], ['Llegada', '14 de diciembre de 2013, 13:11 UTC'], ['Lugar', 'Mar de las Lluvias (44,1° N, 19,5° O)'], ['Bajó al suelo', '15 de diciembre de 2013, por la rampa del módulo'], ['Estado', 'dejó de moverse en enero de 2014; siguió hablando con la Tierra hasta 2016']],
+    edl: [['Órbita', 'varios días en órbita lunar, bajando hasta 15 km'], ['Motor', 'un motor regulable de 7.500 N frena la nave'], ['Flotar', 'a unos 100 m se queda quieta y elige con láser un lugar sin piedras'], ['Suelo', 'baja despacio y apaga el motor a pocos metros']],
+    firsts: ['Primer rover chino y primer rover en la Luna desde 1973', 'Primer radar que miró bajo la superficie lunar', 'Su nombre viene del conejo de la diosa Chang\'e'] },
+  yutu2: { name: 'Yutu‑2', sub: "Chang'e 4 · CNSA · el primer rover en la cara oculta", build: () => buildYutu(true), world: 'luna', noSim: true, farSide: true, mass: '140 kg', size: '1,5 × 1,0 × 1,0 m', speed: '200 m por hora como máximo', v: .056, small: true, edlTitle: 'El alunizaje en la cara oculta',
+    driveText: 'Yutu‑2 recorrió más de 1,6 km en el cráter Von Kármán. En noviembre de 2019 superó el récord de vida del Lunojod 1 y se volvió el rover lunar más longevo. En 2021 fotografió una «cabaña misteriosa» en el horizonte: al acercarse resultó ser una roca con forma de conejo.',
+    launch: [['Despegue', '7 de diciembre de 2018, 18:23 UTC'], ['Cohete', 'Larga Marcha 3B'], ['Plataforma', 'Xichang (China)'], ['Llegada', '3 de enero de 2019, 02:26 UTC'], ['Lugar', 'cráter Von Kármán, cara oculta (45,4° S, 177,6° E)'], ['Enlace', 'satélite Queqiao, lanzado en mayo de 2018 al punto L2, detrás de la Luna'], ['Estado', 'se detuvo en 2024; fotos de la NASA de 2025 muestran que aún se movía un poco']],
+    edl: [['Bajada', 'casi vertical: el cráter está rodeado de montañas'], ['Flotar', 'a unos 100 m elige un lugar plano'], ['Suelo', 'apaga el motor a pocos metros y cae suave'], ['Rover', 'baja por la rampa unas 12 horas después']],
+    firsts: ['Primer rover en la cara oculta de la Luna', 'El rover lunar más longevo de la historia', 'Halló rocas que parecen venir del manto lunar'] },
+  ce3: { name: "Chang'e 3", sub: "Chang'e 3 · CNSA · módulo de alunizaje", build: hf => buildChangE(hf, 3), lander: true, noSim: true, world: 'luna', earth: [180, 44], scan: true, mass: 'unos 1.200 kg al llegar, con el rover (3.780 kg al despegar)', size: 'unos 4 m de ancho con los paneles', speed: 'no se mueve: baja a su rover por una rampa', speedLabel: 'Movimiento', view: { ty: 1.2, cam: [6.5, 4, -7], drv: [6, 4, -8], back: 6, up: 2.6, max: 12 }, edlTitle: 'El alunizaje (sin paracaídas: no hay aire)',
+    act: { title: 'Bajar al rover', text: 'La rampa se despliega, Yutu baja al suelo y se aleja. Después rover y módulo se fotografían uno al otro, como pasó el 15 de diciembre de 2013.', steps: ['El módulo llega con el rover en el techo', 'Se despliega la rampa de dos rieles', 'Yutu baja despacio y toca el suelo', 'Se aleja y da la vuelta', 'El rover fotografía al módulo'] },
+    launch: [['Despegue', '1 de diciembre de 2013, 17:30 UTC'], ['Cohete', 'Larga Marcha 3B'], ['Plataforma', 'Xichang (China)'], ['Llegada', '14 de diciembre de 2013, 13:11 UTC'], ['Lugar', 'Mar de las Lluvias (44,1° N, 19,5° O)'], ['Estado', 'el módulo funcionó años, mucho más de lo previsto']],
+    edl: [['Órbita', 'baja hasta 15 km de altura'], ['Motor', 'motor regulable de 7.500 N'], ['Flotar', 'a 100 m elige con láser un lugar sin piedras'], ['Suelo', 'apaga el motor a pocos metros']],
+    firsts: ['Primer alunizaje suave desde 1976', 'Primer telescopio que funcionó desde la Luna', 'Fotografió la envoltura de gas cargado de la Tierra'] },
+  ce4: { name: "Chang'e 4", sub: "Chang'e 4 · CNSA · primer alunizaje en la cara oculta", build: hf => buildChangE(hf, 4), lander: true, noSim: true, world: 'luna', farSide: true, scan: true, mass: 'unos 1.200 kg al llegar, con el rover', size: 'unos 4 m de ancho con los paneles', speed: 'no se mueve: baja a su rover por una rampa', speedLabel: 'Movimiento', view: { ty: 1.2, cam: [6.5, 4, -7], drv: [6, 4, -8], back: 6, up: 2.6, max: 12 }, edlTitle: 'El alunizaje en la cara oculta',
+    act: { title: 'La cara oculta', text: 'Desde aquí la Tierra nunca se ve: todo pasa por el satélite Queqiao. Yutu‑2 baja por la rampa y en la minibiosfera brota una semilla de algodón.', steps: ['Llegada al cráter Von Kármán', 'Se despliega la rampa', 'Yutu‑2 baja al suelo de la cara oculta', 'Brota el algodón: la primera planta que creció en la Luna', 'Fotos mutuas; el algodón muere con la noche'] },
+    launch: [['Despegue', '7 de diciembre de 2018, 18:23 UTC'], ['Cohete', 'Larga Marcha 3B'], ['Plataforma', 'Xichang (China)'], ['Llegada', '3 de enero de 2019, 02:26 UTC'], ['Lugar', 'cráter Von Kármán (45,4° S, 177,6° E)'], ['Enlace', 'satélite Queqiao en el punto L2, a unos 65.000 km detrás de la Luna'], ['Estado', 'el módulo seguía funcionando años después']],
+    edl: [['Bajada', 'casi vertical entre montañas'], ['Flotar', 'a unos 100 m'], ['Suelo', 'apaga el motor a pocos metros'], ['Video', 'su cámara grabó la bajada desde 12 km']],
+    firsts: ['Primer alunizaje en la cara oculta', 'Primera planta que brotó en la Luna (algodón)', 'Midió la radiación en el suelo lunar'] },
+  surv3: { name: 'Surveyor 3', sub: 'Surveyor 3 · NASA/JPL · Hughes', build: buildSurveyor, lander: true, noSim: true, world: 'luna', crash: false, earth: [200, 66], mass: '296 kg al llegar', size: 'unos 3 m de alto', speed: 'no se mueve: tiene una pala de tijera', speedLabel: 'Movimiento', view: { ty: 1.1, cam: [5, 3, -5.5], drv: [7, 4, -9], back: 6, up: 2.6, max: 12 }, edlTitle: 'La llegada (con rebotes)',
+    act: { title: 'Rebotes, una zanja y visitas', text: 'Rebota dos veces al llegar, cava con su pala, se apaga en la noche lunar… y 31 meses después llegan dos astronautas a llevarse su cámara.', steps: ['Los motores no se apagan: rebota dos veces', 'La pala se estira y cava la primera zanja en la Luna', 'Llega la noche lunar: no vuelve a despertar', 'Noviembre de 1969: Conrad y Bean, del Apolo 12, se llevan su cámara y la pala'] },
+    launch: [['Despegue', '17 de abril de 1967, 07:05 UTC'], ['Cohete', 'Atlas‑Centaur'], ['Plataforma', 'LC‑36B, Cabo Cañaveral'], ['Llegada', '20 de abril de 1967, 00:04 UTC'], ['Lugar', 'un cráter en el Océano de las Tormentas (3,0° S, 23,4° O), hoy llamado cráter Surveyor'], ['Estado', 'se apagó el 3 de mayo de 1967; visitada por el Apolo 12 el 19 de noviembre de 1969']],
+    edl: [['Frenado', 'un cohete sólido frena casi todo y se suelta'], ['Verniers', 'tres motores pequeños bajan el resto'], ['El fallo', 'debían apagarse a 4 m y siguieron encendidos'], ['Rebotes', 'subió unos 11 m, luego 3 m, y al tercer toque se quedó']],
+    firsts: ['Primera zanja cavada en la Luna', 'La única nave robot visitada por astronautas', 'Su cámara volvió a la Tierra con el Apolo 12'] },
+  luna9: { name: 'Luna 9', sub: 'Luna 9 · URSS · Ye‑6M', build: buildLuna9, lander: true, noSim: true, world: 'luna', earth: [270, 25], scan: true, mass: '99 kg la pelota (1.538 kg al salir)', size: 'esfera de 58 cm', speed: 'no se mueve: es una pelota con pétalos', speedLabel: 'Movimiento', view: { ty: .5, cam: [2.6, 1.6, -2.8], drv: [6, 4, -8], back: 6, up: 2.6, max: 12 }, edlTitle: 'La llegada',
+    act: { title: 'La primera foto desde la Luna', text: 'La nave frena con su cohete y, a pocos metros, suelta una pelota envuelta en bolsas de aire. La pelota rebota, se endereza, abre sus pétalos y arma la primera foto tomada en otro mundo.', steps: ['El retrocohete frena la nave', 'A unos 5 m suelta la pelota dentro de bolsas de aire', 'La pelota se endereza y abre los pétalos', 'La cámara arma la foto tira por tira', 'Jodrell Bank la publica antes que la URSS'] },
+    launch: [['Despegue', '31 de enero de 1966, 11:41 UTC'], ['Cohete', 'Molniya‑M'], ['Plataforma', 'Baikonur (hoy Kazajistán)'], ['Llegada', '3 de febrero de 1966, 18:45 UTC'], ['Lugar', 'Océano de las Tormentas (7,1° N, 64,4° O)'], ['Estado', 'última señal el 6 de febrero de 1966, 22:55 UTC']],
+    edl: [['Radar', 'a 75 km enciende el retrocohete'], ['Frenado', 'el cohete frena hasta unos pocos metros'], ['Sensor', 'a 5 m un sensor suelta la pelota e infla las bolsas'], ['Suelo', 'rebota a más de 54 km/h dentro de las bolsas']],
+    firsts: ['Primer alunizaje suave de la historia', 'Primeras fotos desde el suelo de otro mundo', 'Probó que el suelo lunar aguanta una nave: no era polvo blando'] },
 };
 export const ROVER_IDS = Object.keys(ROVERS);
 
@@ -949,7 +1131,20 @@ function polygons(x, w, h) {
     const e = b - a, k = (j * w + i) * 4; if (e < 7) { const f = .74 + e / 7 * .26; d[k] *= f; d[k + 1] *= f; d[k + 2] *= f; } else { const f = 1 + Math.min(.08, (e - 7) / 250); d[k] = Math.min(255, d[k] * f); d[k + 1] = Math.min(255, d[k + 1] * f); d[k + 2] = Math.min(255, d[k + 2] * f); } }
   x.putImageData(img, 0, 0);
 }
-function makeTerrain(kind) {
+// suelo lunar: gris, con cráteres de todos los tamaños pintados y algunas rocas
+function makeMoonTerrain() {
+  const geo = new THREE.PlaneGeometry(60, 60, 240, 240); geo.rotateX(-Math.PI / 2);
+  const p = geo.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, hNoise(p.getX(i), p.getZ(i))); geo.computeVertexNormals();
+  const tex = canvasTex(512, 512, (x, w, h) => { x.fillStyle = '#8a8883'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 12000; i++) { const r = Math.random(); x.fillStyle = `rgba(${110 + r * 70 | 0},${108 + r * 70 | 0},${104 + r * 68 | 0},.4)`; x.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 4, 1 + Math.random() * 4); }
+    for (let i = 0; i < 70; i++) { const cx = Math.random() * w, cy = Math.random() * h, rr = 3 + Math.pow(Math.random(), 3) * 40; x.strokeStyle = 'rgba(200,198,192,.35)'; x.lineWidth = Math.max(1, rr * .18); x.beginPath(); x.arc(cx + rr * .1, cy + rr * .1, rr, 0, 7); x.stroke(); x.fillStyle = 'rgba(70,68,64,.28)'; x.beginPath(); x.arc(cx, cy, rr * .85, 0, 7); x.fill(); } }, [8, 8]);
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: 1 })); m.receiveShadow = true;
+  const rocks = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(.12, 0), Mt(0x6d6b67, { roughness: 1 }), 220), mm = new THREE.Matrix4();
+  for (let i = 0; i < 220; i++) { const x = (Math.random() - .5) * 56, z = (Math.random() - .5) * 56, s = .3 + Math.pow(Math.random(), 2) * 2.5; if (Math.abs(x) < 2.5 && Math.abs(z) < 5) continue; mm.compose(V3(x, hNoise(x, z) + .02, z), new THREE.Quaternion().random(), V3(s, s * .65, s)); rocks.setMatrixAt(i, mm); }
+  rocks.castShadow = rocks.receiveShadow = true; const g = new THREE.Group(); g.add(m, rocks); return g;
+}
+function makeTerrain(kind, world) {
+  if (world === 'luna') return makeMoonTerrain();
   const geo = new THREE.PlaneGeometry(60, 60, 240, 240); geo.rotateX(-Math.PI / 2);
   const p = geo.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, hNoise(p.getX(i), p.getZ(i))); geo.computeVertexNormals();
   const tex = canvasTex(512, 512, (x, w, h) => { x.fillStyle = '#b0683e'; x.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { const r = Math.random(); x.fillStyle = `rgba(${120 + r * 90 | 0},${55 + r * 50 | 0},${28 + r * 30 | 0},.45)`; x.fillRect(Math.random() * w, Math.random() * h, 2 + Math.random() * 6, 2 + Math.random() * 6); } if (kind === 'phx') polygons(x, w, h); }, kind === 'phx' ? [7, 7] : [14, 14]);
@@ -976,22 +1171,26 @@ export function abrirRover(id, onClose) {
   document.body.appendChild(root);
   const canvas = root.querySelector('.rv-gl'), side = root.querySelector('.rv-side'), labels = root.querySelector('.rv-labels'), slider = root.querySelector('.rv-slider'), range = slider.querySelector('input'), hint = root.querySelector('.rv-hint');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
-  const scene = new THREE.Scene(); scene.background = new THREE.Color(0xd9a77c); scene.fog = new THREE.Fog(0xd9a77c, 14, 48);
+  const LUNA = R.world === 'luna', SUN0 = LUNA ? [9, 4.2, 3] : [6, 9, 4];          // en la Luna: cielo negro, sin niebla y Sol bajo de mañana lunar
+  const scene = new THREE.Scene(); scene.background = new THREE.Color(LUNA ? 0x000000 : 0xd9a77c); if (!LUNA) scene.fog = new THREE.Fog(0xd9a77c, 14, 48);
   const cam = new THREE.PerspectiveCamera(38, 1, .05, 200); cam.position.set(5.5, 2.8, 5.8);
   const VW = R.view || (R.small ? { ty: .55, cam: [3.2, 1.7, 3.4], drv: [2.8, 1.5, 3.6], back: 3.6, up: 1.5, max: 5.5 } : { ty: .9, cam: [5.5, 2.8, 5.8], drv: [4.5, 2.4, 6], back: 6, up: 2.6, max: 9 });
   const TY = VW.ty; cam.position.set(...VW.cam);
   const ctl = new OrbitControls(cam, canvas); ctl.enableDamping = true; ctl.target.set(0, TY, 0); ctl.minDistance = 1.5; ctl.maxDistance = 30; ctl.maxPolarAngle = 1.52; ctl.autoRotate = true; ctl.autoRotateSpeed = .8;
-  scene.add(new THREE.HemisphereLight(0xffe2c8, 0x7a4426, 1.1));
+  scene.add(LUNA ? new THREE.HemisphereLight(0x8a8f99, 0x4a4844, .45) : new THREE.HemisphereLight(0xffe2c8, 0x7a4426, 1.1));
   const sun = new THREE.DirectionalLight(0xfff1dc, 2.6); sun.position.set(6, 9, 4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, far: 60 }); sun.shadow.bias = -.0006; sun.shadow.normalBias = .03; scene.add(sun);
   // cielo: un degradado marciano (butterscotch) en una esfera
   const sky = new THREE.Mesh(new THREE.SphereGeometry(90, 32, 16), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, uniforms: {}, vertexShader: 'varying vec3 vp; void main(){ vp = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }', fragmentShader: 'varying vec3 vp; void main(){ float h = normalize(vp).y; vec3 c = mix(vec3(.86,.64,.47), vec3(.62,.46,.36), smoothstep(0.,.5,h)); c = mix(vec3(.93,.74,.55), c, smoothstep(-.02,.12,h)); gl_FragColor = vec4(c,1.); }' })); scene.add(sky);
-  const terrain = makeTerrain(id); scene.add(terrain);
+  if (LUNA) { sky.visible = false; sun.intensity = 3.2; sun.position.set(...SUN0);
+    if (R.earth && !R.farSide) { const [az, el] = R.earth.map(d => d * Math.PI / 180), e = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 16), new THREE.MeshStandardMaterial({ map: new THREE.TextureLoader().load('../tex/tierra-dia.webp', t => t.colorSpace = THREE.SRGBColorSpace), roughness: .9 }));
+      e.position.set(Math.sin(az) * Math.cos(el) * 80, Math.sin(el) * 80, -Math.cos(az) * Math.cos(el) * 80); e.material.fog = false; scene.add(e); } }
+  const terrain = makeTerrain(id, R.world); scene.add(terrain);
   if (id === 'merb') { const N = 1500, b = new THREE.InstancedMesh(new THREE.SphereGeometry(.012, 8, 6), Mt(0x56575c, { roughness: .45, metalness: .3 }), N), m = new THREE.Matrix4(); for (let i = 0; i < N; i++) { const x = (Math.random() - .5) * 36, z = (Math.random() - .5) * 36, sc = .6 + Math.random() * .8; m.compose(V3(x, hNoise(x, z) + .008, z), new THREE.Quaternion(), V3(sc, sc, sc)); b.setMatrixAt(i, m); } b.castShadow = true; terrain.add(b); }
-  const MARKS = 1200, marks = new THREE.InstancedMesh(new THREE.BoxGeometry(.13, .006, .08), Mt(0xf0e8da, { roughness: .9 }), MARKS), mm4 = new THREE.Matrix4(); marks.count = 0; let markN = 0, markAcc = 0; terrain.add(marks);
+  const MARKS = 1200, marks = new THREE.InstancedMesh(new THREE.BoxGeometry(.13, .006, .08), Mt(LUNA ? 0x4e4c48 : 0xf0e8da, { roughness: .9 }), MARKS), mm4 = new THREE.Matrix4(); marks.count = 0; let markN = 0, markAcc = 0; terrain.add(marks);
   const rover = R.build(hNoise); scene.add(rover.group); rover.group.rotation.order = 'YXZ'; for (const w of rover.wheels || []) w.obj.rotation.order = 'YXZ'; let actT = 0, actKv = '', actStep = -1;
   const parts = rover.parts; let mode = 'modelo', explode = 0, selected = null, t0 = performance.now(), dist = 0, running = true;
   const drive = { s: 0, heading: 0, x: 0, z: 0, dust: [] };
-  const dustGeo = new THREE.SphereGeometry(.06, 6, 5), dustMat = Mt(0xc9865a, { transparent: true, opacity: .55, roughness: 1 });
+  const dustGeo = new THREE.SphereGeometry(.06, 6, 5), dustMat = Mt(LUNA ? 0x8f8c86 : 0xc9865a, { transparent: true, opacity: .55, roughness: 1 });
 
   // etiquetas HTML sobre las piezas
   const tags = parts.map(p => { const d = document.createElement('button'); d.className = 'rv-tag'; d.textContent = p.name; d.onclick = () => selectPart(p); labels.appendChild(d); return d; });
@@ -1001,7 +1200,7 @@ export function abrirRover(id, onClose) {
     if (mode === 'modelo') side.innerHTML = `<div class="kv"><span>Masa</span><b>${R.mass}</b><span>Tamaño</span><b>${R.size}</b><span>${R.speedLabel || 'Velocidad'}</span><b>${R.speed}</b></div><p>Arrastra para girarlo y acércate con la rueda o pellizcando. En <b>Piezas</b> se separa en sus partes; ${R.crash ? 'en <b>Qué pasó</b> ves la reconstrucción de su llegada' : R.lander ? 'en <b>En acción</b> lo ves trabajar con su brazo' : 'en <b>Recorrido</b> lo ves andar'}.</p><ul class="rv-firsts">${R.firsts.map(f => `<li>${f}</li>`).join('')}</ul>`;
     if (mode === 'piezas') side.innerHTML = (selected ? `<h3>${selected.name}</h3><p>${selected.info}</p>` : `<h3>Despiece</h3><p>Mueve el control de abajo para separar las piezas y toca el nombre de cada una para saber qué hace.</p>`) + `<div class="rv-list">${parts.map(p => `<button data-p="${p.id}" ${selected === p ? 'aria-pressed="true"' : ''}>${p.name}</button>`).join('')}</div>`;
     if (mode === 'recorrido' && R.lander) side.innerHTML = `<h3>${R.act.title}</h3><p>${R.act.text}</p>${R.seismo ? '<canvas id="rv-seis" width="560" height="150" aria-label="Sismograma en vivo"></canvas>' : ''}${R.scan ? '<canvas id="rv-scan" width="320" height="200" aria-label="La foto de la cámara, línea por línea"></canvas>' : ''}<div class="kv" id="rv-actkv"></div><ol class="rv-steps">${R.act.steps.map((s, i) => `<li data-step="${i}">${s}</li>`).join('')}</ol>`;
-    else if (mode === 'recorrido') side.innerHTML = `<h3>Conduciendo</h3><p>El rover avanza a <b>${R.speed}</b>; aquí lo ves <b>6 veces más rápido</b>. Mira cómo cada rueda sigue el suelo y los balancines se inclinan: ninguna rueda se despega.</p><p>En la realidad recorre unos 100 m en un buen día: los conductores en la Tierra planean la ruta con las fotos del día anterior, y el rover la sigue solo, frenando si ve una piedra o una pendiente peligrosa.</p>${rover.spirit ? '<p><b>Spirit anda en reversa</b>: su rueda delantera derecha se trabó en 2006 y la arrastra. Mira el surco claro que deja: así destapó la sílice de aguas termales.</p>' : id === 'merb' ? '<p>Las bolitas grises del suelo son los «arándanos» de hematita que encontró Opportunity en Meridiani: se formaron dentro de rocas empapadas en agua y quedaron sueltas cuando el viento gastó la roca.</p>' : ''}<div class="kv"><span>Distancia</span><b id="rv-dist">0 m</b><span>Tiempo real equivalente</span><b id="rv-time">0 min</b></div>${R.driveNote ? `<p>${R.driveNote}</p>` : ''}${rover.group.userData.ing ? '<p>Ingenuity vuela alrededor: en Marte voló hasta 24 m de alto y 700 m de distancia en un solo vuelo.</p>' : ''}`;
+    else if (mode === 'recorrido') side.innerHTML = `<h3>Conduciendo</h3><p>El rover avanza a <b>${R.speed}</b>; aquí lo ves <b>6 veces más rápido</b>. Mira cómo cada rueda sigue el suelo y los balancines se inclinan: ninguna rueda se despega.</p>${R.driveText ? `<p>${R.driveText}</p>` : '<p>En la realidad recorre unos 100 m en un buen día: los conductores en la Tierra planean la ruta con las fotos del día anterior, y el rover la sigue solo, frenando si ve una piedra o una pendiente peligrosa.</p>'}${rover.spirit ? '<p><b>Spirit anda en reversa</b>: su rueda delantera derecha se trabó en 2006 y la arrastra. Mira el surco claro que deja: así destapó la sílice de aguas termales.</p>' : id === 'merb' ? '<p>Las bolitas grises del suelo son los «arándanos» de hematita que encontró Opportunity en Meridiani: se formaron dentro de rocas empapadas en agua y quedaron sueltas cuando el viento gastó la roca.</p>' : ''}<div class="kv"><span>Distancia</span><b id="rv-dist">0 m</b><span>Tiempo real equivalente</span><b id="rv-time">0 min</b></div>${R.driveNote ? `<p>${R.driveNote}</p>` : ''}${rover.group.userData.ing ? '<p>Ingenuity vuela alrededor: en Marte voló hasta 24 m de alto y 700 m de distancia en un solo vuelo.</p>' : ''}`;
     if (mode === 'lanzamiento') side.innerHTML = `<h3>Despegue y viaje</h3><div class="kv">${R.launch.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div><h3>${R.edlTitle || 'Los siete minutos de terror'}</h3><div class="kv">${R.edl.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div>${R.noSim ? '' : `<a class="go" href="../cabo-canaveral/marte/#${id}/llegada">Ver la animación del aterrizaje →</a><a class="go alt" href="../cabo-canaveral/marte/#${id}">${R.padName || 'Ver el despegue en Cabo Cañaveral'} →</a>`}`;
     side.querySelectorAll('[data-p]').forEach(b => b.onclick = () => selectPart(parts.find(p => p.id === b.dataset.p)));
   }
@@ -1010,7 +1209,7 @@ export function abrirRover(id, onClose) {
     slider.hidden = m !== 'piezas'; labels.hidden = m !== 'piezas'; ctl.autoRotate = m === 'modelo';
     if (m !== 'piezas') { explode = 0; range.value = 0; if (selected) { const q = selected; selected = null; parts.forEach(pp => pp.obj.traverse(o => { if (o.isMesh && o.userData.m0) { o.material = o.userData.m0; o.userData.m0 = null; } })); } tags.forEach(t => t.classList.remove('sel')); }
     if (m === 'piezas' && explode === 0) { range.value = 60; explode = .6; }
-    if (m !== 'recorrido') { rover.group.position.set(0, hNoise(0, 0), 0); rover.group.rotation.set(0, 0, 0); if (rover.susp) poseSuspension(0, 0, 0, 0, 0, 0); if (rover.reset) rover.reset(); sun.position.set(6, 9, 4); actT = 0; actKv = ''; actStep = -1; drive.s = 0; drive.x = drive.z = drive.heading = 0; dist = 0; ctl.target.set(0, TY, 0); marks.count = 0; markN = 0; terrain.visible = m !== 'piezas'; scene.fog.near = 14; }
+    if (m !== 'recorrido') { rover.group.position.set(0, hNoise(0, 0), 0); rover.group.rotation.set(0, 0, 0); if (rover.susp) poseSuspension(0, 0, 0, 0, 0, 0); if (rover.reset) rover.reset(); sun.position.set(...SUN0); sun.intensity = LUNA ? 3.2 : 2.6; actT = 0; actKv = ''; actStep = -1; drive.s = 0; drive.x = drive.z = drive.heading = 0; dist = 0; ctl.target.set(0, TY, 0); marks.count = 0; markN = 0; terrain.visible = m !== 'piezas'; if (scene.fog) scene.fog.near = 14; }
     else { terrain.visible = true; cam.position.set(...VW.drv); }
     hint.textContent = m === 'piezas' ? 'Toca una pieza o su nombre' : m === 'recorrido' ? (R.lander ? 'Arrastra para mirar alrededor' : 'La cámara sigue al rover; arrastra para mirar alrededor') : m === 'modelo' ? 'Arrastra para girar · rueda para acercar' : '';
     renderSide();
@@ -1042,6 +1241,7 @@ export function abrirRover(id, onClose) {
     poseSuspension(rock(-1), bog(-1), rock(1), bog(1), Math.atan2(hF - hB, LB) * .9, Math.atan2(hR - hL, 2 * G.X));
     for (const w of rover.wheels) if (!(rover.spirit && w.side > 0 && w.z === G.zF)) w.obj.rotation.x += v * dt / WR * dirS;
     // surco claro de la rueda trabada de Spirit
+    if (LUNA) { markAcc += v * dt; if (markAcc > .07) { markAcc = 0; for (const sx of [-G.X, G.X]) { tmpV.set(sx, 0, G.zR).applyAxisAngle(V3(0, 1, 0), drive.heading).add(g.position); mm4.compose(V3(tmpV.x, groundAt(tmpV.x, tmpV.z) + .006, tmpV.z), new THREE.Quaternion().setFromAxisAngle(V3(0, 1, 0), drive.heading), V3(1, 1, 1)); marks.setMatrixAt(markN % MARKS, mm4); markN++; } marks.count = Math.min(markN, MARKS); marks.instanceMatrix.needsUpdate = true; } }
     if (rover.spirit) { markAcc += v * dt; if (markAcc > .06) { markAcc = 0; tmpV.set(G.X, 0, G.zF).applyAxisAngle(V3(0, 1, 0), drive.heading).add(g.position); mm4.compose(V3(tmpV.x, groundAt(tmpV.x, tmpV.z) + .006, tmpV.z), new THREE.Quaternion().setFromAxisAngle(V3(0, 1, 0), drive.heading), V3(1, 1, 1)); marks.setMatrixAt(markN % MARKS, mm4); markN++; marks.count = Math.min(markN, MARKS); marks.instanceMatrix.needsUpdate = true; } }
     // dirección de las ruedas delanteras y traseras al girar
     const steer = Math.sin(drive.s * .08) * .25 * .8; for (const w of rover.wheels) if (w.z !== G.zM) w.obj.rotation.y = (w.z < 0 ? 1 : -1) * steer;
