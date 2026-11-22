@@ -36,7 +36,9 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
   manijas EJECT y de aborto), pantallas con encendido y páginas extra, y todos los sonidos sintetizados con Web Audio.
 - `simulaciones/marte/rovers.js`: «Explorar el rover»: modelo 3D detallado, despiece por piezas con explicación, recorrido animado
   con suspensión rocker‑bogie y ficha de lanzamiento y llegada. Se añaden rovers de dos en dos. Los módulos fijos (Viking 1 y 2, Phoenix, InSight) y los que fallaron (Mars 2, 3 y 6, Beagle 2,
-  Mars Polar Lander, Schiaparelli, con la reconstrucción de «Qué pasó»)
+  Mars Polar Lander, Schiaparelli, con la reconstrucción de «Qué pasó»).
+  El mismo visor tiene un entorno lunar y se abre desde el mapa de la Luna: Luna 9, Surveyor 3, Chang'e 3 con Yutu y Chang'e 4 con Yutu‑2
+  (su CSS está en `simulaciones/marte/rovers.css`)
   usan el mismo visor: en «En acción» su brazo trabaja con cinemática inversa (la zanja con hielo, o SEIS, el escudo y el topo con el sismograma en vivo).
 - `simulaciones/luna/`: mapa 3D de la Luna con relieve LOLA y la cara oculta; `paseo/` (caminata del Apolo 11 y rover del Apolo 17),
   `lunojod/` (el Lunojod 1 manejado desde la Tierra con 1,3 s de retraso y TV de una imagen cada pocos segundos) y
