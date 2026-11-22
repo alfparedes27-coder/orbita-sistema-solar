@@ -94,6 +94,7 @@ details.g summary span{color:var(--faint);font:500 12px var(--f-data)}
 .rv-firsts{margin:8px 0 0;padding-left:18px} .rv-firsts li{margin:2px 0}
 .rv-steps{margin:8px 0;padding-left:20px} .rv-steps li{margin:3px 0;opacity:.55;transition:opacity .3s} .rv-steps li.on{opacity:1;font-weight:600;color:#ffd9a8}
 #rv-seis{display:block;width:100%;height:76px;border-radius:8px;margin:8px 0;background:#0b0d12}
+#rv-scan{display:block;width:100%;aspect-ratio:8/5;border-radius:8px;margin:8px 0;background:#000;image-rendering:pixelated}
 .rv-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px} .rv-list button{background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:7px;padding:4px 8px;font-size:12px;cursor:pointer}
 .rv-list button[aria-pressed=true]{background:var(--mars);border-color:var(--mars);color:var(--mars-ink)}
 .rv-labels{position:absolute;inset:0;pointer-events:none} .rv-tag{position:absolute;transform:translate(-50%,-120%);pointer-events:auto;background:rgba(10,12,20,.8);border:1px solid var(--line2);color:var(--ink);border-radius:6px;padding:3px 7px;font:500 11.5px var(--f-body);cursor:pointer;white-space:nowrap}
@@ -341,10 +342,10 @@ function openCard(s){
   $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.k;openCard(s);});
   $('robo').hidden=!I;
   if(!I){ $('cbody').innerHTML=`<div class="kv"><span>Llegó</span><b>${s.date}</b><span>Lugar</span><b>${s.place}</b><span>Coordenadas</span><b>${fc(s)}</b></div>
-    ${ROVER_IDS.includes(s.id)?`<button class="go" id="explore">Explorar ${s.id==='mpf'?'el rover Sojourner':'el rover'} en 3D: piezas, recorrido y lanzamiento →</button>`:`<div class="soon">La ficha completa de ${s.name} (modelo 3D, cómo funciona, historia y animación del aterrizaje) se agregará en las próximas tandas.</div>`}`;
+    ${ROVER_IDS.includes(s.id)?`<button class="go" id="explore">${['vk1','vk2'].includes(s.id)?'Explorar el módulo en 3D: piezas, el brazo en acción y lanzamiento':`Explorar ${s.id==='mpf'?'el rover Sojourner':'el rover'} en 3D: piezas, recorrido y lanzamiento`} →</button>`:`<div class="soon">La ficha completa de ${s.name} (modelo 3D, cómo funciona, historia y animación del aterrizaje) se agregará en las próximas tandas.</div>`}`;
     const ex0=$('explore'); if(ex0) ex0.onclick=()=>{ abrirRover(s.id); history.replaceState(null,'','#'+s.id+'/rover'); }; return; }
   buildRobot(s.model); castAll(robot);
-  const LND=['phx','insight'].includes(s.id), btn=ROVER_IDS.includes(s.id)?`<button class="go" id="explore">${LND?'Explorar el módulo en 3D: piezas, el brazo en acción y lanzamiento':'Explorar el rover en 3D: piezas, recorrido y lanzamiento'} →</button>`:''; let h='';
+  const LND=['phx','insight','vk1','vk2'].includes(s.id), btn=ROVER_IDS.includes(s.id)?`<button class="go" id="explore">${LND?'Explorar el módulo en 3D: piezas, el brazo en acción y lanzamiento':'Explorar el rover en 3D: piezas, recorrido y lanzamiento'} →</button>`:''; let h='';
   if(tab==='how') h=I.how;
   if(tab==='story') h=I.story;
   if(tab==='launch') h=`<div class="kv">${I.launch.map(([a,b])=>`<span>${a}</span><b>${b}</b>`).join('')}<span>Coordenadas</span><b>${fc(s)}</b></div>

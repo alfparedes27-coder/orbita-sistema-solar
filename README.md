@@ -35,7 +35,7 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
 - `simulaciones/cabina/mandos.js`: mandos interactivos de las cabinas (interruptores, botones iluminados, teclados, perillas,
   manijas EJECT y de aborto), pantallas con encendido y páginas extra, y todos los sonidos sintetizados con Web Audio.
 - `simulaciones/marte/rovers.js`: «Explorar el rover»: modelo 3D detallado, despiece por piezas con explicación, recorrido animado
-  con suspensión rocker‑bogie y ficha de lanzamiento y llegada. Se añaden rovers de dos en dos. Los módulos fijos (Phoenix, InSight)
+  con suspensión rocker‑bogie y ficha de lanzamiento y llegada. Se añaden rovers de dos en dos. Los módulos fijos (Viking 1 y 2, Phoenix, InSight)
   usan el mismo visor: en «En acción» su brazo trabaja con cinemática inversa (la zanja con hielo, o SEIS, el escudo y el topo con el sismograma en vivo).
 - `simulaciones/luna/`: mapa 3D de la Luna con relieve LOLA y la cara oculta; `paseo/` (caminata del Apolo 11 y rover del Apolo 17),
   `lunojod/` (el Lunojod 1 manejado desde la Tierra con 1,3 s de retraso y TV de una imagen cada pocos segundos) y

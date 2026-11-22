@@ -458,7 +458,7 @@ function buildPhoenix(hf) {
   function act(time, env) {
     const t = time % T, k = track(keys, t); arm.reach(tmp.copy(k.p).sub(B), -Math.PI / 2 + k.x);
     const dug = sm(5.5, 10.5, t), len = Math.max(.001, dug * (TZ1 - TZ0));
-    trench.scale.z = len; trench.position.z = TZ0 + len / 2; ice.scale.z = len * .85; ice.position.z = TZ0 + len / 2; iceM.opacity = sm(8, 10, t);
+    trench.scale.z = len; trench.position.z = TZ0 + len / 2; trench.visible = ice.visible = dug > .01; ice.scale.z = len * .85; ice.position.z = TZ0 + len / 2; iceM.opacity = sm(8, 10, t);
     spoil.visible = t > 9; spoil.scale.setScalar(sm(9, 11, t) + 1e-3);
     const sub = 1 - sm(29, 35, t); chunks.forEach((c, i) => { c.visible = t > 10; c.scale.setScalar(Math.max(1e-3, sub * (1 - i * .08))); });
     doors[DOOR].rotation.x = -1.2 * sm(13, 14.5, t) * (1 - sm(20, 21, t));
@@ -556,6 +556,93 @@ function buildInSight(hf) {
   return { group: g, parts, act, reset, seismo: () => ({ a: seismo, i: sIdx }) };
 }
 
+// ---------- Viking 1 y 2 (1976): los primeros en trabajar en el suelo de Marte ----------
+// base hexagonal de lados alternos 1,09 m y 0,56 m, tres patas (triángulo de 2,21 m), dos generadores nucleares SNAP-19,
+// dos cámaras de barrido, brazo de cinta extensible (como un metro de carpintero) y los laboratorios de biología y GCMS
+function buildViking(hf, n) {
+  const g = new THREE.Group(), parts = [], two = n === 2;
+  const part = (id, name, obj, dir, info) => { obj.userData.part = id; parts.push({ id, name, obj, dir, info, home: obj.position.clone() }); g.add(obj); return obj; };
+  const h0 = hf(0, 0), gy = (x, z) => hf(x, z) - h0, skin = Mt(0xd9d6cc, { metalness: .3, roughness: .5 });
+  // base hexagonal (un lado largo mira al frente, −z)
+  const hex = []; { let x = 0, z = 0, a = 0; for (const L of [1.09, .56, 1.09, .56, 1.09, .56]) { hex.push([x, z]); x += Math.cos(a) * L; z += Math.sin(a) * L; a += Math.PI / 3; }
+    const cx = hex.reduce((s, p) => s + p[0], 0) / 6, cz = hex.reduce((s, p) => s + p[1], 0) / 6; hex.forEach(p => { p[0] -= cx; p[1] -= cz; });
+    const r = Math.atan2(hex[0][1] + hex[1][1], hex[0][0] + hex[1][0]), rot = -Math.PI / 2 - r; hex.forEach(p => { const x2 = p[0] * Math.cos(rot) - p[1] * Math.sin(rot), z2 = p[0] * Math.sin(rot) + p[1] * Math.cos(rot); p[0] = x2; p[1] = -z2; }); }
+  const body = new THREE.Group(); body.add(flatShape(hex, skin, .3, .22)); body.add(flatShape(hex.map(p => [p[0] * 1.01, p[1] * 1.01]), M.alu, .52, .02));
+  body.add(flatShape(hex.map(p => [p[0] * .95, p[1] * .95]), M.gold, .27, .03));
+  // tres motores de descenso de 18 toberas cada uno (para no remover ni calentar el suelo) y las toberas de desorbitado
+  for (let k = 0; k < 3; k++) { const a = Math.PI / 2 + k / 3 * Math.PI * 2 + Math.PI / 3, x = Math.cos(a) * .48, z = Math.sin(a) * .48;
+    body.add(at(cyl(.09, .12, .14, M.dark, 14), x, .22, z)); const face = at(cyl(.13, .13, .02, M.aluDark, 18), x, .15, z); body.add(face);
+    for (let j = 0; j < 18; j++) { const b = j / 18 * Math.PI * 2, rr = j % 2 ? .1 : .06; body.add(at(cyl(.008, .012, .02, M.black, 6), x + Math.cos(b) * rr, .13, z + Math.sin(b) * rr)); } }
+  part('cuerpo', 'Cuerpo y motores', body, V3(0, -.3, 0), 'Una caja de aluminio de seis lados, de 1,5 m, con la computadora, la radio, las baterías y los laboratorios bien abrigados por dentro. Debajo, tres motores de hidracina con 18 toberas pequeñas cada uno: repartían el chorro para no calentar ni ensuciar el suelo que luego iban a analizar.');
+  // patas: en los tres lados cortos, con platos a 2,21 m entre sí
+  const legs = new THREE.Group(), feet = [];
+  for (let k = 0; k < 3; k++) { const a = Math.PI / 2 + k / 3 * Math.PI * 2 + Math.PI / 3, c = Math.cos(a), s = Math.sin(a), fx = c * 1.276, fz = s * 1.276, f = V3(fx, gy(fx, fz) + .08, fz); feet.push(f);
+    legs.add(rod(V3(c * .62, .42, s * .62), f, .05, M.alu)); for (const e of [-.5, .5]) legs.add(rod(V3(Math.cos(a + e) * .58, .3, Math.sin(a + e) * .58), f.clone().add(V3(0, .05, 0)), .022, M.aluDark));
+    legs.add(at(cyl(.15, .15, .05, M.alu, 18), fx, f.y - .05, fz)); }
+  part('patas', 'Patas', legs, V3(0, -.25, 0), 'Tres patas con amortiguadores de aluminio en panal. La primera foto tomada en el suelo de Marte fue justamente de la pata número 3 del Viking 1, minutos después de aterrizar: querían ver si se había hundido en el suelo.' + (two ? ' El Viking 2 quedó inclinado 8°, con una pata sobre una roca.' : ''));
+  // dos generadores SNAP‑19 de plutonio bajo sus cubiertas contra el viento
+  const rtg = new THREE.Group();
+  for (const [x, z] of [[-.42, .38], [.42, .38]]) { rtg.add(at(box(.5, .34, .42, Mt(0xeeeae0, { roughness: .7 })), x, .71, z)); rtg.add(at(cyl(.12, .12, .3, M.dark, 12), x, .72, z, Math.PI / 2)); for (let j = 0; j < 6; j++) rtg.add(at(box(.012, .3, .36, M.aluDark), x - .2 + j * .08, .71, z)); }
+  part('rtg', 'Generadores nucleares', rtg, V3(0, .45, .35), 'Dos generadores SNAP‑19: el calor del plutonio se convierte en unos 35 W de electricidad cada uno, de día y de noche, sin depender del Sol ni del polvo. Por eso funcionaron años. Las cubiertas los protegen del viento y llevan el calor sobrante al interior.');
+  // cámaras de barrido: cilindros que giran y arman la foto línea por línea
+  const camG = new THREE.Group(), heads = [];
+  for (const x of [-.4, .4]) { camG.add(rod(V3(x, .52, -.2), V3(x, 1.12, -.2), .045, M.alu)); const hd = new THREE.Group(); hd.position.set(x, 1.22, -.2);
+    hd.add(at(cyl(.1, .1, .3, Mt(0x8e9096, { metalness: .6, roughness: .35 }), 18), 0, 0, 0)); hd.add(at(cyl(.11, .11, .04, M.dark, 18), 0, .17, 0)); hd.add(at(box(.03, .14, .03, M.black), 0, .02, -.1)); hd.add(at(cyl(.03, .035, .05, M.dark, 10), 0, -.04, -.09, Math.PI / 2)); camG.add(hd); heads.push(hd); }
+  part('camaras', 'Cámaras de barrido', camG, V3(0, .45, -.3), 'Dos cámaras «de fax», separadas 0,8 m para ver en 3D. No sacaban la foto de golpe: un espejo giraba y tomaba una línea vertical a la vez, mientras la cámara rotaba poco a poco. Una panorámica tardaba muchos minutos y llegaba a la Tierra línea por línea.');
+  // antena parabólica de alta ganancia y antena UHF
+  const ant = new THREE.Group(); ant.add(rod(V3(.05, .52, .55), V3(.05, 1.45, .55), .03, M.alu));
+  const dish = at(new THREE.Mesh(new THREE.SphereGeometry(.38, 24, 8, 0, Math.PI * 2, 0, .55), Mt(0xf2f0ea, { side: THREE.DoubleSide, roughness: .5 })), .05, 1.75, .55, -2.2); ant.add(dish); ant.add(at(cyl(.02, .02, .2, M.aluDark, 8), .05, 1.62, .45, -.6));
+  ant.add(at(cyl(.04, .04, .35, M.white, 10), -.6, .7, -.05));
+  part('antena', 'Antenas', ant, V3(0, .5, .4), 'La parabólica de 76 cm hablaba directo con la Tierra, apuntando con precisión cada día. La antena UHF, la vara blanca, mandaba los datos al orbitador Viking que pasaba por encima, y él los reenviaba. El Viking 1 se perdió en 1982 por un comando equivocado que borró el programa para apuntar la parabólica.');
+  // brazo meteorológico
+  const met = new THREE.Group(); met.add(rod(V3(.62, .52, .15), V3(.75, 1.1, .2), .02, M.alu)); met.add(rod(V3(.75, 1.1, .2), V3(1.25, 1.42, .2), .015, M.alu)); met.add(at(box(.12, .06, .08, M.white), 1.28, 1.44, .2)); met.add(at(cyl(.005, .005, .14, M.gold, 6), 1.33, 1.5, .2));
+  part('meteo', 'Estación del tiempo', met, V3(.45, .3, .1), 'Un brazo con sensores de viento de película caliente y termómetros. Midió los primeros pronósticos de Marte: madrugadas de −85 °C, tardes de −30 °C y cómo la presión del aire sube y baja con las estaciones, porque en invierno parte del aire se congela en los polos.');
+  // laboratorios: embudos de entrada en la cubierta
+  const lab = new THREE.Group(), funnel = (x, z, c) => { lab.add(at(cyl(.07, .025, .08, c, 14), x, .58, z)); lab.add(at(cyl(.075, .075, .01, M.dark, 14), x, .625, z)); };
+  funnel(-.3, -.15, M.gold); funnel(.05, -.12, M.alu); funnel(.3, -.15, M.white); lab.add(at(box(.18, .08, .14, M.gold), -.05, .56, .12)); lab.add(at(box(.12, .1, .1, M.dark), .32, .57, .08));
+  part('labs', 'Biología, GCMS y rayos X', lab, V3(0, .35, -.2), 'Tres embudos: el de biología (dorado), el del GCMS (que busca moléculas orgánicas) y el del espectrómetro de rayos X (que mide los elementos del suelo). La biología hacía tres experimentos para buscar seres vivos; uno dio una señal que parecía de vida, pero el GCMS no encontró nada orgánico. El debate sigue: en 2008 Phoenix halló percloratos, que pudieron destruir lo orgánico al calentarlo.');
+  // brazo de muestreo: un tubo que gira y una cinta metálica que se estira hasta 3 m, con la pala en la punta
+  const arm = new THREE.Group(); arm.position.set(0, .56, -.52); const yaw = new THREE.Group(), pitch = new THREE.Group(); arm.add(yaw); yaw.add(pitch);
+  yaw.add(at(box(.22, .16, .3, Mt(0xb8b4aa, { metalness: .5 })), 0, .02, .1)); pitch.add(at(cyl(.09, .09, .26, M.aluDark, 16), 0, 0, 0, 0, 0, Math.PI / 2));
+  const tape = at(box(.07, .015, 1, Mt(0xcfd2d6, { metalness: .85, roughness: .25 })), 0, 0, -.5); pitch.add(tape);
+  const head = new THREE.Group(); pitch.add(head); head.add(at(box(.1, .09, .16, M.alu), 0, -.03, -.05)); head.add(at(box(.09, .012, .1, M.aluDark), 0, -.08, -.12)); head.add(at(box(.012, .06, .08, M.aluDark), .045, -.1, -.12)); head.add(at(box(.012, .06, .08, M.aluDark), -.045, -.1, -.12)); head.add(at(cyl(.015, .015, .02, M.dark, 10), 0, .025, -.05));
+  const lid = at(box(.09, .01, .1, M.alu), 0, -.07, -.12); head.add(lid);
+  part('brazo', 'Brazo de muestreo', arm, V3(0, .3, -.6), 'No es un brazo con codo: es una cinta de acero doblada en canal, como la de un metro de carpintero, que sale de un tambor y se estira hasta 3 m. La pala de la punta cava, tamiza la tierra y la echa en los embudos. ' + (two ? 'El Viking 2 empujó rocas a un lado para tomar tierra que había estado protegida del Sol debajo.' : 'También llevaba un imán para recoger polvo con hierro, que las cámaras miraban con un espejito.'));
+  // zanja, granos, roca que se empuja (Viking 2), escarcha de invierno (Viking 2) y la roca Big Joe (Viking 1)
+  const origin = arm.position, dirt = Mt(0x5a301e, { roughness: 1 }), DZ0 = -2.3, DZ1 = -1.75, DX = two ? -.45 : .25;
+  const trench = at(box(.12, .03, 1, dirt), DX, gy(DX, -2) - .01, 0); g.add(trench);
+  const NP = 30, pGeo = new THREE.BufferGeometry(); pGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NP * 3), 3)); const grains = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0x8a5a3c, size: .022 })); grains.frustumCulled = false; g.add(grains);
+  const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(.13, 1), Mt(0x5b4a40, { roughness: .95 })); rock.scale.set(1.3, .75, 1); const RK = V3(DX, gy(DX, -2.0) + .06, -2.0); if (two) g.add(rock);
+  const frost = []; if (two) for (let k = 0; k < 60; k++) { const x = (Math.random() - .5) * 7, z = -1.3 - Math.random() * 5; const f = new THREE.Mesh(new THREE.CircleGeometry(.04 + Math.random() * .14, 7), new THREE.MeshStandardMaterial({ color: 0xf4f7fa, roughness: .6, transparent: true, opacity: 0, depthWrite: false })); f.rotation.x = -Math.PI / 2; f.rotation.z = Math.random() * 3; f.scale.set(1, .4 + Math.random() * .6, 1); f.position.set(x, gy(x, z) + .02, z); g.add(f); frost.push(f); }
+  if (!two) { const bj = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 1), Mt(0x6a5244, { roughness: .95, flatShading: true })); bj.scale.set(1.1, .55, .8); bj.position.set(-3.2, gy(-3.2, -7.5) + .25, -7.5); g.add(bj); }
+  const BIO = V3(-.3, .78, -.15), GC = V3(.05, .78, -.12), S = V3(0, .62, -.85);
+  const H = (x, z, up) => [x, gy(x, z) + .12 + up, z];
+  const keys = two
+    ? [[0, ...S.toArray()], [2.5, ...H(DX + .35, -2.0, .3)], [3.5, ...H(DX + .3, -2.0, .02)], [6.5, ...H(DX - .35, -2.0, .02)], [7.5, ...H(DX - .35, -2.0, .3)], [8.5, ...H(DX, DZ0, .3)], [9.5, ...H(DX, DZ0, 0)], [13, ...H(DX, DZ1, 0)], [14, ...H(DX, DZ1, .45)], [17, ...BIO.toArray()], [20, ...BIO.toArray()], [22, ...S.toArray()], [25, ...H(DX + .15, DZ0 + .1, .3)], [26, ...H(DX + .15, DZ0 + .1, 0)], [28.5, ...H(DX + .15, DZ1 - .1, 0)], [29.5, ...H(DX + .15, DZ1, .4)], [32, ...GC.toArray()], [35, ...GC.toArray()], [37, ...S.toArray()], [46, ...S.toArray()]]
+    : [[0, ...S.toArray()], [2.5, ...H(DX, DZ0, .3)], [3.5, ...H(DX, DZ0, 0)], [7.5, ...H(DX, DZ1, 0)], [8.5, ...H(DX, DZ1, .45)], [11.5, ...BIO.toArray()], [14.5, ...BIO.toArray()], [16.5, ...S.toArray()], [22, ...S.toArray()], [24.5, ...H(DX + .15, DZ0 + .1, .3)], [25.5, ...H(DX + .15, DZ0 + .1, 0)], [28, ...H(DX + .15, DZ1 - .1, 0)], [29, ...H(DX + .15, DZ1, .4)], [31.5, ...GC.toArray()], [34.5, ...GC.toArray()], [36.5, ...S.toArray()], [46, ...S.toArray()]];
+  const T = 46, tmp = V3(), d = V3();
+  const pourBio = two ? [17.3, 19.8] : [11.8, 14.3], pourGC = two ? [32.3, 34.8] : [31.8, 34.3], dig1 = two ? [9.5, 13] : [3.5, 7.5], dig2 = two ? [26, 28.5] : [25.5, 28];
+  function act(time, env) {
+    const t = time % T, k = track(keys, t); d.copy(k.p).sub(origin);
+    yaw.rotation.y = Math.atan2(-d.x, -d.z); const L = Math.max(.3, d.length()), el = Math.atan2(d.y, Math.hypot(d.x, d.z)); pitch.rotation.x = el;
+    tape.scale.z = L; tape.position.z = -L / 2; head.position.z = -L; head.rotation.x = -el;
+    const pour = (t > pourBio[0] && t < pourBio[1]) || (t > pourGC[0] && t < pourGC[1]); lid.rotation.x = pour ? -.9 : 0; head.rotation.z = pour ? Math.sin(t * 40) * .05 : 0;    // la pala vibra para tamizar
+    const pp = pGeo.attributes.position, P = (t > pourBio[0] && t < pourBio[1]) ? BIO : GC; grains.visible = pour;
+    if (pour) for (let i = 0; i < NP; i++) { const f = (t * 1.5 + i / NP) % 1; pp.setXYZ(i, P.x + Math.sin(i * 7.1) * .02, P.y - .03 - f * .14, P.z + Math.cos(i * 3.3) * .02); } pp.needsUpdate = true;
+    const len = Math.max(.001, sm(dig1[0], dig1[1], t) * (DZ1 - DZ0)); trench.scale.z = len; trench.position.z = DZ0 + len / 2; trench.visible = len > .01;
+    if (two) { const push = sm(3.5, 6.5, t); rock.position.set(RK.x - push * .6, RK.y, RK.z); rock.rotation.z = push * 1.4; frost.forEach((f, i) => f.material.opacity = .38 * sm(37 + (i % 14) * .2, 41 + (i % 14) * .2, t) * (1 - sm(44.5, 45.8, t))); }
+    heads.forEach((h, i) => h.rotation.y = -t * .35 + i * .4);
+    const lr = sm(pourBio[1], pourBio[1] + 8, t) * (1 - sm(44, 45.5, t));
+    let step; if (two) step = t < 8 ? 0 : t < 14 ? 1 : t < 22 ? 2 : t < 37 ? 3 : 4; else step = t < 8.5 ? 0 : t < 16.5 ? 1 : t < 24 ? 2 : t < 37 ? 3 : 4;
+    return { step, scan: { f: (t % 23) / 21, cycle: Math.floor(t / 23), pos: V3(.4, 1.24, -.32), look: V3(DX, gy(DX, -2), -2.0) },
+      kv: [['Liberación marcada', lr > .02 ? `gas marcado: ${Math.round(lr * 10000).toLocaleString('es-EC')} cuentas/min${lr > .8 ? ' · ¿vida?' : ''}` : 'esperando tierra'], ['Control (tierra calentada a 160 °C)', lr > .5 ? 'casi nada de gas' : '—'],
+        ['GCMS: moléculas orgánicas', t > pourGC[1] + 1.5 && t < 45 ? 'ninguna detectada' : t > pourGC[0] ? 'calentando la muestra…' : '—'], ['Temperatura del aire', `${Math.round(-30 - 55 * (.5 + .5 * Math.cos(t / T * Math.PI * 2)))} °C`]] };
+  }
+  function reset() { act(0); }
+  shadows(g); grains.castShadow = false; frost.forEach(f => { f.castShadow = false; }); reset();
+  return { group: g, parts, act, reset };
+}
+
 // ---------- fichas: lanzamiento, viaje, llegada (datos NASA/JPL) ----------
 const ROVERS = {
   m2020: { name: 'Perseverance', sub: 'Mars 2020 · NASA/JPL', build: () => buildMSL('perse'), mass: '1.025 kg', size: '3,0 m de largo · 2,7 m de ancho · 2,2 m de alto', speed: 'hasta 152 m/h (0,042 m/s)',
@@ -599,6 +686,20 @@ const ROVERS = {
     launch: [['Despegue', '5 de mayo de 2018, 11:05 UTC'], ['Cohete', 'Atlas V 401 (sin propulsores sólidos)'], ['Plataforma', 'SLC‑3E, Base Vandenberg, California: la primera misión a otro planeta lanzada desde la costa oeste'], ['Viaje', '205 días · 485 millones de km, con los CubeSats MarCO A y B al lado'], ['Llegada', '26 de noviembre de 2018, 19:53 UTC'], ['Lugar', 'Elysium Planitia (4,50° N, 135,62° E)'], ['Misión prevista', '1 año marciano (unos 2 años terrestres)'], ['Estado', 'Terminada: trabajó 1.446 soles; último contacto el 15 de diciembre de 2022, cubierto de polvo']],
     edl: [['Entrada', 'a 128 km de altura y 19.800 km/h; el escudo térmico llega a unos 1.500 °C'], ['Paracaídas', 'a unos 12 km de altura y 1.400 km/h'], ['Radar', 'mide la distancia al suelo; se sueltan el escudo y luego el paracaídas'], ['Propulsores', '12 motores lo frenan hasta unos 8 km/h y se apaga al tocar'], ['En vivo', 'los CubeSats MarCO retransmitieron el aterrizaje: en la Tierra supieron que llegó bien en 8 minutos, no horas']],
     firsts: ['Primeros sismos medidos en otro planeta: más de 1.300', 'Midió el núcleo de Marte: líquido, de unos 1.830 km de radio', 'Primer instrumento puesto en el suelo de otro planeta por un brazo', 'Primeros CubeSats en otro planeta (MarCO)'] },
+  vk1: { name: 'Viking 1', sub: 'Viking Lander 1 · NASA (Langley y JPL) · hoy «Estación Thomas Mutch»', build: hf => buildViking(hf, 1), lander: true, noSim: true, scan: true, mass: '572 kg en el suelo (con el orbitador: 3.530 kg)', size: '1,5 m de base · unos 2 m de alto con la antena', speed: 'no se mueve: brazo de cinta que se estira 3 m', speedLabel: 'Movimiento',
+    view: { ty: .8, cam: [4.4, 2.8, -4.6], drv: [3.2, 2.1, -4.0], back: 6, up: 2.6, max: 9 }, edlTitle: 'Del orbitador al suelo',
+    act: { title: 'Buscando vida', text: 'El brazo estira su cinta, cava y echa tierra en los laboratorios. Mientras tanto, la cámara arma su foto línea por línea, como en 1976. Lo que tomó meses pasa en 46 segundos.',
+      steps: ['El brazo estira su cinta hasta 3 m y cava una zanja', 'Echa la tierra en el embudo de biología', 'Liberación marcada: sale gas «marcado»… ¿hay algo vivo?', 'Otra muestra va al GCMS: no encuentra moléculas orgánicas', 'El debate sigue hasta hoy'] },
+    launch: [['Despegue', '20 de agosto de 1975, 21:22 UTC'], ['Cohete', 'Titan IIIE con etapa Centaur'], ['Plataforma', 'LC‑41, Cabo Cañaveral, Florida'], ['Viaje', '304 días hasta la órbita de Marte (19 de junio de 1976); un mes buscando un lugar seguro'], ['Llegada', '20 de julio de 1976, 11:53 UTC, a las 4 de la tarde en Marte'], ['Lugar', 'Chryse Planitia (22,27° N, 312,05° E)'], ['Misión prevista', '90 días'], ['Estado', 'Terminada: funcionó 6 años y 4 meses (2.245 soles); la señal se perdió el 13 de noviembre de 1982 por un comando equivocado']],
+    edl: [['Separación', 'se suelta del orbitador y enciende 12 toberas pequeñas para bajar de la órbita (−180 m/s)'], ['Entrada', 'unas 3 horas después, protegida por un escudo térmico, mide la atmósfera mientras cae'], ['Paracaídas', 'de 16 m, a 6 km de altura y 250 m/s; se suelta el escudo y salen las patas'], ['Motores', 'a 1,5 km, tres motores de 18 toberas encienden 40 segundos'], ['Suelo', 'toca a 2,4 m/s con 22 kg de combustible de sobra; 25 segundos después empieza a sacar la primera foto']],
+    firsts: ['Primer aterrizaje en Marte que funcionó por largo tiempo (el Mars 3 soviético, en 1971, transmitió solo unos segundos)', 'Primera foto desde el suelo de Marte: su propia pata', 'Primeros experimentos para buscar vida en otro planeta', 'Funcionó más de 6 años con energía nuclear'] },
+  vk2: { name: 'Viking 2', sub: 'Viking Lander 2 · NASA (Langley y JPL) · hoy «Estación Gerald Soffen»', build: hf => buildViking(hf, 2), lander: true, noSim: true, scan: true, mass: '572 kg en el suelo (con el orbitador: 3.530 kg)', size: '1,5 m de base · unos 2 m de alto con la antena', speed: 'no se mueve: brazo de cinta que se estira 3 m', speedLabel: 'Movimiento',
+    view: { ty: .8, cam: [4.4, 2.8, -4.6], drv: [3.2, 2.1, -4.0], back: 6, up: 2.6, max: 9 }, edlTitle: 'Del orbitador al suelo',
+    act: { title: 'Bajo las rocas y bajo la escarcha', text: 'En Utopia, el brazo empuja una roca para sacar tierra que estaba protegida del Sol, y la lleva a los laboratorios. Al final llega el invierno y aparece escarcha. Lo que tomó años pasa en 46 segundos.',
+      steps: ['El brazo empuja una roca a un lado', 'Cava donde estaba la roca y llena el embudo de biología', 'La liberación marcada vuelve a dar gas, igual que en el Viking 1', 'El GCMS tampoco encuentra moléculas orgánicas', 'Llega el invierno: escarcha sobre el suelo'] },
+    launch: [['Despegue', '9 de septiembre de 1975, 18:39 UTC'], ['Cohete', 'Titan IIIE con etapa Centaur'], ['Plataforma', 'LC‑41, Cabo Cañaveral, Florida'], ['Viaje', '333 días hasta la órbita de Marte (7 de agosto de 1976)'], ['Llegada', '3 de septiembre de 1976, 22:37 UTC'], ['Lugar', 'Utopia Planitia (47,64° N, 134,29° E), más al norte, en una llanura llena de rocas'], ['Misión prevista', '90 días'], ['Estado', 'Terminada: funcionó 3 años y 7 meses (1.281 soles), hasta que fallaron sus baterías el 11 de abril de 1980']],
+    edl: [['Separación', 'se suelta del orbitador y enciende 12 toberas para bajar de la órbita'], ['Entrada', 'escudo térmico y medición de la atmósfera al caer'], ['Paracaídas', 'de 16 m, a 6 km de altura'], ['Motores', 'tres motores de 18 toberas en el último kilómetro y medio'], ['Suelo', 'el radar se confundió con una roca y encendió un propulsor de más: quedó inclinado 8°, con una pata sobre una piedra']],
+    firsts: ['Fotografió escarcha de agua sobre el suelo de Marte en invierno', 'Su sismómetro funcionó (el del Viking 1 nunca se destrabó)', 'Movió rocas con su brazo para tomar tierra que estaba debajo', 'Junto con el Viking 1 enviaron más de 4.500 fotos desde el suelo'] },
 };
 export const ROVER_IDS = Object.keys(ROVERS);
 
@@ -664,7 +765,7 @@ export function abrirRover(id, onClose) {
   function renderSide() {
     if (mode === 'modelo') side.innerHTML = `<div class="kv"><span>Masa</span><b>${R.mass}</b><span>Tamaño</span><b>${R.size}</b><span>${R.speedLabel || 'Velocidad'}</span><b>${R.speed}</b></div><p>Arrastra para girarlo y acércate con la rueda o pellizcando. En <b>Piezas</b> se separa en sus partes; ${R.lander ? 'en <b>En acción</b> lo ves trabajar con su brazo' : 'en <b>Recorrido</b> lo ves andar'}.</p><ul class="rv-firsts">${R.firsts.map(f => `<li>${f}</li>`).join('')}</ul>`;
     if (mode === 'piezas') side.innerHTML = (selected ? `<h3>${selected.name}</h3><p>${selected.info}</p>` : `<h3>Despiece</h3><p>Mueve el control de abajo para separar las piezas y toca el nombre de cada una para saber qué hace.</p>`) + `<div class="rv-list">${parts.map(p => `<button data-p="${p.id}" ${selected === p ? 'aria-pressed="true"' : ''}>${p.name}</button>`).join('')}</div>`;
-    if (mode === 'recorrido' && R.lander) side.innerHTML = `<h3>${R.act.title}</h3><p>${R.act.text}</p>${R.seismo ? '<canvas id="rv-seis" width="560" height="150" aria-label="Sismograma en vivo"></canvas>' : ''}<div class="kv" id="rv-actkv"></div><ol class="rv-steps">${R.act.steps.map((s, i) => `<li data-step="${i}">${s}</li>`).join('')}</ol>`;
+    if (mode === 'recorrido' && R.lander) side.innerHTML = `<h3>${R.act.title}</h3><p>${R.act.text}</p>${R.seismo ? '<canvas id="rv-seis" width="560" height="150" aria-label="Sismograma en vivo"></canvas>' : ''}${R.scan ? '<canvas id="rv-scan" width="320" height="200" aria-label="La foto de la cámara, línea por línea"></canvas>' : ''}<div class="kv" id="rv-actkv"></div><ol class="rv-steps">${R.act.steps.map((s, i) => `<li data-step="${i}">${s}</li>`).join('')}</ol>`;
     else if (mode === 'recorrido') side.innerHTML = `<h3>Conduciendo</h3><p>El rover avanza a <b>${R.speed}</b>; aquí lo ves <b>6 veces más rápido</b>. Mira cómo cada rueda sigue el suelo y los balancines se inclinan: ninguna rueda se despega.</p><p>En la realidad recorre unos 100 m en un buen día: los conductores en la Tierra planean la ruta con las fotos del día anterior, y el rover la sigue solo, frenando si ve una piedra o una pendiente peligrosa.</p>${rover.spirit ? '<p><b>Spirit anda en reversa</b>: su rueda delantera derecha se trabó en 2006 y la arrastra. Mira el surco claro que deja: así destapó la sílice de aguas termales.</p>' : id === 'merb' ? '<p>Las bolitas grises del suelo son los «arándanos» de hematita que encontró Opportunity en Meridiani: se formaron dentro de rocas empapadas en agua y quedaron sueltas cuando el viento gastó la roca.</p>' : ''}<div class="kv"><span>Distancia</span><b id="rv-dist">0 m</b><span>Tiempo real equivalente</span><b id="rv-time">0 min</b></div>${R.driveNote ? `<p>${R.driveNote}</p>` : ''}${rover.group.userData.ing ? '<p>Ingenuity vuela alrededor: en Marte voló hasta 24 m de alto y 700 m de distancia en un solo vuelo.</p>' : ''}`;
     if (mode === 'lanzamiento') side.innerHTML = `<h3>Despegue y viaje</h3><div class="kv">${R.launch.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div><h3>${R.edlTitle || 'Los siete minutos de terror'}</h3><div class="kv">${R.edl.map(([a, b]) => `<span>${a}</span><b>${b}</b>`).join('')}</div>${R.noSim ? '' : `<a class="go" href="../cabo-canaveral/marte/#${id}/llegada">Ver la animación del aterrizaje →</a><a class="go alt" href="../cabo-canaveral/marte/#${id}">${R.padName || 'Ver el despegue en Cabo Cañaveral'} →</a>`}`;
     side.querySelectorAll('[data-p]').forEach(b => b.onclick = () => selectPart(parts.find(p => p.id === b.dataset.p)));
@@ -728,7 +829,21 @@ export function abrirRover(id, onClose) {
       x.fillStyle = '#0b0d12'; x.fillRect(0, 0, W, Hh); x.strokeStyle = 'rgba(255,255,255,.08)'; x.beginPath(); for (let k = 1; k < 4; k++) { x.moveTo(0, k * Hh / 4); x.lineTo(W, k * Hh / 4); } x.stroke();
       x.strokeStyle = '#7ee0a1'; x.lineWidth = 2; x.beginPath(); for (let k = 0; k < n; k++) { const v = a[(i + k) % n], y = Hh / 2 - Math.max(-1, Math.min(1, v)) * Hh * .45; k ? x.lineTo(k / (n - 1) * W, y) : x.moveTo(0, y); } x.stroke();
       x.fillStyle = 'rgba(255,255,255,.6)'; x.font = '20px system-ui'; x.fillText('SEIS · sismograma', 10, 24); }
+    const sc = r.scan && side.querySelector('#rv-scan'); if (sc) drawScan(sc, r.scan);
     const tgt = tmpV.set(0, TY * .75, -.9); ctl.target.lerp(tgt, .08);
+  }
+  // cámara de barrido del Viking: se saca la imagen desde la cabeza de la cámara y se revela una columna a la vez, como llegaba en 1976
+  const SW = 320, SH = 200, scanRT = new THREE.WebGLRenderTarget(SW, SH), scanCam = new THREE.PerspectiveCamera(46, SW / SH, .03, 300), scanBuf = new Uint8Array(SW * SH * 4); let scanImg = null, scanCycle = -1;
+  function drawScan(cv, s) {
+    const x = cv.getContext('2d');
+    if (s.cycle !== scanCycle || !scanImg) { scanCycle = s.cycle; rover.group.updateMatrixWorld(true);
+      scanCam.position.copy(rover.group.localToWorld(s.pos.clone())); scanCam.lookAt(rover.group.localToWorld(s.look.clone()));
+      renderer.setRenderTarget(scanRT); renderer.render(scene, scanCam); renderer.readRenderTargetPixels(scanRT, 0, 0, SW, SH, scanBuf); renderer.setRenderTarget(null);
+      scanImg = x.createImageData(SW, SH); for (let j = 0; j < SH; j++) for (let i = 0; i < SW; i++) { const a = ((SH - 1 - j) * SW + i) * 4, b = (j * SW + i) * 4, gr = Math.min(255, (scanBuf[a] * .3 + scanBuf[a + 1] * .59 + scanBuf[a + 2] * .11) * 1.15 + (Math.random() - .5) * 14); scanImg.data[b] = scanImg.data[b + 1] = scanImg.data[b + 2] = gr; scanImg.data[b + 3] = 255; }
+      x.fillStyle = '#000'; x.fillRect(0, 0, SW, SH); }
+    const c = Math.max(0, Math.min(SW, Math.floor(s.f * SW))); x.putImageData(scanImg, 0, 0, 0, 0, c, SH); x.fillStyle = '#000'; x.fillRect(c, 0, SW - c, SH);
+    if (c < SW) { x.fillStyle = 'rgba(255,255,255,.8)'; x.fillRect(c, 0, 2, SH); }
+    x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(0, SH - 18, SW, 18); x.fillStyle = '#ddd'; x.font = '12px monospace'; x.fillText(c < SW ? `Cámara 2 · línea ${c} de ${SW}` : 'Cámara 2 · foto completa', 6, SH - 5);
   }
   // --- bucle ---
   let last = performance.now();
