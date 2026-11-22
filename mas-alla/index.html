@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Más allá del sistema solar · La Vía Láctea</title>
+<meta name="description" content="La Vía Láctea vista desde afuera: halo de materia oscura, galaxias satélite, los 157 cúmulos globulares del catálogo de Harris y los brazos espirales medidos con máseres.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Diseño: la galaxia a pantalla completa, vista desde afuera. Capas numeradas de afuera hacia adentro a la izquierda,
+   ficha de la capa u objeto a la derecha. Mismo lenguaje visual que el resto del simulador (Jost + IBM Plex, paneles oscuros). */
+:root{
+  --void:#020309; --panel:rgba(9,11,20,.86); --line:#222a3e; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9aa0b5; --faint:#626a82;
+  --acc:#b9a6ff; --acc-ink:#120a2a; --sun:#ffd36a;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  --gl:max(14px, env(safe-area-inset-left,0px)); --gr:max(14px, env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none;cursor:grab}
+#gl:active{cursor:grabbing}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:#a9c8ff}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;z-index:6;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12.5px;padding:9px 11px}
+.back:hover{color:var(--ink)}
+.title{padding:7px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.acts{display:flex;gap:4px;padding:5px;flex-wrap:wrap}
+.chip{background:transparent;border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px;color:var(--ink);min-height:34px}
+.chip:hover{border-color:var(--line2)}
+.chip.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink);font-weight:600}
+.chip[aria-pressed=true]{border-color:var(--acc);color:var(--acc)}
+/* capas */
+#layers{position:fixed;left:var(--gl);top:calc(78px + var(--top));width:272px;z-index:5;padding:10px;max-height:calc(100vh - 150px);overflow:auto}
+#layers h2{margin:0 0 2px;font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+#layers .sub{margin:0 0 8px;color:var(--faint);font-size:11.5px}
+.lay{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:7px 6px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+.lay:hover{background:rgba(255,255,255,.03)}
+.lay.on{border-color:var(--line2);background:rgba(185,166,255,.07)}
+.lay .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:600 12px var(--f-display);color:var(--acc-ink);background:var(--c,#888)}
+.lay b{display:block;font:600 13px/1.25 var(--f-display)}
+.lay small{display:block;color:var(--dim);font-size:11.5px;line-height:1.3}
+.lay input{width:18px;height:18px;accent-color:var(--acc);margin:0}
+.lay.soon{cursor:default;opacity:.5}
+.lay.soon .n{background:transparent;border:1px dashed var(--faint);color:var(--faint)}
+.lay .tag{font:500 10px var(--f-data);color:var(--faint);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.sep{margin:8px 6px 4px;font:600 10.5px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+/* ficha */
+#card{position:fixed;right:var(--gr);top:calc(78px + var(--top));bottom:calc(14px + var(--bot));width:380px;z-index:5;display:flex;flex-direction:column;overflow:hidden}
+.chead{display:flex;align-items:flex-start;gap:8px;padding:12px 14px 4px}
+.chead .k{font:600 10.5px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--acc))}
+.chead h3{margin:3px 0 0;font:600 19px/1.2 var(--f-display)}
+.chead .x{margin-left:auto;background:transparent;border:1px solid var(--line);border-radius:7px;width:32px;height:32px;flex:none}
+.cbody{padding:4px 14px 16px;overflow:auto;flex:1;font-size:13.2px;line-height:1.55}
+.cbody p{margin:7px 0}
+.cbody .lead{font-size:14px;color:#dcdbe6}
+.cbody h4{margin:14px 0 3px;font:600 13.5px var(--f-display);color:var(--c,var(--acc))}
+.cbody ul{margin:5px 0;padding-left:18px}.cbody li{margin:4px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px;margin:8px 0;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.02)}
+.kv span{color:var(--dim)} .kv b{font-weight:500;font-family:var(--f-data);font-size:12px}
+.note{color:var(--dim);font-size:12px;border:1px dashed var(--line2);border-radius:8px;padding:7px 10px;margin:10px 0}
+.src{font-size:12px;color:var(--dim)} .src a{color:#a9c8ff}
+.vbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:rgba(255,255,255,.03);border:1px solid var(--line2);border-radius:9px;padding:9px 10px;margin:10px 0 4px}
+.vbtn:hover{border-color:var(--acc)}
+.vplay{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:var(--acc-ink)}
+.vplay svg{width:17px;height:17px;margin-left:2px}
+.vbtn b{display:block;font:600 13px var(--f-display)} .vbtn small{color:var(--dim);font-size:11.5px}
+.legend{display:grid;gap:4px;margin:8px 0;font-size:12.5px}
+.legend span{display:flex;align-items:center;gap:8px}
+.sw{display:inline-block;width:22px;height:0;border-top:2px solid var(--c)}
+.sw.dash{border-top-style:dashed;opacity:.7}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c)}
+.navrow{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.navrow .chip{flex:1 1 auto}
+.golink{display:block;text-align:center;text-decoration:none;margin-top:10px}
+/* etiquetas en 3D */
+#labels{position:fixed;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.lb{position:absolute;left:0;top:0;display:none;white-space:nowrap;font:500 11.5px var(--f-body);color:var(--c,#cfd3e6);text-shadow:0 0 4px #000,0 0 8px #000;transform:translate(-50%,-50%);will-change:transform}
+.lb.big{font:600 13px var(--f-display);letter-spacing:.02em}
+.lb.ring{font:500 10.5px var(--f-data);color:#6d7592}
+.lb.sun{font:600 12.5px var(--f-display);color:var(--sun)}
+.lb.sun::before{content:"";position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border:1.5px solid var(--sun);border-radius:50%;animation:pulse 2s ease-out infinite}
+@keyframes pulse{from{transform:scale(.6);opacity:1}to{transform:scale(2.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){.lb.sun::before{animation:none}}
+#tip{position:fixed;z-index:7;pointer-events:none;padding:5px 8px;font-size:12px;border-radius:6px;background:rgba(9,11,20,.92);border:1px solid var(--line2)}
+/* barra inferior */
+#foot{position:fixed;left:calc(var(--gl) + 286px);bottom:calc(14px + var(--bot));z-index:4;display:flex;gap:14px;align-items:flex-end;pointer-events:none}
+#scale{font:500 11.5px var(--f-data);color:var(--dim)}
+#scale i{display:block;height:6px;border:1.5px solid var(--dim);border-top:0;margin-bottom:4px}
+#hint{font-size:11.5px;color:var(--faint)}
+#tourbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + var(--bot));z-index:6;padding:8px 10px 8px 14px;display:flex;gap:10px;align-items:center;max-width:calc(100vw - 32px)}
+#tourbar span{font:600 13px var(--f-display)}
+#tourbar .chip{min-height:30px;padding:4px 10px}
+/* video */
+#vmodal{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:16px;background:rgba(2,4,9,.74);backdrop-filter:blur(6px)}
+.vcard{width:min(860px,100%);overflow:hidden}
+.vhead{display:flex;align-items:flex-start;gap:10px;padding:12px 14px}
+.vhead h3{margin:3px 0 0;font:600 16px var(--f-display)}
+.vframe{position:relative;aspect-ratio:16/9;background:#000}
+.vframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vfall{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px}
+.vfall p{color:var(--dim);font-size:13px;max-width:420px}
+.vfoot{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px 14px;font-size:12px;color:var(--dim)}
+.vfoot a{text-decoration:none}
+#loading{position:fixed;inset:0;display:grid;place-items:center;z-index:40;background:var(--void);font:600 14px var(--f-display);color:var(--dim);letter-spacing:.06em;transition:opacity .6s}
+@media (max-width:860px){
+  #layers{top:auto;bottom:calc(10px + var(--bot));left:var(--gl);right:var(--gr);width:auto;max-height:none;padding:6px;display:flex;gap:4px;overflow-x:auto}
+  #layers h2,#layers .sub,.sep,.lay small,.lay .tag,.lay.soon{display:none}
+  .lay{grid-template-columns:22px auto 18px;flex:none;padding:6px 8px}
+  .lay b{font-size:12px;white-space:nowrap}
+  #card{top:auto;left:var(--gl);right:var(--gr);width:auto;bottom:calc(64px + var(--bot));max-height:44vh}
+  #card.min .cbody{display:none}
+  #card{max-height:40vh}
+  #foot{left:var(--gl);bottom:auto;top:calc(250px + var(--top))}
+  #hint{display:none}
+  #b-edge{display:none}
+  .acts .chip{font-size:12px;padding:5px 8px}
+  #tourbar{bottom:auto;top:calc(198px + var(--top));left:var(--gl);right:auto;transform:none;padding:5px 6px 5px 10px}
+  #tourbar span{font-size:12px}
+  .title h1{font-size:15px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="La Vía Láctea en 3D. Arrastra para girar, rueda o pellizca para acercar."></canvas>
+<div id="labels"></div>
+<div id="tip" hidden></div>
+<div id="loading">Armando la galaxia…</div>
+
+<div class="top">
+  <a class="back panel" href="../">← Volver al sistema solar</a>
+  <div class="title panel"><div class="kick">Más allá del sistema solar</div><h1>La Vía Láctea desde afuera</h1></div>
+  <div class="acts panel">
+    <button class="chip pri" id="b-tour" type="button">▶ Recorrido desde afuera</button>
+    <button class="chip" id="b-top" type="button">Vista desde arriba</button>
+    <button class="chip" id="b-edge" type="button">De canto</button>
+    <button class="chip" id="b-sun" type="button">Ir al Sol</button>
+  </div>
+</div>
+
+<aside id="layers" class="panel" aria-label="Capas de la galaxia">
+  <h2>De afuera hacia adentro</h2>
+  <p class="sub">Toca una capa para ir a ella; la casilla la muestra u oculta.</p>
+  <div id="laylist"></div>
+</aside>
+
+<aside id="card" class="panel" aria-live="polite">
+  <div class="chead"><div><div class="k" id="c-kick"></div><h3 id="c-title"></h3></div>
+    <button class="x" id="c-min" type="button" aria-label="Minimizar la ficha">–</button></div>
+  <div class="cbody" id="c-body"></div>
+</aside>
+
+<div id="foot"><div id="scale"><i></i><span></span></div><div id="hint">Arrastra para girar · rueda o pellizca para acercar · clic derecho o dos dedos para desplazar · toca un punto para ver su ficha</div></div>
+<div id="tourbar" class="panel" hidden><span id="tb-txt"></span><button class="chip" id="tb-next" type="button">Siguiente ›</button><button class="chip" id="tb-stop" type="button">Detener</button></div>
+
+<div id="vmodal" hidden>
+  <div class="vcard panel" role="dialog" aria-modal="true" aria-labelledby="vm-title">
+    <div class="vhead"><div><div class="kick" id="vm-kind"></div><h3 id="vm-title"></h3></div>
+      <button class="chip" id="vm-close" type="button" aria-label="Cerrar video" style="margin-left:auto">×</button></div>
+    <div class="vframe" id="vm-frame"></div>
+    <div class="vfoot"><span id="vm-credit"></span><a id="vm-yt" class="chip" href="#" target="_blank" rel="noopener">Ver en YouTube ↗</a></div>
+  </div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = id => document.getElementById(id);
+const DEG = Math.PI/180, LY = 3261.56;                      // años luz por kiloparsec
+const R0 = 8.15, ZSUN = 0.0208;                             // Sol: distancia al centro (Reid 2019) y altura sobre el plano (kpc)
+const fmt = (n, d=0) => { const s = Math.abs(n) >= 1e4 ? Math.round(n).toString() : n.toFixed(d); const [a,b] = s.split('.'); return a.replace(/\B(?=(\d{3})+(?!\d))/g,' ') + (b ? ','+b : ''); };
+const ly = kpc => kpc*LY >= 1e6 ? fmt(kpc*LY/1e6, 2) + ' millones de años luz' : fmt(Math.round(kpc*LY/100)*100) + ' años luz';
+const kpcs = kpc => fmt(kpc, kpc < 10 ? 1 : 0).replace(/,0$/,'') + ' kpc';
+
+/* ---------- coordenadas ----------
+   Marco galactocéntrico: x del Sol hacia el centro, y hacia donde gira la galaxia (l = 90°), z hacia el polo norte galáctico.
+   En la escena: plano de la galaxia = XZ, Y = polo norte.  1 unidad = 1 kiloparsec (3 262 años luz). */
+const gc = (x, y, z) => new THREE.Vector3(x, z, -y);
+const helio = (l, b, d) => { const L = l*DEG, B = b*DEG; return gc(d*Math.cos(B)*Math.cos(L) - R0, d*Math.cos(B)*Math.sin(L), d*Math.sin(B) + ZSUN); };
+const SUN = gc(-R0, 0, ZSUN);
+
+/* ---------- escena ---------- */
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#020309');
+const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 6000);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 0.3; controls.maxDistance = 1800; controls.zoomSpeed = 1.2;
+let pxScale = 1;
+function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); pxScale = h*renderer.getPixelRatio()/(2*Math.tan(camera.fov*DEG/2)); for (const m of pointMats) m.uniforms.uScale.value = pxScale; }
+
+let seed = 20251122; const rnd = () => (seed = (seed*1664525 + 1013904223) >>> 0)/4294967296;
+const gauss = () => Math.sqrt(-2*Math.log(rnd() + 1e-12))*Math.cos(2*Math.PI*rnd());
+const sphere = () => { const u = 2*rnd() - 1, p = 2*Math.PI*rnd(), c = Math.sqrt(1 - u*u); return [c*Math.cos(p), u, c*Math.sin(p)]; };
+
+/* puntos que brillan (mezcla aditiva); tamaño en kpc reales, con un mínimo en píxeles para que se vean desde lejos */
+const pointMats = [];
+function points(pos, col, size, opt={}){
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('acol', new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute('asize', new THREE.Float32BufferAttribute(size, 1));
+  const m = new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    uniforms:{ uFade:{value:0}, uScale:{value:pxScale}, uMin:{value:opt.min ?? 1}, uMax:{value:opt.max ?? 24} },
+    vertexShader:`attribute vec3 acol; attribute float asize; uniform float uScale, uMin, uMax; varying vec3 vC; varying float vK;
+      void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mv;
+        float s = asize*uScale/max(-mv.z, 1e-4); vK = clamp(s/uMin, 0.25, 1.0); vC = acol; gl_PointSize = clamp(s, uMin, uMax); }`,
+    fragmentShader:`uniform float uFade; varying vec3 vC; varying float vK;
+      void main(){ float r = length(gl_PointCoord - 0.5)*2.0; if (r > 1.0) discard; float a = pow(1.0 - r, 1.7);
+        gl_FragColor = vec4(vC*a*uFade*vK, 1.0); }` });
+  pointMats.push(m);
+  const p = new THREE.Points(g, m); p.frustumCulled = false; scene.add(p); return p;
+}
+function lineMat(color, opacity, dashed){
+  const m = dashed ? new THREE.LineDashedMaterial({ color, transparent:true, opacity:0, depthWrite:false, dashSize:0.35, gapSize:0.3 })
+                   : new THREE.LineBasicMaterial({ color, transparent:true, opacity:0, depthWrite:false });
+  m.userData.base = opacity; return m;
+}
+function polyline(pts, mat){ const g = new THREE.BufferGeometry().setFromPoints(pts); const l = new THREE.Line(g, mat); if (mat.isLineDashedMaterial) l.computeLineDistances(); l.frustumCulled = false; scene.add(l); return l; }
+function circle(r, y=0, n=256){ const a = []; for (let i=0;i<=n;i++){ const t = i/n*2*Math.PI; a.push(new THREE.Vector3(r*Math.cos(t), y, r*Math.sin(t))); } return a; }
+
+/* ---------- capas: de afuera hacia adentro ---------- */
+const LAYERS = [
+  { id:'halo', n:1, c:'#b9a6ff', name:'Halo de materia oscura', small:'Lo más grande de la galaxia, y no se ve', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:760, el:20, az:205} },
+  { id:'satelites', n:2, c:'#7fd6ff', name:'Galaxias satélite', small:'14 galaxias enanas en su lugar real', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:400, el:14, az:150} },
+  { id:'globulares', n:3, c:'#ffcf73', name:'Cúmulos globulares', small:'Los 157 del catálogo de Harris', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:105, el:26, az:200} },
+  { id:'disco', n:4, c:'#8fb8ff', name:'Disco y brazos espirales', small:'Donde está casi todo lo que brilla', mats:[], lines:[], labels:[], fade:0, on:false, cam:{r:48, el:58, az:180} },
+];
+const SOON = [
+  ['La barra y el bulbo central','Estrellas viejas en forma de cacahuate'],
+  ['Sagitario A* y el centro','El agujero negro de 4 millones de soles'],
+  ['Las burbujas de Fermi','Dos burbujas gigantes sobre y bajo el disco'],
+  ['Nuestro vecindario','Burbuja Local, Onda de Radcliffe… y el Sol'],
+];
+const L = Object.fromEntries(LAYERS.map(l => [l.id, l]));
+
+/* etiquetas HTML ancladas a puntos 3D */
+const labels = [];
+function label(text, pos, layer, opt={}){
+  const el = document.createElement('div'); el.className = 'lb ' + (opt.cls || ''); el.textContent = text; el.style.display = 'none';
+  if (opt.color) el.style.setProperty('--c', opt.color);
+  $('labels').appendChild(el);
+  const o = { el, pos, layer, min:opt.min ?? 0, max:opt.max ?? 1e9, pri:opt.pri ?? 1, w:0, h:0, show:false };
+  labels.push(o); if (layer) layer.labels.push(o); return o;
+}
+/* objetos que se pueden tocar */
+const picks = [];
+const pick = (o) => (picks.push(o), o);
+
+/* ===== 1. Halo de materia oscura (perfil NFW proyectado) y halo estelar ===== */
+const R200 = 220, RS = 22;                                   // radio del halo (kpc) y radio de escala (concentración ≈ 10)
+{
+  const m = new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    uniforms:{ uFade:{value:0}, uR:{value:R200}, uRs:{value:RS} },
+    vertexShader:`uniform float uR; varying vec2 vP;
+      void main(){ vP = position.xy; vec4 c = modelViewMatrix*vec4(0.0,0.0,0.0,1.0); c.xy += position.xy*uR; gl_Position = projectionMatrix*c; }`,
+    fragmentShader:`uniform float uFade, uR, uRs; varying vec2 vP;
+      float F(float x){ x = max(x, 0.04); if (abs(x - 1.0) < 0.02) return 1.0/3.0;
+        if (x < 1.0){ float s = sqrt((1.0 - x)/(1.0 + x)); return (1.0 - 2.0/sqrt(1.0 - x*x)*0.5*log((1.0 + s)/(1.0 - s)))/(x*x - 1.0); }
+        return (1.0 - 2.0/sqrt(x*x - 1.0)*atan(sqrt((x - 1.0)/(1.0 + x))))/(x*x - 1.0); }
+      void main(){ float q = length(vP); if (q > 1.06) discard;
+        float x = q*uR/uRs; float d = F(x)/F(0.04);
+        float glow = pow(d, 0.42)*smoothstep(1.0, 0.82, q);
+        float edge = exp(-pow((q - 1.0)/0.006, 2.0))*0.55;
+        vec3 col = mix(vec3(0.30,0.20,0.62), vec3(0.62,0.52,1.0), d);
+        gl_FragColor = vec4((col*glow*0.55 + vec3(0.55,0.48,0.95)*edge)*uFade, 1.0); }` });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.12, 2.12), m); mesh.frustumCulled = false; mesh.renderOrder = -1; scene.add(mesh);
+  L.halo.mats.push(m); L.halo.haloMat = m;
+  // halo estelar: ley de potencias rota (Deason, Belokurov y Evans 2011): ρ ∝ r^-2,3 hasta 27 kpc, r^-4,6 después; achatado q = 0,59
+  const N = 9000, bins = 3000, rmin = 1, rmax = 160, cdf = new Float64Array(bins+1);
+  for (let i=1;i<=bins;i++){ const r = rmin + (rmax - rmin)*(i - .5)/bins, rho = r < 27 ? Math.pow(r/27, -2.3) : Math.pow(r/27, -4.6); cdf[i] = cdf[i-1] + rho*r*r; }
+  const pos = [], col = [], siz = [];
+  for (let k=0;k<N;k++){ const u = rnd()*cdf[bins]; let lo = 0, hi = bins; while (hi - lo > 1){ const mid = (lo + hi) >> 1; if (cdf[mid] < u) lo = mid; else hi = mid; }
+    const r = rmin + (rmax - rmin)*hi/bins, s = sphere(); pos.push(r*s[0], r*s[1]*0.59, r*s[2]);
+    const w = 0.35 + 0.25*rnd(); col.push(w, w*0.78, w*0.55); siz.push(0.12); }
+  L.halo.mats.push(points(pos, col, siz, {min:1.1, max:3}).material);
+  label('Borde del halo de materia oscura · ≈ 220 kpc', new THREE.Vector3(0, R200*0.72, -R200*0.70), L.halo, {cls:'big', color:'#b9a6ff', min:250});
+}
+// anillos de distancia en el plano de la galaxia
+for (const r of [50,100,150,200,250]){
+  const l = polyline(circle(r), lineMat('#39415e', .55)); L.halo.lines.push(l.material);
+  label(ly(r), new THREE.Vector3(0, 0, r), L.halo, {cls:'ring', min:150, pri:0});
+}
+
+/* ===== 2. Galaxias satélite (posiciones: McConnachie 2012 y descubrimientos posteriores) ===== */
+const SATS = [
+ {id:'lmc', name:'Gran Nube de Magallanes', l:280.47, b:-32.89, d:49.6, rh:1.6, n:5200, tipo:'Irregular magallánica (espiral barrada pequeña)', desc:'Se conoce desde siempre en el hemisferio sur; el astrónomo persa al‑Sufi la describió en el año 964', fact:'Es la satélite más grande: unos 140 000 millones de soles contando su materia oscura, más de una décima parte de la Vía Láctea. Su distancia se midió con un error de solo 1 % usando estrellas dobles que se eclipsan. Allí explotó la supernova 1987A, la más cercana vista en 400 años. Desde Guayaquil se ve baja sobre el horizonte sur.', young:true, vid:'nubes'},
+ {id:'smc', name:'Pequeña Nube de Magallanes', l:302.80, b:-44.30, d:62.1, rh:1.0, n:2400, tipo:'Irregular enana', desc:'Conocida desde la antigüedad en el hemisferio sur', fact:'Gira junto a la Gran Nube; las dos se jalan y comparten un puente de gas. Fue clave para la astronomía: allí Henrietta Leavitt descubrió en 1912 que las estrellas cefeidas sirven para medir distancias.', young:true, vid:'nubes'},
+ {id:'sgr', name:'Enana de Sagitario', l:5.57, b:-14.17, d:26.5, rh:2.6, n:900, tipo:'Esferoidal enana', desc:'Descubierta en 1994 (Ibata, Gilmore e Irwin)', fact:'La más cercana de esta lista, pero estuvo escondida detrás del bulbo central. La gravedad de la Vía Láctea la está despedazando: sus estrellas forman una corriente que da la vuelta a toda la galaxia. El cúmulo globular M 54 es su núcleo.'},
+ {id:'boo1', name:'Boyero I', l:358.08, b:69.62, d:66, rh:0.24, n:180, tipo:'Esferoidal ultradébil', desc:'Descubierta en 2006 con el Sloan Digital Sky Survey', fact:'Una de las primeras «ultradébiles»: brilla menos que un solo cúmulo globular, pero tiene mucha materia oscura.'},
+ {id:'dra', name:'Draco', l:86.37, b:34.72, d:76, rh:0.22, n:220, tipo:'Esferoidal enana', desc:'Descubierta en 1954 (Wilson, observatorio Palomar)', fact:'Sus estrellas se mueven tan rápido para lo poco que brillan que es una de las galaxias con más materia oscura por cada estrella.'},
+ {id:'umi', name:'Osa Menor', l:104.97, b:44.80, d:76, rh:0.18, n:200, tipo:'Esferoidal enana', desc:'Descubierta en 1954 (Wilson, observatorio Palomar)', fact:'Sus estrellas son casi todas muy viejas: dejó de formar estrellas hace unos 10 000 millones de años.'},
+ {id:'scl', name:'Escultor', l:287.53, b:-83.16, d:86, rh:0.28, n:240, tipo:'Esferoidal enana', desc:'Descubierta en 1937 (Harlow Shapley)', fact:'Fue la primera galaxia esferoidal enana descubierta. Está casi justo debajo del polo sur de la galaxia.'},
+ {id:'sex', name:'Sextante', l:243.50, b:42.27, d:86, rh:0.70, n:220, tipo:'Esferoidal enana', desc:'Descubierta en 1990 (Irwin y colaboradores)', fact:'Muy extendida y tenue: ocupa en el cielo más que la Luna llena, pero no se ve a simple vista.'},
+ {id:'car', name:'Carina (Quilla)', l:260.11, b:-22.22, d:105, rh:0.25, n:200, tipo:'Esferoidal enana', desc:'Descubierta en 1977 (Cannon y colaboradores)', fact:'Formó sus estrellas en varios brotes separados por miles de millones de años.'},
+ {id:'cra2', name:'Crater II', l:282.91, b:42.03, d:117, rh:1.07, n:260, tipo:'Esferoidal ultradifusa', desc:'Descubierta en 2016 (Torrealba y colaboradores)', fact:'Tan grande como la Pequeña Nube de Magallanes, pero miles de veces más tenue: una de las galaxias más difusas conocidas.'},
+ {id:'ant2', name:'Antlia 2', l:264.90, b:11.25, d:132, rh:2.9, n:320, tipo:'Esferoidal ultradifusa', desc:'Descubierta en 2018 con datos del satélite Gaia', fact:'La llaman «galaxia fantasma»: en el cielo ocupa tanto como la Gran Nube de Magallanes, pero es 4 000 veces más tenue y está detrás del disco, por eso tardamos tanto en verla.'},
+ {id:'fnx', name:'Fornax (Horno)', l:237.10, b:-65.65, d:147, rh:0.71, n:420, tipo:'Esferoidal enana', desc:'Descubierta en 1938 (Harlow Shapley)', fact:'La más brillante de las esferoidales. Tiene sus propios 6 cúmulos globulares.'},
+ {id:'leo2', name:'Leo II', l:220.17, b:67.23, d:233, rh:0.18, n:180, tipo:'Esferoidal enana', desc:'Descubierta en 1950 (Harrington y Wilson)', fact:'Una de las satélites más lejanas, casi en el borde del halo de materia oscura.'},
+ {id:'leo1', name:'Leo I', l:225.99, b:49.11, d:254, rh:0.25, n:260, tipo:'Esferoidal enana', desc:'Descubierta en 1950 (Harrington y Wilson)', fact:'La más lejana de esta lista y una de las que se mueven más rápido: hay discusión sobre si está atrapada por la Vía Láctea o solo de paso. Está a solo 0,2° de la estrella Régulo, que la opaca.'},
+];
+{
+  const pos = [], col = [], siz = [];
+  for (const s of SATS){
+    const c = helio(s.l, s.b, s.d); s.pos = c;
+    for (let i=0;i<s.n;i++){
+      let x, y, z;
+      if (s.young){ const r = -s.rh*0.6*Math.log(rnd()*rnd() + 1e-9), t = 2*Math.PI*rnd(); x = r*Math.cos(t); z = r*Math.sin(t); y = gauss()*s.rh*0.18;
+        if (s.id === 'lmc' && rnd() < .25){ x = gauss()*1.3; z = gauss()*0.35; } }
+      else { x = gauss()*s.rh; y = gauss()*s.rh*(s.id === 'sgr' ? 0.35 : 0.8); z = gauss()*s.rh*(s.id === 'sgr' ? 0.45 : 0.85); }
+      pos.push(c.x + x, c.y + y, c.z + z);
+      const w = 0.28 + 0.22*rnd(); if (s.young) col.push(w*0.75, w*0.85, w*1.05); else col.push(w, w*0.85, w*0.62); siz.push(0.09);
+    }
+    const nm = s.name; s.dkpc = s.d;
+    label(nm, c, L.satelites, {cls: s.d < 70 ? 'big' : '', color:'#a8e2ff', min:35, pri: s.young ? 3 : 2});
+    pick({ kind:'sat', name:nm, pos:c, layer:L.satelites, ref:s });
+  }
+  L.satelites.mats.push(points(pos, col, siz, {min:1.2, max:5}).material);
+  const mk = []; for (const s of SATS) mk.push(s.pos.x, s.pos.y, s.pos.z);
+  L.satelites.mats.push(points(mk, SATS.flatMap(s => s.young ? [.25,.35,.5] : [.35,.32,.22]), SATS.map(s => s.rh*1.2), {min:5, max:40}).material);
+  // líneas finas que unen cada satélite con el plano, para leer su altura
+  for (const s of SATS){ const foot = s.pos.clone(); foot.y = 0; const ln = polyline([s.pos, foot], lineMat('#2c5468', .5, true)); L.satelites.lines.push(ln.material); }
+}
+
+/* ===== 3. Cúmulos globulares: catálogo de Harris (edición 2010) ===== */
+const GC = [["NGC 104","47 Tuc",305.89,-44.89,4.5,7.4],["NGC 288","",152.3,-89.38,8.9,12.0],["NGC 362","",301.53,-46.25,8.6,9.4],["Whiting 1","",161.22,-60.76,30.1,34.5],["NGC 1261","",270.54,-52.12,16.3,18.1],["Pal 1","",130.06,19.03,11.1,17.2],["AM 1","E 1",258.34,-48.47,123.3,124.6],["Eridanus","",218.1,-41.33,90.1,95.0],["Pal 2","",170.53,-9.07,27.2,35.0],["NGC 1851","",244.51,-35.03,12.1,16.6],["NGC 1904","M 79",227.23,-29.35,12.9,18.8],["NGC 2298","",245.63,-16.0,10.8,15.8],["NGC 2419","",180.37,25.24,82.6,89.9],["Ko 2","",195.12,25.54,34.7,41.9],["Pyxis","",261.32,7.0,39.4,41.4],["NGC 2808","",282.19,-11.25,9.6,11.1],["E 3","",292.27,-19.02,8.1,9.1],["Pal 3","",240.15,41.86,92.5,95.7],["NGC 3201","",277.23,8.64,4.9,8.8],["Pal 4","",202.31,71.8,108.7,111.2],["Ko 1","",260.99,70.75,48.3,49.3],["NGC 4147","",252.85,77.19,19.3,21.4],["NGC 4372","",300.99,-9.88,5.8,7.1],["Rup 106","",300.88,11.67,21.2,18.5],["NGC 4590","M 68",299.63,36.05,10.3,10.2],["NGC 4833","",303.6,-8.02,6.6,7.0],["NGC 5024","M 53",332.96,79.76,17.9,18.4],["NGC 5053","",335.7,78.95,17.4,17.8],["NGC 5139","omega Cen",309.1,14.97,5.2,6.4],["NGC 5272","M 3",42.22,78.71,10.2,12.0],["NGC 5286","",311.61,10.57,11.7,8.9],["AM 4","",320.28,33.51,32.2,27.8],["NGC 5466","",42.15,73.59,16.0,16.3],["NGC 5634","",342.21,49.26,25.2,21.2],["NGC 5694","",331.06,30.36,35.0,29.4],["IC 4499","",307.35,-20.47,18.8,15.7],["NGC 5824","",332.56,22.07,32.1,25.9],["Pal 5","",0.85,45.86,23.2,18.6],["NGC 5897","",342.95,30.29,12.5,7.4],["NGC 5904","M 5",3.86,46.8,7.5,6.2],["NGC 5927","",326.6,4.86,7.7,4.6],["NGC 5946","",327.58,4.19,10.6,5.8],["BH 176","",328.41,4.34,18.9,12.9],["NGC 5986","",337.02,13.27,10.4,4.8],["Lynga 7","BH184",328.77,-2.8,8.0,4.3],["Pal 14","AvdB",28.74,42.19,76.5,71.6],["NGC 6093","M 80",352.67,19.46,10.0,3.8],["NGC 6121","M 4",350.97,15.97,2.2,5.9],["NGC 6101","",317.74,-15.82,15.4,11.2],["NGC 6144","",351.93,15.7,8.9,2.7],["NGC 6139","",342.37,6.94,10.1,3.6],["Terzan 3","",345.08,9.19,8.2,2.5],["NGC 6171","M 107",3.37,23.01,6.4,3.3],["1636-283","ESO452-SC11",351.91,12.1,8.3,2.1],["NGC 6205","M 13",59.01,40.91,7.1,8.4],["NGC 6229","",73.64,40.31,30.5,29.8],["NGC 6218","M 12",15.72,26.31,4.8,4.5],["FSR 1735","",339.19,-1.85,9.8,3.7],["NGC 6235","",358.92,13.52,11.5,4.2],["NGC 6254","M 10",15.14,23.08,4.4,4.6],["NGC 6256","",347.79,3.31,10.3,3.0],["Pal 15","",18.88,24.3,45.1,38.4],["NGC 6266","M 62",353.57,7.32,6.8,1.7],["NGC 6273","M 19",356.87,9.38,8.8,1.7],["NGC 6284","",358.35,9.94,15.3,7.5],["NGC 6287","",0.13,11.02,9.4,2.1],["NGC 6293","",357.62,7.83,9.5,1.9],["NGC 6304","",355.83,5.38,5.9,2.3],["NGC 6316","",357.18,5.76,10.4,2.6],["NGC 6341","M 92",68.34,34.86,8.3,9.6],["NGC 6325","",0.97,8.0,7.8,1.1],["NGC 6333","M 9",5.54,10.71,7.9,1.7],["NGC 6342","",4.9,9.72,8.5,1.7],["NGC 6356","",6.72,10.22,15.1,7.5],["NGC 6355","",359.59,5.43,9.2,1.4],["NGC 6352","",341.42,-7.17,5.6,3.3],["IC 1257","",16.54,15.15,25.0,17.9],["Terzan 2","HP 3",356.32,2.3,7.5,0.8],["NGC 6366","",18.41,16.04,3.5,5.0],["Terzan 4","HP 4",356.02,1.31,7.2,1.0],["HP 1","BH 229",357.44,2.12,8.2,0.5],["NGC 6362","",325.55,-17.57,7.6,5.1],["Liller 1","",354.84,-0.16,8.2,0.8],["NGC 6380","Ton 1",350.18,-3.42,10.9,3.3],["Terzan 1","HP 2",357.57,1.0,6.7,1.3],["Ton 2","Pismis 26",350.8,-3.42,8.2,1.4],["NGC 6388","",345.56,-6.74,9.9,3.1],["NGC 6402","M 14",21.32,14.81,9.3,4.0],["NGC 6401","",3.45,3.98,10.6,2.7],["NGC 6397","",338.17,-11.96,2.3,6.0],["Pal 6","",2.1,1.78,5.8,2.2],["NGC 6426","",28.09,16.23,20.6,14.4],["Djorg 1","",356.69,-2.47,13.7,5.7],["Terzan 5","Terzan 11",3.84,1.69,6.9,1.2],["NGC 6440","",7.73,3.8,8.5,1.3],["NGC 6441","",353.53,-5.01,11.6,3.9],["Terzan 6","HP 5",358.57,-2.16,6.8,1.3],["NGC 6453","",355.72,-3.87,11.6,3.7],["UKS 1","",5.13,0.76,7.8,0.7],["NGC 6496","",348.03,-10.01,11.3,4.2],["Terzan 9","",3.61,-1.99,7.1,1.1],["Djorg 2","ESO456-SC38",2.77,-2.5,6.3,1.8],["NGC 6517","",19.23,6.76,10.6,4.2],["Terzan 10","",4.49,-1.99,5.8,2.3],["NGC 6522","",1.02,-3.93,7.7,0.6],["NGC 6535","",27.18,10.44,6.8,3.9],["NGC 6528","",1.14,-4.17,7.9,0.6],["NGC 6539","",20.8,6.78,7.8,3.0],["NGC 6540","Djorg 3",3.29,-3.31,5.3,2.8],["NGC 6544","",5.84,-2.2,3.0,5.1],["NGC 6541","",349.29,-11.19,7.5,2.1],["2MS-GC01","2MASS-GC01",10.48,0.11,3.6,4.5],["ESO-SC06","ESO280-SC06",346.9,-12.57,21.4,14.0],["NGC 6553","",5.26,-3.03,6.0,2.2],["2MS-GC02","2MASS-GC02",9.79,-0.61,4.9,3.2],["NGC 6558","",0.2,-6.02,7.4,1.0],["IC 1276","Pal 7",21.83,5.67,5.4,3.7],["Terzan 12","",8.37,-2.1,4.8,3.4],["NGC 6569","",0.48,-6.68,10.9,3.1],["BH 261","AL 3",3.36,-5.27,6.5,1.7],["GLIMPSE02","",14.14,-0.64,5.5,3.0],["NGC 6584","",342.14,-16.41,13.5,7.0],["NGC 6624","",2.79,-7.91,7.9,1.2],["NGC 6626","M 28",7.8,-5.58,5.5,2.7],["NGC 6638","",7.9,-7.15,9.4,2.2],["NGC 6637","M 69",1.72,-10.27,8.8,1.7],["NGC 6642","",9.81,-6.44,8.1,1.7],["NGC 6652","",1.53,-11.38,10.0,2.7],["NGC 6656","M 22",9.89,-7.55,3.2,4.9],["Pal 8","",14.11,-6.79,12.8,5.5],["NGC 6681","M 70",2.85,-12.51,9.0,2.2],["GLIMPSE01","",31.31,-0.1,4.2,4.9],["NGC 6712","",25.35,-4.32,6.9,3.5],["NGC 6715","M 54",5.61,-14.09,26.5,18.9],["NGC 6717","Pal 9",12.88,-10.9,7.1,2.4],["NGC 6723","",0.07,-17.3,8.7,2.6],["NGC 6749","",36.2,-2.21,7.9,5.0],["NGC 6752","",336.49,-25.63,4.0,5.2],["NGC 6760","",36.11,-3.92,7.4,4.8],["NGC 6779","M 56",62.66,8.34,9.4,9.2],["Terzan 7","",3.39,-20.07,22.8,15.6],["Pal 10","",52.43,2.72,5.9,6.4],["Arp 2","",8.55,-20.79,28.6,21.4],["NGC 6809","M 55",8.79,-23.27,5.4,3.9],["Terzan 8","",5.76,-24.56,26.3,19.4],["Pal 11","",31.81,-15.57,13.4,8.2],["NGC 6838","M 71",56.75,-4.56,4.0,6.7],["NGC 6864","M 75",20.3,-25.75,20.9,14.7],["NGC 6934","",52.1,-18.89,15.6,12.8],["NGC 6981","M 72",35.16,-32.68,17.0,12.9],["NGC 7006","",63.77,-19.41,41.2,38.5],["NGC 7078","M 15",65.01,-27.31,10.4,10.4],["NGC 7089","M 2",53.37,-35.77,11.5,10.4],["NGC 7099","M 30",27.18,-46.84,8.1,7.1],["Pal 12","",30.51,-47.68,19.0,15.8],["Pal 13","",87.1,-42.7,26.0,26.9],["NGC 7492","",53.39,-63.48,26.3,25.3]];
+const GC_FACT = {
+ 'NGC 5139':'El más grande de la Vía Láctea, con unos 10 millones de estrellas. Probablemente es el corazón de una galaxia enana que la Vía Láctea se tragó hace mucho.',
+ 'NGC 104':'El segundo más brillante del cielo. En el cielo aparece al lado de la Pequeña Nube de Magallanes, aunque está unas 14 veces más cerca.',
+ 'NGC 6205':'En 1974 el radiotelescopio de Arecibo le envió un mensaje de radio. Con esta distancia, tardará unos 23 000 años en llegar.',
+ 'NGC 6121':'El cúmulo globular más cercano al Sol.',
+ 'NGC 6397':'Uno de los dos más cercanos; el telescopio Hubble lo usó para medir la edad de sus enanas blancas, como un reloj.',
+ 'NGC 6715':'Está en el centro de la galaxia enana de Sagitario: en realidad le pertenece a ella, y llegó con ella.',
+ 'NGC 2419':'Está tan lejos que lo llaman «el vagabundo intergaláctico».',
+ 'AM 1':'El más lejano de todo el catálogo.',
+ 'Pal 5':'Las mareas de la Vía Láctea lo están deshaciendo: deja dos colas de estrellas que cruzan más de 20° del cielo.',
+ 'NGC 6656':'Uno de los más brillantes y cercanos; en el cielo está cerca de la dirección del centro de la galaxia.',
+ 'NGC 5272':'Tiene más estrellas variables conocidas que ningún otro cúmulo: unas 270.',
+ 'NGC 7078':'Uno de los más densos: su centro «colapsó» y las estrellas están apretadísimas.',
+ 'Terzan 5':'Escondido tras el polvo cerca del centro. Tiene estrellas de edades distintas y más púlsares de milisegundo que ningún otro cúmulo.',
+};
+{
+  const pos = [], col = [], siz = [];
+  for (const [id, alt, l, b, d, rgc] of GC){
+    const p = helio(l, b, d); pos.push(p.x, p.y, p.z);
+    const w = 0.75 + 0.25*rnd(); col.push(w, w*0.8, w*0.45); siz.push(0.16);
+    const nm = alt && /^(M |omega|47)/.test(alt) ? `${alt.replace('omega Cen','Omega Centauri').replace('47 Tuc','47 Tucanae')} · ${id}` : id + (alt ? ` (${alt})` : '');
+    const o = pick({ kind:'gc', name:nm, pos:p, layer:L.globulares, ref:{id, alt, l, b, d, rgc} });
+    if (/^M |omega|47/.test(alt) || ['NGC 2419','AM 1','Pal 5','Terzan 5'].includes(id))
+      label(alt ? alt.replace('omega Cen','ω Centauri').replace('47 Tuc','47 Tucanae') : id, p, L.globulares, {color:'#ffd994', min:2, max:170, pri: ['NGC 5139','NGC 104','NGC 6205','NGC 2419','AM 1'].includes(id) ? 2 : 1});
+  }
+  L.globulares.mats.push(points(pos, col, siz, {min:2.6, max:9}).material);
+}
+
+/* ===== 4. Disco y brazos espirales: modelo de Reid et al. (2019) ===== */
+// ln(R/Rk) = −(β − βk)·tan ψ ; β = azimut galactocéntrico, 0 hacia el Sol, crece en el sentido del giro
+const ARMS = [
+ {id:'perseo', name:'Brazo de Perseo', col:'#7fb8ff', bmin:-23, bmax:115, bk:40, rk:8.87, p1:10.3, p2:8.7, w:0.35, ext:[-120,220], lab:48},
+ {id:'escudo', name:'Brazo de Escudo‑Centauro', col:'#ffa86b', bmin:0, bmax:104, bk:23, rk:4.91, p1:14.1, p2:12.1, w:0.23, ext:[-240,140], lab:55},
+ {id:'sagitario', name:'Brazo de Sagitario‑Carina', col:'#8fe3b0', bmin:2, bmax:97, bk:24, rk:6.04, p1:17.1, p2:1.0, w:0.27, ext:[-150,150], lab:62},
+ {id:'local', name:'Brazo Local (de Orión)', col:'#ffe27a', bmin:-8, bmax:34, bk:9, rk:8.26, p1:11.4, p2:11.4, w:0.31, ext:[-30,60], lab:24},
+ {id:'exterior', name:'Brazo Exterior', col:'#ff8fb8', bmin:-16, bmax:71, bk:18, rk:12.24, p1:3.0, p2:9.4, w:0.65, ext:[-70,362], lab:30},
+ {id:'norma', name:'Brazo de Norma', col:'#ff8fb8', bmin:5, bmax:54, bk:18, rk:4.46, p1:-1.0, p2:19.5, w:0.14, ext:[0,80], lab:28},
+];
+const armR = (a, beta) => a.rk*Math.exp(-(beta - a.bk)*DEG*Math.tan((beta < a.bk ? a.p1 : a.p2)*DEG));
+const armXY = (R, beta) => [-R*Math.cos(beta*DEG), R*Math.sin(beta*DEG)];
+const D = L.disco;
+{
+  const pos = [], col = [], siz = [];
+  const push = (x, y, z, c, s) => { const v = gc(x, y, z); pos.push(v.x, v.y, v.z); col.push(c[0], c[1], c[2]); siz.push(s); };
+  // disco suave: exponencial con escala de 2,6 kpc (Bland-Hawthorn y Gerhard 2016); 10 % en el disco grueso
+  for (let i=0;i<30000;i++){ const R = -2.6*Math.log(rnd()*rnd() + 1e-9); if (R > 17 || R < 0.6) continue; const t = 2*Math.PI*rnd();
+    const z = gauss()*(rnd() < .1 ? 0.9 : 0.28), w = 0.17 + 0.08*rnd(); push(R*Math.cos(t), R*Math.sin(t), z, [w, w*0.92, w*0.78], 0.085); }
+  // estrellas jóvenes y nebulosas a lo largo de los brazos
+  for (const a of ARMS){
+    const pts = [], meas = [], ext = [];
+    for (let beta=a.ext[0]; beta<=a.ext[1]; beta+=0.5){ const R = armR(a, beta); if (R < 3.2 || R > 16.5) continue;
+      const [x, y] = armXY(R, beta), v = gc(x, y, 0);
+      (beta >= a.bmin && beta <= a.bmax ? meas : ext).push({v, beta});
+      pts.push({R, beta}); }
+    const n = Math.round(pts.length*(a.id === 'local' ? 22 : 28));
+    for (let i=0;i<n;i++){ const q = pts[(rnd()*pts.length) | 0], measured = q.beta >= a.bmin && q.beta <= a.bmax;
+      if (!measured && rnd() < 0.45) continue;
+      const fall = Math.min(1, Math.exp(-(q.R - 7)/5));
+      if (rnd() > 0.35 + 0.65*fall) continue;
+      const R = q.R + gauss()*a.w*1.3, bb = q.beta + gauss()*0.6, [x, y] = armXY(R, bb), z = gauss()*0.09;
+      const w = 0.16 + 0.12*rnd(); push(x, y, z, [w*0.75, w*0.9, w*1.25], 0.09);
+      if (measured && rnd() < 0.05) push(x, y, z, [0.55, 0.2, 0.34], 0.2);          // regiones HII: nebulosas rosadas
+    }
+    // líneas del modelo: continua = tramo medido con máseres; punteada = continuación supuesta
+    const segs = []; let cur = null, curM = null;
+    for (let beta=a.ext[0]; beta<=a.ext[1]; beta+=0.5){ const R = armR(a, beta); if (R < 3.2 || R > 16.5){ cur = null; continue; }
+      const m = beta >= a.bmin && beta <= a.bmax, [x, y] = armXY(R, beta), v = gc(x, y, 0.005);
+      if (!cur || curM !== m){ if (cur) cur.pts.push(v); cur = {m, pts: cur ? [cur.pts[cur.pts.length - 1]] : []}; curM = m; segs.push(cur); }
+      cur.pts.push(v); }
+    for (const s of segs) if (s.pts.length > 1){ const ln = polyline(s.pts, lineMat(a.col, s.m ? .75 : .32, !s.m)); D.lines.push(ln.material); }
+    { const [x, y] = armXY(armR(a, a.lab), a.lab), p = gc(x, y, 0);
+      a.pos = p; label(a.name, p, D, {cls:'big', color:a.col, min:4, max:140, pri:3}); pick({kind:'arm', name:a.name, pos:p, layer:D, ref:a}); }
+  }
+  // barra (≈ 5 kpc de largo, a 27° de la línea Sol‑centro) y bulbo: solo como luz de fondo; su capa llega en la próxima tanda
+  const ba = 27*DEG, ux = -Math.cos(ba), uy = Math.sin(ba);
+  for (let i=0;i<11000;i++){ const a = gauss()*1.6, b = gauss()*0.5, w = 0.28 + 0.1*rnd(); push(a*ux + b*uy, a*uy - b*ux, gauss()*0.33, [w, w*0.78, w*0.5], 0.09); }
+  for (let i=0;i<7000;i++){ const r = Math.abs(gauss())*0.8, s = sphere(), w = 0.32 + 0.1*rnd(); push(r*s[0], r*s[2], r*s[1]*0.75, [w, w*0.8, w*0.52], 0.09); }
+  D.mats.push(points(pos, col, siz, {min:1, max:7}).material);
+  // el Sol, su órbita y el sentido de giro
+  D.mats.push(points([SUN.x, SUN.y, SUN.z], [1.4, 1.15, 0.6], [0.12], {min:6, max:16}).material);
+  const orb = polyline(circle(R0, ZSUN), lineMat('#ffd36a', .38, true)); D.lines.push(orb.material);
+  label('Sol · tú estás aquí', SUN, D, {cls:'sun', min:0, max:400, pri:5});
+  label('Centro galáctico', new THREE.Vector3(0, 0, 0), D, {color:'#ffdca0', min:1, max:140, pri:2});
+  pick({kind:'sun', name:'El Sol', pos:SUN, layer:D});
+  for (const r of [5,10,15]){ const l = polyline(circle(r), lineMat('#2a3150', .5)); D.lines.push(l.material); label(ly(r), new THREE.Vector3(0, 0, -r), D, {cls:'ring', min:8, max:90, pri:0}); }
+  // flechas del giro (en el sentido de las agujas del reloj visto desde el norte galáctico)
+  for (let k=0;k<6;k++){ const t0 = k/6*2*Math.PI, R = 12.5, pts = [];
+    for (let i=0;i<=20;i++){ const t = t0 - i/20*0.6; pts.push(new THREE.Vector3(R*Math.cos(t), 0, R*Math.sin(t))); }
+    const tip = pts[pts.length - 1], dir = pts[pts.length - 1].clone().sub(pts[pts.length - 2]).normalize(), side = new THREE.Vector3(-dir.z, 0, dir.x);
+    pts.push(tip.clone().addScaledVector(dir, -0.6).addScaledVector(side, 0.35)); pts.push(tip); pts.push(tip.clone().addScaledVector(dir, -0.6).addScaledVector(side, -0.35));
+    const ln = polyline(pts, lineMat('#5d6a96', .45)); D.lines.push(ln.material); }
+}
+
+/* ---------- videos (verificados con oEmbed) ---------- */
+const VIDEOS = {
+  halo:{ id:'gAkC8oJZWrk', ch:'Date un Voltio', t:'Nos adentramos en el lado oscuro del universo: la materia oscura', t0:0, t1:300 },
+  nubes:{ id:'oWOXpPuaslU', ch:'Núcleo Milenio TITANs (Chile)', t:'Las Nubes de Magallanes: un tesoro del cielo austral', t0:0, t1:300 },
+  globulares:{ id:'3FZccx2nq6I', ch:'Wolfgang Steffen (astrofísico, UNAM)', t:'Cúmulo globular', t0:0, t1:300 },
+  disco:{ id:'oh_yZlKa2Kg', ch:'astrovlog', t:'La extraña forma de la Vía Láctea', t0:0, t1:300 },
+};
+const CAN_EMBED = /^https?:$/.test(location.protocol) && !/claude|anthropic/i.test(location.hostname);
+let vReturn = null;
+function openVideo(key, kind){
+  const v = VIDEOS[key]; if (!v) return; vReturn = document.activeElement;
+  $('vm-kind').textContent = kind + ' · video de hasta 5 minutos'; $('vm-title').textContent = v.t; $('vm-credit').textContent = 'Video: ' + v.ch;
+  const watch = `https://www.youtube.com/watch?v=${v.id}&t=${v.t0}s`; $('vm-yt').href = watch;
+  const fr = $('vm-frame'); fr.innerHTML = '';
+  if (CAN_EMBED){ const q = new URLSearchParams({autoplay:'1', start:String(v.t0), end:String(v.t1), rel:'0', playsinline:'1', modestbranding:'1', hl:'es', origin:location.origin});
+    const f = document.createElement('iframe'); f.src = `https://www.youtube-nocookie.com/embed/${v.id}?${q}`; f.title = v.t;
+    f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; f.allowFullscreen = true; f.referrerPolicy = 'strict-origin-when-cross-origin'; fr.appendChild(f); }
+  else fr.innerHTML = `<div class="vfall"><div><a class="chip pri" href="${watch}" target="_blank" rel="noopener">Ver el video en YouTube ↗</a><p>Aquí el reproductor no puede insertarse, así que el video se abre en una pestaña nueva. En la página del simulador sí se ve dentro.</p></div></div>`;
+  $('vmodal').hidden = false; $('vm-close').focus();
+}
+function closeVideo(){ if ($('vmodal').hidden) return; $('vm-frame').innerHTML = ''; $('vmodal').hidden = true; if (vReturn && vReturn.focus) vReturn.focus(); }
+$('vm-close').onclick = closeVideo; $('vmodal').onclick = e => { if (e.target === $('vmodal')) closeVideo(); };
+const vbtn = (key, kind) => { const v = VIDEOS[key]; return `<button class="vbtn" type="button" data-vid="${key}" data-kind="${kind}"><span class="vplay"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></span><span><b>${v.t}</b><small>${v.ch} · YouTube</small></span></button>`; };
+
+/* ---------- fichas ---------- */
+const kv = o => `<div class="kv">${Object.entries(o).map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('')}</div>`;
+const src = a => `<p class="src">Fuentes: ${a.map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${t}</a>`).join(' · ')}</p>`;
+const CARDS = {
+ halo:() => `<p class="lead">Lo más grande de nuestra galaxia no se ve. Una esfera de <b>materia oscura</b> de unos 1,4 millones de años luz de diámetro envuelve al disco de estrellas, que mide apenas unos 100 000. No brilla ni refleja la luz, pero su gravedad es la que mantiene unida a la Vía Láctea y a sus galaxias satélite.</p>
+   <p>Dentro flota el <b>halo estelar</b>: estrellas muy viejas, de 10 000 a 13 000 millones de años, que son solo alrededor del 1 % de las estrellas de la galaxia. Muchas vinieron de galaxias más pequeñas que la Vía Láctea se fue tragando.</p>
+   ${kv({'Masa total':'≈ 1 billón de soles (10¹²)', 'Rango medido':'0,8 – 1,5 billones de soles', 'Materia oscura':'más del 90 % de esa masa', 'Radio del halo':'≈ 220 kpc · '+ly(220), 'Halo estelar':'achatado: 0,6 veces tan alto como ancho', 'Se ralea a':'≈ 27 kpc del centro ('+ly(27)+')'})}
+   <h4>¿Cómo lo sabemos si no se ve?</h4>
+   <ul><li>Las estrellas y el gas lejos del centro giran a unos 230 km/s, casi igual de rápido que los de más adentro. Si solo existiera la masa que brilla, irían cada vez más lento, como los planetas lejanos del Sol.</li>
+   <li>Las galaxias satélite y los cúmulos lejanos se mueven tan rápido que ya se habrían escapado si no hubiera muchísima más masa jalándolos. El satélite Gaia mide sus movimientos.</li>
+   <li>En 2018, con datos de Gaia, se descubrió que buena parte del halo estelar llegó en un choque con otra galaxia, llamada <b>Gaia‑Encélado</b> («la Salchicha»), hace entre 8 000 y 11 000 millones de años.</li></ul>
+   <div class="note">Cómo está dibujado: el brillo violeta es la densidad de materia oscura proyectada según el perfil de Navarro‑Frenk‑White (concentración ≈ 10); no es luz real. Los puntos anaranjados siguen la forma medida del halo estelar, pero cada punto no es una estrella real.</div>
+   ${vbtn('halo','Materia oscura')}
+   ${src([['Cautun et al. 2020 (masa)','https://arxiv.org/abs/1911.04557'],['Deason et al. 2011 (halo estelar)','https://arxiv.org/abs/1104.3220'],['Helmi et al. 2018 (Gaia‑Encélado)','https://arxiv.org/abs/1806.06038']])}`,
+ satelites:() => `<p class="lead">Alrededor de la Vía Láctea giran decenas de <b>galaxias enanas</b>, atrapadas por su gravedad como lunas alrededor de un planeta. Se conocen unas 60; la mayoría son tan tenues que se descubrieron después de 2005, con grandes cartografías del cielo. Aquí están las 14 más conocidas, en su dirección y distancia medidas.</p>
+   ${kv({'Más grande':'Gran Nube de Magallanes', 'Más cercana':'Enana de Sagitario · '+ly(26.5), 'Más lejana (aquí)':'Leo I · '+ly(254), 'A simple vista':'las dos Nubes de Magallanes'})}
+   <h4>¿Cómo se miden sus distancias?</h4>
+   <ul><li>Con estrellas que funcionan como «focos de potencia conocida»: las cefeidas y las RR Lyrae cambian de brillo con un ritmo que dice cuánta luz emiten de verdad. Comparando con lo que vemos, sale la distancia.</li>
+   <li>La Gran Nube se midió en 2019 con un error de solo 1 % usando pares de estrellas que se eclipsan entre sí.</li>
+   <li>Gaia mide cómo se mueven en el cielo. Así sabemos que la Gran Nube probablemente se está acercando por primera vez.</li></ul>
+   <p>Toca cualquier galaxia para ver su ficha. Las líneas punteadas bajan hasta el plano de la galaxia para que veas si está arriba o abajo del disco.</p>
+   <div class="note">Cada galaxia se dibuja con su tamaño real aproximado (el radio que encierra la mitad de su luz). Los puntos de adentro son ilustrativos, no estrellas reales.</div>
+   ${vbtn('nubes','Galaxias satélite')}
+   ${src([['McConnachie 2012','https://arxiv.org/abs/1204.1562'],['Pietrzyński et al. 2019 (distancia de la Gran Nube)','https://arxiv.org/abs/1903.08096'],['Torrealba et al. 2019 (Antlia 2)','https://arxiv.org/abs/1811.04082']])}`,
+ globulares:() => `<p class="lead">Son bolas de cientos de miles de estrellas, entre las más viejas del universo: de 11 000 a 13 000 millones de años. Forman una nube redonda alrededor del centro de la galaxia, no un disco. Aquí están los <b>157 del catálogo de Harris</b>, cada uno en su posición medida.</p>
+   ${kv({'En el catálogo':'157 (hoy se conocen unos 170)', 'Más cercano':'M 4 · '+ly(2.2), 'Más grande':'Omega Centauri, ≈ 10 millones de estrellas', 'Más lejano':'AM 1 · '+ly(123.3)})}
+   <h4>Así descubrimos que no estamos en el centro</h4>
+   <p>En 1918, Harlow Shapley midió las distancias de los cúmulos globulares y notó que su nube no estaba centrada en el Sol, sino muy lejos, en dirección a la constelación de Sagitario. Ahí debía estar el centro de la galaxia. Su número salió más grande de lo real, unos 15 kpc, porque el polvo hace ver las estrellas más tenues y parecen más lejanas; hoy sabemos que son 8,15 kpc.</p>
+   <p>Gira la vista y fíjate: los cúmulos se amontonan alrededor del centro, no alrededor del Sol. Toca cualquier punto amarillo para ver su ficha.</p>
+   <div class="note">Posiciones: catálogo de Harris (2010). Las distancias tienen errores de unos 5 a 10 %. El tamaño de los puntos está exagerado para que se vean.</div>
+   ${vbtn('globulares','Cúmulos globulares')}
+   ${src([['Harris 2010 (catálogo)','https://arxiv.org/abs/1012.3224'],['Datos: mwgc.dat','https://physics.mcmaster.ca/~harris/mwgc.dat']])}`,
+ disco:() => `<p class="lead">Aquí está casi todo lo que brilla: entre 100 000 y 400 000 millones de estrellas, gas y polvo, en un disco de unos 100 000 años luz de ancho y apenas unos 1 000 de grueso. Las estrellas jóvenes y las nebulosas se juntan en <b>brazos espirales</b>. El Sol está en un brazo chico, el Brazo Local o de Orión.</p>
+   <div class="legend">${ARMS.filter(a => a.id !== 'norma').map(a => `<span><i class="sw" style="--c:${a.col}"></i>${a.id === 'exterior' ? 'Brazo de Norma y Brazo Exterior (es el mismo)' : a.name}</span>`).join('')}
+     <span><i class="sw dash" style="--c:#cfd3e6"></i>Punteado: continuación supuesta, sin medir</span>
+     <span><i class="dot" style="--c:#e05a8a"></i>Puntos rosados: nebulosas donde nacen estrellas</span></div>
+   ${kv({'Tipo':'espiral barrada (SBbc)', 'Sol al centro':'8,15 kpc · '+ly(8.15), 'Sol sobre el plano':'≈ 21 pc (68 años luz)', 'Velocidad del Sol':'236 km/s', 'Una vuelta':'≈ 212 millones de años', 'Grosor del disco':'≈ 0,3 kpc ('+ly(0.3)+')'})}
+   <p>La última vez que el Sol estuvo en este mismo punto de su órbita, en la Tierra empezaban a extenderse los primeros dinosaurios.</p>
+   <h4>¿Cómo se dibujan los brazos desde adentro?</h4>
+   <p>Desde dentro no se ve la forma de la galaxia, igual que no se ve la forma de un bosque estando en medio de él. Los radiotelescopios VLBA (Estados Unidos) y VERA (Japón) midieron el <b>paralaje</b> —el pequeño vaivén aparente que causa la órbita de la Tierra— de unas 200 nubes donde nacen estrellas, algunas del otro lado del centro, a 66 000 años luz. Con esas distancias, Reid y colaboradores (2019) calcularon la forma de cada brazo. Lo que está detrás del centro casi no se ha podido medir: por eso es punteado.</p>
+   <div class="note">Brazos: modelo de Reid et al. (2019). Las estrellas siguen un disco exponencial de 2,6 kpc; son una distribución modelo, no posiciones reales. La luz del centro (barra y bulbo) tendrá su propia capa en la siguiente tanda.</div>
+   ${vbtn('disco','La Vía Láctea')}
+   <div class="navrow"><button class="chip" type="button" data-go="sun">Ir al Sol</button></div>
+   ${src([['Reid et al. 2019','https://arxiv.org/abs/1910.03357'],['Sanna et al. 2017 (del otro lado)','https://arxiv.org/abs/1710.06489'],['Bland‑Hawthorn y Gerhard 2016','https://arxiv.org/abs/1602.07702']])}`,
+};
+const ARM_TXT = {
+ perseo:'Uno de los dos brazos principales. Pasa unos 2 kpc (6 500 años luz) más afuera que el Sol; lo vemos en el cielo hacia Perseo y Casiopea. Allí está el famoso Cúmulo Doble de Perseo.',
+ escudo:'El otro brazo principal: nace en un extremo de la barra central y está lleno de regiones donde se forman estrellas. Del otro lado de la galaxia reaparece muy lejos, como el «brazo Escudo‑Centauro Exterior».',
+ sagitario:'Está entre nosotros y el centro, unos 1,3 kpc (4 000 años luz) más adentro. Contiene la Nebulosa de la Laguna (M 8), la Nebulosa del Águila (M 16) y la Nebulosa de Carina.',
+ local:'Nuestro brazo. Es más corto que los grandes, una especie de puente entre Sagitario y Perseo. Aquí están el Sol, la Nebulosa de Orión y casi todas las estrellas que ves a simple vista.',
+ exterior:'El Brazo de Norma, cerca de la barra, y el Brazo Exterior, más allá de Perseo, son el mismo brazo: da casi una vuelta entera a la galaxia. Por fuera del Sol pasa a unos 4 kpc.',
+ norma:'El Brazo de Norma, cerca de la barra, y el Brazo Exterior, más allá de Perseo, son el mismo brazo: da casi una vuelta entera a la galaxia.',
+};
+let cardState = null;
+function showLayerCard(l){
+  cardState = {layer:l};
+  $('card').style.setProperty('--c', l.c);
+  $('c-kick').textContent = `Capa ${l.n} de 8 · de afuera hacia adentro`; $('c-title').textContent = l.name;
+  $('c-body').innerHTML = CARDS[l.id](); $('c-body').scrollTop = 0; $('card').classList.remove('min');
+}
+function showObjCard(o){
+  cardState = {obj:o};
+  const back = `<div class="navrow"><button class="chip" type="button" data-layer="${o.layer.id}">← ${o.layer.name}</button></div>`;
+  $('card').style.setProperty('--c', o.layer.c); $('card').classList.remove('min');
+  let k = '', h = '';
+  const dGC = o.pos.length();
+  if (o.kind === 'sat'){ const s = o.ref; k = 'Galaxia satélite';
+    h = `<p class="lead">${s.fact}</p>${kv({'Tipo':s.tipo, 'Distancia al Sol':kpcs(s.d)+' · '+ly(s.d), 'Distancia al centro':kpcs(dGC)+' · '+ly(dGC), 'Tamaño (radio de media luz)':kpcs(s.rh)+' · '+ly(s.rh), 'Posición (l, b)':`${fmt(s.l,1)}°, ${fmt(s.b,1)}°`})}<p>${s.desc}.</p>${s.vid ? vbtn(s.vid, 'Nubes de Magallanes') : ''}`; }
+  else if (o.kind === 'gc'){ const g = o.ref; k = 'Cúmulo globular';
+    h = `${GC_FACT[g.id] ? `<p class="lead">${GC_FACT[g.id]}</p>` : `<p class="lead">Un cúmulo globular del halo: cientos de miles de estrellas viejas que giran alrededor del centro de la galaxia.</p>`}
+      ${kv({'Nombre':g.id + (g.alt ? ' · ' + g.alt : ''), 'Distancia al Sol':kpcs(g.d)+' · '+ly(g.d), 'Distancia al centro':kpcs(dGC)+' · '+ly(dGC), 'Altura sobre el disco':kpcs(o.pos.y)+' · '+ly(Math.abs(o.pos.y))+(o.pos.y < 0 ? ' (por debajo)' : ''), 'Posición (l, b)':`${fmt(g.l,2)}°, ${fmt(g.b,2)}°`})}
+      <p class="src">Datos: catálogo de Harris (2010).</p>`; }
+  else if (o.kind === 'arm'){ const a = o.ref; k = 'Brazo espiral';
+    h = `<p class="lead">${ARM_TXT[a.id]}</p>${kv({'Ángulo de enrollamiento':`${fmt(Math.abs(a.p1),1)}°${a.p1 !== a.p2 ? ' y '+fmt(Math.abs(a.p2),1)+'°' : ''}`, 'Ancho medido':kpcs(a.w)+' · '+ly(a.w), 'Tramo medido (azimut)':`${a.bmin}° a ${a.bmax}°`})}<p class="src">Modelo: Reid et al. (2019).</p>`; }
+  else if (o.kind === 'sun'){ k = 'Nuestra estrella';
+    h = `<p class="lead">Una estrella común, en un brazo pequeño, a medio camino entre el centro y el borde del disco. Desde aquí, todo lo demás de esta página se mide desde adentro.</p>${kv({'Distancia al centro':'8,15 kpc · '+ly(8.15), 'Altura sobre el plano':'≈ 21 pc · 68 años luz', 'Velocidad alrededor del centro':'236 km/s', 'Una vuelta':'≈ 212 millones de años', 'Vueltas desde que nació':'≈ 20'})}
+      <a class="chip pri golink" href="../">Volver al sistema solar →</a>`; }
+  $('c-kick').textContent = k; $('c-title').textContent = o.name; $('c-body').innerHTML = h + back; $('c-body').scrollTop = 0;
+}
+$('c-body').addEventListener('click', e => {
+  const v = e.target.closest('[data-vid]'); if (v) return openVideo(v.dataset.vid, v.dataset.kind);
+  const l = e.target.closest('[data-layer]'); if (l){ const ly_ = L[l.dataset.layer]; showLayerCard(ly_); return; }
+  const g = e.target.closest('[data-go]'); if (g && g.dataset.go === 'sun') goSun();
+});
+$('c-min').onclick = () => $('card').classList.toggle('min');
+
+/* ---------- lista de capas ---------- */
+$('laylist').innerHTML = LAYERS.map(l => `<div class="lay" data-id="${l.id}" style="--c:${l.c}"><span class="n">${l.n}</span><span><b>${l.name}</b><small>${l.small}</small></span><input type="checkbox" aria-label="Mostrar ${l.name}"></div>`).join('')
+  + `<div class="sep">Próxima tanda</div>` + SOON.map(([t, s], i) => `<div class="lay soon"><span class="n">${i + 5}</span><span><b>${t}</b><small>${s}</small></span><span class="tag">pronto</span></div>`).join('');
+const rowOf = id => document.querySelector(`.lay[data-id="${id}"]`);
+function setOn(l, on){ l.on = on; rowOf(l.id).querySelector('input').checked = on; }
+$('laylist').addEventListener('click', e => {
+  const row = e.target.closest('.lay[data-id]'); if (!row) return; const l = L[row.dataset.id];
+  if (e.target.matches('input')){ setOn(l, e.target.checked); return; }
+  stopTour(); setOn(l, true); focusLayer(l);
+});
+function focusLayer(l){ document.querySelectorAll('.lay').forEach(r => r.classList.toggle('on', r.dataset.id === l.id)); showLayerCard(l); fly(l.cam, new THREE.Vector3()); }
+
+/* ---------- cámara ---------- */
+let flight = null;
+const sph = (c, target) => { const r = c.r, el = c.el*DEG, az = c.az*DEG; return new THREE.Vector3(target.x + r*Math.cos(el)*Math.cos(az), target.y + r*Math.sin(el), target.z + r*Math.cos(el)*Math.sin(az)); };
+function fly(c, target, ms=2800){
+  const off0 = camera.position.clone().sub(controls.target), s0 = new THREE.Spherical().setFromVector3(off0);
+  const s1 = new THREE.Spherical().setFromVector3(sph(c, new THREE.Vector3()));
+  let dth = s1.theta - s0.theta; dth = Math.atan2(Math.sin(dth), Math.cos(dth));
+  flight = { t0:performance.now(), ms, s0, s1, dth, a:controls.target.clone(), b:target.clone() };
+}
+function stepFlight(now){
+  if (!flight) return; let u = Math.min(1, (now - flight.t0)/flight.ms); const e = u < .5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3)/2;
+  const {s0, s1} = flight, r = Math.exp(Math.log(s0.radius)*(1 - e) + Math.log(s1.radius)*e);
+  const s = new THREE.Spherical(r, s0.phi + (s1.phi - s0.phi)*e, s0.theta + flight.dth*e);
+  controls.target.lerpVectors(flight.a, flight.b, e); camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
+  if (u >= 1) flight = null;
+}
+const goSun = () => { stopTour(); setOn(D, true); showObjCard(picks.find(p => p.kind === 'sun')); fly({r:3.2, el:32, az:180}, SUN); };
+$('b-sun').onclick = goSun;
+$('b-top').onclick = () => { stopTour(); fly({r:Math.max(40, camera.position.distanceTo(controls.target)), el:89.5, az:180}, new THREE.Vector3()); };
+$('b-edge').onclick = () => { stopTour(); fly({r:Math.max(42, Math.min(160, camera.position.distanceTo(controls.target))), el:1.5, az:180}, new THREE.Vector3()); };
+
+/* ---------- recorrido: se dibuja de afuera hacia adentro ---------- */
+let tour = null;
+const TOUR_MS = 11000;
+function startTour(){
+  for (const l of LAYERS){ setOn(l, false); l.fade = 0; }
+  camera.position.copy(sph({r:1500, el:24, az:215}, new THREE.Vector3())); controls.target.set(0, 0, 0);
+  tour = { i:-1, next:0 }; $('tourbar').hidden = false; tourStep();
+}
+function tourStep(){
+  if (!tour) return; tour.i++;
+  if (tour.i >= LAYERS.length){ stopTour(true); return; }
+  const l = LAYERS[tour.i]; setOn(l, true); focusLayer(l);
+  $('tb-txt').textContent = `Capa ${l.n}: ${l.name}`; $('tb-next').textContent = tour.i === LAYERS.length - 1 ? 'Terminar' : 'Siguiente ›';
+  tour.next = performance.now() + TOUR_MS;
+}
+function stopTour(finished){
+  if (!tour) return; tour = null; $('tourbar').hidden = true;
+  for (const l of LAYERS) setOn(l, true);
+  if (finished) fly({r:120, el:30, az:200}, new THREE.Vector3(), 3500);
+}
+$('b-tour').onclick = startTour; $('tb-next').onclick = tourStep; $('tb-stop').onclick = () => stopTour(false);
+controls.addEventListener('start', () => { flight = null; if (tour) tour.next = Infinity; });
+
+/* ---------- tocar objetos ---------- */
+const v3 = new THREE.Vector3();
+function nearest(cx, cy, maxPx){
+  const rect = canvas.getBoundingClientRect(); let best = null, bd = maxPx*maxPx;
+  for (const o of picks){ if (o.layer.fade < .3) continue; v3.copy(o.pos).project(camera); if (v3.z > 1) continue;
+    const x = (v3.x + 1)/2*rect.width, y = (1 - v3.y)/2*rect.height, d = (x - cx)**2 + (y - cy)**2;
+    if (d < bd){ bd = d; best = o; } }
+  return best;
+}
+let down = null;
+canvas.addEventListener('pointerdown', e => { down = {x:e.clientX, y:e.clientY}; });
+canvas.addEventListener('pointerup', e => { if (!down) return; const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null; if (moved > 6) return;
+  const o = nearest(e.clientX, e.clientY, e.pointerType === 'touch' ? 26 : 16); if (o){ stopTour(); showObjCard(o); } });
+canvas.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || e.buttons) { $('tip').hidden = true; return; }
+  const o = nearest(e.clientX, e.clientY, 14); const t = $('tip');
+  if (o){ t.textContent = o.name; t.hidden = false; t.style.left = (e.clientX + 14) + 'px'; t.style.top = (e.clientY + 12) + 'px'; canvas.style.cursor = 'pointer'; }
+  else { t.hidden = true; canvas.style.cursor = ''; } });
+addEventListener('keydown', e => { if (e.key === 'Escape') closeVideo(); });
+
+/* ---------- etiquetas y escala ---------- */
+function updateLabels(){
+  const w = innerWidth, h = innerHeight, dist = camera.position.distanceTo(controls.target), boxes = [];
+  const vis = [];
+  for (const o of labels){
+    const f = o.layer ? o.layer.fade : 1; let ok = f > .25 && dist >= o.min && dist <= o.max;
+    if (ok){ v3.copy(o.pos).project(camera); ok = v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1; }
+    if (ok){ o.sx = (v3.x + 1)/2*w; o.sy = (1 - v3.y)/2*h; o.f = f; vis.push(o); } else if (o.show){ o.el.style.display = 'none'; o.show = false; }
+  }
+  vis.sort((a, b) => b.pri - a.pri);
+  for (const o of vis){
+    if (!o.w){ o.el.style.display = 'block'; o.w = o.el.offsetWidth; o.h = o.el.offsetHeight; o.el.style.display = 'none'; }
+    const bx = [o.sx - o.w/2 - 3, o.sy - o.h/2 - 2, o.sx + o.w/2 + 3, o.sy + o.h/2 + 2];
+    const clash = o.pri < 5 && boxes.some(b => bx[0] < b[2] && bx[2] > b[0] && bx[1] < b[3] && bx[3] > b[1]);
+    if (clash){ if (o.show){ o.el.style.display = 'none'; o.show = false; } continue; }
+    boxes.push(bx);
+    if (!o.show){ o.el.style.display = 'block'; o.show = true; }
+    o.el.style.transform = `translate(${o.sx.toFixed(1)}px,${(o.sy - (o.el.classList.contains('ring') || o.el.classList.contains('sun') ? 0 : 12)).toFixed(1)}px) translate(-50%,-50%)`;
+    o.el.style.opacity = Math.min(1, o.f*1.3).toFixed(2);
+  }
+  // barra de escala: el tramo «redondo» más largo que quepa en 150 px a la distancia del punto mirado
+  const kpcPerPx = 2*dist*Math.tan(camera.fov*DEG/2)/h;
+  const nice = [10,20,50,100,200,500,1e3,2e3,5e3,1e4,2e4,5e4,1e5,2e5,5e5,1e6,2e6];
+  let pick_ = nice[0]; for (const n of nice) if (n/LY/kpcPerPx <= 150) pick_ = n;
+  $('scale').querySelector('i').style.width = (pick_/LY/kpcPerPx).toFixed(0) + 'px';
+  $('scale').querySelector('span').textContent = (pick_ >= 1e6 ? fmt(pick_/1e6) + (pick_ >= 2e6 ? ' millones' : ' millón') : fmt(pick_)) + ' años luz';
+}
+
+/* ---------- bucle ---------- */
+function frame(now){
+  requestAnimationFrame(frame);
+  stepFlight(now); controls.update();
+  if (tour && now > tour.next) tourStep();
+  const dist = camera.position.distanceTo(controls.target);
+  for (const l of LAYERS){ const tgt = l.on ? 1 : 0; l.fade += (tgt - l.fade)*0.045; if (Math.abs(tgt - l.fade) < .002) l.fade = tgt;
+    for (const m of l.mats) m.uniforms.uFade.value = l.fade;
+    for (const m of l.lines) m.opacity = m.userData.base*l.fade; }
+  // el halo se atenúa cuando la cámara está dentro de él, para no tapar el disco
+  if (L.halo.haloMat) L.halo.haloMat.uniforms.uFade.value = L.halo.fade*THREE.MathUtils.smoothstep(dist, 60, 420);
+  updateLabels();
+  renderer.render(scene, camera);
+}
+addEventListener('resize', resize); resize();
+camera.position.copy(sph({r:1500, el:24, az:215}, new THREE.Vector3()));
+requestAnimationFrame(frame);
+$('loading').style.opacity = 0; setTimeout(() => $('loading').remove(), 700);
+const start = location.hash.slice(1);
+if (L[start]){ for (const l of LAYERS) setOn(l, true); camera.position.copy(sph({r:900, el:24, az:215}, new THREE.Vector3())); focusLayer(L[start]); }
+else if (start === 'sol'){ for (const l of LAYERS) setOn(l, true); goSun(); }
+else startTour();
+window.galaxia = { LAYERS, picks, camera, controls, startTour, stopTour, focusLayer, goSun, fly };
+</script>
+</body>
+</html>
