@@ -706,15 +706,15 @@ function buildSoviet(hf, kind) {
     const t = time % T; kit.reset(); kit.flames.length || kit.addFlame(0, 2.1, 0, 2.5);
     let step = 0, alt = 0, open = 0, look = 1.5; inner.visible = true; inner.rotation.set(0, 0, 0);
     if (kind === 2) {                     // sin paracaídas: cae empinado y se estrella
-      const ti = 6; if (t < ti) { const u = t / ti; alt = 34 * (1 - u * u); inner.position.set(-14 * (1 - u), alt, 6 * (1 - u)); inner.rotation.set(1.1 * u, .4, .8); open = 0; look = Math.max(1.5, alt * .45); step = t < 3 ? 0 : 1; }
+      const ti = 6; if (t < ti) { const u = t / ti; alt = 34 * (1 - u * u); inner.position.set(-14 * (1 - u), alt, 6 * (1 - u)); inner.rotation.set(1.1 * u, .4, .8); open = 0; look = Math.max(1.5, alt * .9); step = t < 3 ? 0 : 1; }
       else { inner.visible = false; kit.impact(t - ti, 1.1, .4); step = t < 10 ? 2 : 3; }
-      pose(open); return { step, look, kv: [['Ángulo de entrada', 'demasiado empinado'], ['Paracaídas', t < ti ? 'no alcanza a frenar' : '—'], ['Velocidad', t < ti ? `${Math.round(400 + 900 * t / ti)} km/h` : 'choque'], ['Resultado', t < ti ? 'cayendo…' : 'primer objeto humano en Marte']] };
+      pose(open); return { step, look, lookX: t < 6 ? inner.position.x * .9 : 0, kv: [['Ángulo de entrada', 'demasiado empinado'], ['Paracaídas', t < ti ? 'no alcanza a frenar' : '—'], ['Velocidad', t < ti ? `${Math.round(400 + 900 * t / ti)} km/h` : 'choque'], ['Resultado', t < ti ? 'cayendo…' : 'primer objeto humano en Marte']] };
     }
     // Mars 3 y 6: paracaídas, cohete de frenado que se lleva el paracaídas, golpe y (Mars 3) apertura y 20 s de señal
     const land = kind === 3 ? 7 : 7.5;
     if (t < land) { const u = t / land; alt = 24 * (1 - u); inner.position.set(0, alt, 0); inner.rotation.z = Math.sin(t * 1.3) * .06; kit.chute.visible = t < land - 1.4; kit.chute.position.set(Math.sin(t * 1.3) * .2, alt + 5.2, 0); kit.chute.scale.setScalar(2.4);
       if (t > land - 1.6 && t < land - .2) { kit.flame.position.set(0, alt, 0); kit.flames[0].visible = true; kit.flames[0].material.opacity = .8 * flick(t); kit.chute.position.x += (t - land + 1.6) * 8; }
-      step = 0; look = Math.max(1.5, alt * .5); }
+      step = 0; look = Math.max(1.5, alt * .85); }
     else inner.position.set(0, Math.max(0, .25 * Math.sin((t - land) * 9) * Math.exp(-(t - land) * 4)), 0);
     if (kind === 6) {
       const lost = t > land - .4; if (t >= land) kit.impact(t - land, .35, 0);
@@ -760,12 +760,12 @@ function buildBeagle(hf) {
   function pose(lidA, pan) { lid.rotation.z = -lidA * 2.0; panels.forEach((p, i) => p.rotation.z = -pan[i] * Math.PI * .97); }
   function act(time) {
     const t = time % T; kit.reset(); let step, look = 1.2;
-    if (t < 7) { const bx = -10 + t * 1.45, hgt = Math.abs(Math.sin(t * 1.6)) * 7 * Math.exp(-t * .45); bags.visible = true; bags.position.set(bx, hgt, 0); bags.rotation.z = -t * 2; inner.visible = false; step = 0; look = Math.max(1.2, hgt * .4); }
+    if (t < 7) { const bx = -10 + t * 1.45, hgt = Math.abs(Math.sin(t * 1.6)) * 7 * Math.exp(-t * .45); bags.visible = true; bags.position.set(bx, hgt, 0); bags.rotation.z = -t * 2; inner.visible = false; step = 0; look = Math.max(1.2, hgt * .8); }
     else { bags.visible = t < 8.5; if (bags.visible) { const u = t - 7; bags.position.set(.2 + u * 3, .1 + u * 2, -u); bags.scale.setScalar(Math.max(.3, 1 - u * .5)); } else bags.scale.setScalar(1);
       inner.visible = true; inner.position.set(0, 0, 0); step = 1; }
     const lidA = sm(10, 12.5, t), pan = OPEN.map((o, i) => o * sm(12.5 + i * 1.2, 14 + i * 1.2, t)); pose(lidA, pan);
     if (t > 10) step = 2; if (t > 17) step = 3; if (t > 21) step = 4;
-    return { step, look, kv: [['Bolsas de aire', t < 7 ? 'rebotando' : 'sueltas'], ['Paneles abiertos', t < 12.5 ? '0 de 4' : `${pan.filter(p => p > .9).length} de 4 (uno a medias)`], ['Antena', t < 17 ? '—' : 'tapada por el último panel'], ['Señal', t < 17 ? 'esperando…' : 'ninguna, nunca: hasta que HiRISE lo vio en 2015']] };
+    return { step, look, lookX: t < 7 ? -10 + t * 1.45 : 0, kv: [['Bolsas de aire', t < 7 ? 'rebotando' : 'sueltas'], ['Paneles abiertos', t < 12.5 ? '0 de 4' : `${pan.filter(p => p > .9).length} de 4 (uno a medias)`], ['Antena', t < 17 ? '—' : 'tapada por el último panel'], ['Señal', t < 17 ? 'esperando…' : 'ninguna, nunca: hasta que HiRISE lo vio en 2015']] };
   }
   function reset() { kit.reset(); bags.visible = false; inner.visible = true; inner.position.set(0, 0, 0); pose(1, [1, 1, 1, 1]); }
   shadows(g); reset();
@@ -798,7 +798,7 @@ function buildMPL(hf) {
     else { const tImp = (12 / 13 + 2.31) * 4; inner.position.set(0, -.25, 0); inner.rotation.set(.45, 0, .35); kit.impact(t - tImp, .8, 0); }
     const v = !cut ? 13 : Math.min(21.6, 13 + 3.71 * (tr - 12 / 13));
     step = !cut ? 1 : !hit ? 2 : t < 18 ? 3 : 4; if (t < 1) step = 0;
-    return { step, look: Math.max(1, alt * VS * .6), kv: [['Altura', hit ? '0 m' : `${alt.toFixed(0)} m`], ['Velocidad', hit ? '—' : `${(v * 3.6).toFixed(0)} km/h`], ['Motores', cut ? 'apagados por la señal falsa' : 'encendidos'], ['Cámara lenta', '×4 · altura a media escala']] };
+    return { step, look: Math.max(1, alt * VS * .9), kv: [['Altura', hit ? '0 m' : `${alt.toFixed(0)} m`], ['Velocidad', hit ? '—' : `${(v * 3.6).toFixed(0)} km/h`], ['Motores', cut ? 'apagados por la señal falsa' : 'encendidos'], ['Cámara lenta', '×4 · altura a media escala']] };
   }
   function reset() { kit.reset(); inner.position.set(0, 0, 0); inner.rotation.set(0, 0, 0); }
   shadows(g); reset();
@@ -827,11 +827,11 @@ function buildSchia(hf) {
     const t = time % T; kit.reset(); let step = 0, look = 2, realAlt, think, spd;
     shield.children[0].visible = false; shield.children[1].visible = true;
     if (t < 6.5) { const y = 22 - t * .3; inner.position.set(Math.sin(t) * .15, y, 0); inner.rotation.set(t > 3 && t < 4 ? Math.sin(t * 30) * .3 : Math.sin(t * 1.4) * .08, 0, 0); kit.chute.visible = true; kit.chute.scale.setScalar(3.2); kit.chute.position.set(inner.position.x, y + 8, 0);
-      realAlt = 6.2 - t * .38; think = t < 3.5 ? realAlt : realAlt - (t - 3.5) * 3; spd = 250; step = t < 3 ? 0 : 1; look = y * .55; }
+      realAlt = 6.2 - t * .38; think = t < 3.5 ? realAlt : realAlt - (t - 3.5) * 3; spd = 250; step = t < 3 ? 0 : 1; look = y * .9; }
     else if (t < 9.5) { const u = t - 6.5, y = 22 - 6.5 * .3 - u * .4; inner.position.set(0, y, 0); inner.rotation.set(0, 0, 0); shield.children[1].visible = false; kit.chute.visible = true; kit.chute.position.set(u * 2.5, 22 + 8 - 6.5 * .3 + u * 1.5, -u); kit.chute.scale.setScalar(3.2);
-      kit.flame.position.copy(inner.position); kit.flames.forEach(f => { f.visible = true; f.material.opacity = .85 * flick(t); }); realAlt = 3.7; think = -2.1; spd = 200; step = 2; look = y * .55; }
+      kit.flame.position.copy(inner.position); kit.flames.forEach(f => { f.visible = true; f.material.opacity = .85 * flick(t); }); realAlt = 3.7; think = -2.1; spd = 200; step = 2; look = y * .9; }
     else { const u = (t - 9.5) / 4.5; shield.children[1].visible = false;
-      if (u < 1) { const y = (22 - 6.5 * .3 - 3 * .4) * (1 - u * u); inner.position.set(0, y, 0); realAlt = 3.7 * (1 - u * u); spd = 200 + 340 * u; look = Math.max(1.5, y * .55); step = 3; }
+      if (u < 1) { const y = (22 - 6.5 * .3 - 3 * .4) * (1 - u * u); inner.position.set(0, y, 0); realAlt = 3.7 * (1 - u * u); spd = 200 + 340 * u; look = Math.max(1.5, y * .9); step = 3; }
       else { inner.visible = false; kit.impact(t - 14, 1.6, 1); realAlt = 0; spd = 540; step = 4; look = 1.5; }
       think = -2.1; }
     if (t >= 14) inner.visible = false; else inner.visible = true;
@@ -1065,7 +1065,7 @@ export function abrirRover(id, onClose) {
       x.strokeStyle = '#7ee0a1'; x.lineWidth = 2; x.beginPath(); for (let k = 0; k < n; k++) { const v = a[(i + k) % n], y = Hh / 2 - Math.max(-1, Math.min(1, v)) * Hh * .45; k ? x.lineTo(k / (n - 1) * W, y) : x.moveTo(0, y); } x.stroke();
       x.fillStyle = 'rgba(255,255,255,.6)'; x.font = '20px system-ui'; x.fillText('SEIS · sismograma', 10, 24); }
     const sc = r.scan && side.querySelector('#rv-scan'); if (sc) drawScan(sc, r.scan);
-    const tgt = tmpV.set(0, r.look ?? TY * .75, r.look != null ? 0 : -.9); ctl.target.lerp(tgt, .08);
+    const tgt = tmpV.set(r.lookX ?? 0, r.look ?? TY * .75, r.look != null ? 0 : -.9); ctl.target.lerp(tgt, r.look != null ? .15 : .08);
   }
   // cámara de barrido del Viking: se saca la imagen desde la cabeza de la cámara y se revela una columna a la vez, como llegaba en 1976
   const SW = 320, SH = 200, scanRT = new THREE.WebGLRenderTarget(SW, SH), scanCam = new THREE.PerspectiveCamera(46, SW / SH, .03, 300), scanBuf = new Uint8Array(SW * SH * 4); let scanImg = null, scanCycle = -1;
