@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Sobrevuelo de Plutón · New Horizons</title>
+<meta name="description" content="Programa las fotos de New Horizons antes del sobrevuelo de Plutón y Caronte del 14 de julio de 2015 y mira si las consigues: la nave lo hace todo sola.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Diseño: el sistema de Plutón a pantalla completa; a la izquierda el plan de fotos (o la telemetría durante el vuelo);
+   a la derecha la explicación, la galería de fotos y las fuentes. */
+:root{
+  --void:#04060c; --panel:rgba(10,12,20,.9); --line:#232a3d; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9a9fb3; --faint:#646b82;
+  --plu:#e9c9a6; --plu-ink:#22130a; --cha:#b8b4ae; --nh:#9cf0b8; --haze:#8cc4ff; --sun:#ffd36b; --bad:#ff8a7a; --ok:#7ee2a8;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  --gl:max(16px, env(safe-area-inset-left,0px)); --gr:max(16px, env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none;cursor:grab}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button,select{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px;white-space:nowrap}
+.back:hover{color:var(--ink)}
+.title{padding:8px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--plu)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.views{display:flex;gap:4px;padding:5px;flex-wrap:wrap}
+.chip{background:transparent;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:12.5px;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--plu);border-color:var(--plu);color:var(--plu-ink)}
+.chip:hover{border-color:var(--line2)}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+.big{background:var(--nh);border:0;color:#062012;border-radius:9px;padding:9px 12px;font:600 14px var(--f-display);letter-spacing:.02em;width:100%}
+.big:disabled{opacity:.45;cursor:not-allowed}
+/* panel izquierdo */
+.side{position:fixed;left:var(--gl);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:330px;z-index:4;padding:12px;overflow:auto}
+.side h2{margin:0 0 4px;font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.clock{font:500 13px var(--f-data);margin:2px 0 6px}
+.clock small{color:var(--dim);font-size:11.5px}
+input[type=range]{width:100%;accent-color:var(--plu)}
+.tl{position:relative;height:22px;margin:-2px 0 6px}
+.tl button{position:absolute;top:0;transform:translateX(-50%);border:0;background:none;padding:0;width:16px;height:22px}
+.tl button i{display:block;width:2px;height:12px;margin:0 auto;border-radius:2px}
+.tl button.ph i{width:8px;height:8px;border-radius:50%;margin-top:7px;background:var(--nh)}
+.fine{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.fine .chip{padding:3px 7px;font-size:11.5px;font-family:var(--f-data)}
+.lab{font-size:11.5px;color:var(--dim);margin:8px 0 4px}
+.grp{display:flex;gap:4px;flex-wrap:wrap}
+.grp .chip{padding:4px 8px;font-size:12px}
+.prev{display:grid;grid-template-columns:150px 1fr;gap:10px;margin:10px 0;align-items:start}
+#pv{width:150px;height:150px;border-radius:8px;border:1px solid var(--line2);background:#000;display:block}
+.pinfo{font-size:12px;line-height:1.45;color:var(--dim)}
+.pinfo b{color:var(--ink);font-weight:500;font-family:var(--f-data);font-size:11.5px}
+.verdict{margin-top:4px;font-size:12px;color:var(--ink)}
+.verdict.bad{color:var(--bad)} .verdict.ok{color:var(--ok)}
+.plan{list-style:none;margin:6px 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.plan li{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-size:12px;padding:5px 7px;border:1px solid var(--line);border-radius:7px}
+.plan li span{font-family:var(--f-data);font-size:11.5px;color:var(--dim)}
+.plan li button{background:none;border:0;color:var(--dim);font-size:15px;line-height:1;padding:0 2px}
+.plan li.done{border-color:var(--ok)} .plan li.fail{border-color:var(--bad)}
+.row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.tele{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:6px 0 8px}
+.tele span{color:var(--dim)} .tele b{font:500 12.5px var(--f-data)}
+.link{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dim);margin:6px 0}
+.link i{width:9px;height:9px;border-radius:50%;background:var(--bad);flex:none}
+.link.on i{background:var(--ok)}
+/* tarjeta derecha */
+.card{position:fixed;right:var(--gr);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:380px;z-index:4;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;gap:4px;padding:10px 10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12.5px}
+.tabs button[aria-pressed=true]{background:var(--plu);border-color:var(--plu);color:var(--plu-ink)}
+.say{margin-left:auto}
+.body{padding:8px 14px 14px;overflow:auto;flex:1;font-size:13px;line-height:1.55}
+.body h3{margin:6px 0 4px;font:600 18px/1.2 var(--f-display)}
+.body h4{margin:12px 0 2px;font:600 13.5px var(--f-display);color:var(--plu)}
+.body p{margin:6px 0}
+.body ul{margin:6px 0;padding-left:18px}
+.body li{margin:2px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;margin:6px 0}
+.kv span{color:var(--dim)} .kv b{font-weight:500;font-family:var(--f-data);font-size:12px}
+.src a{color:var(--haze)}
+.note{color:var(--dim);font-size:12px;border:1px dashed var(--line2);border-radius:8px;padding:7px 10px;margin:8px 0}
+.gal{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0}
+.shot{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#000}
+.shot img{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.shot div{padding:5px 7px;font-size:11.5px;line-height:1.35;color:var(--dim);background:var(--panel)}
+.shot div b{color:var(--ink);font-weight:600}
+.shot.bad div b{color:var(--bad)}
+.ach{list-style:none;padding:0;margin:6px 0;display:flex;flex-direction:column;gap:5px}
+.ach li{display:grid;grid-template-columns:22px 1fr;gap:6px;font-size:12.5px;color:var(--dim)}
+.ach li b{color:var(--ink);font-weight:600}
+.ach li.got{color:var(--ink)} .ach li .m{font-size:14px;line-height:1.2}
+.dl{height:9px;border-radius:99px;background:#141a2a;overflow:hidden;margin:6px 0}
+.dl i{display:block;height:100%;background:var(--nh);width:0}
+/* etiquetas y avisos */
+.lbl{position:fixed;left:0;top:0;font:600 11.5px var(--f-display);letter-spacing:.03em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;z-index:2;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:calc(18px + var(--bot));transform:translateX(-50%);padding:9px 14px;font-size:13px;z-index:6;max-width:min(560px,calc(100vw - 32px));text-align:center;transition:opacity .4s}
+.toast b{color:var(--sun)}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3;transition:opacity .35s}
+@media (max-width:980px){
+  .views{display:none}
+  .top{flex-wrap:nowrap}
+  .kick{display:none}
+  .title{padding:7px 10px;min-width:0}
+  .title h1{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side{width:auto;right:var(--gr);top:calc(58px + var(--top));bottom:auto;max-height:40vh;padding:8px 10px}
+  .card{width:auto;left:var(--gl);top:auto;height:30vh}
+  .toast{bottom:calc(30vh + 26px + var(--bot))}
+  .prev{grid-template-columns:110px 1fr}
+  #pv{width:110px;height:110px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="Plutón, Caronte, sus lunas pequeñas y la trayectoria de New Horizons"></canvas>
+<div class="flash" id="flash"></div>
+
+<div class="top">
+  <a class="back panel" href="../">← Simulaciones</a>
+  <div class="title panel"><div class="kick">Plutón · 14 de julio de 2015</div><h1>Pilota el sobrevuelo de New Horizons</h1></div>
+  <div class="views panel" role="group" aria-label="Vista">
+    <button class="chip" data-view="sys" aria-pressed="true">Todo el sistema</button>
+    <button class="chip" data-view="chase" aria-pressed="false">Detrás de la nave</button>
+    <button class="chip" data-view="cam" aria-pressed="false">Cámara de la nave</button>
+  </div>
+</div>
+
+<!-- ===== Panel izquierdo: plan (antes) o telemetría (durante y después) ===== -->
+<section class="side panel" id="side" aria-label="Plan de fotos">
+  <div id="planUI">
+    <h2>1 · Programa las fotos</h2>
+    <div class="clock" id="pclock">—</div>
+    <input type="range" id="tsl" min="-64800" max="14400" step="60" value="-900" aria-label="Momento de la foto">
+    <div class="tl" id="tl"></div>
+    <div class="fine" role="group" aria-label="Ajuste fino">
+      <button class="chip" data-dt="-600">−10 min</button><button class="chip" data-dt="-60">−1 min</button>
+      <button class="chip" data-dt="60">+1 min</button><button class="chip" data-dt="600">+10 min</button>
+    </div>
+    <div class="lab">Apuntar a</div>
+    <div class="grp" id="tgts" role="group" aria-label="Objetivo"></div>
+    <div class="lab">Cámara</div>
+    <div class="grp" id="cams" role="group" aria-label="Cámara"></div>
+    <div class="prev">
+      <canvas id="pv" width="300" height="300" aria-label="Vista previa de la foto"></canvas>
+      <div class="pinfo" id="pinfo"></div>
+    </div>
+    <button class="chip" id="add" style="width:100%">＋ Agregar esta foto al plan</button>
+    <div class="lab" id="planlab">Tu plan (0 de 10 fotos)</div>
+    <ol class="plan" id="plan"></ol>
+    <div class="row">
+      <button class="chip" id="sugg">Usar un plan sugerido</button>
+      <button class="chip" id="clr">Borrar todo</button>
+    </div>
+    <p class="note">Desde Plutón la señal tarda <b>4 h 25 min</b> en llegar a la Tierra. Nadie puede corregir nada en vivo: el plan se envía antes y la nave lo cumple sola.</p>
+    <button class="big" id="go" disabled>2 · Enviar el plan y empezar el sobrevuelo</button>
+  </div>
+
+  <div id="flyUI" hidden>
+    <h2 id="flyh">2 · Sobrevuelo en curso</h2>
+    <div class="clock" id="fclock">—</div>
+    <div class="tele">
+      <span>A Plutón</span><b id="dP">—</b>
+      <span>A Caronte</span><b id="dC">—</b>
+      <span>Velocidad</span><b>13,78 km/s · 49 600 km/h</b>
+      <span>Sol y Tierra</span><b>a 32,9 UA</b>
+    </div>
+    <div class="link" id="link"><i></i><span id="linkt">Sin contacto: la nave apunta sus cámaras, no su antena.</span></div>
+    <div class="lab">Velocidad del tiempo</div>
+    <div class="grp" id="spd" role="group" aria-label="Velocidad del tiempo">
+      <button class="chip" data-s="0">Pausa</button>
+      <button class="chip" data-s="10">×10</button>
+      <button class="chip" data-s="60" aria-pressed="true">×60</button>
+      <button class="chip" data-s="300">×300</button>
+      <button class="chip" data-s="1800">×1800</button>
+    </div>
+    <div class="lab">Fotos del plan</div>
+    <ol class="plan" id="fplan"></ol>
+    <div class="row">
+      <button class="chip" id="again">Hacer otro plan</button>
+    </div>
+  </div>
+</section>
+
+<aside class="card panel" aria-label="Explicación">
+  <div class="tabs" role="tablist">
+    <button data-tab="mision" aria-pressed="true">La misión</button>
+    <button data-tab="fotos" aria-pressed="false">Tus fotos</button>
+    <button data-tab="datos" aria-pressed="false">Datos y fuentes</button>
+    <button class="say" id="say" aria-pressed="false" hidden>Escuchar</button>
+  </div>
+  <div class="body" id="body"></div>
+</aside>
+
+<div class="toast panel" id="toast" style="opacity:0" aria-live="polite"></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = id => document.getElementById(id);
+const D2R = Math.PI/180, U = 1000;                    // 1 unidad de la escena = 1000 km
+
+/* ---------- Datos reales ----------
+   Máximo acercamiento a Plutón: 14 jul 2015, 11:49:57 UTC, a 12 500 km de la superficie, 13,78 km/s (NASA/JHU APL).
+   Máximo acercamiento a Caronte: 12:03:50 UTC, a 28 858 km.
+   Plutón: radio 1188,3 km, GM 869,6 km³/s². Caronte: radio 606 km, órbita de 19 591 km en 6,387 días (JPL SSD).
+   Lunas pequeñas: semiejes y periodos de Showalter y Hamilton (Nature, 2015) y JPL SSD.
+   La geometría (dirección del polo de Plutón y posición de Caronte) se reconstruyó para que se cumplan a la vez:
+   la hora y la distancia del paso junto a Caronte, el ángulo de fase de ~15° en la llegada, el Sol a ~51° de latitud norte
+   en Plutón (verano del norte en 2015), el corazón mirando a la nave en la llegada y que la nave cruce la sombra de Plutón
+   y la de Caronte (las ocultaciones que midió). Resultado: la sombra de Plutón empieza ~56 min después del máximo acercamiento
+   y dura ~11 min, y la de Caronte ~2 h 24 min después; el plan de la misión (Guo y Farquhar) daba 11 min y ~2 h 15 min. */
+const T0 = Date.UTC(2015,6,14,11,49,57);              // t = 0: máximo acercamiento a Plutón
+const V = 13.78, B = 12500 + 1188.3;                  // km/s; distancia al centro en el máximo acercamiento (km)
+const RP = 1188.3, RC = 606, AC = 19591, PC = 6.387230*86400, GMP = 869.6;
+const PH = 15*D2R;
+const SUN = new THREE.Vector3(-Math.cos(PH), -Math.sin(PH), 0);   // dirección hacia el Sol (y casi hacia la Tierra) desde Plutón
+const POLE = new THREE.Vector3(-0.677011, -0.492370, -0.547017);  // polo norte de rotación de Plutón (regla de la mano derecha)
+const E1 = new THREE.Vector3(-0.588171, 0.808737, 0), E2 = new THREE.Vector3(0.442393, 0.321739, -0.837122);
+const PSI0 = -3.257260;                               // ángulo de Caronte en t = 0
+const SMALL = [  // a (km), P (días), radio medio aproximado (km), fase inicial ilustrativa (°)
+  { id:'estigia',  name:'Estigia',  a:42656, P:20.16155, R:5,  ph:40,  col:'#c9c4bd' },
+  { id:'nix',      name:'Nix',      a:48694, P:24.85463, R:19, ph:205, col:'#d8d2c8' },
+  { id:'cerbero',  name:'Cerbero',  a:57783, P:32.16756, R:6,  ph:300, col:'#a9a39b' },
+  { id:'hidra',    name:'Hidra',    a:64738, P:38.20177, R:19, ph:120, col:'#e4dfd6' },
+];
+const CAMS = {
+  lorri: { name:'LORRI', d:'Telescopio · blanco y negro', fov:0.29, ifov:4.96e-6, gray:true },
+  ralph: { name:'Ralph', d:'Cámara a color · campo amplio', fov:5.7, ifov:20e-6, gray:false },
+};
+const nhPos = (t, out = new THREE.Vector3()) => out.set(V*t, B, 0);
+function orbitPos(a, P, phase, t, out = new THREE.Vector3()){
+  const ang = phase + 2*Math.PI*t/P;
+  return out.copy(E1).multiplyScalar(Math.cos(ang)).addScaledVector(E2, Math.sin(ang)).multiplyScalar(a);
+}
+const charonPos = (t, out) => orbitPos(AC, PC, PSI0, t, out);
+const smallPos = (m, t, out) => orbitPos(m.a, m.P*86400, m.ph*D2R, t, out);
+
+// ¿Está la nave dentro de la sombra (cilindro) de un cuerpo?
+function inShadow(rel, R){ const al = -rel.dot(SUN); if (al <= 0) return false; return rel.clone().addScaledVector(SUN, al).length() < R; }
+function findShadow(posFn, R, t0, t1){
+  let a = null, b = null; const p = new THREE.Vector3(), q = new THREE.Vector3();
+  for (let t = t0; t <= t1; t += 5){ posFn(t, q); p.copy(nhPos(t)).sub(q); const s = inShadow(p, R);
+    if (s && a===null) a = t; if (!s && a!==null && b===null){ b = t; break; } }
+  return a===null ? null : [a, b ?? t1];
+}
+const SH_P = findShadow((t,o) => o.set(0,0,0), RP, 0, 3*3600);
+const SH_C = findShadow(charonPos, RC, 0, 4*3600);
+let CA_C = [0, 1e9];
+for (let t = 0; t < 3600; t += 1){ const d = nhPos(t).distanceTo(charonPos(t, new THREE.Vector3())); if (d < CA_C[1]) CA_C = [t, d]; }
+const DEFL = 2*Math.atan(GMP/(B*V*V))/D2R;            // desvío total de la trayectoria por la gravedad de Plutón (°)
+
+/* ---------- Formatos ---------- */
+const nf = (x, d=0) => x.toLocaleString('es', { minimumFractionDigits:d, maximumFractionDigits:d });
+const pad = n => String(n).padStart(2,'0');
+function hhmm(ms, off=0){ const d = new Date(ms + off*3600000); return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`; }
+function rel(t){ const s = Math.round(Math.abs(t)), h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return (t < 0 ? 'T−' : 'T+') + (h ? `${h} h ${pad(m)} min` : `${m} min ${pad(x)} s`); }
+const km = d => d >= 1e6 ? nf(d/1e6, 2) + ' millones de km' : nf(d) + ' km';
+const res = k => k < 1 ? nf(k*1000) + ' m por píxel' : nf(k, k < 10 ? 1 : 0) + ' km por píxel';
+const dayLbl = ms => new Date(ms).getUTCDate() + ' jul';
+
+/* ---------- Escena ---------- */
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, logarithmicDepthBuffer:true, preserveDrawingBuffer:false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 1e-4, 1e6);
+camera.up.copy(POLE);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.minDistance = 0.004; controls.maxDistance = 900;
+
+// estrellas de fondo
+{ const g = new THREE.BufferGeometry(), N = 3000, p = new Float32Array(N*3);
+  let s = 11; const r = () => (s = (s*16807) % 2147483647) / 2147483647;
+  for (let i=0;i<N;i++){ const u = r()*2-1, t = r()*Math.PI*2, R = 5e4, q = Math.sqrt(1-u*u);
+    p[i*3]=R*q*Math.cos(t); p[i*3+1]=R*u; p[i*3+2]=R*q*Math.sin(t); }
+  g.setAttribute('position', new THREE.BufferAttribute(p,3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color:0x9aa6c8, size:1.2, sizeAttenuation:false }))); }
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.035));
+const sunL = new THREE.DirectionalLight(0xfff4e6, 2.8); sunL.position.copy(SUN).multiplyScalar(100); scene.add(sunL);
+// el Sol: a 32,9 UA se ve como una estrella muy brillante (≈1 minuto de arco)
+const sunSpr = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  const g = x.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,'rgba(255,255,240,1)'); g.addColorStop(.08,'rgba(255,240,200,1)'); g.addColorStop(.3,'rgba(255,210,120,.25)'); g.addColorStop(1,'rgba(255,200,100,0)');
+  x.fillStyle = g; x.fillRect(0,0,128,128); const t = new THREE.CanvasTexture(c);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, depthWrite:false, transparent:true, blending:THREE.AdditiveBlending }));
+  s.position.copy(SUN).multiplyScalar(4e4); s.scale.setScalar(1400); scene.add(s); return s; })();
+
+// texturas: primero un color liso, luego los mapas reales (NASA/New Horizons, dominio público)
+function realTex(src, fallback){
+  const c = document.createElement('canvas'); c.width = 4; c.height = 2; const x = c.getContext('2d'); x.fillStyle = fallback; x.fillRect(0,0,4,2);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const im = new Image(); im.onload = () => { tex.dispose(); tex.image = im; tex.needsUpdate = true; }; im.src = src; return tex;
+}
+// Detalle fino: el mapa real tiene ~7 km por píxel. Para las fotos de muy cerca se suma un "ruido" de relieve inventado,
+// que solo aparece cuando la cámara puede ver detalles más chicos que el mapa (en Datos y fuentes se explica).
+function addDetail(mat, amp){
+  mat.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vObj;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying vec3 vObj;
+float h3(vec3 p){ p = fract(p*.3183099 + .1); p *= 17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.-2.*f);
+  return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x), mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x), f.y),
+             mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x), mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x), f.y), f.z); }`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+{ vec3 q = vObj*1000.; float n = 0., a = .5, fr = 1./25.;
+  for (int i = 0; i < 9; i++){ vec3 z = q*fr; float w = 1. - smoothstep(.2, .45, length(fwidth(z)));
+    float v = vn(z); n += a*w*(v - .5) + a*w*.6*(abs(v - .5) - .25); fr *= 2.13; a *= .62; }
+  diffuseColor.rgb *= clamp(1. + ${amp.toFixed(2)}*n, .2, 1.8); }`);
+  };
+  return mat;
+}
+// Plutón: el mapa no tiene datos del sur (estaba de noche en 2015); se rellena con un tono oscuro
+const pluto = new THREE.Mesh(new THREE.SphereGeometry(RP/U, 128, 96), addDetail(new THREE.MeshStandardMaterial({ map:realTex('../tex/pluton.webp','#b89a80'), roughness:1, metalness:0 }), 1.1));
+scene.add(pluto);
+const charon = new THREE.Mesh(new THREE.SphereGeometry(RC/U, 96, 64), addDetail(new THREE.MeshStandardMaterial({ map:realTex('../tex/caronte.webp','#9c9894'), roughness:1, metalness:0 }), 1.2));
+scene.add(charon);
+
+// neblina de Plutón: capas de bruma de ~200 km que brillan azul cuando el Sol está detrás (dispersión hacia adelante)
+const hazeMat = new THREE.ShaderMaterial({
+  uniforms:{ sunDir:{ value:SUN.clone() } }, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.FrontSide,
+  vertexShader:`#include <common>
+#include <logdepthbuf_pars_vertex>
+varying vec3 vN; varying vec3 vW;
+void main(){ vN = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w;
+#include <logdepthbuf_vertex>
+}`,
+  fragmentShader:`#include <common>
+#include <logdepthbuf_pars_fragment>
+uniform vec3 sunDir; varying vec3 vN; varying vec3 vW;
+void main(){
+#include <logdepthbuf_fragment>
+  vec3 Vv = normalize(cameraPosition - vW); float mu = dot(vN, Vv);
+  float rim = pow(clamp(1. - mu, 0., 1.), 4.);
+  float fwd = pow(max(0., dot(-Vv, sunDir)), 8.);          // mirando hacia el Sol a través de la bruma
+  float day = smoothstep(-.25, .35, dot(vN, sunDir));
+  float a = rim*(0.18*day + 3.2*fwd);
+  gl_FragColor = vec4(vec3(.48,.70,1.)*a, a);
+}`});
+const haze = new THREE.Mesh(new THREE.SphereGeometry(RP*1.12/U, 96, 64), hazeMat);
+scene.add(haze);
+
+// lunas pequeñas (elipsoides grises; su forma y su posición en la órbita son aproximadas)
+SMALL.forEach(m => { m.mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(m.R/U, 2), new THREE.MeshStandardMaterial({ color:m.col, roughness:1, flatShading:true }));
+  m.mesh.scale.set(1.3, 0.85, 0.9); scene.add(m.mesh); });
+
+// órbitas (en el plano del ecuador de Plutón)
+function ring(a, color, op){ const pts = []; for (let i=0;i<=256;i++){ const t = i/256*Math.PI*2; pts.push(E1.clone().multiplyScalar(Math.cos(t)*a/U).addScaledVector(E2, Math.sin(t)*a/U)); }
+  const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, transparent:true, opacity:op })); scene.add(l); return l; }
+const orbits = [ring(AC, 0xb8b4ae, .45), ...SMALL.map(m => ring(m.a, 0x8d96ad, .25))];
+
+// trayectoria de New Horizons (una recta: Plutón solo la desvía ~0,04°)
+const path = new THREE.Line(new THREE.BufferGeometry().setFromPoints([nhPos(-24*3600).divideScalar(U), nhPos(8*3600).divideScalar(U)]),
+  new THREE.LineDashedMaterial({ color:0x9cf0b8, dashSize:2, gapSize:1.4, transparent:true, opacity:.65 }));
+path.computeLineDistances(); scene.add(path);
+// sombras de Plutón y de Caronte (cilindros detrás de cada uno)
+function shadowTube(R, len){ const g = new THREE.CylinderGeometry(R/U, R/U, len/U, 48, 1, true); g.translate(0, len/2/U, 0);
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color:0x2a3c6a, transparent:true, opacity:.22, side:THREE.DoubleSide, depthWrite:false }));
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), SUN.clone().negate()); scene.add(m); return m; }
+const shP = shadowTube(RP, 140000), shC = shadowTube(RC, 140000);
+
+// la nave (agrandada ~1500 veces para que se vea): cuerpo triangular, antena de 2,1 m y el generador nuclear (RTG)
+const nh = new THREE.Group();
+{ const gold = new THREE.MeshStandardMaterial({ color:0xd9a441, metalness:.6, roughness:.35 }), white = new THREE.MeshStandardMaterial({ color:0xe8e8e8, roughness:.6 }),
+    dark = new THREE.MeshStandardMaterial({ color:0x222222, roughness:.7 });
+  const sh = new THREE.Shape(); sh.moveTo(-1.2,-.8); sh.lineTo(1.2,-.8); sh.lineTo(0,1.2); sh.closePath();
+  const body = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth:.7, bevelEnabled:false }), gold); body.position.z = -.7; nh.add(body);
+  const dish = new THREE.Mesh(new THREE.SphereGeometry(1.05, 32, 12, 0, Math.PI*2, 0, .55), white); dish.rotation.x = Math.PI/2; dish.position.z = .55; dish.scale.z = .6; nh.add(dish);
+  const feed = new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.7), dark); feed.rotation.x = Math.PI/2; feed.position.z = .6; nh.add(feed);
+  const rtg = new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,1.1,16), dark); rtg.rotation.z = Math.PI/2; rtg.position.set(1.6,-.5,-.35); nh.add(rtg);
+  const boom = new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.6), dark); boom.rotation.z = Math.PI/2; boom.position.set(1.05,-.5,-.35); nh.add(boom);
+  const lorri = new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.5,16), dark); lorri.position.set(-.5,-.9,-.35); nh.add(lorri);
+}
+const NH_SCALE = 0.0021/1.05;                         // la antena real mide 2,1 m: aquí mide 2 km
+nh.scale.setScalar(NH_SCALE); scene.add(nh);
+const aimLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color:0xffd36b, transparent:true, opacity:.8 }));
+scene.add(aimLine);
+
+/* ---------- Estado del sistema en el tiempo t (s desde el máximo acercamiento) ---------- */
+const TMP = { c:new THREE.Vector3(), n:new THREE.Vector3(), a:new THREE.Vector3(), b:new THREE.Vector3() };
+const basis = new THREE.Matrix4();
+let bigMoons = true;
+function place(t){
+  charonPos(t, TMP.c);
+  charon.position.copy(TMP.c).divideScalar(U);
+  // rotación sincrónica: el meridiano 0° de Plutón mira a Caronte y el de Caronte mira a Plutón
+  const toC = TMP.c.clone().normalize(), z = new THREE.Vector3();
+  z.crossVectors(toC.clone().negate(), POLE); basis.makeBasis(toC.clone().negate(), POLE, z); pluto.quaternion.setFromRotationMatrix(basis);
+  z.crossVectors(toC, POLE); basis.makeBasis(toC, POLE, z); charon.quaternion.setFromRotationMatrix(basis);
+  SMALL.forEach(m => { smallPos(m, t, TMP.a); m.mesh.position.copy(TMP.a).divideScalar(U); m.mesh.scale.set(1.3,.85,.9).multiplyScalar(bigMoons ? 25 : 1); });
+  shC.position.copy(charon.position);
+  nhPos(t, TMP.n); nh.position.copy(TMP.n).divideScalar(U);
+}
+
+/* ---------- Objetivos y evaluación de una foto ---------- */
+const TGT = {
+  pluton:  { name:'Plutón',  R:RP, pos:(t,o) => o.set(0,0,0), mesh:() => pluto },
+  caronte: { name:'Caronte', R:RC, pos:charonPos, mesh:() => charon },
+  ...Object.fromEntries(SMALL.map(m => [m.id, { name:m.name, R:m.R, pos:(t,o) => smallPos(m,t,o), mesh:() => m.mesh, small:true }])),
+  sol:     { name:'Sol (Alice)', sun:true },
+};
+const OCC = [['pluton', RP], ['caronte', RC]];
+function evaluate(t, tg, cam){
+  const T = TGT[tg], C = CAMS[cam], n = nhPos(t);
+  if (T.sun){
+    const inP = inShadow(n.clone(), RP), inC = inShadow(n.clone().sub(charonPos(t, new THREE.Vector3())), RC);
+    return { sun:true, inP, inC, ok: inP || inC,
+      msg: inP ? 'La nave está en la sombra de Plutón: la luz del Sol atraviesa la atmósfera y Alice mide de qué está hecha.'
+         : inC ? 'La nave está en la sombra de Caronte: el Sol se esconde detrás de Caronte. Alice comprueba que Caronte no tiene atmósfera.'
+         : 'El Sol no está tapado: Alice solo ve el Sol directo, sin pasar por ninguna atmósfera.' };
+  }
+  const p = T.pos(t, new THREE.Vector3()), d = n.distanceTo(p), dir = p.clone().sub(n).normalize();
+  // ¿algo tapa el objetivo?
+  let blocked = null;
+  for (const [k, R] of OCC){ if (k === tg) continue; const c = TGT[k].pos(t, new THREE.Vector3()), oc = c.clone().sub(n), along = oc.dot(dir);
+    if (along > 0 && along < d && oc.addScaledVector(dir, -along).length() < R) blocked = TGT[k].name; }
+  const toN = n.clone().sub(p).normalize(), phase = Math.acos(THREE.MathUtils.clamp(toN.dot(SUN), -1, 1))/D2R;
+  const lit = (1 + Math.cos(phase*D2R))/2, ang = 2*Math.asin(Math.min(1, T.R/d))/D2R, fill = ang/C.fov;
+  const kpp = Math.max(0, d - T.R)*C.ifov;
+  return { d, phase, lit, fill, kpp, blocked, sub:toN };
+}
+function verdict(ev, tg){
+  if (ev.sun) return [ev.ok ? 'ok' : 'bad', ev.msg];
+  const nm = TGT[tg].name;
+  if (ev.blocked) return ['bad', `${ev.blocked} tapa a ${nm}: la foto sale con ${ev.blocked}.`];
+  if (ev.fill < 0.004) return ['bad', `${nm} es apenas un puntito: está demasiado lejos para esta cámara.`];
+  if (ev.phase > 150 && tg==='pluton') return ['ok', 'A contraluz: Plutón es una silueta negra con un anillo de bruma azul.'];
+  if (ev.lit < 0.08) return ['bad', 'Esa cara está de noche: la foto sale casi negra.'];
+  if (ev.fill > 1 && ev.phase > 88) return ['bad', `${nm} no cabe y el centro de la foto cae en el lado de noche: sale casi negra.`];
+  if (ev.fill > 1.5) return ['ok', `${nm} no cabe: la foto muestra solo un pedazo, con mucho detalle.`];
+  if (ev.fill < 0.05) return ['ok', `${nm} sale pequeñito, pero se ve.`];
+  return ['ok', `${nm} entra completo en la foto.`];
+}
+
+/* ---------- Cámara de la nave: render a una textura y copia a un canvas 2D ---------- */
+const SNAP = 256, rt = new THREE.WebGLRenderTarget(SNAP, SNAP);
+// (three.js escribe en lineal dentro de una textura: aquí se pasa a sRGB, como en la pantalla)
+const SRGB = new Uint8Array(256).map((_, i) => { const c = i/255; return Math.round(255*(c <= .0031308 ? 12.92*c : 1.055*Math.pow(c, 1/2.4) - .055)); });
+const scam = new THREE.PerspectiveCamera(1, 1, 1e-4, 1e6), buf = new Uint8Array(SNAP*SNAP*4);
+const snapC = document.createElement('canvas'); snapC.width = snapC.height = SNAP; const snapX = snapC.getContext('2d'); const snapImg = snapX.createImageData(SNAP, SNAP);
+function shoot(t, tg, cam, outCanvas){
+  place(t); const C = CAMS[cam], T = TGT[tg], keep = bigMoons; bigMoons = false; place(t);
+  nh.visible = aimLine.visible = path.visible = false; orbits.forEach(o => o.visible = false); shP.visible = shC.visible = false;
+  scam.position.copy(nh.position); scam.up.copy(POLE);
+  const look = T.sun ? nh.position.clone().addScaledVector(SUN, 10) : T.pos(t, new THREE.Vector3()).divideScalar(U);
+  scam.fov = T.sun ? 6 : C.fov; scam.updateProjectionMatrix(); scam.lookAt(look);
+  renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, scam); renderer.setRenderTarget(null);
+  renderer.readRenderTargetPixels(rt, 0, 0, SNAP, SNAP, buf);
+  const D = snapImg.data;
+  for (let y=0;y<SNAP;y++){ const src = (SNAP-1-y)*SNAP*4, dst = y*SNAP*4;
+    for (let i=0;i<SNAP*4;i+=4){ let r = SRGB[buf[src+i]], g = SRGB[buf[src+i+1]], b = SRGB[buf[src+i+2]];
+      if (C.gray && !T.sun){ const l = .3*r + .59*g + .11*b; r = g = b = l; }
+      D[dst+i]=r; D[dst+i+1]=g; D[dst+i+2]=b; D[dst+i+3]=255; } }
+  snapX.putImageData(snapImg, 0, 0);
+  nh.visible = aimLine.visible = path.visible = true; orbits.forEach(o => o.visible = true); shP.visible = shC.visible = true; bigMoons = keep; place(simT);
+  if (outCanvas){ const x = outCanvas.getContext('2d'); x.drawImage(snapC, 0, 0, outCanvas.width, outCanvas.height); }
+  return snapC.toDataURL('image/jpeg', .85);
+}
+
+/* ---------- Estado de la app ---------- */
+let mode = 'plan', simT = -900, speed = 60, view = 'sys', tgt = 'pluton', camK = 'lorri';
+let plan = [];                                         // { t, tg, cam, res?: {...} }
+const MAXP = 10;
+const shots = [];
+
+// botones de objetivo y cámara
+$('tgts').innerHTML = Object.entries(TGT).map(([k,T]) => `<button class="chip" data-tg="${k}" aria-pressed="${k===tgt}">${T.name}</button>`).join('');
+$('cams').innerHTML = Object.entries(CAMS).map(([k,C]) => `<button class="chip" data-cam="${k}" aria-pressed="${k===camK}" title="${C.d}">${C.name} · ${C.gray?'B/N':'color'}</button>`).join('');
+document.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { tgt = b.dataset.tg; document.querySelectorAll('[data-tg]').forEach(x => x.setAttribute('aria-pressed', x===b)); updPlan(); });
+document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => { camK = b.dataset.cam; document.querySelectorAll('[data-cam]').forEach(x => x.setAttribute('aria-pressed', x===b)); updPlan(); });
+
+// marcas en la línea de tiempo
+const TMIN = -64800, TMAX = 14400, tpos = t => (t - TMIN)/(TMAX - TMIN)*100;
+const MARKS = [
+  [-56940, '#e9c9a6', 'Foto famosa del corazón: 768 000 km (13 jul, ~20:00 UTC)'],
+  [0, '#9cf0b8', 'Máximo acercamiento a Plutón: 12 500 km de la superficie'],
+  [CA_C[0], '#b8b4ae', `Máximo acercamiento a Caronte: ${nf(CA_C[1])} km`],
+  [SH_P[0], '#ffd36b', 'Entrada a la sombra de Plutón (el Sol se esconde)'],
+  [SH_C[0], '#ffd36b', 'Entrada a la sombra de Caronte'],
+];
+function drawTL(){
+  $('tl').innerHTML = MARKS.map(([t,c,d]) => `<button style="left:${tpos(t)}%" data-jump="${t}" title="${d}" aria-label="${d}"><i style="background:${c}"></i></button>`).join('') +
+    plan.map(p => `<button class="ph" style="left:${tpos(p.t)}%" data-jump="${p.t}" title="Foto: ${TGT[p.tg].name}"><i></i></button>`).join('');
+  document.querySelectorAll('[data-jump]').forEach(b => b.onclick = () => { simT = +b.dataset.jump; $('tsl').value = simT; updPlan(); });
+}
+$('tsl').oninput = e => { simT = +e.target.value; updPlan(); };
+document.querySelectorAll('[data-dt]').forEach(b => b.onclick = () => { simT = THREE.MathUtils.clamp(simT + +b.dataset.dt, TMIN, TMAX); $('tsl').value = simT; updPlan(); });
+
+function clockHTML(t){ const ms = T0 + t*1000;
+  return `${rel(t)} <small>· ${dayLbl(ms)} ${hhmm(ms)} UTC · Ecuador ${hhmm(ms,-5)}</small>`; }
+function updPlan(){
+  if (mode !== 'plan') return;
+  $('pclock').innerHTML = clockHTML(simT);
+  const ev = evaluate(simT, tgt, camK), [k, msg] = verdict(ev, tgt);
+  shoot(simT, tgt, camK, $('pv'));
+  $('pinfo').innerHTML = ev.sun
+    ? `<b>Alice</b> mira el Sol para ver si su luz pasa por una atmósfera.<div class="verdict ${k}">${msg}</div>`
+    : `Distancia <b>${km(ev.d)}</b><br>Detalle <b>${res(ev.kpp)}</b><br>Ocupa <b>${ev.fill >= 1 ? 'más que la foto' : nf(ev.fill*100) + ' % del ancho'}</b><br>Iluminado <b>${nf(ev.lit*100)} %</b> · fase ${nf(ev.phase)}°<div class="verdict ${k}">${msg}</div>`;
+  $('add').disabled = plan.length >= MAXP;
+}
+function renderPlan(){
+  plan.sort((a,b) => a.t - b.t);
+  const li = (p, i, rm) => `<li class="${p.res ? (p.res.ok ? 'done' : 'fail') : ''}"><span>${rel(p.t)}</span>${TGT[p.tg].name} · ${TGT[p.tg].sun ? 'Alice' : CAMS[p.cam].name}${rm ? `<button data-rm="${i}" aria-label="Quitar">×</button>` : '<i></i>'}</li>`;
+  $('plan').innerHTML = plan.map((p,i) => li(p,i,true)).join('');
+  $('fplan').innerHTML = plan.map((p,i) => li(p,i,false)).join('');
+  $('planlab').textContent = `Tu plan (${plan.length} de ${MAXP} fotos)`;
+  document.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { plan.splice(+b.dataset.rm, 1); renderPlan(); });
+  $('go').disabled = plan.length === 0; $('add').disabled = plan.length >= MAXP; drawTL();
+}
+$('add').onclick = () => { if (plan.length >= MAXP) return;
+  if (plan.some(p => Math.abs(p.t - simT) < 60)) return toast('Ya hay una foto en ese minuto: la nave necesita tiempo para girar entre una foto y otra.');
+  plan.push({ t:simT, tg:tgt, cam:camK }); renderPlan(); toast(`Foto de <b>${TGT[tgt].name}</b> agregada para ${rel(simT)}.`); };
+$('clr').onclick = () => { plan = []; renderPlan(); };
+$('sugg').onclick = () => {
+  plan = [
+    { t:-56940, tg:'pluton', cam:'lorri' }, { t:-14400, tg:'caronte', cam:'ralph' }, { t:-7200, tg:'nix', cam:'lorri' },
+    { t:-2400, tg:'caronte', cam:'lorri' }, { t:-900, tg:'pluton', cam:'lorri' }, { t:Math.round((SH_P[0]+SH_P[1])/2), tg:'sol', cam:'lorri' },
+  ]; renderPlan(); toast('Plan sugerido listo. Consigue 5 de los 7 logros: con las 4 fotos libres, ¡descubre los otros 2!');
+};
+
+/* ---------- Vuelo ---------- */
+let flyEnd = 0, linkOn = false;
+$('go').onclick = () => {
+  mode = 'fly'; shots.length = 0; plan.forEach(p => delete p.res);
+  simT = Math.max(TMIN, plan[0].t - 600); flyEnd = Math.max(plan[plan.length-1].t + 600, SH_C[1] + 300);
+  $('planUI').hidden = true; $('flyUI').hidden = false; $('flyh').textContent = '2 · Sobrevuelo en curso';
+  renderPlan(); setView('chase'); setTab('fotos');
+  toast('Plan enviado. Desde ahora la nave está sola.');
+};
+document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { speed = +b.dataset.s; document.querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x===b)); });
+$('again').onclick = () => { mode = 'plan'; $('planUI').hidden = false; $('flyUI').hidden = true; plan.forEach(p => delete p.res); renderPlan(); setView('sys'); setTab('mision'); simT = +$('tsl').value; updPlan(); };
+
+function takePlanned(p){
+  const ev = evaluate(p.t, p.tg, p.cam), [k, msg] = verdict(ev, p.tg);
+  const img = shoot(p.t, p.tg, p.cam);
+  p.res = { ok: k==='ok', msg, ev, img };
+  shots.push(p);
+  $('flash').style.opacity = .55; setTimeout(() => $('flash').style.opacity = 0, 120);
+  toast(`📷 ${TGT[p.tg].name}: ${msg}`);
+  renderPlan(); if (tab==='fotos') setTab('fotos');
+}
+
+/* ---------- Logros (cada uno es algo que la misión real consiguió) ---------- */
+const HEART = (() => { const la = 20*D2R, lo = 175*D2R; return new THREE.Vector3(-Math.cos(la)*Math.cos(lo), Math.sin(la), Math.cos(la)*Math.sin(lo)); })(); // en el sistema de Plutón
+function heartFacing(t, sub){ place(t); const h = HEART.clone().applyQuaternion(pluto.quaternion); const r = h.dot(sub) > .55 && h.dot(SUN) > .1; place(simT); return r; }
+const ACH = [
+  ['corazon', '❤', 'Plutón entero con su corazón', 'El corazón (Tombaugh Regio) de frente y con luz, con Plutón completo en la foto. NASA la tomó a 768 000 km.',
+    s => s.tg==='pluton' && s.res.ok && s.res.ev.fill > .35 && s.res.ev.fill < 1.05 && heartFacing(s.t, s.res.ev.sub)],
+  ['montanas', '⛰', 'Montañas de hielo', 'Una foto de Plutón con luz y menos de 400 m por píxel. Las mejores de la misión tienen ~80 m por píxel.',
+    s => s.tg==='pluton' && s.res.ok && s.res.ev.kpp < .4 && s.res.ev.phase < 88],
+  ['caronte', '◐', 'Caronte de cerca', 'Caronte con luz y menos de 2 km por píxel: su gran cañón y su polo rojizo.',
+    s => s.tg==='caronte' && s.res.ok && s.res.ev.kpp < 2 && s.res.ev.phase < 88],
+  ['azul', '◯', 'Cielo azul a contraluz', 'Plutón a contraluz (fase mayor de 150°): la bruma brilla azul, como en la foto que asombró a todos.',
+    s => s.tg==='pluton' && s.res.ok && s.res.ev.phase > 150 && s.res.ev.fill > .15],
+  ['sol', '☀', 'Ocultación del Sol por Plutón', 'Alice apuntando al Sol mientras está detrás de Plutón: así se midió que la atmósfera es de nitrógeno con metano.',
+    s => s.tg==='sol' && s.res.ev.inP],
+  ['eclcaronte', '●', 'Eclipse de Caronte', 'Alice apuntando al Sol en los ~3 min en que Caronte lo tapa. Resultado real: Caronte no tiene atmósfera.',
+    s => s.tg==='sol' && s.res.ev.inC],
+  ['lunitas', '·', 'Cazador de lunitas', 'Una foto con Nix, Hidra, Cerbero o Estigia visibles.',
+    s => TGT[s.tg].small && s.res.ok && s.res.ev.lit > .1],
+];
+
+/* ---------- Tarjeta ---------- */
+const TABS = {
+  mision: () => `
+    <h3>La nave que no podía frenar</h3>
+    <p>New Horizons despegó el 19 de enero de 2006 y viajó nueve años y medio. El 14 de julio de 2015 pasó junto a Plutón a <b>49 600 km/h</b>, sin frenar: tenía una sola oportunidad.</p>
+    <p>Desde Plutón la luz tarda <b>4 h 25 min</b> en llegar a la Tierra. Por eso los científicos escribieron el plan de fotos con mucha anticipación y la nave lo cumplió sola, sin hablar con nadie.</p>
+    <h4>Tu misión</h4>
+    <ul>
+      <li>Mueve la barra del tiempo y elige a qué apuntar y con qué cámara. La vista previa muestra lo que saldría en la foto.</li>
+      <li>Puedes guardar hasta ${MAXP} fotos. Las marcas de colores son los momentos importantes.</li>
+      <li>Envía el plan y mira el sobrevuelo. Al final verás tus fotos y los logros que conseguiste.</li>
+    </ul>
+    <h4>Las dos cámaras</h4>
+    <p><b>LORRI</b> es un telescopio: ve un pedazo muy chiquito del cielo (0,29°) pero con muchísimo detalle, en blanco y negro. <b>Ralph</b> ve 20 veces más ancho y a color, pero con menos detalle.</p>
+    <h4>Cosas que pasan de verdad</h4>
+    <ul>
+      <li>Si estás muy lejos, Plutón es un puntito. Si estás muy cerca, no cabe en la foto de LORRI.</li>
+      <li>Después de pasar, ves el lado de noche. Pero a contraluz la bruma de Plutón brilla azul.</li>
+      <li>Hay momentos en que Plutón y Caronte tapan el Sol. Con el instrumento <b>Alice</b> mirando al Sol se estudia la atmósfera.</li>
+    </ul>
+    <p class="note">La gravedad de Plutón casi no desvía a la nave: solo ${nf(DEFL,2)}°. Va demasiado rápido para que la pueda atrapar.</p>`,
+  fotos: () => {
+    const got = new Set(ACH.filter(a => shots.some(s => s.res && a[4](s))).map(a => a[0]));
+    const done = mode==='fly' && shots.length === plan.length;
+    const nbits = shots.filter(s => !TGT[s.tg].sun).length * 1024*1024*12;
+    return `
+    <h3>${shots.length ? 'Lo que fotografió la nave' : 'Todavía no hay fotos'}</h3>
+    ${shots.length ? '' : `<p>${mode==='plan' ? 'Arma tu plan a la izquierda y envíalo. Las fotos aparecerán aquí a medida que la nave las tome.' : 'La nave tomará las fotos en los momentos que elegiste.'}</p>`}
+    <div class="gal">${shots.map(s => `<figure class="shot ${s.res.ok ? '' : 'bad'}" style="margin:0"><img src="${s.res.img}" alt="${TGT[s.tg].name}"><div><b>${TGT[s.tg].name}</b> · ${rel(s.t)}<br>${s.res.ev.sun ? (s.res.ok ? 'Sol tapado ✓' : 'Sol sin tapar') : res(s.res.ev.kpp)}<br>${s.res.msg}</div></figure>`).join('')}</div>
+    <h4>Logros (${got.size} de ${ACH.length})</h4>
+    <ul class="ach">${ACH.map(([k,ic,n,d]) => `<li class="${got.has(k)?'got':''}"><span class="m">${got.has(k)?ic:'○'}</span><span><b>${n}</b> — ${d}</span></li>`).join('')}</ul>
+    ${done ? `<h4>¿Cuándo llegan las fotos a la Tierra?</h4>
+      <p>La nave guardó todo en su memoria y luego lo envió muy despacio, a unos 1 a 2 kilobits por segundo. Una sola foto de LORRI sin comprimir (1024 × 1024 píxeles de 12 bits) tarda ~1 h 45 min a 2 kbit/s.</p>
+      <div class="dl"><i id="dlbar"></i></div>
+      <p id="dltxt" style="font-size:12px;color:var(--dim)"></p>
+      <p>La señal de «estoy bien» llegó a la Tierra la noche del 14 de julio. Los datos completos del sobrevuelo terminaron de llegar el <b>25 de octubre de 2016</b>, 15 meses después.</p>` : ''}`;
+  },
+  datos: () => `
+    <h3>Datos reales del sobrevuelo</h3>
+    <div class="kv">
+      <span>Máximo acercamiento a Plutón</span><b>14 jul 2015, 11:49:57 UTC</b>
+      <span>Distancia a la superficie</span><b>12 500 km</b>
+      <span>Velocidad relativa</span><b>13,78 km/s</b>
+      <span>Máximo acercamiento a Caronte</span><b>12:03:50 UTC · 28 858 km</b>
+      <span>Distancia al Sol</span><b>32,9 UA</b>
+      <span>Luz a la Tierra</span><b>4 h 25 min</b>
+      <span>Radio de Plutón / Caronte</span><b>1188 km / 606 km</b>
+      <span>Caronte: órbita</span><b>19 591 km · 6,387 días</b>
+      <span>Nix / Hidra (órbita)</span><b>24,9 d / 38,2 d</b>
+      <span>Estigia / Cerbero (órbita)</span><b>20,2 d / 32,2 d</b>
+      <span>LORRI</span><b>0,29° · 4,96 µrad por píxel</b>
+      <span>Ralph</span><b>5,7° · ~20 µrad por píxel</b>
+      <span>Datos completos en Tierra</span><b>25 oct 2016</b>
+    </div>
+    <h4>Cómo se calcula</h4>
+    <ul>
+      <li>La nave va en línea recta a 13,78 km/s. La gravedad de Plutón (GM = 869,6 km³/s²) la desviaría solo ${nf(DEFL,2)}°.</li>
+      <li>Distancias y tamaños están a escala real. La nave está agrandada ~1500 veces y, en la vista general, las lunas pequeñas ×25 (en las fotos tienen su tamaño real).</li>
+      <li>Para ubicar el polo de Plutón y a Caronte usamos a la vez: la hora y distancia del paso por Caronte, el ángulo de fase de ~15° en la llegada, el Sol a ~51° de latitud norte en Plutón, el corazón de frente en la llegada y el paso por las dos sombras. Con eso la simulación da: máximo acercamiento a Caronte a las ${hhmm(T0 + CA_C[0]*1000)} UTC (${nf(CA_C[1])} km), sombra de Plutón de ${hhmm(T0+SH_P[0]*1000)} a ${hhmm(T0+SH_P[1]*1000)} UTC (${nf((SH_P[1]-SH_P[0])/60,1)} min) y sombra de Caronte de ${hhmm(T0+SH_C[0]*1000)} a ${hhmm(T0+SH_C[1]*1000)}. Los horarios reales de las sombras pueden diferir unos minutos.</li>
+      <li>El Sol y la Tierra se ven desde Plutón casi en la misma dirección (menos de 2° de diferencia), así que aquí son una sola.</li>
+      <li>La posición de Nix, Hidra, Cerbero y Estigia dentro de su órbita es ilustrativa; sus distancias y periodos son reales.</li>
+      <li>El mapa real tiene unos 7 km por píxel. En las fotos de muy cerca, el detalle más fino que eso (las manchitas y rugosidades) es inventado con ruido matemático: sirve para ver cuánto detalle tendría la foto, no lo que realmente hay en ese lugar.</li>
+      <li>Mapas de Plutón y Caronte: New Horizons (NASA/JHU APL/SwRI). El sur de Plutón aparece negro porque en 2015 estaba en la noche polar y nunca se fotografió.</li>
+    </ul>
+    <h4>Fuentes</h4>
+    <ul class="src">
+      <li><a href="https://pluto.jhuapl.edu/Mission/The-Path-to-Pluto-and-Beyond.php" target="_blank" rel="noopener">JHU APL · New Horizons: The Path to Pluto and Beyond</a></li>
+      <li><a href="https://pluto.jhuapl.edu/News-Center/Resources/Press-Kits/NHPlutoFlybyPressKitJuly2015.pdf" target="_blank" rel="noopener">NASA · Pluto Flyby Press Kit (julio 2015)</a></li>
+      <li><a href="https://www.space.com/29929-pluto-flyby-new-horizons-spacecraft.html" target="_blank" rel="noopener">Space.com · Hello, Pluto! (14 jul 2015)</a></li>
+      <li><a href="https://www2.boulder.swri.edu/pkb/ssr/ssr-mission-design.pdf" target="_blank" rel="noopener">Guo y Farquhar · New Horizons Mission Design (ocultaciones)</a></li>
+      <li><a href="https://ssd.jpl.nasa.gov/sats/elem/" target="_blank" rel="noopener">JPL SSD · Elementos orbitales de los satélites</a></li>
+      <li><a href="https://science.nasa.gov/dwarf-planets/pluto/" target="_blank" rel="noopener">NASA · Pluto</a></li>
+    </ul>`,
+};
+let tab = 'mision';
+function setTab(t){ tab = t; document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab===t)); $('body').innerHTML = TABS[t](); stopSpeak(); }
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { setTab(b.dataset.tab); $('body').scrollTop = 0; });
+
+// narración
+const VOICE = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+let speaking = false;
+function stopSpeak(){ if (VOICE) try { speechSynthesis.cancel(); } catch(e){} speaking = false; $('say').setAttribute('aria-pressed', false); $('say').textContent = 'Escuchar'; }
+if (VOICE){ $('say').hidden = false; $('say').onclick = () => {
+  if (speaking) return stopSpeak();
+  const txt = [...$('body').querySelectorAll('h3,h4,p:not(.note),li')].map(e => e.textContent).join('. ');
+  const u = new SpeechSynthesisUtterance(txt), v = speechSynthesis.getVoices().find(v => /^es/i.test(v.lang)); u.lang = 'es-ES'; if (v) u.voice = v; u.rate = .98;
+  u.onend = stopSpeak; speechSynthesis.speak(u); speaking = true; $('say').setAttribute('aria-pressed', true); $('say').textContent = 'Detener'; }; }
+
+let toastT = 0;
+function toast(h){ $('toast').innerHTML = h; $('toast').style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => $('toast').style.opacity = 0, 4200); }
+
+/* ---------- Vistas ---------- */
+function setView(v){ view = v; document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view===v));
+  controls.enabled = v !== 'cam';
+  if (v==='sys'){ controls.target.set(0,0,0); camera.position.copy(POLE).multiplyScalar(-60).add(new THREE.Vector3(-20,-60,90)); }
+  if (v==='chase'){ controls.target.copy(nh.position); const toP = nh.position.clone().negate().normalize();
+    camera.position.copy(nh.position).addScaledVector(toP, -0.022).addScaledVector(POLE, 0.006).add(new THREE.Vector3(0, 0, 0.004)); }
+  controls.update(); }
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
+
+/* etiquetas */
+const LBL = [['Plutón', () => pluto.position, RP], ['Caronte', () => charon.position, RC], ['New Horizons', () => nh.position, 0],
+  ...SMALL.map(m => [m.name, () => m.mesh.position, m.R])].map(([n, f, R]) => { const e = document.createElement('div'); e.className = 'lbl'; e.textContent = n; document.body.appendChild(e); return { e, f, R }; });
+const v3 = new THREE.Vector3();
+function labels(){
+  LBL.forEach(l => { v3.copy(l.f()); v3.project(camera); const ok = v3.z < 1 && Math.abs(v3.x) < 1.05 && Math.abs(v3.y) < 1.05 && view!=='cam';
+    l.e.style.display = ok ? '' : 'none'; if (ok) l.e.style.transform = `translate(${(v3.x*.5+.5)*innerWidth}px, ${(-v3.y*.5+.5)*innerHeight}px) translate(-50%,-160%)`; });
+}
+
+/* nave: apunta la antena a la Tierra, salvo cuando está por tomar una foto */
+const qTmp = new THREE.Quaternion(), mTmp = new THREE.Matrix4();
+function aimShip(t){
+  let goal = null;
+  for (const p of plan){ if (Math.abs(p.t - t) < 240){ goal = p; break; } }
+  if (mode==='plan') goal = { tg:tgt };
+  const target = !goal ? nh.position.clone().addScaledVector(SUN, 10)
+    : TGT[goal.tg].sun ? nh.position.clone().addScaledVector(SUN, 10) : TGT[goal.tg].pos(goal.t ?? t, new THREE.Vector3()).divideScalar(U);
+  mTmp.lookAt(target, nh.position, POLE); qTmp.setFromRotationMatrix(mTmp);
+  // la antena es +Z del modelo; las cámaras miran a −Y: al fotografiar se gira la nave
+  if (goal && !TGT[goal.tg].sun) qTmp.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI/2));
+  nh.quaternion.slerp(qTmp, mode==='plan' ? 1 : .08);
+  aimLine.geometry.setFromPoints([nh.position, target]); aimLine.visible = !!goal && view!=='cam';
+}
+
+/* ---------- Bucle ---------- */
+function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+let last = performance.now(), lastPrevT = null;
+const prevNH = new THREE.Vector3();
+function frame(now){
+  const dt = Math.min(.1, (now - last)/1000); last = now;
+  if (mode==='fly'){
+    const t1 = Math.min(flyEnd, simT + dt*speed);
+    for (const p of plan) if (!p.res && p.t > simT - 1e-6 && p.t <= t1) takePlanned(p);
+    simT = t1;
+    if (simT >= flyEnd && $('flyh').textContent.startsWith('2')){ $('flyh').textContent = '3 · Sobrevuelo terminado'; setTab('fotos'); startDownlink(); toast('Sobrevuelo terminado. Ahora la nave gira su antena hacia la Tierra.'); }
+    const ms = T0 + simT*1000;
+    $('fclock').innerHTML = clockHTML(simT);
+    $('dP').textContent = km(Math.max(0, nhPos(simT).length() - RP)) + ' (superficie)';
+    $('dC').textContent = km(Math.max(0, nhPos(simT).distanceTo(charonPos(simT, new THREE.Vector3())) - RC));
+    const busy = plan.some(p => Math.abs(p.t - simT) < 240) || (simT > -8*3600 && simT < SH_C[1] + 600);
+    $('link').classList.toggle('on', !busy);
+    $('linkt').textContent = busy ? 'Sin contacto: la nave apunta sus instrumentos, no su antena.' : 'Antena hacia la Tierra (la señal tarda 4 h 25 min).';
+  }
+  prevNH.copy(nh.position);
+  place(simT); aimShip(simT);
+  if (view==='chase'){ const d = nh.position.clone().sub(prevNH); camera.position.add(d); controls.target.copy(nh.position); }
+  if (view==='cam'){
+    const g = mode==='fly' ? (plan.find(p => p.t >= simT - 30) ?? plan[plan.length-1]) : { tg:tgt, cam:camK };
+    const T = TGT[g.tg]; camera.position.copy(nh.position); camera.up.copy(POLE);
+    camera.lookAt(T.sun ? nh.position.clone().addScaledVector(SUN, 10) : T.pos(simT, new THREE.Vector3()).divideScalar(U));
+    camera.fov = T.sun ? 6 : Math.max(CAMS[g.cam].fov, 2); camera.updateProjectionMatrix(); nh.visible = false;
+  } else { if (camera.fov !== 40){ camera.fov = 40; camera.updateProjectionMatrix(); } nh.visible = true; controls.update(); }
+  renderer.render(scene, camera);
+  labels();
+  requestAnimationFrame(frame);
+}
+
+/* descarga de datos (después del sobrevuelo, comprimida en el tiempo) */
+let dlStart = 0;
+function startDownlink(){ dlStart = performance.now(); const step = () => { const bar = $('dlbar'); if (!bar) return requestAnimationFrame(step);
+  const f = Math.min(1, (performance.now() - dlStart)/20000); bar.style.width = (f*100) + '%';
+  const d = new Date(Date.UTC(2015,6,15) + f*(Date.UTC(2016,9,25) - Date.UTC(2015,6,15)));
+  $('dltxt').textContent = `Recibiendo en la Tierra… ${d.toLocaleDateString('es', { day:'numeric', month:'long', year:'numeric', timeZone:'UTC' })} (20 segundos aquí = 15 meses de verdad)`;
+  if (f < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
+
+setView('sys'); setTab('mision'); renderPlan(); updPlan();
+requestAnimationFrame(frame);
+window.__pluto = { evaluate, SH_P, SH_C, CA_C, DEFL };
+</script>
+</body>
+</html>
