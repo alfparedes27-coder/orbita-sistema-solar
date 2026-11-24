@@ -40,7 +40,7 @@ Simulador del sistema solar en 3D hecho en una sola página HTML, pensado para a
   El mismo visor tiene un entorno lunar y se abre desde el mapa de la Luna: Luna 9, Surveyor 3, Chang'e 3 con Yutu y Chang'e 4 con Yutu‑2
   (su CSS está en `simulaciones/marte/rovers.css`)
   usan el mismo visor: en «En acción» su brazo trabaja con cinemática inversa (la zanja con hielo, o SEIS, el escudo y el topo con el sismograma en vivo).
-- `simulaciones/luna/`: mapa 3D de la Luna con relieve LOLA y la cara oculta; `paseo/` (caminata del Apolo 11 y rover del Apolo 17),
+- `simulaciones/luna/`: mapa 3D de la Luna con relieve LOLA y la cara oculta; fichas completas (modelo 3D, cómo funciona, historia con fuentes y animación del alunizaje) de Apollo 11 a 17, Luna 9, 13, 17 y 21, Surveyor 1, 5, 6 y 7, Chang'e 3 a 6, Chandrayaan‑3 y SLIM; `paseo/` (caminata del Apolo 11 y rover del Apolo 17),
   `lunojod/` (el Lunojod 1 manejado desde la Tierra con 1,3 s de retraso y TV de una imagen cada pocos segundos) y
   `fases/` (la Luna de cada noche desde Ecuador, por qué cambia y los próximos eclipses, todo calculado con Astronomy Engine) y
   `regreso-libre/` (Apolo 13 y Artemis II por detrás de la Luna, con trayectorias integradas por `tools/hornear_regreso_libre.py`
