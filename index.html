@@ -117,6 +117,14 @@ button{cursor:pointer}
 #card .close{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--dim);font-size:16px;line-height:1}
 #card .body{overflow-y:auto;padding:12px 16px 16px;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
 #card .fact{margin:0 0 12px;font-size:13.5px;line-height:1.55}
+.cphoto{margin:0 0 12px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#000}
+.cphoto img{display:block;width:100%;height:auto}
+.cphoto figcaption{font-size:11.5px;line-height:1.45;color:var(--dim);padding:7px 9px}
+.cphoto figcaption b{display:block;font:600 10px/1.2 var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin-bottom:3px}
+.cphoto a{color:#8cc4ff}
+.canim{margin:0 0 12px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#05060d}
+.canim canvas{display:block;width:100%;height:170px}
+.canim p{margin:0;padding:6px 9px;font-size:11.5px;line-height:1.45;color:var(--dim)}
 .grid{display:grid;grid-template-columns:1fr auto;gap:0;border-top:1px solid var(--line)}
 .grid dt,.grid dd{margin:0;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px}
 .grid dt{color:var(--dim)}
@@ -345,6 +353,7 @@ button{cursor:pointer}
         <span class="vtxt"><span class="vk">Video · aprende en 1 minuto</span><b id="cv-title"></b><span id="cv-meta"></span></span>
       </button>
       <p class="fact" id="c-fact"></p>
+      <div id="c-extra"></div>
       <dl class="grid" id="c-live"></dl>
       <dl class="grid" id="c-static" style="border-top:0"></dl>
       <div class="acts" id="c-acts"></div>
@@ -743,7 +752,8 @@ const NSTARS = [
  {id:'alfacen', name:'Alfa Centauri A y B', short:'Alfa Centauri', ra:219.9021, dec:-60.8340, ly:4.37, color:'#fff1d6', fact:'Dos estrellas parecidas al Sol que giran una alrededor de la otra cada 80 años. Desde Ecuador se ven en el cielo del sur, junto a la Cruz del Sur.', data:{Distancia:'4,37 años luz',Tipo:'G2V + K1V'}},
  {id:'barnard', name:'Estrella de Barnard', ra:269.4521, dec:4.6934, ly:5.96, color:'#ff9a6b', fact:'Una enana roja que se mueve más rápido que ninguna otra por el cielo: avanza el tamaño de la Luna llena cada 175 años.', data:{Distancia:'5,96 años luz',Tipo:'Enana roja M4'}},
  {id:'wolf359', name:'Wolf 359', ra:164.1203, dec:7.0147, ly:7.86, color:'#ff8a6b', fact:'Una de las estrellas más pequeñas y débiles de nuestro vecindario: no se ve a simple vista.', data:{Distancia:'7,86 años luz',Tipo:'Enana roja M6'}},
- {id:'sirio', name:'Sirio', ra:101.2872, dec:-16.7161, ly:8.60, color:'#cfe0ff', fact:'La estrella más brillante del cielo nocturno. Tiene una compañera diminuta, Sirio B, una enana blanca del tamaño de la Tierra.', data:{Distancia:'8,6 años luz',Tipo:'A1V + enana blanca'}},
+ {id:'sirio', name:'Sirio', ra:101.2872, dec:-16.7161, ly:8.60, color:'#cfe0ff', fact:'La estrella más brillante del cielo nocturno. Tiene una compañera diminuta, Sirio B, una enana blanca del tamaño de la Tierra.', data:{Distancia:'8,6 años luz',Tipo:'A1V + enana blanca'},
+  foto:{src:'https://cdn.esahubble.org/archives/images/screen/heic0516a.jpg', page:'https://esahubble.org/images/heic0516a/', cap:'Sirio A (la grande, sobreexpuesta) y su compañera Sirio B, el puntito abajo a la izquierda: una enana blanca del tamaño de la Tierra pero con la masa del Sol. Foto del telescopio Hubble (2005).', cred:'NASA, ESA, H. Bond (STScI) y M. Barstow (University of Leicester)'}},
  {id:'epseri', name:'Épsilon Eridani', ra:53.2327, dec:-9.4583, ly:10.47, color:'#ffd2a0', fact:'Una estrella joven parecida al Sol, rodeada de anillos de polvo y con al menos un planeta gigante.', data:{Distancia:'10,5 años luz',Tipo:'K2V'}},
  {id:'procion', name:'Proción', ra:114.8255, dec:5.2250, ly:11.46, color:'#fff6e8', fact:'Una de las estrellas más brillantes del cielo. Como Sirio, tiene una enana blanca de compañera.', data:{Distancia:'11,5 años luz',Tipo:'F5IV'}},
  {id:'tauceti', name:'Tau Ceti', ra:26.0170, dec:-15.9375, ly:11.91, color:'#fff0cc', fact:'Una estrella muy parecida al Sol y visible a simple vista. Es uno de los objetivos favoritos en la búsqueda de planetas.', data:{Distancia:'11,9 años luz',Tipo:'G8V'}},
@@ -752,8 +762,41 @@ const NSTARS = [
  {id:'arturo', name:'Arturo', ra:213.9153, dec:19.1824, ly:36.7, color:'#ffc58a', fact:'Una gigante naranja, la estrella más brillante de la mitad norte del cielo.', data:{Distancia:'36,7 años luz',Tipo:'Gigante K1.5III'}},
  {id:'trappist1', name:'TRAPPIST-1', ra:346.6223, dec:-5.0414, ly:40.66, color:'#ff7a5c', fact:'Una enana roja con siete planetas del tamaño de la Tierra; tres están en la zona donde podría haber agua líquida. El telescopio James Webb los está estudiando.', data:{Distancia:'40,7 años luz',Planetas:'7'}},
  {id:'polaris', name:'Estrella Polar', ra:37.9545, dec:89.2641, ly:433, color:'#fff3d6', fact:'Está casi justo encima del polo norte de la Tierra, por eso no parece moverse. Desde Ecuador se ve pegada al horizonte norte.', data:{Distancia:'≈ 433 años luz',Tipo:'Supergigante F7'}},
- {id:'betelgeuse', name:'Betelgeuse', ra:88.7929, dec:7.4071, ly:548, color:'#ff8a4a', fact:'Una supergigante roja en Orión. Si estuviera en lugar del Sol, llegaría más allá de la órbita de Marte. Algún día explotará como supernova.', data:{Distancia:'≈ 550 años luz',Tipo:'Supergigante roja M1'}},
- {id:'sgra', name:'Centro de la Vía Láctea', short:'Centro galáctico', ra:266.4168, dec:-29.0078, ly:26670, color:'#ffe0a0', fact:'Allí está Sagitario A*, un agujero negro de unos 4 millones de veces la masa del Sol. La luz que nos llega hoy de esa zona salió hace unos 26 000 años.', data:{Distancia:'≈ 26 700 años luz','Agujero negro':'Sagitario A*'}}
+ {id:'betelgeuse', name:'Betelgeuse', ra:88.7929, dec:7.4071, ly:548, color:'#ff8a4a', fact:'Una supergigante roja en Orión. Si estuviera en lugar del Sol, llegaría más allá de la órbita de Marte. Algún día explotará como supernova.', data:{Distancia:'≈ 550 años luz',Tipo:'Supergigante roja M1'},
+  foto:{src:'https://cdn.eso.org/images/screen/eso2109a.jpg', page:'https://eso.org/public/images/eso2109a', cap:'La superficie de Betelgeuse vista con el telescopio VLT (instrumento SPHERE) en enero de 2019 y luego en diciembre de 2019, enero y marzo de 2020, durante su «gran oscurecimiento». Es una de las pocas estrellas tan grandes y cercanas que se ve como un disco.', cred:'ESO/M. Montargès et al.'}},
+ {id:'sgra', name:'Centro de la Vía Láctea', short:'Centro galáctico', ra:266.4168, dec:-29.0078, ly:26670, color:'#ffe0a0', fact:'Allí está Sagitario A*, un agujero negro de unos 4 millones de veces la masa del Sol. La luz que nos llega hoy de esa zona salió hace unos 26 000 años.', data:{Distancia:'≈ 26 700 años luz','Agujero negro':'Sagitario A*'},
+  foto:{src:'https://cdn.eso.org/images/screen/eso2208-eht-mwa.jpg', page:'https://eso.org/public/images/eso2208-eht-mwa', cap:'La primera imagen de Sagitario A*, publicada el 12 de mayo de 2022: el anillo de gas caliente alrededor de la sombra del agujero negro, tomada con radiotelescopios de todo el mundo unidos como uno solo.', cred:'EHT Collaboration'}},
+ // ---- púlsares: estrellas de neutrones que giran y barren el espacio con dos haces, como un faro ----
+ {id:'j0437', name:'PSR J0437−4715', short:'J0437', tipo:'pulsar', far:true, ra:69.3159, dec:-47.2524, ly:509.8, color:'#9fd8ff', P:0.0057575,
+  fact:'El púlsar de milisegundos más cercano y más brillante: una bola de unos 23 km de diámetro con más masa que el Sol, que gira 174 veces por segundo. Es tan regular que se usa como un reloj para buscar ondas gravitacionales.',
+  data:{Distancia:'≈ 510 años luz',Constelación:'Pintor (Pictor)','Gira':'174 veces por segundo',Masa:'1,42 soles',Diámetro:'≈ 23 km',Compañera:'Enana blanca (cada 5,7 días)'}},
+ {id:'geminga', name:'Geminga', tipo:'pulsar', far:true, ra:98.4756, dec:17.7703, ly:815, color:'#9fd8ff', P:0.2371,
+  fact:'Un púlsar que casi no emite ondas de radio: se descubrió por sus rayos gamma. Su nombre viene de «Gemini gamma-ray source» y, en dialecto de Milán, «gh\'è minga» quiere decir «no está».',
+  data:{Distancia:'≈ 815 años luz (paralaje del Hubble, con bastante error)',Constelación:'Géminis','Gira':'4,2 veces por segundo'}},
+ {id:'vela_psr', name:'Púlsar de la Vela', short:'Púlsar Vela', tipo:'pulsar', far:true, ra:128.8359, dec:-45.1764, ly:936, color:'#9fd8ff', P:0.08933,
+  foto:{page:'https://chandra.harvard.edu/photo/2003/vela_pulsar/', cap:'El telescopio de rayos X Chandra filmó el chorro de partículas que dispara este púlsar, que se sacude como una manguera suelta.', cred:'NASA/CXC/PSU/G. Pavlov et al.', linkOnly:true},
+  fact:'Lo que quedó de una estrella que explotó hace unos 11 000 años. Gira 11 veces por segundo y dispara un chorro de partículas que el telescopio Chandra vio moverse como una manguera suelta.',
+  data:{Distancia:'≈ 940 años luz',Constelación:'Vela','Gira':'11 veces por segundo'}},
+ {id:'cp1919', name:'PSR B1919+21', short:'B1919+21', tipo:'pulsar', far:true, ra:290.4367, dec:21.8839, ly:2300, color:'#9fd8ff', P:1.3373,
+  fact:'El primer púlsar descubierto. Jocelyn Bell, una estudiante de 24 años, notó en 1967 un «pulso» de radio cada 1,34 segundos tan regular que al principio lo llamaron en broma LGM‑1 («little green men», hombrecitos verdes). Era una estrella de neutrones.',
+  data:{Distancia:'≈ 2 300 años luz (estimada; es incierta)',Constelación:'Vulpécula','Gira':'una vez cada 1,34 s',Descubierto:'28 nov. 1967 · Jocelyn Bell y Antony Hewish'}},
+ {id:'crab', name:'Púlsar del Cangrejo', short:'Cangrejo', tipo:'pulsar', far:true, ra:83.6331, dec:22.0145, ly:6500, color:'#9fd8ff', P:0.0337,
+  foto:{src:'https://cdn.esahubble.org/archives/images/screen/heic0515a.jpg', page:'https://esahubble.org/images/heic0515a/', cap:'La Nebulosa del Cangrejo, lo que quedó de la supernova del año 1054, vista por el telescopio Hubble. El púlsar está en el centro y la ilumina por dentro.', cred:'NASA, ESA, J. Hester y A. Loll (Arizona State University)'},
+  fact:'En el año 1054 astrónomos chinos vieron una «estrella invitada» tan brillante que se veía de día. Era una supernova; lo que quedó es la Nebulosa del Cangrejo y, en su centro, este púlsar que gira 30 veces por segundo.',
+  data:{Distancia:'≈ 6 500 años luz',Constelación:'Tauro','Gira':'30 veces por segundo','Supernova':'año 1054'}},
+ // ---- agujeros negros de masa estelar: casi todos invisibles; se descubren por la estrella que gira con ellos ----
+ {id:'gaiabh1', name:'Gaia BH1', tipo:'bh', far:true, ra:262.1712, dec:-0.5811, ly:1560, color:'#c9a0ff', bh:{M:9.6, Mc:0.93, Pd:185.6, e:0.43, comp:'#ffe2a0', dormido:true},
+  fact:'El agujero negro más cercano que se conoce. No brilla: está «dormido». Se descubrió en 2022 porque el satélite Gaia vio que una estrella parecida al Sol daba vueltas alrededor de algo invisible de casi 10 soles.',
+  data:{Distancia:'≈ 1 560 años luz',Constelación:'Ofiuco',Masa:'≈ 9,6 soles',Compañera:'Estrella como el Sol, vuelta cada 186 días',Descubierto:'2022 · satélite Gaia'}},
+ {id:'gaiabh3', name:'Gaia BH3', tipo:'bh', far:true, ra:294.8280, dec:14.9317, ly:1930, color:'#c9a0ff', bh:{M:32.7, Mc:0.76, Pd:4226, e:0.73, comp:'#ffd08a', dormido:true},
+  fact:'El agujero negro de estrella más pesado de nuestra galaxia: casi 33 soles. Una estrella vieja le da una vuelta cada 11,6 años. Lo encontró Gaia en 2024, también por cómo se bambolea su compañera.',
+  data:{Distancia:'≈ 1 900 años luz',Constelación:'Águila',Masa:'≈ 32,7 soles',Compañera:'Gigante vieja, vuelta cada 11,6 años',Descubierto:'2024 · satélite Gaia'}},
+ {id:'gaiabh2', name:'Gaia BH2', tipo:'bh', far:true, ra:207.5697, dec:-59.2390, ly:3800, color:'#c9a0ff', bh:{M:8.9, Mc:1.07, Pd:1277, e:0.52, comp:'#ffb27a', dormido:true},
+  fact:'El segundo agujero negro «dormido» que encontró Gaia, en 2023. Su compañera es una gigante roja que le da una vuelta cada 3,5 años.',
+  data:{Distancia:'≈ 3 800 años luz',Constelación:'Centauro',Masa:'≈ 8,9 soles',Compañera:'Gigante roja, vuelta cada 3,5 años'}},
+ {id:'cygx1', name:'Cygnus X‑1', tipo:'bh', far:true, ra:299.5903, dec:35.2016, ly:7300, color:'#c9a0ff', bh:{M:21, Mc:40, Pd:5.6, e:0, comp:'#bcd2ff', dormido:false},
+  fact:'El primer objeto que los astrónomos aceptaron como agujero negro, a principios de los años 70. Le arranca gas a una enorme estrella azul y ese gas, al caer en espiral, brilla en rayos X. Stephen Hawking apostó en 1974 que no era un agujero negro… y perdió.',
+  data:{Distancia:'≈ 7 300 años luz',Constelación:'Cisne',Masa:'≈ 21 soles (medición de 2021)',Compañera:'Supergigante azul, vuelta cada 5,6 días'}},
 ];
 
 
@@ -1588,14 +1631,94 @@ function fmtLight(au){
   return h + ' h ' + m + ' min';
 }
 
+
+/* ---------- extras de la ficha: foto real del telescopio y animación de púlsares y agujeros negros ---------- */
+let extraRAF = 0;
+function cardExtra(b){
+  cancelAnimationFrame(extraRAF);
+  const box = $('c-extra'); let h = '';
+  const f = b.foto;
+  if (f && !f.linkOnly) h += `<figure class="cphoto"><img src="${f.src}" alt="Foto real de ${b.name}" loading="lazy" referrerpolicy="no-referrer"
+    onerror="this.parentElement.querySelector('.fb').hidden=false;this.remove()"><figcaption><b>Así lo vio el telescopio</b>${f.cap} Crédito: ${f.cred}.
+    <span class="fb" hidden>La foto no cargó aquí.</span> <a href="${f.page}" target="_blank" rel="noopener">Ver la foto original ↗</a></figcaption></figure>`;
+  if (f && f.linkOnly) h += `<figure class="cphoto"><figcaption><b>Así lo vio el telescopio</b>${f.cap} Crédito: ${f.cred}. <a href="${f.page}" target="_blank" rel="noopener">Ver la foto ↗</a></figcaption></figure>`;
+  if (b.tipo) h += `<div class="canim"><canvas id="c-anim" aria-label="Animación de ${b.name}"></canvas><p id="c-anim-t"></p></div>`;
+  box.innerHTML = h;
+  if (b.tipo === 'pulsar') animPulsar(b); else if (b.tipo === 'bh') animBinary(b);
+}
+function animCanvas(){
+  const cv = $('c-anim'); if (!cv) return null; const dpr = Math.min(devicePixelRatio, 2), W = cv.clientWidth || 298, H = cv.clientHeight || 170;
+  cv.width = W*dpr; cv.height = H*dpr; const x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); return { cv, x, W, H };
+}
+function animPulsar(b){
+  const c = animCanvas(); if (!c) return; const { x, W, H } = c, hz = 1/b.P;
+  const shown = Math.min(hz, 0.5), slow = hz/shown;                 // como mucho media vuelta por segundo en pantalla
+  $('c-anim-t').textContent = `Gira ${hz >= 1 ? fmt(hz, hz < 10 ? 1 : 0) + ' veces por segundo' : 'una vez cada ' + fmt(b.P, 2) + ' segundos'}. ${slow > 1.05 ? 'Aquí lo ves ' + fmt(slow, 0) + ' veces más lento.' : 'Aquí lo ves a su velocidad real.'} Cada vez que un haz apunta hacia nosotros, la Tierra recibe un pulso.`;
+  const t0 = performance.now(), tilt = 0.5; let flash = 0, lastSide = 0;
+  (function draw(now){
+    if (!$('c-anim')) return;
+    const a = ((now - t0)/1000)*shown*2*Math.PI, cx = W/2, cy = H/2;
+    x.clearRect(0, 0, W, H);
+    // dirección del haz proyectada: el eje magnético gira alrededor del eje de rotación (vertical)
+    const bx = Math.sin(tilt)*Math.cos(a), bz = Math.sin(tilt)*Math.sin(a), by = Math.cos(tilt);
+    const toUs = bz;                                                   // +z = hacia el que mira
+    if (toUs > 0.42 && lastSide <= 0.42) flash = 1; lastSide = toUs; flash *= 0.9;
+    x.fillStyle = `rgba(160,220,255,${0.18*flash})`; x.fillRect(0, 0, W, H);
+    for (const s of [1, -1]){
+      const ex = cx + s*bx*H*0.9, ey = cy - s*by*H*0.9, w = 0.17 + 0.25*Math.max(0, s*bz);
+      const g = x.createLinearGradient(cx, cy, ex, ey); g.addColorStop(0, 'rgba(170,225,255,.85)'); g.addColorStop(1, 'rgba(170,225,255,0)');
+      const nx = -(ey - cy), ny = ex - cx, L = Math.hypot(nx, ny) || 1;
+      x.beginPath(); x.moveTo(cx, cy); x.lineTo(ex + nx/L*H*w, ey + ny/L*H*w); x.lineTo(ex - nx/L*H*w, ey - ny/L*H*w); x.closePath(); x.fillStyle = g; x.fill();
+    }
+    x.strokeStyle = 'rgba(255,255,255,.18)'; x.setLineDash([3, 4]); x.beginPath(); x.moveTo(cx, 8); x.lineTo(cx, H - 8); x.stroke(); x.setLineDash([]);
+    const g2 = x.createRadialGradient(cx, cy, 0, cx, cy, 11); g2.addColorStop(0, '#ffffff'); g2.addColorStop(1, '#7cc8ff');
+    x.fillStyle = g2; x.beginPath(); x.arc(cx, cy, 9, 0, 7); x.fill();
+    x.fillStyle = '#9aa0b5'; x.font = '10.5px IBM Plex Sans, sans-serif'; x.fillText('eje de giro', cx + 6, 16);
+    x.fillStyle = `rgba(200,235,255,${0.35 + 0.65*flash})`; x.fillText(flash > 0.3 ? '¡pulso!' : '', 10, H - 10);
+    extraRAF = requestAnimationFrame(draw);
+  })(t0);
+}
+function animBinary(b){
+  const c = animCanvas(); if (!c) return; const { x, W, H } = c, o = b.bh, q = o.Mc/(o.M + o.Mc);
+  $('c-anim-t').textContent = `${o.dormido ? 'Está «dormido»: no se traga gas y no brilla. Sólo lo delata la estrella que gira con él.' : 'Le arranca gas a su compañera; el gas forma un disco que brilla en rayos X antes de caer.'} Una vuelta dura ${o.Pd < 30 ? fmt(o.Pd, 1) + ' días' : o.Pd < 800 ? fmt(o.Pd, 0) + ' días' : fmt(o.Pd/365.25, 1) + ' años'}; aquí, 6 segundos. Los dos giran alrededor de su centro de masa (la cruz).`;
+  const t0 = performance.now(), A = Math.min(W, H*2.2)*0.36, e = o.e;
+  (function draw(now){
+    if (!$('c-anim')) return;
+    let M = ((now - t0)/6000)*2*Math.PI; let E = M; for (let k = 0; k < 12; k++) E -= (E - e*Math.sin(E) - M)/(1 - e*Math.cos(E));
+    const px = Math.cos(E) - e, py = Math.sqrt(1 - e*e)*Math.sin(E);   // separación relativa
+    const cx = W/2, cy = H/2, sx = px*A, sy = py*A*0.5;
+    const bhx = cx - q*sx, bhy = cy - q*sy, stx = cx + (1 - q)*sx, sty = cy + (1 - q)*sy;
+    x.clearRect(0, 0, W, H);
+    // órbita de la estrella
+    x.strokeStyle = 'rgba(255,255,255,.12)'; x.beginPath();
+    for (let k = 0; k <= 100; k++){ const Ek = k/100*2*Math.PI, ox = (Math.cos(Ek) - e)*A*(1 - q), oy = Math.sqrt(1 - e*e)*Math.sin(Ek)*A*0.5*(1 - q); k ? x.lineTo(cx + ox, cy + oy) : x.moveTo(cx + ox, cy + oy); }
+    x.stroke();
+    if (!o.dormido){ // chorro de gas y disco
+      x.strokeStyle = 'rgba(255,170,90,.45)'; x.lineWidth = 3; x.beginPath(); x.moveTo(stx, sty); x.quadraticCurveTo((stx + bhx)/2, (sty + bhy)/2 - 14, bhx + 6, bhy); x.stroke(); x.lineWidth = 1;
+      const g = x.createRadialGradient(bhx, bhy, 3, bhx, bhy, 18); g.addColorStop(0, 'rgba(255,230,180,.95)'); g.addColorStop(1, 'rgba(255,120,60,0)');
+      x.fillStyle = g; x.beginPath(); x.ellipse(bhx, bhy, 18, 6, 0, 0, 7); x.fill();
+    }
+    // estrella compañera
+    const rs = o.Mc > 5 ? 13 : 6, g3 = x.createRadialGradient(stx, sty, 0, stx, sty, rs*1.8); g3.addColorStop(0, o.comp); g3.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g3; x.beginPath(); x.arc(stx, sty, rs*1.8, 0, 7); x.fill();
+    // agujero negro con su anillo de luz curvada
+    x.strokeStyle = 'rgba(201,160,255,.7)'; x.lineWidth = 1.5; x.beginPath(); x.arc(bhx, bhy, 6.5, 0, 7); x.stroke(); x.lineWidth = 1;
+    x.fillStyle = '#000'; x.beginPath(); x.arc(bhx, bhy, 5, 0, 7); x.fill();
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.moveTo(cx - 4, cy); x.lineTo(cx + 4, cy); x.moveTo(cx, cy - 4); x.lineTo(cx, cy + 4); x.stroke();
+    x.fillStyle = '#9aa0b5'; x.font = '10.5px IBM Plex Sans, sans-serif';
+    x.fillText(`agujero negro · ${fmt(o.M, o.M < 10 ? 1 : 0)} soles`, 8, 14); x.fillText(`estrella · ${fmt(o.Mc, o.Mc < 10 ? 2 : 0)} soles`, 8, H - 8);
+    extraRAF = requestAnimationFrame(draw);
+  })(t0);
+}
 function select(b){
   st.sel = b; $('card').hidden = !b;
   document.querySelectorAll('.item').forEach(el=>el.classList.toggle('sel', el.dataset.id === b?.id));
   bodies.forEach(x=>x.label.classList.toggle('sel', x===b));
-  if (!b) return;
-  $('c-kind').textContent = (b.id==='sgra' ? 'Centro galáctico' : KIND_LABEL[b.kind]) + (b.parentBody ? (b.parentBody.id==='tierra' ? ' de la Tierra' : ' de ' + b.parentBody.name) : '');
+  if (!b){ cancelAnimationFrame(extraRAF); return; }
+  $('c-kind').textContent = (b.id==='sgra' ? 'Centro galáctico' : b.tipo==='pulsar' ? 'Púlsar · estrella de neutrones' : b.tipo==='bh' ? 'Agujero negro' : KIND_LABEL[b.kind]) + (b.parentBody ? (b.parentBody.id==='tierra' ? ' de la Tierra' : ' de ' + b.parentBody.name) : '');
   $('c-name').textContent = b.name;
   $('c-fact').textContent = b.fact || '';
+  cardExtra(b);
   const vv = VIDEOS[b.id], tile = $('c-video');
   tile.hidden = !vv;
   if (vv){ $('cv-title').textContent = vv.t; $('cv-meta').textContent = vv.ch + ' · 1 min' + (vv.en ? ' · subtítulos' : ''); tile.onclick = () => openVideo(b); }
@@ -1613,6 +1736,9 @@ function select(b){
   if (b.id==='iss') acts.push(`<a class="vtile" href="${SIM_LOCAL ? '' : SIM_SITE}simulaciones/estaciones/iss/" target="${SIM_TARGET}" rel="noopener" style="margin:6px 0 0;text-decoration:none;color:inherit">
       <span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="10" width="6" height="4" rx="1"/><path d="M3 6v12M6 6v12M18 6v12M21 6v12M6 12h3M15 12h3"/></svg></span>
       <span class="vtxt"><span class="vk">Simulación 3D · órbita real</span><b>La estación por dentro y por fuera</b><span>Dónde está ahora, recorrido por sus 18 módulos y el armado con el despegue de cada pieza</span></span></a>`);
+  if (b.id==='sgra') acts.push(`<a class="vtile" href="${SIM_LOCAL ? '' : SIM_SITE}simulaciones/centro-galactico/" target="${SIM_TARGET}" rel="noopener" style="margin:6px 0 0;text-decoration:none;color:inherit">
+      <span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><ellipse cx="12" cy="12" rx="9.5" ry="4"/><ellipse cx="12" cy="12" rx="5" ry="9" transform="rotate(35 12 12)"/></svg></span>
+      <span class="vtxt"><span class="vk">Simulación 3D · órbitas reales</span><b>Viaje al centro de la galaxia</b><span>El enjambre de agujeros negros, las estrellas S y la sombra que fotografió el EHT</span></span></a>`);
   if (b.id==='sol') acts.push(`<a class="vtile" href="${SIM_LOCAL ? '' : SIM_SITE}simulaciones/sol/" target="${SIM_TARGET}" rel="noopener" style="margin:6px 0 0;text-decoration:none;color:inherit">
       <span class="vplay" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
       <span class="vtxt"><span class="vk">Simulación 3D · datos reales</span><b>El Sol activo</b><span>Manchas y rotación, el ciclo de 11 años desde 1700 y una tormenta solar con auroras</span></span></a>`);
@@ -2057,7 +2183,8 @@ const GROUPS = [
   ['Asteroides', b=>b.kind==='asteroid'],
   ['Lunas', b=>b.kind==='moon'],
   ['Satélites alrededor de la Tierra', b=>b.kind==='sat'],
-  ['Estrellas vecinas y la galaxia', b=>b.kind==='nstar']
+  ['Estrellas vecinas y la galaxia', b=>b.kind==='nstar' && !b.tipo],
+  ['Púlsares y agujeros negros', b=>!!b.tipo]
 ];
 $('pane-bodies').innerHTML = GROUPS.map(([t,f])=>`<div class="group"><h3>${t}</h3>${bodies.filter(f).map(b=>`<button type="button" class="item" data-id="${b.id}"><span class="dot" style="background:${b.color};color:${b.color}"></span><span class="nm">${b.name}</span>${b.parentBody?`<span class="meta">${b.parentBody.name}</span>`:''}</button>`).join('')}</div>`).join('');
 $('pane-bodies').addEventListener('click', e=>{ const it = e.target.closest('.item'); if (it){ flyTo(byId[it.dataset.id]); closeExploreOnMobile(); } });
@@ -2536,7 +2663,7 @@ function frame(now){
     const pinned = st.focus===b || st.sel===b;
     if (b.id==='sol'){ const tx = dSun > 3e5 ? 'Sol · aquí estamos' : 'Sol'; if (b.label.textContent !== tx) b.label.textContent = tx; }
     if (!sm){
-      if (b.kind==='nstar'){ if ((dSun < 3000 || (dSun > 4e7 && b.id!=='sgra')) && !pinned){ alpha = 0; showLabel = false; } }
+      if (b.kind==='nstar'){ if ((dSun < 3000 || (dSun > (b.far ? 1.2e9 : 4e7) && b.id!=='sgra')) && !pinned){ alpha = 0; showLabel = false; } }
       else if (dSun > 3e4 && b.kind!=='star' && !pinned){ alpha = 0; showLabel = false; }
     } else {
       const altB = V.dot(V.norm(rel), F.Z);

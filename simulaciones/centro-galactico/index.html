@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Viaje al centro de la galaxia · Sagitario A*</title>
+<meta name="description" content="Acércate a Sagitario A*, el agujero negro del centro de la Vía Láctea: el enjambre de agujeros negros que encontró Chandra, las estrellas S en sus órbitas reales y la sombra que fotografió el Event Horizon Telescope.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Diseño: el centro galáctico a pantalla completa; a la izquierda la escala (enjambre, estrellas S, sombra), el tiempo y
+   la telemetría de S2; a la derecha la explicación, los datos y las fuentes. Mismo sistema visual que el resto de simulaciones. */
+:root{
+  --void:#03040a; --panel:rgba(10,12,20,.9); --line:#232a3d; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9a9fb3; --faint:#646b82;
+  --acc:#ffcf7a; --acc-ink:#2a1a00; --hot:#ff9a4a; --star:#bcd2ff; --bh:#c9a0ff; --sky:#8cc4ff; --ok:#7ee2a8;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  --gl:max(16px, env(safe-area-inset-left,0px)); --gr:max(16px, env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none;cursor:grab}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px;white-space:nowrap}
+.back:hover{color:var(--ink)}
+.title{padding:8px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.views{display:flex;gap:4px;padding:5px;flex-wrap:wrap}
+.chip{background:transparent;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:12.5px;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.chip:hover{border-color:var(--line2)}
+.side{position:fixed;left:var(--gl);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:330px;z-index:4;padding:12px;overflow:auto}
+.side h2{margin:0 0 6px;font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.clock{font:500 13px var(--f-data);margin:2px 0 6px}
+.clock small{color:var(--dim);font-size:11.5px}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.lab{font-size:11.5px;color:var(--dim);margin:10px 0 4px}
+.grp{display:flex;gap:4px;flex-wrap:wrap}
+.grp .chip{padding:4px 8px;font-size:12px}
+.tele{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:6px 0 8px}
+.tele span{color:var(--dim)} .tele b{font:500 12.5px var(--f-data)}
+.meter{height:9px;border-radius:99px;background:#141a2a;overflow:hidden;margin:4px 0 8px}
+.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--star),var(--hot))}
+.scale{font:500 12px var(--f-data);color:var(--dim);border:1px dashed var(--line2);border-radius:8px;padding:7px 9px;margin-top:8px}
+.scale b{color:var(--ink);font-weight:500}
+.card{position:fixed;right:var(--gr);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:380px;z-index:4;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;gap:4px;padding:10px 10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12.5px}
+.tabs button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.say{margin-left:auto}
+.body{padding:8px 14px 14px;overflow:auto;flex:1;font-size:13px;line-height:1.55}
+.body h3{margin:6px 0 4px;font:600 18px/1.2 var(--f-display)}
+.body h4{margin:12px 0 2px;font:600 13.5px var(--f-display);color:var(--acc)}
+.body p{margin:6px 0}
+.body ul{margin:6px 0;padding-left:18px}
+.body li{margin:2px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;margin:6px 0}
+.kv span{color:var(--dim)} .kv b{font-weight:500;font-family:var(--f-data);font-size:12px}
+.src a,.body a{color:var(--sky)}
+.note{color:var(--dim);font-size:12px;border:1px dashed var(--line2);border-radius:8px;padding:7px 10px;margin:8px 0}
+.photo{margin:8px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#000}
+.photo img{display:block;width:100%;height:auto}
+.photo figcaption{font-size:11.5px;color:var(--dim);padding:6px 8px;background:var(--panel)}
+.lbl{position:fixed;left:0;top:0;font:600 11.5px var(--f-display);letter-spacing:.03em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;z-index:2;pointer-events:none}
+.lbl small{display:block;font:500 10.5px var(--f-body);color:var(--dim);letter-spacing:0}
+.lbl.s2{color:#fff3c4}
+.toast{position:fixed;left:50%;bottom:calc(18px + var(--bot));transform:translateX(-50%);padding:9px 14px;font-size:13px;z-index:6;max-width:min(560px,calc(100vw - 32px));text-align:center;transition:opacity .4s}
+.toast b{color:var(--acc)}
+@media (max-width:980px){
+  .views{order:3;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto}
+  .views .chip{white-space:nowrap;padding:4px 8px;font-size:12px}
+  .kick{display:none}
+  .title{padding:7px 10px;min-width:0;flex:1}
+  .title h1{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side{width:auto;right:var(--gr);top:calc(104px + var(--top));bottom:auto;max-height:36vh;padding:8px 10px}
+  .card{width:auto;left:var(--gl);top:auto;height:28vh}
+  .toast{bottom:calc(28vh + 26px + var(--bot))}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="El centro de la Vía Láctea en 3D"></canvas>
+
+<div class="top">
+  <a class="back panel" href="../">← Simulaciones</a>
+  <div class="title panel"><div class="kick">Vía Láctea · a 26 900 años luz</div><h1>Viaje al centro de la galaxia: Sagitario A*</h1></div>
+  <div class="views panel" role="group" aria-label="Escala">
+    <button class="chip" data-view="enjambre" aria-pressed="true">El enjambre · 3 años luz</button>
+    <button class="chip" data-view="estrellas" aria-pressed="false">Las estrellas S · 2 semanas luz</button>
+    <button class="chip" data-view="sombra" aria-pressed="false">La sombra · 1 hora luz</button>
+  </div>
+</div>
+
+<section class="side panel" aria-label="Mandos">
+  <h2>El reloj del centro galáctico</h2>
+  <div class="clock" id="clock">—</div>
+  <input type="range" id="tsl" min="1990" max="2050" step="0.01" value="2026.9" aria-label="Año">
+  <div class="grp" id="speeds" role="group" aria-label="Velocidad del tiempo">
+    <button class="chip" data-speed="0">⏸ Pausa</button>
+    <button class="chip" data-speed="0.25" aria-pressed="true">3 meses/s</button>
+    <button class="chip" data-speed="1">1 año/s</button>
+    <button class="chip" data-speed="5">5 años/s</button>
+    <button class="chip" id="now">Hoy</button>
+  </div>
+  <div class="lab">La estrella S2 ahora</div>
+  <div class="tele" id="s2tele"></div>
+  <div class="lab">Su velocidad, comparada con la de la luz</div>
+  <div class="meter"><i id="vbar"></i></div>
+  <div class="lab">Ir a un momento</div>
+  <div class="grp">
+    <button class="chip" data-jump="2002.33">2002: S2 pasa rozando</button>
+    <button class="chip" data-jump="2018.38">2018: la prueba de Einstein</button>
+    <button class="chip" data-jump="2034.42">2034: el próximo paso</button>
+  </div>
+  <div class="scale" id="scale">—</div>
+</section>
+
+<section class="card panel" aria-label="Explicación">
+  <div class="tabs" role="group" aria-label="Pestañas">
+    <button data-tab="que" aria-pressed="true">Qué ves</button>
+    <button data-tab="datos" aria-pressed="false">Datos</button>
+    <button data-tab="fuentes" aria-pressed="false">Fuentes</button>
+    <button class="say" id="say" title="Leer en voz alta">🔊 Escuchar</button>
+  </div>
+  <div class="body" id="body"></div>
+</section>
+<div class="toast panel" id="toast" style="opacity:0"></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* =====================================================================
+   DATOS REALES (unidades: UA y años)
+   Distancia y masa: colaboración GRAVITY (2020): R0 = 8 246,7 pc, M = 4,261 millones de soles.
+   1 segundo de arco a la distancia R0 = 8 246,7 UA.
+   Órbitas: S2 de GRAVITY (2020); S1, S4 y S6 de Gillessen et al. (2017).
+   ===================================================================== */
+const R0_PC = 8246.7, M_BH = 4.261e6, LY = 63241.077, C_KMS = 299792.458;
+const GM = 4*Math.PI*Math.PI*M_BH;                 // UA³/año²
+const AUYR_KMS = 4.740470;                          // 1 UA/año en km/s
+const RS = 0.0841;                                  // radio de Schwarzschild (UA) = 2GM/c²
+const SHADOW = 2.6*RS;                              // radio de la sombra ≈ 2,6 Rs
+const DEG = Math.PI/180;
+const STARS = [
+  { id:'S2', a:0.12506, e:0.884649, i:134.567, W:228.171, w:66.263, tp:2018.379, P:16.0455, col:0xfff1c4, ref:'GRAVITY 2020' },
+  { id:'S1', a:0.595,   e:0.556,    i:119.14,  W:342.04,  w:122.3,  tp:2001.80,  P:166.0,   col:0xbcd2ff, ref:'Gillessen 2017' },
+  { id:'S4', a:0.3570,  e:0.3905,   i:80.33,   W:258.84,  w:290.8,  tp:1957.4,   P:77.0,    col:0xbcd2ff, ref:'Gillessen 2017' },
+  { id:'S6', a:0.6574,  e:0.8400,   i:87.24,   W:85.07,   w:116.23, tp:2108.61,  P:192.0,   col:0xbcd2ff, ref:'Gillessen 2017' },
+];
+STARS.forEach(s => { s.A = s.a*R0_PC; });
+
+/* Posición en 3D: x = hacia el oeste en el cielo (así el este queda a la izquierda, como en las fotos), y = norte,
+   z = hacia la Tierra. Fórmulas estándar de una órbita de Kepler con elementos (a, e, i, Ω, ω, tP). */
+function kepler(s, t, out){
+  let M = 2*Math.PI*(t - s.tp)/s.P; M = Math.atan2(Math.sin(M), Math.cos(M));
+  let E = M; for (let k = 0; k < 30; k++) E -= (E - s.e*Math.sin(E) - M)/(1 - s.e*Math.cos(E));
+  const nu = 2*Math.atan2(Math.sqrt(1 + s.e)*Math.sin(E/2), Math.sqrt(1 - s.e)*Math.cos(E/2));
+  const r = s.A*(1 - s.e*Math.cos(E)), u = s.w*DEG + nu, Om = s.W*DEG, inc = s.i*DEG;
+  const dN = r*(Math.cos(Om)*Math.cos(u) - Math.sin(Om)*Math.sin(u)*Math.cos(inc));
+  const dE = r*(Math.sin(Om)*Math.cos(u) + Math.cos(Om)*Math.sin(u)*Math.cos(inc));
+  const dZ = r*Math.sin(u)*Math.sin(inc);           // positivo = alejándose de nosotros
+  out.set(-dE, dN, -dZ);
+  return r;
+}
+const speedAt = (s, r) => Math.sqrt(GM*(2/r - 1/s.A))*AUYR_KMS;   // km/s (vis-viva)
+
+/* ===================================================================== RENDER */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, logarithmicDepthBuffer:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 1e-3, 5e7);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.enablePan = false; controls.minDistance = 0.6; controls.maxDistance = 2.5e6; controls.zoomSpeed = 1.6;
+
+function glowTex(stops, size = 256){ const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d'), h = size/2;
+  const g = x.createRadialGradient(h,h,0,h,h,h); stops.forEach(([o,col]) => g.addColorStop(o,col)); x.fillStyle = g; x.fillRect(0,0,size,size);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+const dotTex = glowTex([[0,'rgba(255,255,255,1)'],[.25,'rgba(255,255,255,.85)'],[.5,'rgba(255,255,255,.18)'],[1,'rgba(255,255,255,0)']], 64);
+
+// fondo: el cúmulo estelar nuclear (millones de estrellas viejas, ilustrativo) y estrellas lejanas
+function cloud(n, rFn, color, size, op){
+  const g = new THREE.BufferGeometry(), p = new Float32Array(n*3);
+  for (let k = 0; k < n; k++){ const r = rFn(), u = Math.random()*2 - 1, a = Math.random()*Math.PI*2, s = Math.sqrt(1 - u*u);
+    p.set([r*s*Math.cos(a), r*u*0.85, r*s*Math.sin(a)], k*3); }
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  return new THREE.Points(g, new THREE.PointsMaterial({ color, size, sizeAttenuation:false, map:dotTex, transparent:true, opacity:op, depthWrite:false, blending:THREE.AdditiveBlending }));
+}
+scene.add(cloud(9000, () => 2e5*Math.pow(Math.random(), 0.55)*12, 0xffd9a8, 2.2, .55));   // cúmulo nuclear (unos 12 pc)
+scene.add(cloud(3000, () => 2e7 + Math.random()*1e7, 0x9aa6c8, 1.3, .8));                 // fondo
+
+/* ---------- el enjambre de agujeros negros (Hailey et al. 2018, Chandra) ----------
+   Se detectaron 12 binarias de rayos X a menos de 1 pársec (≈ 3,3 años luz) de Sgr A*; de ahí se estima que hay
+   unos 10 000 agujeros negros en esa región, más concentrados hacia el centro. Las posiciones son ilustrativas. */
+const PC = 206264.8;
+const swarmN = 10000, sw = new THREE.BufferGeometry(), swp = new Float32Array(swarmN*3);
+for (let k = 0; k < swarmN; k++){ const r = PC*Math.pow(Math.random(), 1/1.5), u = Math.random()*2 - 1, a = Math.random()*Math.PI*2, s = Math.sqrt(1 - u*u);   // densidad ∝ r^-1.5
+  swp.set([r*s*Math.cos(a), r*u, r*s*Math.sin(a)], k*3); }
+sw.setAttribute('position', new THREE.BufferAttribute(swp, 3));
+const swarm = new THREE.Points(sw, new THREE.PointsMaterial({ color:0xb58cff, size:2.4, sizeAttenuation:false, map:dotTex, transparent:true, opacity:.75, depthWrite:false, blending:THREE.AdditiveBlending }));
+scene.add(swarm);
+const xrb = new THREE.Group(); scene.add(xrb);
+const XRB = [];
+for (let k = 0; k < 12; k++){
+  const r = PC*(0.15 + 0.85*Math.random()), u = Math.random()*2 - 1, a = Math.random()*Math.PI*2, s = Math.sqrt(1 - u*u);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:dotTex, color:0x9fe8ff, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:false }));
+  sp.scale.setScalar(0.018); sp.position.set(r*s*Math.cos(a), r*u, r*s*Math.sin(a)); xrb.add(sp); XRB.push({ sp, ph:Math.random()*6 });
+}
+// anillos de escala
+function ring(r, color, op){ const pts = []; for (let k = 0; k <= 256; k++){ const a = k/256*Math.PI*2; pts.push(new THREE.Vector3(r*Math.cos(a), r*Math.sin(a), 0)); }
+  const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color, transparent:true, opacity:op, dashSize:r*0.03, gapSize:r*0.025 }));
+  l.computeLineDistances(); scene.add(l); return l; }
+const RINGS = [ { r:PC, txt:'1 pársec · 3,26 años luz' }, { r:LY/52, txt:'1 semana luz · 1 200 UA' }, { r:1, txt:'1 UA (Sol–Tierra)' } ]
+  .map(o => ({ ...o, line:ring(o.r, 0x5a6a90, .55) }));
+
+/* ---------- Sagitario A* ---------- */
+const bh = new THREE.Group(); scene.add(bh);
+bh.add(new THREE.Mesh(new THREE.SphereGeometry(RS, 48, 32), new THREE.MeshBasicMaterial({ color:0x000000 })));
+// el anillo de luz alrededor de la sombra, parecido a la imagen del EHT (más brillante abajo a la izquierda, por el efecto Doppler)
+function ehtTex(){
+  const S = 512, c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'), img = x.createImageData(S, S);
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++){
+    const dx = (i - S/2)/(S/2), dy = (j - S/2)/(S/2), r = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+    const ring = Math.exp(-Math.pow((r - 0.52)/0.11, 2)), knot = 0.55 + 0.45*Math.cos(a - 2.4) + 0.15*Math.cos(3*a + 1);
+    let v = ring*knot + 0.05*Math.exp(-Math.pow((r - 0.5)/0.35, 2)); v = Math.max(0, Math.min(1.2, v));
+    const k = (j*S + i)*4; img.data[k] = 255*Math.min(1, v*1.15); img.data[k+1] = 255*Math.min(1, v*0.62); img.data[k+2] = 255*Math.min(1, v*0.22); img.data[k+3] = 255*Math.min(1, v*1.3);
+  }
+  x.putImageData(img, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:ehtTex(), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+halo.scale.setScalar(SHADOW/0.52*2); bh.add(halo);
+const bhGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex([[0,'rgba(255,190,110,.9)'],[.2,'rgba(255,150,80,.35)'],[1,'rgba(255,120,60,0)']]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:false }));
+bhGlow.scale.setScalar(0.05); bh.add(bhGlow);
+
+/* ---------- las estrellas S ---------- */
+const sV = new THREE.Vector3();
+STARS.forEach(s => {
+  const pts = []; for (let k = 0; k <= 720; k++){ kepler(s, s.tp + s.P*k/720, sV); pts.push(sV.clone()); }
+  s.orbit = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:s.col, transparent:true, opacity:s.id === 'S2' ? .8 : .45 }));
+  scene.add(s.orbit);
+  s.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map:dotTex, color:s.col, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:false }));
+  s.sprite.scale.setScalar(s.id === 'S2' ? 0.03 : 0.022); scene.add(s.sprite);
+  s.pos = new THREE.Vector3(); s.r = 0;
+});
+const S2 = STARS[0];
+
+/* ===================================================================== ESTADO */
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 0) => x.toLocaleString('es-EC', { minimumFractionDigits:d, maximumFractionDigits:d });
+const nowYear = () => { const n = new Date(); return n.getFullYear() + (n - new Date(n.getFullYear(), 0, 1))/(365.25*864e5); };
+let year = nowYear(), speed = 0.25, view = 'enjambre', tab = 'que';
+const VIEWS = {
+  enjambre:{ pos:[3.2e5, 1.6e5, 3.6e5], min:2e4, max:2.5e6 },
+  estrellas:{ pos:[1100, 2600, 7200], min:40, max:1.2e5 },
+  sombra:{ pos:[0, 0.05, 1.6], min:0.35, max:400 },
+};
+let camAnim = null;
+function flyTo(v, ms = 1800){
+  const c = VIEWS[v], p1 = new THREE.Vector3(...c.pos);
+  camAnim = { t0:performance.now(), ms, p0:camera.position.clone(), p1 };
+}
+function setView(v, quick){
+  view = v; document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
+  const c = VIEWS[v]; controls.minDistance = Math.min(c.min, camera.position.length()); controls.maxDistance = Math.max(c.max, camera.position.length());
+  if (quick){ camera.position.set(...c.pos); controls.minDistance = c.min; controls.maxDistance = c.max; } else flyTo(v);
+  if (v === 'estrellas' && speed > 1) setSpeed(1);
+  tab = 'que'; renderCard();
+}
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
+function setSpeed(s){ speed = s; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.speed === s)); }
+document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => setSpeed(+b.dataset.speed));
+$('now').onclick = () => { year = nowYear(); toast('Hoy: así está el centro de la galaxia… pero esa luz salió hace <b>unos 26 900 años</b>.'); };
+$('tsl').oninput = e => { year = +e.target.value; };
+document.querySelectorAll('[data-jump]').forEach(b => b.onclick = () => {
+  year = +b.dataset.jump - 0.6; setSpeed(0.25); if (view !== 'estrellas') setView('estrellas');
+  if (b.dataset.jump.startsWith('2018')) toast('En 2018 la luz de S2 se volvió más roja justo como predice la relatividad de Einstein. Premio Nobel de Física 2020 para Genzel y Ghez.');
+});
+
+/* ===================================================================== TARJETA */
+const PHOTO = (src, alt, cap, page) => `<figure class="photo"><img src="${src}" alt="${alt}" loading="lazy" referrerpolicy="no-referrer"
+  onerror="this.parentElement.innerHTML='<figcaption>No se pudo cargar la foto aquí. <a href=&quot;${page}&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;>Verla en la página original ↗</a></figcaption>'">
+  <figcaption>${cap} <a href="${page}" target="_blank" rel="noopener">Ver original ↗</a></figcaption></figure>`;
+const CARDS = {
+  enjambre:{
+    que:() => `<h3>Un enjambre de agujeros negros</h3>
+      <p>Estás a unos <b>26 900 años luz</b> del Sol, en el centro exacto de la Vía Láctea. En el medio hay un agujero negro gigante, <b>Sagitario A*</b>, y a su alrededor un cúmulo de millones de estrellas viejas (los puntos naranjas).</p>
+      <p>En 2018 el telescopio de rayos X <b>Chandra</b> encontró aquí <b>12 agujeros negros pequeños</b> que se están comiendo a una estrella compañera (los puntos celestes que titilan), todos a menos de 3 años luz del centro. Como la mayoría de los agujeros negros no tienen compañera y no brillan, los astrónomos calcularon que debe haber <b>unos 10 000</b> en esta zona (los puntos morados).</p>
+      <h4>Prueba esto</h4>
+      <ul><li>Acércate con la rueda del ratón o pellizcando: el anillo grande mide 1 pársec (3,26 años luz).</li>
+      <li>Sigue acercándote hasta las estrellas S: todo lo que se ve en esa vista cabría dentro de este anillo más de 100 veces.</li></ul>
+      <div class="note">Las posiciones de los 12 agujeros negros de Chandra y de los 10 000 estimados son ilustrativas: lo real es cuántos son y a qué distancia del centro están.</div>`,
+    datos:() => `<h3>Datos</h3><div class="kv">
+      <span>Distancia al Sol</span><b>8 247 pársecs · ≈ 26 900 años luz</b>
+      <span>Agujeros negros detectados por Chandra</span><b>12, a menos de 1 pársec</b>
+      <span>Agujeros negros estimados</span><b>≈ 10 000 en esa región</b>
+      <span>Masa de Sagitario A*</span><b>≈ 4,26 millones de soles</b>
+      <span>La luz que vemos salió hace</span><b>≈ 26 900 años</b></div>
+      <p>Por qué se juntan aquí: los agujeros negros pesan más que una estrella típica y, al cruzarse con estrellas más livianas, pierden velocidad poco a poco y van «cayendo» hacia el centro de la galaxia, como piedras que se hunden en arena.</p>`,
+  },
+  estrellas:{
+    que:() => `<h3>Las estrellas S: la balanza del agujero negro</h3>
+      <p>No podemos ver el agujero negro, pero sí las estrellas que giran a su alrededor. Midiéndolas durante más de 30 años con los telescopios VLT (Chile) y Keck (Hawái), se calculó su masa: unos <b>4,3 millones de soles</b> metidos en un espacio más pequeño que la órbita de Mercurio. Por eso <b>Reinhard Genzel y Andrea Ghez</b> ganaron el Premio Nobel de Física en 2020.</p>
+      <p>La más famosa es <b>S2</b> (la órbita amarilla): da una vuelta cada 16 años. Cuando pasa más cerca, a unas 120 UA (como 4 veces la distancia a Neptuno), va a casi <b>7 700 km/s</b>: el 2,6 % de la velocidad de la luz. Mira el panel de la izquierda mientras pasa.</p>
+      <h4>Prueba esto</h4>
+      <ul><li>Pulsa «2018: la prueba de Einstein» y mira cómo S2 acelera al pasar junto al agujero negro.</li>
+      <li>Gira la vista: las órbitas están inclinadas en todas direcciones, no en un plano como los planetas.</li>
+      <li>La línea punteada pequeña es 1 semana luz. Toda la órbita de S2 cabe en unos 12 días luz.</li></ul>`,
+    datos:() => {
+      const rows = STARS.map(s => { const rp = s.A*(1 - s.e); return `<span>${s.id}</span><b>vuelta cada ${fmt(s.P, 1)} años · pasa a ${fmt(rp)} UA a ${fmt(speedAt(s, rp))} km/s</b>`; }).join('');
+      return `<h3>Las órbitas medidas</h3><div class="kv">${rows}</div>
+      <ul><li>Órbita de S2: colaboración GRAVITY (2020). S1, S4 y S6: Gillessen et al. (2017), que midió 40 estrellas.</li>
+      <li>Distancias en UA con R0 = 8 246,7 pársecs (GRAVITY 2020): 1 segundo de arco equivale a 8 247 UA.</li>
+      <li>Velocidades calculadas con la ley de Kepler y la masa de 4,26 millones de soles.</li></ul>
+      <div class="note">La simulación usa órbitas de Kepler. La de S2 en realidad gira un poquito cada vuelta (precesión de Schwarzschild, 12 minutos de arco por órbita), otra predicción de Einstein que GRAVITY midió en 2020.</div>`; },
+  },
+  sombra:{
+    que:() => `<h3>La sombra del agujero negro</h3>
+      <p>Estás a menos de una hora luz de Sagitario A*. La esfera negra es su <b>horizonte de sucesos</b>: de allí no sale ni la luz. Mide unos 12,6 millones de km de radio, 18 veces el radio del Sol.</p>
+      <p>Alrededor, el gas que cae se calienta y brilla. La luz se curva tanto que vemos un <b>anillo</b> con una sombra en el medio unas 2,5 veces más grande que el horizonte. Así lo fotografió en 2022 el <b>Event Horizon Telescope</b>, una red de radiotelescopios repartidos por toda la Tierra que funcionan como uno solo del tamaño del planeta:</p>
+      ${PHOTO('https://cdn.eso.org/images/screen/eso2208-eht-mwa.jpg', 'Primera imagen de Sagitario A* del Event Horizon Telescope', 'Sagitario A*, mayo de 2022. Crédito: EHT Collaboration (ESO).', 'https://eso.org/public/images/eso2208-eht-mwa')}
+      <p>Hoy Sagitario A* está casi «dormido»: traga muy poco gas. Por eso brilla mucho menos que los agujeros negros de otras galaxias.</p>`,
+    datos:() => `<h3>Datos</h3><div class="kv">
+      <span>Radio del horizonte (Schwarzschild)</span><b>≈ 12,6 millones de km · 0,084 UA</b>
+      <span>Diámetro de la sombra</span><b>≈ 0,44 UA</b>
+      <span>Tamaño en el cielo de la Tierra</span><b>≈ 52 microsegundos de arco</b>
+      <span>Es como ver desde la Tierra</span><b>una dona sobre la Luna</b>
+      <span>Imagen</span><b>EHT, publicada el 12 de mayo de 2022</b></div>
+      <div class="note">El anillo dibujado es una imitación de la imagen real del EHT, a la misma escala que la sombra calculada con la masa de GRAVITY. La parte más brillante es la que se mueve hacia nosotros.</div>`,
+  },
+};
+const FUENTES = `<h3>Fuentes</h3><ul class="src">
+  <li><a href="https://arxiv.org/abs/2004.07187" target="_blank" rel="noopener">GRAVITY Collaboration (2020) – órbita de S2, masa y distancia</a></li>
+  <li><a href="https://ar5iv.arxiv.org/html/1611.09144" target="_blank" rel="noopener">Gillessen et al. (2017) – órbitas de las estrellas S</a></li>
+  <li><a href="https://chandra.harvard.edu/photo/2018/sgra_swarm/" target="_blank" rel="noopener">Chandra – el enjambre de agujeros negros (Hailey et al., Nature 2018)</a></li>
+  <li><a href="https://eso.org/public/news/eso2208" target="_blank" rel="noopener">ESO – primera imagen de Sagitario A* (EHT, 2022)</a></li>
+  <li><a href="https://www.nobelprize.org/prizes/physics/2020/summary/" target="_blank" rel="noopener">Premio Nobel de Física 2020 (Genzel y Ghez)</a></li></ul>`;
+function renderCard(){
+  document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === tab));
+  $('body').innerHTML = tab === 'fuentes' ? FUENTES : CARDS[view][tab]();
+  $('body').scrollTop = 0;
+}
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; renderCard(); });
+$('say').onclick = () => {
+  if (!('speechSynthesis' in window)) return;
+  if (speechSynthesis.speaking){ speechSynthesis.cancel(); return; }
+  const u = new SpeechSynthesisUtterance($('body').innerText); u.lang = 'es-ES';
+  const v = speechSynthesis.getVoices().find(v => v.lang.startsWith('es')); if (v) u.voice = v; speechSynthesis.speak(u);
+};
+let toastT = 0;
+function toast(html){ const t = $('toast'); t.innerHTML = html; t.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => t.style.opacity = 0, 7000); }
+
+/* ===================================================================== ETIQUETAS */
+const labels = {};
+function place(id, html, world, show, cls){
+  let el = labels[id]; if (!el){ el = labels[id] = document.createElement('div'); el.className = 'lbl' + (cls ? ' ' + cls : ''); document.body.append(el); }
+  if (!show){ el.style.display = 'none'; return; }
+  const p = world.clone().project(camera); if (p.z > 1 || Math.abs(p.x) > 1.1 || Math.abs(p.y) > 1.1){ el.style.display = 'none'; return; }
+  el.innerHTML = html; el.style.display = 'block';
+  el.style.transform = `translate(${(p.x*.5+.5)*innerWidth + 8}px, ${(-p.y*.5+.5)*innerHeight - 8}px)`;
+}
+
+/* ===================================================================== BUCLE */
+function resize(){ renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+let last = performance.now(), lastUI = 0;
+const tmp = new THREE.Vector3();
+function frame(now){
+  const dt = Math.min(0.1, (now - last)/1000); last = now;
+  year += dt*speed; if (year > 2050) year = 1990; if (year < 1990) year = 1990;
+  for (const s of STARS){ s.r = kepler(s, year, s.pos); s.sprite.position.copy(s.pos); }
+  XRB.forEach(o => o.sp.material.opacity = 0.55 + 0.45*Math.sin(now/300 + o.ph));
+  if (camAnim){ const k = Math.min(1, (now - camAnim.t0)/camAnim.ms), e = k < .5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3)/2;
+    const r0 = camAnim.p0.length(), r1 = camAnim.p1.length(), r = Math.exp(Math.log(r0)*(1 - e) + Math.log(r1)*e);   // acercamiento logarítmico
+    camera.position.copy(camAnim.p0.clone().normalize().lerp(camAnim.p1.clone().normalize(), e).normalize().multiplyScalar(r));
+    if (k >= 1){ camAnim = null; const c = VIEWS[view]; controls.minDistance = c.min; controls.maxDistance = c.max; } }
+  controls.update();
+  const d = camera.position.length();
+  // qué se ve según la distancia
+  swarm.material.opacity = Math.min(.75, Math.max(0, (Math.log10(d) - 3.6)/1.2));
+  xrb.visible = d > 6000;
+  const near = Math.min(1, Math.max(0, (Math.log10(d) - 1.3)/0.7));                       // de muy cerca se ocultan las órbitas lejanas
+  STARS.forEach(s => { s.orbit.material.opacity = (s.id === 'S2' ? .85 : .5)*Math.min(1, Math.max(0, (5.2 - Math.log10(d))/1.0))*near; s.orbit.visible = near > 0.01; s.sprite.visible = d < 2e5 && d > 25; });
+  bhGlow.visible = d > 30;
+  // interfaz
+  if (now - lastUI > 120){ lastUI = now;
+    const v = speedAt(S2, S2.r), yy = Math.floor(year), mm = Math.min(11, Math.floor((year - yy)*12));
+    $('clock').innerHTML = `${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][mm]} ${yy} <small>· la luz que verías salió hace ≈ 26 900 años</small>`;
+    if (document.activeElement !== $('tsl')) $('tsl').value = year;
+    $('s2tele').innerHTML = `<span>Distancia a Sgr A*</span><b>${fmt(S2.r)} UA · ${fmt(S2.r*149.6e6/1e9, 1)} mil millones de km</b>
+      <span>Velocidad</span><b>${fmt(v)} km/s</b><span>Fracción de la luz</span><b>${fmt(100*v/C_KMS, 2)} %</b>`;
+    $('vbar').style.width = (100*v/7800).toFixed(1) + '%';
+    const lyd = d/LY;
+    $('scale').innerHTML = lyd > 0.05 ? `Estás a <b>${fmt(lyd, lyd < 1 ? 2 : 1)} años luz</b> de Sagitario A*`
+      : d > 300 ? `Estás a <b>${fmt(d)} UA</b> de Sagitario A* (${fmt(d*8.317/60/24, 1)} días luz)` : `Estás a <b>${fmt(d, d < 10 ? 1 : 0)} UA</b> de Sagitario A*: su luz tarda <b>${d*8.317 < 90 ? fmt(d*8.317, 0) + ' minutos' : fmt(d*8.317/60, 1) + ' horas'}</b> en llegarte`;
+  }
+  place('bh', 'Sagitario A*<small>4,26 millones de soles</small>', tmp.set(0, 0, 0), d < 3e5 || view === 'enjambre');
+  STARS.forEach(s => place(s.id, s.id, s.pos, d < 6e4 && d > 3, s.id === 'S2' ? 's2' : ''));
+  RINGS.forEach((o, k) => place('ring' + k, o.txt, tmp.set(o.r*0.71, o.r*0.71, 0), d > o.r*0.8 && d < o.r*40));
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+const h = location.hash.slice(1);
+setView(['enjambre','estrellas','sombra'].includes(h) ? h : 'enjambre', true);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
