@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>El Sol activo · manchas, ciclo y tormentas</title>
+<meta name="description" content="El Sol con sus manchas y su rotación diferencial, el ciclo de 11 años con el número de manchas real desde 1700 (SILSO) y una tormenta solar que viaja a la Tierra y enciende auroras.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Diseño: el Sol a pantalla completa; a la izquierda los mandos de cada vista (y la gráfica del ciclo);
+   a la derecha la explicación, los datos y las fuentes. Mismo sistema visual que el resto de simulaciones. */
+:root{
+  --void:#04060c; --panel:rgba(10,12,20,.9); --line:#232a3d; --line2:#33405c;
+  --ink:#ecebf2; --dim:#9a9fb3; --faint:#646b82;
+  --sun:#ffc35a; --sun-ink:#2a1700; --hot:#ff7a3c; --uv:#ffd36b; --aur:#7dffb0; --sky:#8cc4ff; --bad:#ff8a7a; --ok:#7ee2a8;
+  --f-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --top:env(safe-area-inset-top,0px); --bot:env(safe-area-inset-bottom,0px);
+  --gl:max(16px, env(safe-area-inset-left,0px)); --gr:max(16px, env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;outline:none;cursor:grab}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button,select{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;top:calc(10px + var(--top));left:var(--gl);right:var(--gr);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{color:var(--dim);text-decoration:none;font-size:12px;padding:8px 10px;white-space:nowrap}
+.back:hover{color:var(--ink)}
+.title{padding:8px 12px}
+.kick{font:600 10.5px/1.2 var(--f-display);letter-spacing:.16em;text-transform:uppercase;color:var(--sun)}
+.title h1{margin:2px 0 0;font:600 17px/1.2 var(--f-display)}
+.views{display:flex;gap:4px;padding:5px;flex-wrap:wrap}
+.chip{background:transparent;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:12.5px;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--sun);border-color:var(--sun);color:var(--sun-ink)}
+.chip:hover{border-color:var(--line2)}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+.big{background:var(--sun);border:0;color:var(--sun-ink);border-radius:9px;padding:9px 12px;font:600 14px var(--f-display);letter-spacing:.02em;width:100%}
+.big:disabled{opacity:.45;cursor:not-allowed}
+/* panel izquierdo */
+.side{position:fixed;left:var(--gl);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:340px;z-index:4;padding:12px;overflow:auto}
+.side h2{margin:0 0 6px;font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.clock{font:500 13px var(--f-data);margin:2px 0 6px}
+.clock small{color:var(--dim);font-size:11.5px}
+input[type=range]{width:100%;accent-color:var(--sun)}
+.lab{font-size:11.5px;color:var(--dim);margin:10px 0 4px}
+.grp{display:flex;gap:4px;flex-wrap:wrap}
+.grp .chip{padding:4px 8px;font-size:12px}
+.count{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+.count div{border:1px solid var(--line);border-radius:8px;padding:6px 8px;text-align:center}
+.count b{display:block;font:500 20px var(--f-data);color:var(--sun)}
+.count span{font-size:11px;color:var(--dim)}
+.formula{font:500 12.5px var(--f-data);text-align:center;margin:2px 0 6px;color:var(--ink)}
+.formula small{color:var(--dim);font-family:var(--f-body)}
+.tele{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:6px 0 8px}
+.tele span{color:var(--dim)} .tele b{font:500 12.5px var(--f-data)}
+#chart{width:100%;height:150px;display:block;border:1px solid var(--line);border-radius:8px;background:#070a12;cursor:crosshair;touch-action:none}
+.marks{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.marks .chip{font-size:11.5px;padding:3px 7px}
+.meter{height:9px;border-radius:99px;background:#141a2a;overflow:hidden;margin:6px 0}
+.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sun),var(--hot))}
+.gs{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin:6px 0}
+.gs span{font:500 11px var(--f-data);text-align:center;padding:4px 0;border-radius:5px;border:1px solid var(--line);color:var(--faint)}
+.gs span.on{color:#062012;background:var(--aur);border-color:var(--aur)}
+.gs span.on.x{background:var(--bad);border-color:var(--bad)}
+.row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.row .chip{flex:1}
+/* tarjeta derecha */
+.card{position:fixed;right:var(--gr);top:calc(80px + var(--top));bottom:calc(16px + var(--bot));width:380px;z-index:4;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;gap:4px;padding:10px 10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12.5px}
+.tabs button[aria-pressed=true]{background:var(--sun);border-color:var(--sun);color:var(--sun-ink)}
+.say{margin-left:auto}
+.body{padding:8px 14px 14px;overflow:auto;flex:1;font-size:13px;line-height:1.55}
+.body h3{margin:6px 0 4px;font:600 18px/1.2 var(--f-display)}
+.body h4{margin:12px 0 2px;font:600 13.5px var(--f-display);color:var(--sun)}
+.body p{margin:6px 0}
+.body ul{margin:6px 0;padding-left:18px}
+.body li{margin:2px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;margin:6px 0}
+.kv span{color:var(--dim)} .kv b{font-weight:500;font-family:var(--f-data);font-size:12px}
+.src a{color:var(--sky)}
+.note{color:var(--dim);font-size:12px;border:1px dashed var(--line2);border-radius:8px;padding:7px 10px;margin:8px 0}
+/* etiquetas y avisos */
+.lbl{position:fixed;left:0;top:0;font:600 11.5px var(--f-display);letter-spacing:.03em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;z-index:2;pointer-events:none}
+.lbl small{display:block;font:500 10.5px var(--f-body);color:var(--dim);letter-spacing:0}
+.toast{position:fixed;left:50%;bottom:calc(18px + var(--bot));transform:translateX(-50%);padding:9px 14px;font-size:13px;z-index:6;max-width:min(560px,calc(100vw - 32px));text-align:center;transition:opacity .4s}
+.toast b{color:var(--sun)}
+.flash{position:fixed;inset:0;background:#fff6dc;opacity:0;pointer-events:none;z-index:3;transition:opacity .5s}
+@media (max-width:980px){
+  .views{order:3;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto}
+  .views .chip{white-space:nowrap;padding:4px 8px;font-size:12px}
+  .kick{display:none}
+  .title{padding:7px 10px;min-width:0;flex:1}
+  .title h1{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side{width:auto;right:var(--gr);top:calc(104px + var(--top));bottom:auto;max-height:38vh;padding:8px 10px}
+  .card{width:auto;left:var(--gl);top:auto;height:28vh}
+  .toast{bottom:calc(28vh + 26px + var(--bot))}
+  #chart{height:110px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="El Sol en 3D con sus manchas"></canvas>
+<div class="flash" id="flash"></div>
+
+<div class="top">
+  <a class="back panel" href="../">← Simulaciones</a>
+  <div class="title panel"><div class="kick">El Sol · nuestra estrella</div><h1>El Sol activo: manchas, ciclo y tormentas</h1></div>
+  <div class="views panel" role="group" aria-label="Vista">
+    <button class="chip" data-view="sol" aria-pressed="true">El Sol de cerca</button>
+    <button class="chip" data-view="ciclo" aria-pressed="false">El ciclo de 11 años</button>
+    <button class="chip" data-view="tormenta" aria-pressed="false">Tormenta solar</button>
+  </div>
+</div>
+
+<section class="side panel" id="side" aria-label="Mandos">
+  <!-- ===== Vista 1: el Sol de cerca ===== -->
+  <div data-pane="sol">
+    <h2>El Sol de cerca</h2>
+    <div class="clock" id="solClock">—</div>
+    <div class="lab">Cuenta las manchas de la cara que mira a la Tierra</div>
+    <div class="count">
+      <div><b id="cG">0</b><span>grupos (g)</span></div>
+      <div><b id="cS">0</b><span>manchas (s)</span></div>
+      <div><b id="cR">0</b><span>número de Wolf</span></div>
+    </div>
+    <div class="formula" id="formula">R = 10 × g + s</div>
+    <div class="note" id="solReal">—</div>
+    <div class="lab">Tiempo</div>
+    <div class="grp" id="speeds" role="group" aria-label="Velocidad">
+      <button class="chip" data-speed="0">⏸ Pausa</button>
+      <button class="chip" data-speed="1" aria-pressed="true">1 día/s</button>
+      <button class="chip" data-speed="4">4 días/s</button>
+      <button class="chip" data-speed="12">12 días/s</button>
+    </div>
+    <div class="lab">Mirar con</div>
+    <div class="grp" id="filters" role="group" aria-label="Filtro">
+      <button class="chip" data-filter="0" aria-pressed="true">Luz visible (con filtro)</button>
+      <button class="chip" data-filter="1">Ultravioleta 171 Å</button>
+    </div>
+    <div class="lab">Experimentos</div>
+    <div class="grp">
+      <button class="chip" id="paint">🖌 Pinta una línea de polo a polo</button>
+      <button class="chip" id="earthScale" aria-pressed="false">🌍 Tierra a escala</button>
+    </div>
+    <div class="tele" id="rotTele" style="margin-top:10px"></div>
+  </div>
+
+  <!-- ===== Vista 2: el ciclo ===== -->
+  <div data-pane="ciclo" hidden>
+    <h2>El ciclo de 11 años</h2>
+    <div class="clock" id="cyClock">—</div>
+    <canvas id="chart" aria-label="Número de manchas por año desde 1700"></canvas>
+    <input type="range" id="ysl" min="1700" max="2026" step="0.0833" value="2024.6" aria-label="Fecha">
+    <div class="row" style="margin-top:2px">
+      <button class="chip" id="play">▶ Reproducir</button>
+      <button class="chip" id="zoom" aria-pressed="false">🔍 Solo 2008–hoy</button>
+    </div>
+    <div class="tele" id="cyTele"></div>
+    <div class="lab">Momentos para visitar</div>
+    <div class="marks" id="marks"></div>
+  </div>
+
+  <!-- ===== Vista 3: tormenta ===== -->
+  <div data-pane="tormenta" hidden>
+    <h2>Lanza una tormenta solar</h2>
+    <div class="lab">Elige una tormenta</div>
+    <div class="grp" id="presets" role="group" aria-label="Tormentas"></div>
+    <div class="lab">Velocidad de la nube de plasma: <b id="vLab" style="font-family:var(--f-data);color:var(--ink)">—</b></div>
+    <input type="range" id="vsl" min="300" max="3000" step="10" value="450" aria-label="Velocidad de la nube">
+    <div class="tele" id="stTele"></div>
+    <button class="big" id="launch">☀️ ¡Lanzar la llamarada!</button>
+    <div class="lab">Llegada a la Tierra</div>
+    <div class="meter"><i id="trip"></i></div>
+    <div class="clock" id="stClock">Lista para lanzar</div>
+    <div class="lab">Escala de tormentas geomagnéticas de NOAA</div>
+    <div class="gs" id="gscale"><span>G1</span><span>G2</span><span>G3</span><span>G4</span><span>G5</span><span>G5+</span></div>
+    <div class="row">
+      <button class="chip" id="camEarth">🌍 Ver auroras de cerca</button>
+      <button class="chip" id="camAll">↔ Ver todo</button>
+    </div>
+  </div>
+</section>
+
+<section class="card panel" aria-label="Explicación">
+  <div class="tabs" role="group" aria-label="Pestañas">
+    <button data-tab="que" aria-pressed="true">Qué ves</button>
+    <button data-tab="datos" aria-pressed="false">Datos</button>
+    <button data-tab="fuentes" aria-pressed="false">Fuentes</button>
+    <button class="say" id="say" title="Leer en voz alta">🔊 Escuchar</button>
+  </div>
+  <div class="body" id="body"></div>
+</section>
+
+<div class="toast panel" id="toast" style="opacity:0"></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* =====================================================================
+   DATOS REALES
+   Número de manchas solares total, versión 2.0, del SILSO (Observatorio Real de Bélgica):
+   media anual 1700–2025 (SN_y_tot_V2.0) y media mensual ene 2008 – oct 2026 (SN_m_tot_V2.0).
+   Los meses jul–oct 2026 son provisionales en el archivo original.
+   ===================================================================== */
+const SN_Y = '8.3 18.3 26.7 38.3 60.0 96.7 48.3 33.3 16.7 13.3 5.0 0.0 0.0 3.3 18.3 45.0 78.3 105.0 100.0 65.0 46.7 43.3 36.7 18.3 35.0 66.7 130.0 203.3 171.7 121.7 78.3 58.3 18.3 8.3 26.7 56.7 116.7 135.0 185.0 168.3 121.7 66.7 33.3 26.7 8.3 18.3 36.7 66.7 100.0 134.8 139.0 79.5 79.7 51.2 20.3 16.0 17.0 54.0 79.3 90.0 104.8 143.2 102.0 75.2 60.7 34.8 19.0 63.0 116.3 176.8 168.0 136.0 110.8 58.0 51.0 11.7 33.0 154.2 257.3 209.8 141.3 113.5 64.2 38.0 17.0 40.2 138.2 220.0 218.2 196.8 149.8 111.0 100.0 78.2 68.3 35.5 26.7 10.7 6.8 11.3 24.2 56.7 75.0 71.8 79.2 70.3 46.8 16.8 13.5 4.2 0.0 2.3 8.3 20.3 23.2 59.0 76.3 68.3 52.9 38.5 24.2 9.2 6.3 2.2 11.4 28.2 59.9 83.0 108.5 115.2 117.4 80.8 44.3 13.4 19.5 85.8 192.7 227.3 168.7 143.0 105.5 63.3 40.3 18.1 25.1 65.8 102.7 166.3 208.3 182.5 126.3 122.0 102.7 74.1 39.0 12.7 8.2 43.4 104.4 178.3 182.2 146.6 112.1 83.5 89.2 57.8 30.7 13.9 62.8 123.6 232.0 185.3 169.2 110.1 74.5 28.3 18.9 20.7 5.7 10.0 53.7 90.5 99.0 106.1 105.8 86.3 42.4 21.8 11.2 10.4 11.8 59.5 121.7 142.0 130.0 106.6 69.4 43.8 44.4 20.2 15.7 4.6 8.5 40.8 70.1 105.5 90.1 102.8 80.9 73.2 30.9 9.5 6.0 2.4 16.1 79.0 95.0 173.6 134.6 105.7 62.7 43.5 23.7 9.7 27.9 74.0 106.5 114.7 129.7 108.2 59.4 35.1 18.6 9.2 14.6 60.2 132.8 190.6 182.6 148.0 113.0 79.2 50.8 27.1 16.1 55.3 154.3 214.7 193.0 190.7 118.9 98.3 45.0 20.1 6.6 54.2 200.7 269.3 261.7 225.1 159.0 76.4 53.4 39.9 15.0 22.0 66.8 132.9 150.0 149.4 148.0 94.4 97.6 54.1 49.2 22.5 18.4 39.3 131.0 220.1 218.9 198.9 162.4 91.0 60.5 20.6 14.8 33.9 123.0 211.1 191.8 203.3 133.0 76.1 44.9 25.1 11.6 28.9 88.3 136.3 173.9 170.4 163.6 99.3 65.3 45.8 24.7 12.6 4.2 4.8 24.9 80.8 84.5 94.0 113.3 69.8 39.8 21.7 7.0 3.6 8.8 29.6 83.2 125.5 154.7 123.2'.split(' ').map(Number);           // índice 0 = 1700
+const SN_M = '4.1 2.9 15.5 3.6 4.6 5.2 0.6 0.3 1.2 4.2 6.6 1.0 1.3 1.2 0.6 1.2 2.9 6.3 5.5 0.0 7.1 7.7 6.9 16.3 19.5 28.5 24.0 10.4 13.9 18.8 25.2 29.6 36.4 33.6 34.4 24.5 27.3 48.3 78.6 76.1 58.2 56.1 64.5 65.8 120.1 125.7 139.1 109.3 94.4 47.8 86.6 85.9 96.5 92.0 100.1 94.8 93.7 76.5 87.6 56.8 96.1 60.9 78.3 107.3 120.2 76.7 86.2 91.8 54.5 114.4 113.9 124.2 117.0 146.1 128.7 112.5 112.5 102.9 100.2 106.9 130.0 90.0 103.6 112.9 93.0 66.7 54.5 75.3 88.8 66.5 65.8 64.4 78.6 63.6 62.2 58.0 57.0 56.4 54.1 37.9 51.5 20.5 32.4 50.2 44.6 33.4 21.4 18.5 26.1 26.4 17.7 32.3 18.9 19.2 17.8 32.6 43.7 13.2 5.7 8.2 6.8 10.7 2.5 8.9 13.1 15.6 1.6 8.7 3.3 4.9 4.9 3.1 7.7 0.8 9.4 9.1 9.9 1.2 0.9 0.5 1.1 0.4 0.5 1.5 6.2 0.2 1.5 5.2 0.2 5.8 6.1 7.5 0.6 14.6 34.5 23.1 10.4 8.2 17.2 24.5 21.2 25.0 34.3 22.0 51.3 37.4 34.8 67.5 55.3 60.9 78.6 84.0 96.5 70.3 91.4 74.6 96.0 95.5 80.5 112.8 144.4 111.3 123.3 97.6 137.4 160.5 160.0 114.8 134.2 99.9 107.1 113.5 126.0 123.0 103.7 137.0 172.1 164.1 196.8 216.0 141.1 165.8 154.1 154.6 137.0 155.7 134.2 141.4 78.5 114.6 125.9 133.7 129.7 114.8 91.7 124.2 115.0 77.4 86.6 79.0 101.8 93.3 78.1 76.0 60.3 45.7'.split(' ').map(Number);           // índice 0 = enero 2008
+const PROV_FROM = SN_M.length - 4;                       // jul 2026 en adelante: provisional
+const T_MIN = 1700, T_MAX = 2008 + (SN_M.length - 0.5) / 12;
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function sunspotR(t){                                    // t en años decimales → número de manchas (interpolado)
+  if (t >= 2008 + 0.5/12){
+    const x = (t - 2008) * 12 - 0.5, i = Math.min(Math.floor(x), SN_M.length - 2), f = Math.min(Math.max(x - i, 0), 1);
+    return SN_M[i] * (1 - f) + SN_M[i + 1] * f;
+  }
+  const x = t - T_MIN - 0.5, i = Math.max(0, Math.min(Math.floor(x), SN_Y.length - 2)), f = Math.min(Math.max(x - i, 0), 1);
+  return SN_Y[i] * (1 - f) + SN_Y[i + 1] * f;
+}
+function exactLabel(t){                                  // el dato real (sin interpolar) del año o mes
+  if (t >= 2008){ const i = Math.min(Math.floor((t - 2008) * 12), SN_M.length - 1);
+    return { txt:`${MESES[i % 12]} de ${2008 + Math.floor(i/12)}`, v:SN_M[i], prov:i >= PROV_FROM, kind:'media del mes' }; }
+  const i = Math.min(Math.floor(t - T_MIN), SN_Y.length - 1);
+  return { txt:`año ${T_MIN + i}`, v:SN_Y[i], prov:false, kind:'media del año' };
+}
+
+/* Mínimos de cada ciclo (SILSO). El ciclo 1 empieza en 1755; los anteriores se toman de los mínimos de la serie anual. */
+const MINIMA = [1712.0,1723.5,1733.5,1744.5,1755.2,1766.5,1775.5,1784.7,1798.3,1810.6,1823.3,1833.9,1843.5,1855.9,1867.2,1878.9,1890.2,1902.0,1913.6,1923.6,1933.8,1944.2,1954.3,1964.9,1976.5,1986.8,1996.4,2008.9,2019.9];
+function cycleAt(t){
+  let k = -1; for (let i = 0; i < MINIMA.length; i++) if (t >= MINIMA[i]) k = i;
+  if (k < 0) return { n:null, age:t - 1700 + 3 };
+  return { n:k - 3, age:t - MINIMA[k] };                 // n ≤ 0: antes de la numeración oficial
+}
+/* Ley de Spörer: al empezar un ciclo las manchas nacen a ~30° de latitud y, con los años, cada vez más cerca del ecuador (~7°). */
+const sporerLat = age => Math.max(7, 30 - 2.1 * age);
+
+/* Rotación diferencial (Snodgrass y Ulrich, 1990), en grados por día, vista desde la Tierra (sinódica). */
+const omegaSid = latDeg => { const s2 = Math.sin(latDeg * Math.PI/180) ** 2; return 14.713 - 2.396 * s2 - 1.787 * s2 * s2; };
+const omegaSyn = latDeg => omegaSid(latDeg) - 0.9856;
+
+/* ===================================================================== RENDER */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 2000);
+camera.position.set(0, 0, 4.2);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.minDistance = 1.25; controls.maxDistance = 40; controls.enablePan = false;
+
+{ // estrellas de fondo
+  const g = new THREE.BufferGeometry(), N = 2500, p = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++){ const u = Math.random()*2-1, a = Math.random()*Math.PI*2, r = 600, s = Math.sqrt(1-u*u);
+    p.set([r*s*Math.cos(a), r*u, r*s*Math.sin(a)], i*3); }
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color:0x9aa6c8, size:1.1, sizeAttenuation:false })));
+}
+
+const NOISE = `
+vec3 mod289(vec3 x){return x-floor(x*(1./289.))*289.;} vec4 mod289(vec4 x){return x-floor(x*(1./289.))*289.;}
+vec4 permute(vec4 x){return mod289(((x*34.)+1.)*x);} vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-.85373472095314*r;}
+float snoise(vec3 v){const vec2 C=vec2(1./6.,1./3.);const vec4 D=vec4(0.,.5,1.,2.);
+vec3 i=floor(v+dot(v,C.yyy));vec3 x0=v-i+dot(i,C.xxx);vec3 g=step(x0.yzx,x0.xyz);vec3 l=1.-g;vec3 i1=min(g.xyz,l.zxy);vec3 i2=max(g.xyz,l.zxy);
+vec3 x1=x0-i1+C.xxx;vec3 x2=x0-i2+C.yyy;vec3 x3=x0-D.yyy;i=mod289(i);
+vec4 p=permute(permute(permute(i.z+vec4(0.,i1.z,i2.z,1.))+i.y+vec4(0.,i1.y,i2.y,1.))+i.x+vec4(0.,i1.x,i2.x,1.));
+float n_=.142857142857;vec3 ns=n_*D.wyz-D.xzx;vec4 j=p-49.*floor(p*ns.z*ns.z);vec4 x_=floor(j*ns.z);vec4 y_=floor(j-7.*x_);
+vec4 x=x_*ns.x+ns.yyyy;vec4 y=y_*ns.x+ns.yyyy;vec4 h=1.-abs(x)-abs(y);vec4 b0=vec4(x.xy,y.xy);vec4 b1=vec4(x.zw,y.zw);
+vec4 s0=floor(b0)*2.+1.;vec4 s1=floor(b1)*2.+1.;vec4 sh=-step(h,vec4(0.));vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+vec3 p0=vec3(a0.xy,h.x);vec3 p1=vec3(a0.zw,h.y);vec3 p2=vec3(a1.xy,h.z);vec3 p3=vec3(a1.zw,h.w);
+vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
+vec4 m=max(.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.);m=m*m;
+return 42.*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));}`;
+
+/* ---------- el Sol ---------- */
+const MAXS = 180;                                        // manchas como máximo en la esfera
+const spotU = Array.from({ length:MAXS }, () => new THREE.Vector4(0, 0, 1, 0));
+const sunMat = new THREE.ShaderMaterial({
+  uniforms:{ uTime:{value:0}, uN:{value:0}, uSp:{value:spotU}, uMode:{value:0}, uFlare:{value:new THREE.Vector4(1,0,0,0)} },
+  vertexShader:`varying vec3 vObj; varying vec3 vN; varying vec3 vW;
+    void main(){ vObj=position; vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader:`#define MAXS ${MAXS}
+    uniform float uTime; uniform int uN; uniform vec4 uSp[MAXS]; uniform float uMode; uniform vec4 uFlare;
+    varying vec3 vObj; varying vec3 vN; varying vec3 vW;
+    ${NOISE}
+    void main(){
+      vec3 p=normalize(vObj);
+      float mu=clamp(dot(normalize(vN), normalize(cameraPosition-vW)),0.,1.);
+      float um=0., pen=0., fac=0., act=0.;
+      for(int i=0;i<MAXS;i++){ if(i>=uN) break; vec4 s=uSp[i]; if(s.w<=0.) continue;
+        float d=acos(clamp(dot(p,s.xyz),-1.,1.)); float r=s.w;
+        if(d>r*9.) continue;
+        if(d<r*1.05){
+          float fil=.85+.15*snoise(vec3(atan(dot(p-s.xyz,vec3(0.,1.,0.)),dot(p-s.xyz,vec3(1.,0.,0.)))*9., r*80., float(i)));
+          pen=max(pen,(1.-smoothstep(r*.86*fil,r*1.02,d)));
+        }
+        um=max(um,1.-smoothstep(r*.36,r*.46,d));
+        fac=max(fac,exp(-pow(d/(r*4.5),2.)));
+        act=max(act,exp(-pow(d/(r*3.2),2.)));
+      }
+      float fl=uFlare.w*exp(-pow(acos(clamp(dot(p,uFlare.xyz),-1.,1.))/.05,2.));
+      if(uMode<.5){
+        // luz visible: granulación, oscurecimiento hacia el borde, fáculas brillantes cerca del borde, penumbra y umbra
+        float g=snoise(p*95.+vec3(0.,uTime*.35,0.))*.55+snoise(p*190.-vec3(uTime*.5))*.3;
+        float sg=snoise(p*13.+uTime*.02);
+        float x=1.-mu;
+        float I=1.-.56*x-.28*x*x;
+        I*=1.+.055*g+.02*sg;
+        I*=1.+fac*.55*x*x;
+        I*=mix(1.,.62,pen); I*=mix(1.,.2,um);
+        vec3 col=mix(vec3(.98,.42,.1),vec3(1.,.88,.62),pow(mu,.6));
+        col*=I*1.02; col+=vec3(1.,.95,.85)*fl*2.;
+        gl_FragColor=vec4(col,1.);
+      } else {
+        // ultravioleta (como el canal 171 Å de SDO/AIA): las regiones activas brillan, el borde se ve más brillante
+        float n=snoise(p*7.+uTime*.01)*.5+.5, n2=snoise(p*28.-uTime*.02)*.5+.5;
+        float loops=pow(abs(snoise(p*55.+vec3(uTime*.05))),.6);
+        float b=.22+.18*n*n2+act*(1.25+.5*loops)+.35*pow(1.-mu,3.);
+        vec3 col=vec3(1.,.72,.22)*b; col+=vec3(1.,.95,.7)*fl*2.5;
+        gl_FragColor=vec4(col,1.);
+      }
+      #include <colorspace_fragment>
+    }`,
+});
+const sunGroup = new THREE.Group(); scene.add(sunGroup);
+const sun = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 96), sunMat); sunGroup.add(sun);
+
+// corona (resplandor)
+function glowTex(stops){ const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+  const g = x.createRadialGradient(128,128,0,128,128,128); stops.forEach(([o,col]) => g.addColorStop(o,col)); x.fillStyle = g; x.fillRect(0,0,256,256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+const corona = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex([[0,'rgba(255,200,120,1)'],[.33,'rgba(255,170,80,.55)'],[.42,'rgba(255,140,60,.18)'],[1,'rgba(255,120,40,0)']]),
+  blending:THREE.AdditiveBlending, depthWrite:false, transparent:true }));
+corona.scale.setScalar(6.2); sunGroup.add(corona); corona.renderOrder = -1;
+
+// línea pintada (para ver la rotación diferencial)
+const LINE_LATS = []; for (let l = -72; l <= 72; l += 2) LINE_LATS.push(l);
+const lineGeo = new THREE.BufferGeometry(); lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(LINE_LATS.length * 3), 3));
+const paintLine = new THREE.Points(lineGeo, new THREE.PointsMaterial({ color:0x6fd3ff, size:4.5, sizeAttenuation:false, depthTest:true }));
+paintLine.visible = false; sunGroup.add(paintLine);
+let lineT0 = 0, lineLon0 = 0;
+
+// la Tierra a escala junto al Sol (radio solar / radio terrestre ≈ 109)
+const tinyEarth = new THREE.Mesh(new THREE.SphereGeometry(1/109.2, 24, 16), new THREE.MeshBasicMaterial({ color:0x5b8fd9 }));
+tinyEarth.visible = false; sunGroup.add(tinyEarth);
+
+/* ---------- la Tierra (vista de la tormenta) ---------- */
+const loader = new THREE.TextureLoader();
+const texDay = loader.load('../tex/tierra-dia.webp', t => { t.colorSpace = THREE.SRGBColorSpace; });
+const texNight = loader.load('../tex/tierra-noche.webp', t => { t.colorSpace = THREE.SRGBColorSpace; });
+const MAGPOLE = [80.8, -72.7];                           // polo norte geomagnético (dipolo, IGRF, ~2025), grados
+const earthGroup = new THREE.Group(); scene.add(earthGroup);
+const ER = 0.55, SEP = 3.2;                        // radio de la Tierra y distancia al centro en la vista de tormenta (no a escala)
+const earthMat = new THREE.ShaderMaterial({
+  uniforms:{ uDay:{value:texDay}, uNight:{value:texNight}, uSun:{value:new THREE.Vector3(-1,0,0)} },
+  vertexShader:`varying vec2 vUv; varying vec3 vN; void main(){ vUv=uv; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader:`uniform sampler2D uDay; uniform sampler2D uNight; uniform vec3 uSun; varying vec2 vUv; varying vec3 vN;
+    void main(){ float l=dot(normalize(vN),normalize(uSun)); float d=smoothstep(-.12,.18,l);
+      vec3 day=texture2D(uDay,vUv).rgb*(.12+1.05*max(l,0.)); vec3 night=texture2D(uNight,vUv).rgb*1.3;
+      gl_FragColor=vec4(mix(night,day,d),1.);
+      #include <colorspace_fragment>
+    }`,
+});
+const earth = new THREE.Mesh(new THREE.SphereGeometry(ER, 96, 64), earthMat); earthGroup.add(earth);
+const aurMat = new THREE.ShaderMaterial({
+  uniforms:{ uEdge:{value:65}, uI:{value:0}, uTime:{value:0}, uSun:{value:new THREE.Vector3(-1,0,0)}, uPole:{value:new THREE.Vector2(MAGPOLE[0]*Math.PI/180, MAGPOLE[1]*Math.PI/180)} },
+  transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+  vertexShader:`varying vec2 vUv; varying vec3 vN; void main(){ vUv=uv; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader:`uniform float uEdge; uniform float uI; uniform float uTime; uniform vec3 uSun; uniform vec2 uPole; varying vec2 vUv; varying vec3 vN;
+    ${NOISE}
+    void main(){
+      float lat=(vUv.y-.5)*3.14159265, lon=vUv.x*6.2831853-3.14159265;
+      float sm=sin(lat)*sin(uPole.x)+cos(lat)*cos(uPole.x)*cos(lon-uPole.y);
+      float ml=degrees(asin(clamp(sm,-1.,1.))); float a=abs(ml);
+      float w=3.5+ (65.-uEdge)*.08;
+      float c=uEdge+w;                                   // centro del óvalo, un poco más al polo que el borde
+      float band=exp(-pow((a-c)/w,2.));
+      float night=1.-smoothstep(-.25,.25,dot(normalize(vN),normalize(uSun)));
+      float flick=.7+.3*snoise(vec3(lon*6.,lat*10.,uTime*1.4));
+      float I=band*flick*uI*(.25+.75*night);
+      vec3 col=mix(vec3(.25,1.,.55),vec3(1.,.3,.35),smoothstep(c,c+w*1.4,a));
+      gl_FragColor=vec4(col*I*1.6, I);
+    }`,
+});
+const aurora = new THREE.Mesh(new THREE.SphereGeometry(ER*1.025, 96, 64), aurMat); earthGroup.add(aurora);
+// magnetosfera (escudo): un casquete translúcido del lado del Sol que se aplasta cuando llega la nube
+const magMat = new THREE.MeshBasicMaterial({ color:0x6fb6ff, transparent:true, opacity:.045, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending });
+const magneto = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24, 0, Math.PI*2, 0, Math.PI*.55), magMat);
+magneto.rotation.z = Math.PI/2; earthGroup.add(magneto);
+// Guayaquil
+const GYE = [-2.19, -79.89];
+function geoToVec(lat, lon, r){ // misma convención que SphereGeometry de three.js con un mapa equirectangular
+  const phi = (lon + 180) * Math.PI/180, th = (90 - lat) * Math.PI/180;
+  return new THREE.Vector3(-r*Math.cos(phi)*Math.sin(th), r*Math.cos(th), r*Math.sin(phi)*Math.sin(th)); }
+const gyeDot = new THREE.Mesh(new THREE.SphereGeometry(ER*0.02, 12, 8), new THREE.MeshBasicMaterial({ color:0xffd36b }));
+gyeDot.position.copy(geoToVec(GYE[0], GYE[1], ER*1.005)); earth.add(gyeDot);
+function magLat(lat, lon){ const r = Math.PI/180, p = MAGPOLE;
+  return Math.asin(Math.sin(lat*r)*Math.sin(p[0]*r) + Math.cos(lat*r)*Math.cos(p[0]*r)*Math.cos((lon-p[1])*r)) / r; }
+const GYE_ML = magLat(GYE[0], GYE[1]);
+earthGroup.visible = false;
+
+// la nube de plasma (eyección de masa coronal) y el destello de luz
+const CME_N = 2600;
+const cmeGeo = new THREE.BufferGeometry(); cmeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(CME_N*3), 3));
+const cmeDir = new Float32Array(CME_N*3), cmeK = new Float32Array(CME_N);
+for (let i = 0; i < CME_N; i++){ const a = Math.random()*Math.PI*2, h = Math.acos(1 - Math.random()*(1 - Math.cos(0.45)));
+  cmeDir.set([Math.cos(h), Math.sin(h)*Math.cos(a), Math.sin(h)*Math.sin(a)], i*3); cmeK[i] = 0.82 + Math.random()*0.18 * (1 - h/0.45*0.6); }
+const cme = new THREE.Points(cmeGeo, new THREE.PointsMaterial({ color:0xffa860, size:2.4, sizeAttenuation:false, transparent:true, opacity:.85, blending:THREE.AdditiveBlending, depthWrite:false }));
+cme.visible = false; scene.add(cme);
+const pulse = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), new THREE.MeshBasicMaterial({ color:0xfff3d0, transparent:true, opacity:.25, side:THREE.BackSide, depthWrite:false, blending:THREE.AdditiveBlending }));
+pulse.visible = false; scene.add(pulse);
+const axisLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-SEP+1.1,0,0), new THREE.Vector3(SEP-ER-0.1,0,0)]),
+  new THREE.LineDashedMaterial({ color:0x33405c, dashSize:.15, gapSize:.12 }));
+axisLine.computeLineDistances(); axisLine.visible = false; scene.add(axisLine);
+
+/* ===================================================================== MANCHAS */
+let simDay = 0;                                          // días de simulación (para la rotación)
+let date = T_MAX;                                        // fecha que define cuántas manchas hay
+let groups = [];
+const rnd = (a, b) => a + Math.random()*(b - a);
+const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+
+function targetGroups(R){ return Math.round(R / 4.5); }   // en toda la esfera; calibrado para que la cuenta visible R = 10g + s se parezca al dato real
+function newGroup(born, randomAge){
+  const cy = cycleAt(date);
+  let mean = sporerLat(cy.age);
+  if (cy.age > 9 && Math.random() < Math.min(0.6, (cy.age - 9) / 3)) mean = rnd(24, 32);   // el ciclo siguiente ya asoma en latitudes altas
+  const lat = Math.sign(Math.random() - 0.5) * Math.min(40, Math.max(3, mean + gauss()*4.5));
+  const size = Math.pow(Math.random(), 2.2);             // muchas pequeñas, pocas grandes
+  const L = 3 + size * 55 + rnd(0, 6);                    // vida en días
+  const n = 1 + Math.min(3, Math.floor(size * 4.2 + Math.random()*0.8));
+  const sep = 0.02 + size*0.085, tilt = Math.sign(lat) * rnd(2, 9) * Math.PI/180;   // ley de Joy: la mancha delantera más cerca del ecuador
+  const r0 = 0.007 + size*0.03;                      // radio de la mancha principal (rad): de ~5 000 a ~25 000 km
+  const spots = [];
+  for (let k = 0; k < n; k++){
+    const u = n === 1 ? 0 : 0.5 - k/(n - 1);              // +0.5 = delantera (oeste), -0.5 = seguidora
+    const rr = k === 0 ? r0 : (k === n - 1 ? r0*0.72 : r0*rnd(0.28, 0.45));
+    spots.push({ dl: u*sep*Math.cos(tilt) + gauss()*0.004, db: -u*sep*Math.sin(tilt) + gauss()*0.004, r:rr });
+  }
+  return { lat, lon0:rnd(-180, 180), t0:born - (randomAge ? Math.random()*L : 0), L, spots };
+}
+function envelope(g, t){ const a = (t - g.t0) / g.L; if (a < 0 || a > 1) return 0; return a < 0.12 ? a/0.12 : a < 0.5 ? 1 : 1 - (a - 0.5)/0.5; }   // crece rápido, dura, se apaga despacio
+function syncGroups(instant){
+  const want = targetGroups(sunspotR(date));
+  groups = groups.filter(g => simDay - g.t0 < g.L);
+  if (instant){
+    while (groups.length > want) groups.splice(Math.floor(Math.random()*groups.length), 1);
+    while (groups.length < want) groups.push(newGroup(simDay, true));
+  } else for (let k = 0; k < 3 && groups.length < want; k++) groups.push(newGroup(simDay, false));   // reponer las que se apagan
+}
+function groupDir(g, s, t, out){
+  const lat = g.lat + s.db*180/Math.PI;
+  const lon = g.lon0 + omegaSyn(g.lat) * (t - g.t0) + s.dl*180/Math.PI / Math.cos(g.lat*Math.PI/180);
+  const la = lat*Math.PI/180, lo = lon*Math.PI/180;
+  return out.set(Math.cos(la)*Math.sin(lo), Math.sin(la), Math.cos(la)*Math.cos(lo));
+}
+const tmpV = new THREE.Vector3();
+let visG = 0, visS = 0, biggest = null;
+function updateSpots(){
+  let n = 0; visG = 0; visS = 0; biggest = null; let bigR = 0;
+  for (const g of groups){
+    const e = envelope(g, simDay); if (e <= 0) continue;
+    let counted = false;
+    for (const s of g.spots){
+      if (n >= MAXS) break;
+      const r = s.r * Math.sqrt(e);
+      groupDir(g, s, simDay, tmpV);
+      spotU[n++].set(tmpV.x, tmpV.y, tmpV.z, r);
+      if (tmpV.z > 0.05 && e > 0.2){ visS++; counted = true; if (r > bigR && tmpV.z > 0.5){ bigR = r; biggest = tmpV.clone(); } }
+    }
+    if (counted) visG++;
+  }
+  sunMat.uniforms.uN.value = n;
+}
+
+/* ===================================================================== ESTADO Y VISTAS */
+let view = 'sol', speed = 1, playing = false, zoom = false;
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 0) => x.toLocaleString('es-EC', { minimumFractionDigits:d, maximumFractionDigits:d });
+function dateText(t){ const y = Math.floor(t), m = Math.min(11, Math.floor((t - y)*12)); return `${MESES[m]} de ${y}`; }
+
+const camTargets = {
+  sol:{ pos:[0, 0.15, 4.2], tgt:[0,0,0] },
+  ciclo:{ pos:[0, 0.4, 4.6], tgt:[0,0,0] },
+  tormenta:{ pos:[0, 2.8, 17], tgt:[0,0,0] },
+  earth:{ pos:[SEP+1.25, 1.45, -0.55], tgt:[SEP,0.12,0] },
+};
+let camAnim = null;
+function flyTo(key, ms = 1200){
+  const c = camTargets[key];
+  camAnim = { t0:performance.now(), ms, p0:camera.position.clone(), q0:controls.target.clone(), p1:new THREE.Vector3(...c.pos), q1:new THREE.Vector3(...c.tgt) };
+}
+
+function setView(v){
+  view = v; playing = false; $('play').textContent = '▶ Reproducir';
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
+  document.querySelectorAll('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== v);
+  const storm = v === 'tormenta';
+  sunGroup.position.set(storm ? -SEP : 0, 0, 0);
+  earthGroup.visible = storm; axisLine.visible = storm;
+  if (!storm){ cme.visible = false; pulse.visible = false; }
+  paintLine.visible = paintLine.visible && v === 'sol'; tinyEarth.visible = $('earthScale').getAttribute('aria-pressed') === 'true' && v === 'sol';
+  if (v === 'sol'){ date = T_MAX; syncGroups(true); }
+  if (v === 'ciclo'){ date = +$('ysl').value; syncGroups(true); drawChart(); }
+  if (storm){ sunMat.uniforms.uMode.value = 0; setFilterUI(0); }
+  controls.minDistance = storm ? 2 : 1.25;
+  flyTo(v);
+  tab = 'que'; renderCard();
+}
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
+
+// ---- vista 1 ----
+document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => {
+  speed = +b.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+function setFilterUI(m){ document.querySelectorAll('[data-filter]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.filter === m)); }
+document.querySelectorAll('[data-filter]').forEach(b => b.onclick = () => {
+  const m = +b.dataset.filter; sunMat.uniforms.uMode.value = m; setFilterUI(m);
+  corona.material.opacity = m ? 1 : 0.9; corona.scale.setScalar(m ? 7.2 : 6.2);
+  if (m) toast('Así ve el Sol el telescopio <b>SDO</b> en ultravioleta: encima de cada grupo de manchas brillan arcos de gas a un millón de grados.');
+});
+$('paint').onclick = () => {
+  lineT0 = simDay; lineLon0 = 0;                       // empieza en el meridiano central, el que mira a la Tierra (+z)
+  paintLine.visible = true;
+  toast('Mira la línea: el ecuador da la vuelta en unos <b>25 días</b> y los polos en más de <b>30</b>. El Sol no es sólido: es gas.');
+};
+$('earthScale').onclick = e => {
+  const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', on); tinyEarth.visible = on;
+  if (on) toast('El puntito azul es la <b>Tierra a escala</b>: cabrían unas 109 Tierras a lo ancho del Sol. Una mancha grande es más grande que nuestro planeta.');
+};
+
+// ---- vista 2: gráfica ----
+const chart = $('chart'), cx = chart.getContext('2d');
+const MARKS = [
+  { t:1711.5, txt:'1711: casi sin manchas' },
+  { t:1810.5, txt:'1810: ¡cero! (mínimo de Dalton)' },
+  { t:1859.67, txt:'1859: tormenta de Carrington' },
+  { t:1957.5, txt:'1957: el récord (269,3)' },
+  { t:2008 + 11.5/12, txt:'2019: mínimo (3,6)' },
+  { t:2008 + (16*12 + 7.5)/12, txt:'ago 2024: el mes más activo del ciclo 25' },
+];
+MARKS.forEach(m => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = m.txt;
+  b.onclick = () => { if (zoom && m.t < 2008) setZoom(false); setDate(m.t, true); }; $('marks').append(b); });
+function chartRange(){ return zoom ? [2008, T_MAX + 0.1] : [T_MIN, T_MAX + 0.5]; }
+function drawChart(){
+  const dpr = Math.min(devicePixelRatio, 2), W = chart.clientWidth, H = chart.clientHeight;
+  if (!W) return;
+  if (chart.width !== Math.round(W*dpr)){ chart.width = Math.round(W*dpr); chart.height = Math.round(H*dpr); }
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, W, H);
+  const [a, b] = chartRange(), top = 280, pl = 26, pr = 6, pt = 8, pb = 16;
+  const X = t => pl + (t - a)/(b - a)*(W - pl - pr), Y = v => H - pb - v/top*(H - pt - pb);
+  // ejes y rejilla
+  cx.font = '10px IBM Plex Mono, monospace'; cx.fillStyle = '#646b82'; cx.strokeStyle = '#1a2133'; cx.lineWidth = 1;
+  for (const v of [0, 100, 200]){ cx.beginPath(); cx.moveTo(pl, Y(v)); cx.lineTo(W - pr, Y(v)); cx.stroke(); cx.fillText(v, 2, Y(v) + 3); }
+  const step = zoom ? 2 : 50;
+  for (let y = Math.ceil(a/step)*step; y <= b; y += step) cx.fillText(y, X(y) - 12, H - 3);
+  if (!zoom){ // mínimo de Dalton
+    cx.fillStyle = 'rgba(140,196,255,.08)'; cx.fillRect(X(1790), pt, X(1830) - X(1790), H - pt - pb);
+    cx.fillStyle = '#8cc4ff'; cx.fillText('Dalton', X(1797), pt + 9);
+  }
+  // serie
+  cx.beginPath();
+  if (!zoom){ for (let i = 0; i < SN_Y.length; i++){ const x = X(T_MIN + i + 0.5), y = Y(SN_Y[i]); i ? cx.lineTo(x, y) : cx.moveTo(x, y); } }
+  for (let i = 0; i < SN_M.length; i++){ const t = 2008 + (i + 0.5)/12; if (!zoom && t < 2026) continue; const x = X(t), y = Y(SN_M[i]); (zoom && !i) ? cx.moveTo(x, y) : cx.lineTo(x, y); }
+  const grad = cx.createLinearGradient(0, pt, 0, H - pb); grad.addColorStop(0, '#ff7a3c'); grad.addColorStop(1, '#ffc35a');
+  cx.strokeStyle = grad; cx.lineWidth = zoom ? 1.4 : 1.2; cx.stroke();
+  cx.lineTo(X(T_MAX), Y(0)); cx.lineTo(X(zoom ? 2008 : T_MIN + 0.5), Y(0)); cx.closePath();
+  cx.fillStyle = 'rgba(255,170,80,.12)'; cx.fill();
+  if (zoom){ cx.fillStyle = 'rgba(255,255,255,.06)'; cx.fillRect(X(2008 + PROV_FROM/12), pt, X(T_MAX + 0.1) - X(2008 + PROV_FROM/12), H - pt - pb); }
+  // fecha actual
+  const xd = X(date); cx.strokeStyle = '#ecebf2'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(xd, pt); cx.lineTo(xd, H - pb); cx.stroke();
+  cx.fillStyle = '#ecebf2'; cx.beginPath(); cx.arc(xd, Y(sunspotR(date)), 3.2, 0, Math.PI*2); cx.fill();
+}
+function chartPick(ev){
+  const r = chart.getBoundingClientRect(), [a, b] = chartRange(), pl = 26, pr = 6;
+  const t = a + (ev.clientX - r.left - pl)/(r.width - pl - pr)*(b - a);
+  setDate(t, true);
+}
+let chartDrag = false;
+chart.addEventListener('pointerdown', e => { chartDrag = true; chart.setPointerCapture(e.pointerId); chartPick(e); });
+chart.addEventListener('pointermove', e => { if (chartDrag) chartPick(e); });
+chart.addEventListener('pointerup', () => chartDrag = false);
+$('ysl').max = T_MAX.toFixed(3);
+$('ysl').oninput = e => setDate(+e.target.value, true);
+function setDate(t, instant){
+  date = Math.min(T_MAX, Math.max(T_MIN, t)); $('ysl').value = date; syncGroups(instant); drawChart(); updateCycleTele();
+}
+function setZoom(on){ zoom = on; $('zoom').setAttribute('aria-pressed', on); $('ysl').min = on ? 2008 : 1700; if (on && date < 2008) setDate(2008, true); drawChart(); }
+$('zoom').onclick = () => setZoom(!zoom);
+$('play').onclick = () => {
+  playing = !playing; $('play').textContent = playing ? '⏸ Pausa' : '▶ Reproducir';
+  if (playing && date >= T_MAX - 0.05) setDate(zoom ? 2008 : 1700, true);
+};
+function updateCycleTele(){
+  const ex = exactLabel(date), cy = cycleAt(date);
+  $('cyClock').innerHTML = `${dateText(date)} <small>· ${cy.n > 0 ? 'ciclo ' + cy.n : 'antes del ciclo 1'}</small>`;
+  $('cyTele').innerHTML = `
+    <span>Manchas (${ex.kind})</span><b>${fmt(ex.v, 1)}${ex.prov ? ' (provisional)' : ''}</b>
+    <span>Años desde el mínimo</span><b>${fmt(Math.max(0, cy.age), 1)}</b>
+    <span>Latitud de las manchas nuevas</span><b>≈ ${fmt(sporerLat(cy.age))}° N y S</b>
+    <span>Grupos en la cara visible</span><b>${visG}</b>`;
+}
+
+// ---- vista 3: tormenta ----
+const AU = 149.6e6;                                      // km
+const PRESETS = [
+  { id:'tipica', name:'Nube típica', v:450, info:'Una eyección lenta, como las que llegan varias veces al año.' },
+  { id:'halloween', name:'Halloween 2003', v:2190, info:'28 de octubre de 2003: la nube llegó en unas 19 horas. Tormenta G5.' },
+  { id:'carrington', name:'Carrington 1859', v:2360, extreme:true, info:'1 de septiembre de 1859: la nube llegó en unas 17,6 horas. La tormenta más fuerte registrada.' },
+];
+let preset = PRESETS[0], vCME = 450;
+PRESETS.forEach(p => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = p.name; b.dataset.p = p.id;
+  b.onclick = () => { choosePreset(p); }; $('presets').append(b); });
+function choosePreset(p){
+  preset = p; vCME = p ? p.v : vCME; if (p) $('vsl').value = p.v;
+  document.querySelectorAll('[data-p]').forEach(x => x.setAttribute('aria-pressed', !!p && x.dataset.p === p.id));
+  updateStormTele(); resetStorm();
+}
+$('vsl').oninput = e => { vCME = +e.target.value; preset = null; document.querySelectorAll('[data-p]').forEach(x => x.setAttribute('aria-pressed', false)); updateStormTele(); resetStorm(); };
+/* Modelo sencillo: más rápido → tormenta más fuerte. Borde del óvalo según la escala de NOAA:
+   G1 (Kp 5) ≈ 60°, G2 55°, G3 50°, G4 45°, G5 (Kp 9) ≈ 40° de latitud geomagnética. Carrington: más allá de G5 (≈ 28°, estimación). */
+function stormFrom(v, extreme){
+  if (extreme) return { kp:9, g:6, edge:28 };
+  const kp = Math.max(3, Math.min(9, 3 + (v - 300) / 1650 * 6));
+  const k = Math.round(kp);
+  const edge = k >= 5 ? 60 - 5*(k - 5) : 65;
+  return { kp:k, g:Math.max(0, k - 4), edge };
+}
+function hoursTo(v){ return AU / v / 3600; }
+function hm(h){ if (h >= 48) return `${fmt(h/24, 1)} días`; const H = Math.floor(h), M = Math.round((h - H)*60); return `${H} h ${M} min`; }
+function updateStormTele(){
+  const s = stormFrom(vCME, preset && preset.extreme);
+  $('vLab').textContent = `${fmt(vCME)} km/s`;
+  $('stTele').innerHTML = `
+    <span>Tarda en llegar</span><b>${hm(hoursTo(vCME))}</b>
+    <span>La luz del destello tarda</span><b>8 min 19 s</b>
+    <span>Tormenta esperada</span><b>${s.g ? (s.g === 6 ? 'más allá de G5' : 'G' + s.g + ' (Kp ' + s.kp + ')') : 'menor (Kp ' + s.kp + ')'}</b>
+    <span>Auroras hasta</span><b>≈ ${s.edge}° de latitud geomagnética</b>
+    <span>Guayaquil está a</span><b>≈ ${fmt(GYE_ML, 0)}° geomagnéticos</b>`;
+}
+let storm = null;                                        // {t0, T(h), arrived}
+function resetStorm(){
+  storm = null; cme.visible = false; pulse.visible = false; aurMat.uniforms.uI.value = 0; magneto.scale.set(1.35, 1.35, 1.35);
+  sunMat.uniforms.uFlare.value.w = 0; $('trip').style.width = '0%'; $('stClock').textContent = 'Lista para lanzar'; paintG(0);
+}
+function paintG(g){ document.querySelectorAll('#gscale span').forEach((s, i) => { s.classList.toggle('on', i < g); s.classList.toggle('x', i === 5 && g === 6); }); }
+$('launch').onclick = () => {
+  resetStorm();
+  const s = stormFrom(vCME, preset && preset.extreme);
+  storm = { t0:performance.now(), T:hoursTo(vCME), s, arrived:false };
+  // la llamarada: en la cara que mira a la Tierra (+x en esta vista)
+  const fl = new THREE.Vector3(Math.cos(0.25)*Math.sin(Math.PI/2 - 0.15), Math.sin(0.25), Math.cos(0.25)*Math.cos(Math.PI/2 - 0.15)).normalize();
+  sunMat.uniforms.uFlare.value.set(fl.x, fl.y, fl.z, 1);
+  cme.visible = true; pulse.visible = true;
+  $('flash').style.opacity = .35; setTimeout(() => $('flash').style.opacity = 0, 180);
+  toast(`¡Llamarada! Su luz llega a la Tierra en <b>8 min 19 s</b>; la nube de plasma tardará <b>${hm(storm.T)}</b>.`);
+};
+$('camEarth').onclick = () => flyTo('earth', 1600);
+$('camAll').onclick = () => flyTo('tormenta', 1200);
+const STORM_REAL_S = 9;                                  // segundos reales que dura el viaje en pantalla
+function stepStorm(now){
+  if (!storm) return;
+  const f = Math.min(1, (now - storm.t0) / 1000 / STORM_REAL_S);
+  const sp = sunGroup.position, ep = earthGroup.position, D = ep.x - sp.x;
+  // destello de luz: casi instantáneo en pantalla
+  const fp = Math.min(1, (now - storm.t0) / 350);
+  pulse.position.copy(sp); pulse.scale.setScalar(1 + fp*D); pulse.material.opacity = 0.22*(1 - fp); pulse.visible = fp < 1;
+  sunMat.uniforms.uFlare.value.w = Math.max(0, 1 - (now - storm.t0)/2500);
+  // la nube
+  const pos = cmeGeo.attributes.position.array, R = 1 + f*(D - ER - 1 + 0.3);
+  for (let i = 0; i < CME_N; i++){ const k = cmeK[i], r = R*k;
+    pos[i*3] = sp.x + cmeDir[i*3]*r; pos[i*3+1] = cmeDir[i*3+1]*r*(0.6 + 0.4*f); pos[i*3+2] = cmeDir[i*3+2]*r*(0.6 + 0.4*f); }
+  cmeGeo.attributes.position.needsUpdate = true;
+  cme.material.opacity = 0.85*(1 - Math.max(0, f - 0.85)/0.15*0.7);
+  $('trip').style.width = (f*100).toFixed(1) + '%';
+  $('stClock').textContent = f < 1 ? `En camino: ${hm(f*storm.T)} de ${hm(storm.T)}` : `Llegó después de ${hm(storm.T)}`;
+  if (f >= 1 && !storm.arrived){
+    storm.arrived = true; aurMat.uniforms.uEdge.value = storm.s.edge; paintG(storm.s.g);
+    const g = storm.s.g;
+    toast(g === 6 ? '¡Tormenta extrema! Auroras hasta unos <b>28°</b> geomagnéticos. Aun así, en Guayaquil (≈7°) no se verían.'
+      : g ? `¡Llegó! Tormenta <b>G${g}</b>: auroras hasta unos <b>${storm.s.edge}°</b> de latitud geomagnética. Pulsa «Ver auroras de cerca».`
+          : 'Llegó una nube débil: auroras sólo cerca de los polos.');
+  }
+  if (storm.arrived){
+    const a = Math.min(1, (now - storm.t0)/1000 - STORM_REAL_S);
+    aurMat.uniforms.uI.value = Math.min(1, a*0.8) * (0.55 + 0.45*Math.min(1, storm.s.g/4));
+    const squeeze = 1.35 - (storm.s.g ? 0.15 + 0.06*storm.s.g : 0.08) * Math.min(1, a*2);
+    magneto.scale.set(1.35, squeeze, 1.35);             // el eje local y apunta al Sol
+  }
+}
+
+/* ===================================================================== TARJETA */
+let tab = 'que';
+const CARDS = {
+  sol:{
+    que:() => `<h3>Las manchas del Sol</h3>
+      <p>Las <b>manchas solares</b> son zonas donde el campo magnético del Sol es tan fuerte que frena el gas caliente que sube desde adentro. Por eso están <b>más frías</b> (unos 3 500 °C en vez de 5 500 °C) y se ven oscuras, aunque en realidad brillan muchísimo.</p>
+      <p>El centro oscuro se llama <b>umbra</b> y el borde con rayitas, <b>penumbra</b>. Casi siempre salen en <b>grupos</b>, como imanes con un polo norte y uno sur.</p>
+      <h4>Prueba esto</h4>
+      <ul><li>Acelera el tiempo y mira cómo las manchas cruzan el disco de izquierda a derecha: así se descubrió que el Sol gira.</li>
+      <li>Pulsa <b>Pinta una línea</b>: el ecuador gira más rápido que los polos y la línea se tuerce. ¡El Sol no es sólido!</li>
+      <li>Activa la <b>Tierra a escala</b> y compárala con una mancha grande.</li>
+      <li>Cambia a <b>ultravioleta</b>: sobre cada grupo de manchas aparecen regiones brillantes.</li></ul>
+      <h4>El número de manchas</h4>
+      <p>Desde 1848 se cuenta igual: <b>R = 10 × grupos + manchas</b> (fórmula de Rudolf Wolf). Arriba a la izquierda la simulación cuenta las manchas que se ven ahora.</p>
+      <div class="note">⚠️ Nunca mires el Sol directamente ni con binoculares o telescopio sin un filtro solar certificado: daña los ojos para siempre.</div>`,
+    datos:() => `<h3>El Sol en números</h3>
+      <div class="kv">
+        <span>Radio</span><b>696 000 km (109 Tierras)</b>
+        <span>Temperatura de la superficie</span><b>≈ 5 500 °C</b>
+        <span>Temperatura de una mancha (umbra)</span><b>≈ 3 500 °C</b>
+        <span>Temperatura de la corona</span><b>más de 1 000 000 °C</b>
+        <span>Rotación en el ecuador (vista desde la Tierra)</span><b>≈ 26 días</b>
+        <span>Rotación a 60° de latitud</span><b>≈ ${fmt(360/omegaSyn(60), 0)} días</b>
+        <span>Distancia a la Tierra</span><b>149,6 millones de km</b>
+        <span>La luz tarda</span><b>8 min 19 s</b>
+      </div>
+      <h4>Cómo está hecha la simulación</h4>
+      <ul><li>Cuántas manchas hay: el número de manchas real del SILSO del último mes disponible.</li>
+      <li>Rotación diferencial: fórmula de Snodgrass y Ulrich (1990): ω = 14,713 − 2,396 sin²φ − 1,787 sin⁴φ grados/día, menos 0,986°/día por el movimiento de la Tierra.</li>
+      <li>Los grupos nacen, crecen y se apagan en días o semanas; la delantera queda un poco más cerca del ecuador (ley de Joy).</li>
+      <li>El borde del disco se ve más oscuro (oscurecimiento del limbo) y la superficie tiene granulación, como en las fotos reales.</li></ul>
+      <div class="note">La posición exacta de cada mancha es inventada: lo real es cuántas hay, en qué latitudes y cómo se mueven.</div>`,
+  },
+  ciclo:{
+    que:() => `<h3>El Sol tiene un «pulso» de 11 años</h3>
+      <p>Durante unos años casi no hay manchas (<b>mínimo</b>) y luego aparecen cada vez más hasta el <b>máximo</b>; después vuelven a desaparecer. Una vuelta completa dura <b>unos 11 años</b>, pero cada ciclo es distinto.</p>
+      <p>La gráfica es <b>real</b>: el número de manchas de cada año desde 1700, contado por astrónomos de todo el mundo y reunido por el Observatorio Real de Bélgica.</p>
+      <h4>Fíjate en</h4>
+      <ul><li><b>Las latitudes</b>: al empezar un ciclo las manchas nacen lejos del ecuador (~30°) y al final muy cerca (~7°). Dibujadas en el tiempo parecen las alas de una mariposa (ley de Spörer).</li>
+      <li><b>1810</b>: el Sol pasó un año entero sin manchas (mínimo de Dalton).</li>
+      <li><b>1957</b>: el ciclo más fuerte medido.</li>
+      <li><b>Ahora</b>: en octubre de 2024 NASA y NOAA anunciaron que el Sol entró en el máximo del ciclo 25; hoy ya va bajando.</li></ul>
+      <h4>¿Por qué pasa?</h4>
+      <p>El Sol gira más rápido en el ecuador que en los polos y eso enreda su campo magnético como una liga que se retuerce. Cada 11 años el campo se da la vuelta: el polo norte magnético pasa a ser sur. Un ciclo magnético completo dura unos 22 años.</p>`,
+    datos:() => `<h3>Datos del ciclo</h3>
+      <div class="kv">
+        <span>Año más activo (media anual)</span><b>1957: 269,3</b>
+        <span>Año sin manchas</span><b>1810: 0,0</b>
+        <span>Mínimo antes del ciclo 25</span><b>2019: 3,6</b>
+        <span>Ciclo 25, año más activo</span><b>2024: 154,7</b>
+        <span>Ciclo 25, mes más activo</span><b>agosto 2024: 216,0</b>
+        <span>Último dato</span><b>${exactLabel(T_MAX).txt}: ${fmt(SN_M[SN_M.length-1], 1)} (provisional)</b>
+      </div>
+      <h4>Cómo está hecha la simulación</h4>
+      <ul><li>Antes de 2008: media anual; desde 2008: media mensual (SILSO, versión 2.0). Entre dos datos se interpola.</li>
+      <li>Las fechas de los mínimos de cada ciclo son las del SILSO (el ciclo 1 empieza en 1755).</li>
+      <li>Latitud media de las manchas nuevas: de ~30° a ~7° a lo largo del ciclo; a partir del año 9 ya aparecen algunas del ciclo siguiente en latitudes altas.</li>
+      <li>Se dibujan los grupos necesarios para que la cuenta de la cara visible (R = 10g + s) se parezca al dato real de esa fecha.</li></ul>
+      <div class="note">Antes de 1749 los datos son anuales y menos seguros: había pocas observaciones.</div>`,
+  },
+  tormenta:{
+    que:() => `<h3>Tormentas solares</h3>
+      <p>Cuando el campo magnético de un grupo de manchas se rompe y se reconecta, suelta energía de golpe: una <b>llamarada</b>. Su luz llega a la Tierra en 8 minutos. A veces además sale disparada una nube gigante de gas electrizado: una <b>eyección de masa coronal</b>, que tarda <b>de 1 a 4 días</b> en llegar.</p>
+      <p>La Tierra tiene un escudo magnético (la <b>magnetosfera</b>). La nube lo aplasta, y partículas guiadas por el campo magnético bajan cerca de los polos y hacen brillar el aire: <b>las auroras</b>. El verde es oxígeno a ~100–250 km de altura; el rojo, oxígeno más arriba.</p>
+      <h4>Prueba esto</h4>
+      <ul><li>Lanza la <b>nube típica</b> y luego la de <b>Carrington</b>: compara cuánto tarda y hasta dónde llegan las auroras.</li>
+      <li>Mueve la velocidad y mira la escala de NOAA (de G1 a G5).</li>
+      <li>Busca el punto amarillo: es <b>Guayaquil</b>. Ecuador está tan cerca del ecuador magnético que aquí las auroras no se ven, ni siquiera con la tormenta más fuerte registrada.</li></ul>
+      <h4>Tormentas famosas</h4>
+      <ul><li><b>1859, Carrington</b>: Richard Carrington vio la llamarada a simple vista con su telescopio. La nube llegó en unas 17,6 h; hubo auroras en lugares tropicales y los telégrafos echaban chispas.</li>
+      <li><b>2003, Halloween</b>: tormentas G5; dañó satélites y obligó a desviar vuelos.</li>
+      <li><b>Mayo de 2024</b>: la tormenta más fuerte en más de 20 años (G5). Hubo auroras en lugares donde casi nunca se ven.</li></ul>`,
+    datos:() => `<h3>Datos y simplificaciones</h3>
+      <div class="kv">
+        <span>Distancia Sol–Tierra</span><b>149,6 millones de km</b>
+        <span>Viaje de la luz</span><b>8 min 19 s</b>
+        <span>Nube lenta (≈450 km/s)</span><b>≈ ${fmt(hoursTo(450)/24, 1)} días</b>
+        <span>Carrington (≈17,6 h)</span><b>≈ 2 360 km/s de media</b>
+        <span>Latitud geomagnética de Guayaquil</span><b>≈ ${fmt(GYE_ML, 1)}°</b>
+      </div>
+      <h4>Escala de NOAA: hasta dónde se ven las auroras</h4>
+      <div class="kv">
+        <span>G1 (Kp 5)</span><b>≈ 60° geomagnéticos</b>
+        <span>G2 (Kp 6)</span><b>≈ 55°</b>
+        <span>G3 (Kp 7)</span><b>≈ 50°</b>
+        <span>G4 (Kp 8)</span><b>≈ 45°</b>
+        <span>G5 (Kp 9)</span><b>≈ 40°</b>
+      </div>
+      <ul><li>El tiempo de viaje se calcula como distancia ÷ velocidad (en realidad las nubes rápidas se frenan un poco por el camino).</li>
+      <li>La fuerza de la tormenta depende de la velocidad, pero también de la orientación del campo magnético de la nube (cuando apunta al sur, entra mucha más energía). La simulación sólo usa la velocidad.</li>
+      <li>Las distancias no están a escala: a escala, la Tierra sería un puntito a 215 radios solares.</li>
+      <li>Polo geomagnético usado: 80,8° N, 72,7° O (modelo de dipolo IGRF, ~2025). El borde para Carrington (~28°) es una estimación aproximada.</li></ul>`,
+  },
+};
+const FUENTES = `<h3>Fuentes</h3><ul class="src">
+  <li><a href="https://www.sidc.be/SILSO/datafiles" target="_blank" rel="noopener">SILSO, Observatorio Real de Bélgica – número de manchas solares (V2.0)</a></li>
+  <li><a href="https://science.nasa.gov/science-research/heliophysics/nasa-noaa-sun-reaches-maximum-phase-in-11-year-solar-cycle/" target="_blank" rel="noopener">NASA – El Sol alcanza la fase de máximo de su ciclo de 11 años (oct 2024)</a></li>
+  <li><a href="https://www.swpc.noaa.gov/noaa-scales-explanation" target="_blank" rel="noopener">NOAA SWPC – Escalas de clima espacial (G1–G5)</a></li>
+  <li><a href="https://science.nasa.gov/science-research/heliophysics/how-nasa-tracked-the-most-intense-solar-storm-in-decades/" target="_blank" rel="noopener">NASA – Cómo se siguió la tormenta solar más intensa en décadas (mayo 2024)</a></li>
+  <li><a href="https://www.space.com/the-carrington-event" target="_blank" rel="noopener">Space.com – El evento Carrington</a></li>
+  <li><a href="https://arxiv.org/abs/1811.02786v1" target="_blank" rel="noopener">Hayakawa et al. – Auroras de baja latitud en septiembre de 1859</a></li>
+  <li><a href="https://sdo.gsfc.nasa.gov/" target="_blank" rel="noopener">NASA – Solar Dynamics Observatory (imágenes en 171 Å)</a></li>
+  <li>Snodgrass, H. B. y Ulrich, R. K. (1990), <i>Astrophysical Journal</i> 351: rotación diferencial del Sol.</li>
+  <li>Texturas de la Tierra: las mismas del simulador (Solar System Scope, CC BY 4.0).</li></ul>`;
+function renderCard(){
+  document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === tab));
+  $('body').innerHTML = tab === 'fuentes' ? FUENTES : CARDS[view][tab]();
+  $('body').scrollTop = 0;
+}
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; renderCard(); });
+$('say').onclick = () => {
+  if (!('speechSynthesis' in window)) return;
+  if (speechSynthesis.speaking){ speechSynthesis.cancel(); return; }
+  const u = new SpeechSynthesisUtterance($('body').innerText); u.lang = 'es-ES'; u.rate = 1;
+  const v = speechSynthesis.getVoices().find(v => v.lang.startsWith('es')); if (v) u.voice = v;
+  speechSynthesis.speak(u);
+};
+
+/* ===================================================================== AVISOS Y ETIQUETAS */
+let toastT = 0;
+function toast(html){ const t = $('toast'); t.innerHTML = html; t.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => t.style.opacity = 0, 6500); }
+const labels = {};
+function label(id, html){ let el = labels[id]; if (!el){ el = labels[id] = document.createElement('div'); el.className = 'lbl'; document.body.append(el); } el.innerHTML = html; return el; }
+const pv = new THREE.Vector3();
+function place(id, html, world, show){
+  const el = label(id, html);
+  if (!show){ el.style.display = 'none'; return; }
+  pv.copy(world).project(camera);
+  if (pv.z > 1){ el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.style.transform = `translate(${(pv.x*.5+.5)*innerWidth + 8}px, ${(-pv.y*.5+.5)*innerHeight - 8}px)`;
+}
+
+/* ===================================================================== BUCLE */
+function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); drawChart(); }
+addEventListener('resize', resize); resize();
+
+let last = performance.now(), lastSync = 0, lastTele = 0;
+const wp = new THREE.Vector3();
+function frame(now){
+  const dt = Math.min(0.1, (now - last)/1000); last = now;
+  // tiempo de simulación
+  if (view === 'sol') simDay += dt*speed;
+  else if (view === 'ciclo'){ simDay += dt*3; if (playing){ setDate(date + dt*(zoom ? 0.6 : 2.5), false); if (date >= T_MAX){ playing = false; $('play').textContent = '▶ Reproducir'; } } }
+  else simDay += dt*0.5;
+  if (now - lastSync > 120){ syncGroups(false); lastSync = now; }
+  updateSpots();
+  sunMat.uniforms.uTime.value = now/1000;
+  aurMat.uniforms.uTime.value = now/1000;
+  earth.rotation.y += dt*0.05; aurora.rotation.y = earth.rotation.y;
+  // línea pintada
+  if (paintLine.visible){ const a = lineGeo.attributes.position.array;
+    LINE_LATS.forEach((l, i) => { const lo = (lineLon0 + omegaSyn(l)*(simDay - lineT0))*Math.PI/180, la = l*Math.PI/180;
+      a.set([1.003*Math.cos(la)*Math.sin(lo), 1.003*Math.sin(la), 1.003*Math.cos(la)*Math.cos(lo)], i*3); });
+    lineGeo.attributes.position.needsUpdate = true; }
+  // Tierra a escala: junto a la mancha visible más grande (o bajo el disco)
+  if (tinyEarth.visible){ const d = biggest ? biggest.clone().multiplyScalar(1.004) : new THREE.Vector3(0.35, -0.2, 0.92).normalize().multiplyScalar(1.004);
+    const side = new THREE.Vector3(0, 1, 0).cross(d).normalize().multiplyScalar(0.045); tinyEarth.position.copy(d).add(side); }
+  stepStorm(now);
+  // cámara
+  if (camAnim){ const k = Math.min(1, (now - camAnim.t0)/camAnim.ms), e = k < .5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3)/2;
+    camera.position.lerpVectors(camAnim.p0, camAnim.p1, e); controls.target.lerpVectors(camAnim.q0, camAnim.q1, e); if (k >= 1) camAnim = null; }
+  controls.update();
+  // textos
+  if (view === 'sol'){
+    const R = sunspotR(T_MAX), ex = exactLabel(T_MAX);
+    $('solClock').innerHTML = `Día ${fmt(simDay, 1)} <small>· manchas como en ${ex.txt}</small>`;
+    $('cG').textContent = visG; $('cS').textContent = visS; $('cR').textContent = 10*visG + visS;
+    $('formula').innerHTML = `R = 10 × ${visG} + ${visS} = <b>${10*visG + visS}</b>`;
+    $('solReal').innerHTML = `Dato real del SILSO para ${ex.txt}: <b>${fmt(ex.v, 1)}</b>${ex.prov ? ' (provisional)' : ''}. Tu cuenta cambia día a día, como la de los astrónomos; lo que vale es el promedio del mes.`;
+    $('rotTele').innerHTML = `<span>Vuelta en el ecuador</span><b>${fmt(360/omegaSyn(0), 1)} días</b><span>Vuelta a 30°</span><b>${fmt(360/omegaSyn(30), 1)} días</b><span>Vuelta a 60°</span><b>${fmt(360/omegaSyn(60), 1)} días</b>`;
+  }
+  if (view === 'ciclo' && now - lastTele > 250){ updateCycleTele(); lastTele = now; }
+  place('tiny', 'Tierra a escala', tinyEarth.getWorldPosition(wp), tinyEarth.visible && view !== 'tormenta');
+  place('sunL', 'Sol', wp.set(sunGroup.position.x, 1.25, 0), view === 'tormenta');
+  place('earthL', 'Tierra<small>distancias no a escala</small>', wp.set(earthGroup.position.x, ER + 0.25, 0), view === 'tormenta');
+  place('gye', 'Guayaquil', gyeDot.getWorldPosition(wp), view === 'tormenta' && camera.position.distanceTo(earthGroup.position) < 4
+    && wp.clone().sub(earthGroup.position).dot(camera.position.clone().sub(earthGroup.position)) > 0);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+earthGroup.position.set(SEP, 0, 0);
+choosePreset(PRESETS[0]);
+// abrir con la vista de la URL (#ciclo, #tormenta)
+const h = location.hash.slice(1); setView(['sol','ciclo','tormenta'].includes(h) ? h : 'sol');
+updateCycleTele();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
