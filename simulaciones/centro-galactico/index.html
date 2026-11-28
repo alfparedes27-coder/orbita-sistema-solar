@@ -147,7 +147,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    DATOS REALES (unidades: UA y años)
    Distancia y masa: colaboración GRAVITY (2020): R0 = 8 246,7 pc, M = 4,261 millones de soles.
    1 segundo de arco a la distancia R0 = 8 246,7 UA.
-   Órbitas: S2 de GRAVITY (2020); S1, S4 y S6 de Gillessen et al. (2017).
+   Órbitas: S2 de GRAVITY (2020); las otras 21 de Gillessen et al. (2017), tabla 3 (comprobadas con la 3.ª ley de Kepler).
    ===================================================================== */
 const R0_PC = 8246.7, M_BH = 4.261e6, LY = 63241.077, C_KMS = 299792.458;
 const GM = 4*Math.PI*Math.PI*M_BH;                 // UA³/año²
@@ -160,8 +160,27 @@ const STARS = [
   { id:'S1', a:0.595,   e:0.556,    i:119.14,  W:342.04,  w:122.3,  tp:2001.80,  P:166.0,   col:0xbcd2ff, ref:'Gillessen 2017' },
   { id:'S4', a:0.3570,  e:0.3905,   i:80.33,   W:258.84,  w:290.8,  tp:1957.4,   P:77.0,    col:0xbcd2ff, ref:'Gillessen 2017' },
   { id:'S6', a:0.6574,  e:0.8400,   i:87.24,   W:85.07,   w:116.23, tp:2108.61,  P:192.0,   col:0xbcd2ff, ref:'Gillessen 2017' },
+  // Gillessen et al. 2017, tabla 3 (sp: e = estrella joven y caliente, l = vieja y fría). S31: período calculado con Kepler.
+  { id:'S8', a:0.4047, e:0.8031, i:74.37, W:315.43, w:346.70, tp:1983.64, P:92.9, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S9', a:0.2724, e:0.644, i:82.41, W:156.60, w:150.6, tp:1976.71, P:51.3, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S12', a:0.2987, e:0.8883, i:33.56, W:230.1, w:317.9, tp:1995.59, P:58.9, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S13', a:0.2641, e:0.4250, i:24.70, W:74.5, w:245.2, tp:2004.86, P:49.00, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S14', a:0.2863, e:0.9761, i:100.59, W:226.38, w:334.59, tp:2000.12, P:55.3, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e', lab:true },
+  { id:'S17', a:0.3559, e:0.397, i:96.83, W:191.62, w:326.0, tp:1991.19, P:76.6, col:0xffc08a, ref:'Gillessen 2017', sp:'l' },
+  { id:'S18', a:0.2379, e:0.471, i:110.67, W:49.11, w:349.46, tp:1993.86, P:41.9, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S19', a:0.520, e:0.750, i:71.96, W:344.60, w:155.2, tp:2005.39, P:135, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S21', a:0.2190, e:0.764, i:58.8, W:259.64, w:166.4, tp:2027.40, P:37.00, col:0xffc08a, ref:'Gillessen 2017', sp:'l' },
+  { id:'S23', a:0.253, e:0.56, i:48.0, W:249, w:39.0, tp:2024.7, P:45.8, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S24', a:0.944, e:0.8970, i:103.67, W:7.93, w:290, tp:2024.50, P:331, col:0xffc08a, ref:'Gillessen 2017', sp:'l' },
+  { id:'S29', a:0.428, e:0.728, i:105.8, W:161.96, w:346.5, tp:2025.96, P:101.0, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S31', a:0.449, e:0.5497, i:109.03, W:137.16, w:308.0, tp:2018.07, P:108.6, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S38', a:0.1416, e:0.8201, i:171.1, W:101.06, w:17.99, tp:2003.19, P:19.2, col:0xffc08a, ref:'Gillessen 2017', sp:'l', lab:true },
+  { id:'S39', a:0.370, e:0.9236, i:89.36, W:159.03, w:23.3, tp:2000.06, P:81.1, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S55', a:0.1078, e:0.7209, i:150.1, W:325.5, w:331.5, tp:2009.34, P:12.80, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e', lab:true },
+  { id:'S60', a:0.3877, e:0.7179, i:126.87, W:170.54, w:29.37, tp:2023.89, P:87.1, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e' },
+  { id:'S175', a:0.414, e:0.9867, i:88.53, W:326.83, w:68.52, tp:2009.51, P:96.2, col:0xbcd2ff, ref:'Gillessen 2017', sp:'e', lab:true },
 ];
-STARS.forEach(s => { s.A = s.a*R0_PC; });
+STARS.forEach(s => { s.A = s.a*R0_PC; if (s.id === 'S1' || s.id === 'S4' || s.id === 'S6') s.lab = true; if (s.id === 'S2') s.lab = true; });
 
 /* Posición en 3D: x = hacia el oeste en el cielo (así el este queda a la izquierda, como en las fotos), y = norte,
    z = hacia la Tierra. Fórmulas estándar de una órbita de Kepler con elementos (a, e, i, Ω, ω, tP). */
@@ -251,7 +270,7 @@ bhGlow.scale.setScalar(0.05); bh.add(bhGlow);
 const sV = new THREE.Vector3();
 STARS.forEach(s => {
   const pts = []; for (let k = 0; k <= 720; k++){ kepler(s, s.tp + s.P*k/720, sV); pts.push(sV.clone()); }
-  s.orbit = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:s.col, transparent:true, opacity:s.id === 'S2' ? .8 : .45 }));
+  s.orbit = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:s.col, transparent:true, opacity:s.id === 'S2' ? .8 : .3 }));
   scene.add(s.orbit);
   s.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map:dotTex, color:s.col, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:false }));
   s.sprite.scale.setScalar(s.id === 'S2' ? 0.03 : 0.022); scene.add(s.sprite);
@@ -319,11 +338,13 @@ const CARDS = {
       <h4>Prueba esto</h4>
       <ul><li>Pulsa «2018: la prueba de Einstein» y mira cómo S2 acelera al pasar junto al agujero negro.</li>
       <li>Gira la vista: las órbitas están inclinadas en todas direcciones, no en un plano como los planetas.</li>
-      <li>La línea punteada pequeña es 1 semana luz. Toda la órbita de S2 cabe en unos 12 días luz.</li></ul>`,
+      <li>La línea punteada pequeña es 1 semana luz. Toda la órbita de S2 cabe en unos 12 días luz.</li>
+      <li>Hay 22 estrellas con su órbita medida. Las azules son jóvenes y calientes; las naranjas, viejas y frías. S55 da la vuelta más rápida: cada 12,8 años.</li></ul>
+      <div class="note">Misterio sin resolver: las estrellas azules son jóvenes, pero tan cerca del agujero negro sus mareas deberían impedir que nazcan estrellas. Nadie sabe bien cómo llegaron ahí.</div>`,
     datos:() => {
-      const rows = STARS.map(s => { const rp = s.A*(1 - s.e); return `<span>${s.id}</span><b>vuelta cada ${fmt(s.P, 1)} años · pasa a ${fmt(rp)} UA a ${fmt(speedAt(s, rp))} km/s</b>`; }).join('');
-      return `<h3>Las órbitas medidas</h3><div class="kv">${rows}</div>
-      <ul><li>Órbita de S2: colaboración GRAVITY (2020). S1, S4 y S6: Gillessen et al. (2017), que midió 40 estrellas.</li>
+      const rows = [...STARS].sort((p, q) => p.P - q.P).map(s => { const rp = s.A*(1 - s.e); return `<span>${s.id}${s.sp === 'l' ? ' (vieja)' : ''}</span><b>${fmt(s.P, s.P < 100 ? 1 : 0)} años · pasa a ${fmt(rp)} UA · ${fmt(speedAt(s, rp))} km/s</b>`; }).join('');
+      return `<h3>Las 22 órbitas medidas</h3><p>Ordenadas por lo que tardan en dar una vuelta. «Pasa a» es su punto más cercano al agujero negro y la velocidad que lleva ahí. Las más rápidas, S175 y S14, rozan los 12 000 km/s.</p><div class="kv">${rows}</div>
+      <ul><li>Órbita de S2: colaboración GRAVITY (2020). Las otras 21: Gillessen et al. (2017), que midió 40 estrellas; aquí están las 21 con órbitas más cerradas y mejor medidas. Cada una se comprobó con la 3.ª ley de Kepler.</li>
       <li>Distancias en UA con R0 = 8 246,7 pársecs (GRAVITY 2020): 1 segundo de arco equivale a 8 247 UA.</li>
       <li>Velocidades calculadas con la ley de Kepler y la masa de 4,26 millones de soles.</li></ul>
       <div class="note">La simulación usa órbitas de Kepler. La de S2 en realidad gira un poquito cada vuelta (precesión de Schwarzschild, 12 minutos de arco por órbita), otra predicción de Einstein que GRAVITY midió en 2020.</div>`; },
@@ -394,7 +415,7 @@ function frame(now){
   swarm.material.opacity = Math.min(.75, Math.max(0, (Math.log10(d) - 3.6)/1.2));
   xrb.visible = d > 6000;
   const near = Math.min(1, Math.max(0, (Math.log10(d) - 1.3)/0.7));                       // de muy cerca se ocultan las órbitas lejanas
-  STARS.forEach(s => { s.orbit.material.opacity = (s.id === 'S2' ? .85 : .5)*Math.min(1, Math.max(0, (5.2 - Math.log10(d))/1.0))*near; s.orbit.visible = near > 0.01; s.sprite.visible = d < 2e5 && d > 25; });
+  STARS.forEach(s => { s.orbit.material.opacity = (s.id === 'S2' ? .85 : .32)*Math.min(1, Math.max(0, (5.2 - Math.log10(d))/1.0))*near; s.orbit.visible = near > 0.01; s.sprite.visible = d < 2e5 && d > 25; });
   bhGlow.visible = d > 30;
   // interfaz
   if (now - lastUI > 120){ lastUI = now;
@@ -409,7 +430,7 @@ function frame(now){
       : d > 300 ? `Estás a <b>${fmt(d)} UA</b> de Sagitario A* (${fmt(d*8.317/60/24, 1)} días luz)` : `Estás a <b>${fmt(d, d < 10 ? 1 : 0)} UA</b> de Sagitario A*: su luz tarda <b>${d*8.317 < 90 ? fmt(d*8.317, 0) + ' minutos' : fmt(d*8.317/60, 1) + ' horas'}</b> en llegarte`;
   }
   place('bh', 'Sagitario A*<small>4,26 millones de soles</small>', tmp.set(0, 0, 0), d < 3e5 || view === 'enjambre');
-  STARS.forEach(s => place(s.id, s.id, s.pos, d < 6e4 && d > 3, s.id === 'S2' ? 's2' : ''));
+  STARS.forEach(s => place(s.id, s.id, s.pos, s.lab && d < 6e4 && d > 30, s.id === 'S2' ? 's2' : ''));
   RINGS.forEach((o, k) => place('ring' + k, o.txt, tmp.set(o.r*0.71, o.r*0.71, 0), d > o.r*0.8 && d < o.r*40));
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
