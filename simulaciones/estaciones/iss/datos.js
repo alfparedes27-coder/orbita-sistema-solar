@@ -76,16 +76,16 @@ export const LINKS = [
 // Escotillas cerradas (naves o equipos detrás): módulo, dirección, rótulo
 export const CLOSED = [
   { m:'harmony', dir:'+x', t:'IDA‑2 · Crew Dragon (Crew‑13)' },
-  { m:'harmony', dir:'+y', t:'IDA‑3 · Dragon de carga' },
+  { m:'harmony', dir:'+y', t:'IDA‑3 · libre (la Dragon CRS‑35 se fue el 20 nov 2026)' },
   { m:'harmony', dir:'-y', t:'Puerto para Cygnus y HTV‑X' },
-  { m:'zvezda', dir:'-x', t:'Nave de carga Progress' },
-  { m:'poisk', dir:'+y', t:'Nave de carga Progress' },
-  { m:'rassvet', dir:'-y', t:'Soyuz MS‑29' },
+  { m:'zvezda', dir:'-x', t:'Progress MS‑34 (Progress 95)' },
+  { m:'poisk', dir:'+y', t:'Progress MS‑35 (Progress 96)' },
+  { m:'rassvet', dir:'-y', t:'Progress MS‑36 (Progress 97)' },
   { m:'tranquility', dir:'-z', t:'Esclusa comercial Bishop' },
   { m:'kibo', dir:'-z', t:'Esclusa de experimentos de Kibō' },
   { m:'unity', dir:'+y', t:'Z1 · cables hacia la armazón' },
   { m:'unity', dir:'-y', t:'Puerto libre' },
-  { m:'prichal', dir:'-y', t:'Puerto libre (naves futuras)' }, { m:'prichal', dir:'+x', t:'Puerto libre' }, { m:'prichal', dir:'-x', t:'Puerto libre' },
+  { m:'prichal', dir:'-y', t:'Soyuz MS‑29' }, { m:'prichal', dir:'+x', t:'Puerto libre' }, { m:'prichal', dir:'-x', t:'Puerto libre' },
   { m:'prichal', dir:'+z', t:'Puerto libre' }, { m:'prichal', dir:'-z', t:'Puerto libre' },
   { m:'columbus', dir:'+z', t:'Pared exterior (experimentos afuera)' },
 ];
@@ -124,10 +124,10 @@ export const SPOTS = [
   { m:'zvezda', s:.85, w:'+y', d:1.1, t:'Motores y control', x:'Atrás de Zvezdá están los motores principales. Junto con las naves Progress, elevan la órbita varias veces al año: el poco aire que hay a 420 km frena la estación y la hace bajar unos 2 km por mes, y más cuando el Sol está muy activo.' },
   { m:'zvezda', s:.96, w:'-x', d:.6, t:'La pequeña fuga', x:'En la cámara de atrás de Zvezdá hay una fuga de aire muy lenta desde 2019. Los cosmonautas sellaron grietas y, cuando no se usa, la escotilla se mantiene cerrada para cuidar el aire del resto de la estación.' },
   { m:'poisk', s:.5, w:'+x', d:.85, t:'La esclusa rusa', x:'Desde aquí salen los cosmonautas a caminar en el espacio con trajes Orlan, que se entran por una puerta en la espalda, como un armario. Arriba se acoplan las naves Soyuz y Progress.' },
-  { m:'rassvet', s:.5, w:'+x', d:.75, t:'Puerto de la Soyuz', x:'Abajo de Rassvet se acopla la Soyuz, el «bote salvavidas» de los tres tripulantes rusos: siempre lista para volver a la Tierra en unas tres horas si hay una emergencia.' },
+  { m:'rassvet', s:.5, w:'+x', d:.75, t:'Un puerto para naves', x:'Abajo de Rassvet se acoplaban las Soyuz. El 26 de noviembre de 2026 llegó aquí la Progress MS‑36: la primera nave de carga Progress que se acopla a Rassvet. Por primera vez hay tres Progress a la vez en la estación.' },
   { m:'nauka', s:.3, w:'+z', d:1.2, t:'El laboratorio ruso', x:'Naúka tiene lugar para experimentos, un baño, una cabina más y una gran ventana. Por fuera lleva el Brazo Robótico Europeo (ERA), que camina por el módulo como una oruga.' },
   { m:'nauka', s:.12, w:'-x', d:1.25, t:'Un acoplamiento accidentado', x:'El 29 de julio de 2021, tres horas después de acoplarse, los motores de Naúka se encendieron solos y giraron toda la estación unos 540°, una vuelta y media. Los controladores la recuperaron usando los motores de Zvezdá y de una Progress.' },
-  { m:'prichal', s:.5, w:'+z', d:.9, t:'Seis puertas, cinco libres', x:'Prichal es una esfera con seis escotillas: una une a Naúka y las otras cinco esperan naves y módulos del futuro. Algunas Soyuz ya se han acoplado aquí.' },
+  { m:'prichal', s:.5, w:'+z', d:.9, t:'Seis puertas', x:'Prichal es una esfera con seis escotillas: una la une a Naúka, en la de abajo está la Soyuz MS‑29 desde el 14 de julio de 2026 (el «bote salvavidas» de Dubrov, Kikina y Menon, siempre lista para volver a la Tierra en unas tres horas) y las otras cuatro esperan naves y módulos del futuro.' },
 ];
 
 // ---------- armado: vuelos y elementos ----------
@@ -200,13 +200,14 @@ export const MOVES = {
 };
 export const fdate = (s) => { const [y,m,d] = s.split('-').map(Number); return d + ' ' + ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sep.','oct.','nov.','dic.'][m-1] + ' ' + y; };
 
-// Naves acopladas en la configuración actual (aproximada, noviembre de 2026)
+// Naves acopladas al 27 nov 2026 (NASA «Space Station Visiting Vehicles», actualizada el 26 nov 2026; puertos de NASA y Roscosmos).
+// desde: fecha de acoplamiento; la nave aparece en el modelo a partir de ese día.
 export const VISIT = [
-  { id:'v-crew', tipo:'dragon', port:'harmony+x', t:'Crew Dragon (Crew‑13)' },
-  { id:'v-cargo', tipo:'dragonc', port:'harmony+y', t:'Dragon de carga (CRS‑35)' },
-  { id:'v-soyuz', tipo:'soyuz', port:'rassvet-y', t:'Soyuz MS‑29' },
-  { id:'v-prog1', tipo:'progress', port:'zvezda-x', t:'Progress MS' },
-  { id:'v-prog2', tipo:'progress', port:'poisk+y', t:'Progress MS' },
+  { id:'v-crew', tipo:'dragon', port:'harmony+x', t:'Crew Dragon (Crew‑13)', desde:'2026-10-01' },
+  { id:'v-soyuz', tipo:'soyuz', port:'prichal-y', t:'Soyuz MS‑29', desde:'2026-07-14' },
+  { id:'v-prog1', tipo:'progress', port:'zvezda-x', t:'Progress MS‑34 (Progress 95)', desde:'2026-04-28' },
+  { id:'v-prog2', tipo:'progress', port:'poisk+y', t:'Progress MS‑35 (Progress 96)', desde:'2026-09-19' },
+  { id:'v-prog3', tipo:'progress', port:'rassvet-y', t:'Progress MS‑36 (Progress 97)', desde:'2026-11-26' },
 ];
 
 export const STATS = [

@@ -23,7 +23,7 @@ export const PORTS = {
   'harmony+x':P([18.65,0,0],'+x'), 'harmony+y':P([15.05,2.2,0],'+y'), 'harmony-y':P([15.05,-2.2,0],'-y'), 'harmony+z':P([15.05,0,2.2],'+z'), 'harmony-z':P([15.05,0,-2.2],'-z'),
   'tranquility-z':P([0,0,-9.0],'-z'), 'tranquility-y':P([0,-2.24,-6.15],'-y'), 'tranquility+x':P([2.24,0,-6.15],'+x'), 'tranquility-x':P([-2.24,0,-6.15],'-x'),
   'kibo+y':P([15.05,2.2,-6.4],'+y'), 'zvezda-x':P([-30.3,0,0],'-x'), 'zvezda-y':P([-18.45,-1.2,0],'-y'),
-  'poisk+y':P([-18.45,5.35,0],'+y'), 'rassvet-y':P([-6.3,-7.6,0],'-y'),
+  'poisk+y':P([-18.45,5.35,0],'+y'), 'rassvet-y':P([-6.3,-7.6,0],'-y'), 'prichal-y':P([-18.45,-17.6,0],'-y'),
 };
 
 // ---------- materiales ----------
@@ -356,10 +356,9 @@ export function buildStation(){
   addDate.pirs ??= D('2001-09-17'); remDate.pirs = D('2021-07-26');
   addDate.jemrms = addDate.kibo; addDate.ida2 = D('2016-08-19'); addDate.ida3 = D('2019-08-21');
   addDate.nauka = D('2021-07-29'); addDate.era = D('2021-07-29');
-  const VIS_FROM = D('2026-10-16');
   const setDate = (t) => {
     for (const [id, o] of parts){
-      if (id.startsWith('v-')){ o.visible = t >= VIS_FROM; continue; }
+      if (id.startsWith('v-')){ o.visible = t >= D(o.userData.visit.desde); continue; }   // cada nave desde el día en que se acopló
       const a = addDate[id]; if (a === undefined) continue;
       o.visible = t >= a && !(remDate[id] && t >= remDate[id]);
     }

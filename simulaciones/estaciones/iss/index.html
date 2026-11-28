@@ -480,7 +480,7 @@ function goOutside(){
   EVA.out = true; EVA.t0 = performance.now(); EVA.anchor = Q.hatchOut.clone().addScaledVector(Q.hatchDir, -.4);
   station.setDate(Date.now()); station.root.visible = true; intr.root.visible = false;
   EVA.boxes = [];
-  for (const id of [...MODS.map(m => m.id), 'pma2','pma3','ida2','ida3','z1','s0','s1','p1','bishop','v-crew','v-cargo','v-soyuz','v-prog1','v-prog2']){
+  for (const id of [...MODS.map(m => m.id), 'pma2','pma3','ida2','ida3','z1','s0','s1','p1','bishop','v-crew','v-soyuz','v-prog1','v-prog2','v-prog3']){
     const o = station.parts.get(id); if (o && o.visible) EVA.boxes.push(new THREE.Box3().setFromObject(o).expandByScalar(.35)); }
   cam.position.copy(Q.hatchOut).addScaledVector(Q.hatchDir, .9); const d = Q.hatchDir; look.yaw = Math.atan2(-d.x, -d.z); look.pitch = -.25; vel.set(0,0,0);
   if (!tether){ tether = new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length:16 }, () => V(0,0,0))), new THREE.LineBasicMaterial({ color:0xd8d8d0 })); }
